@@ -1,0 +1,60 @@
+using Godot;
+using System;
+
+public partial class ScreenMain : Node2D
+{
+	[Export] public PackedScene PlayerScene { get; set; }
+
+	private const string WorldPath = "res://scenes/world/Whispering Fields/Field1.tscn";
+		
+	private const string PlayerPath = "res://src/Entities/Player/Player_anim.tscn";
+
+	private static readonly Vector2 DefaultSpawn = new(105f, 120f);
+
+	private void _on_login_pressed()
+	{
+		var tree = GetTree();
+		var world = GD.Load<PackedScene>(WorldPath).Instantiate<Node2D>();
+		var playerInstance = GD.Load<PackedScene>(PlayerPath).Instantiate();
+		
+		// An toàn ép kiểu sang Player
+		var player = playerInstance as Player;
+		if (player == null)
+		{
+			GD.PrintErr("PlayerForAnimation scene không chứa Player script!");
+			playerInstance.QueueFree();
+			return;
+		}
+		var spawn = world.GetNodeOrNull<Node2D>("SpawnPoint");
+		player.Position = spawn?.GlobalPosition ?? DefaultSpawn;
+		world.AddChild(player);
+
+		tree.Root.AddChild(world);
+		tree.CurrentScene.QueueFree();
+		tree.CurrentScene = world;
+
+		// Kích hoạt camera
+		var cam = player.GetNodeOrNull<Camera2D>("follow");
+		if (cam != null)
+		{
+			cam.Zoom = new Godot.Vector2(8f, 8f);
+			cam.CallDeferred("make_current");
+		}
+
+		// thiết lập player trong SceneManager
+		var sceneManager = tree.Root.GetNodeOrNull<SceneManager>("SceneManager");
+		if (sceneManager != null)
+		{
+			sceneManager.SetPlayer(player);
+		}
+		else
+		{
+			GD.PrintErr("Không tìm thấy SceneManager để set player");
+		}
+	}
+
+	
+
+	private void _on_exits_pressed() => GetTree().Quit();
+	
+}
