@@ -37,7 +37,7 @@ public partial class ScreenMain : Node2D
 		var cam = player.GetNodeOrNull<Camera2D>("follow");
 		if (cam != null)
 		{
-			cam.Zoom = new Godot.Vector2(8f, 8f);
+			cam.Zoom = new Godot.Vector2(4f, 4f);
 			cam.CallDeferred("make_current");
 		}
 
