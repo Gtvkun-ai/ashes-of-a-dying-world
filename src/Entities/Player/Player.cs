@@ -33,15 +33,28 @@ public partial class Player : CharacterBody2D
 		{
 			dir = dir.Normalized();
 			Velocity = dir * (isRunning ? RunSpeed : Speed);
-
 			// Xác định hành động (không có dấu _)
 			string action = isRunning ? "run" : "go";
-
 			// Xác định hướng (không có dấu _)
-			string direction = (Mathf.Abs(dir.X) > Mathf.Abs(dir.Y))
-						? (dir.X > 0 ? "right" : "left")
-						: (dir.Y > 0 ? "down" : "up");
-
+			string vDir = "";
+			if (dir.Y > 0) vDir = "down";
+			else if (dir.Y < 0) vDir = "up";
+			// 2. Xác định thành phần ngang
+			string hDir = "";
+			if (dir.X > 0) hDir = "right";
+			else if (dir.X < 0) hDir = "left";
+			// 3. Kết hợp lại vào biến direction
+			string direction = "";
+			if (vDir != "" && hDir != "")
+			{
+				// Nếu có cả dọc và ngang (đi chéo) -> ví dụ: "down_left"
+				direction = $"{vDir}_{hDir}";
+			}
+			else
+			{
+				// Nếu chỉ có một chiều -> ví dụ: "down"
+				direction = $"{vDir}{hDir}";
+			}
 			//  Tự động thêm dấu _ vào giữa => Đảm bảo chỉ có 1 dấu gạch dưới
 			string anim = $"{action}_{direction}"; 
 
