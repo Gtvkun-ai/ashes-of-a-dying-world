@@ -355,8 +355,6 @@ shape = SubResource("CapsuleShape2D_v6v2t")
 
 [node name="Body" type="AnimatedSprite2D" parent="."]
 sprite_frames = SubResource("SpriteFrames_h88hi")
-animation = &"run_up"
-frame = 4
-frame_progress = 0.8770048
+animation = &"Idle"
 
 [node name="follow" type="Camera2D" parent="."]
