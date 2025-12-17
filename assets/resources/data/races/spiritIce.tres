@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="RaceData" load_steps=2 format=3 uid="uid://onq8eelbwsx8"]
+
+[ext_resource type="Script" uid="uid://xjemnafklup3" path="res://src/Core/Data/RaceData.cs" id="1_1whor"]
+
+[resource]
+script = ExtResource("1_1whor")
+RaceName = "Spirit"
+BaseAttributes = Dictionary[int, int]({
+0: 3,
+1: 15,
+2: 18,
+3: 8,
+4: 20,
+5: 3
+})
+AttributeGrowth = Dictionary[int, float]({
+0: 0.2,
+1: 1.3,
+2: 3.0,
+3: 0.8,
+4: 1.5,
+5: 0.3
+})
+metadata/_custom_type_script = "uid://xjemnafklup3"

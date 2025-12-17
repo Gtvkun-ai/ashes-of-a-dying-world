@@ -684,5 +684,4 @@ shape = SubResource("CapsuleShape2D_v6v2t")
 [node name="Body" type="AnimatedSprite2D" parent="."]
 sprite_frames = SubResource("SpriteFrames_h88hi")
 animation = &"run_up_right"
-
 [node name="follow" type="Camera2D" parent="."]

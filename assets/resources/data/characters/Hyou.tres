@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CharacterConfig" load_steps=4 format=3 uid="uid://cpdjbs8w3cyi8"]
+
+[ext_resource type="Script" uid="uid://cfybswbojyqyb" path="res://src/Core/Data/CharacterConfig.cs" id="1_dt2gn"]
+[ext_resource type="Texture2D" uid="uid://lr287by5djcx" path="res://assets/sprites/Hyou_avt.png" id="1_ex5am"]
+[ext_resource type="Resource" uid="uid://onq8eelbwsx8" path="res://assets/resources/data/races/spiritIce.tres" id="2_dor51"]
+
+[resource]
+script = ExtResource("1_dt2gn")
+ID = "villain_001"
+Name = "Hyou"
+Avatar = ExtResource("1_ex5am")
+CharacterRace = ExtResource("2_dor51")
+ActiveSkills = Array[Object]([])
+ComboSequence = null
+metadata/_custom_type_script = "uid://cfybswbojyqyb"
