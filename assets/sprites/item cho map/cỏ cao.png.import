@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://l6f06auus8af"
-path="res://.godot/imported/Reira_walk 4 hướng còn lại.png-85623f61f5d24ba823041a3e3fff57a1.ctex"
+uid="uid://qxhk46yj7esn"
+path="res://.godot/imported/cỏ cao.png-13db4fa039b696c12bea4273f666c994.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/Reira_walk 4 hướng còn lại.png"
-dest_files=["res://.godot/imported/Reira_walk 4 hướng còn lại.png-85623f61f5d24ba823041a3e3fff57a1.ctex"]
+source_file="res://assets/sprites/item cho map/cỏ cao.png"
+dest_files=["res://.godot/imported/cỏ cao.png-13db4fa039b696c12bea4273f666c994.ctex"]
 
 [params]
 
