@@ -524,7 +524,7 @@ animations = [{
 }],
 "loop": true,
 "name": &"run_down_left",
-"speed": 5.0
+"speed": 7.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -547,7 +547,7 @@ animations = [{
 }],
 "loop": true,
 "name": &"run_down_right",
-"speed": 5.0
+"speed": 7.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -639,7 +639,7 @@ animations = [{
 }],
 "loop": true,
 "name": &"run_up_left",
-"speed": 5.0
+"speed": 7.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -662,7 +662,7 @@ animations = [{
 }],
 "loop": true,
 "name": &"run_up_right",
-"speed": 5.0
+"speed": 7.0
 }]
 
 [node name="CharacterBody2D" type="CharacterBody2D"]
@@ -677,8 +677,6 @@ shape = SubResource("CapsuleShape2D_v6v2t")
 
 [node name="Body" type="AnimatedSprite2D" parent="."]
 sprite_frames = SubResource("SpriteFrames_h88hi")
-animation = &"run_up"
-frame = 4
-frame_progress = 0.8770048
+animation = &"run_up_right"
 
 [node name="follow" type="Camera2D" parent="."]
