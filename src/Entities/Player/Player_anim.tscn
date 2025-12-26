@@ -1,10 +1,10 @@
-[gd_scene load_steps=91 format=3 uid="uid://brhkdy734ch4x"]
+[gd_scene load_steps=89 format=3 uid="uid://brhkdy734ch4x"]
 
 [ext_resource type="Texture2D" uid="uid://bux7goj4h7awf" path="res://assets/sprites/Reira_walk.png" id="1_kgkbq"]
 [ext_resource type="Script" uid="uid://jguaf0akgd71" path="res://src/Entities/Player/Player.cs" id="1_v6v2t"]
-[ext_resource type="Texture2D" uid="uid://l6f06auus8af" path="res://assets/sprites/Reira_walk 4 hướng còn lại.png" id="3_6685u"]
+[ext_resource type="Texture2D" uid="uid://d07xlvkf0ur7a" path="res://assets/sprites/Reira_walk 4 hướng còn lại.png" id="3_6685u"]
 [ext_resource type="Texture2D" uid="uid://br0o27aguajjq" path="res://assets/sprites/Reira_run.png" id="3_tjg5f"]
-[ext_resource type="Texture2D" uid="uid://b71p4i281p43h" path="res://assets/sprites/Reira_run 4 hướng còn lại.png" id="5_sgmg4"]
+[ext_resource type="Texture2D" uid="uid://n62jbed4dpin" path="res://assets/sprites/Reira_run 4 hướng còn lại.png" id="5_sgmg4"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_6685u"]
 size = Vector2(12.5, 5.5)
@@ -29,39 +29,36 @@ region = Rect2(32, 0, 16, 32)
 atlas = ExtResource("1_kgkbq")
 region = Rect2(48, 0, 16, 32)
 
-[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_6685u"]
-load_path = "res://.godot/imported/Reira_walk 4 hướng còn lại.png-85623f61f5d24ba823041a3e3fff57a1.ctex"
-
 [sub_resource type="AtlasTexture" id="AtlasTexture_b57hp"]
-atlas = SubResource("CompressedTexture2D_6685u")
+atlas = ExtResource("3_6685u")
 region = Rect2(0, 0, 16, 32)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_15m6e"]
-atlas = SubResource("CompressedTexture2D_6685u")
+atlas = ExtResource("3_6685u")
 region = Rect2(16, 0, 16, 32)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_jet65"]
-atlas = SubResource("CompressedTexture2D_6685u")
+atlas = ExtResource("3_6685u")
 region = Rect2(32, 0, 16, 32)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_6jrg8"]
-atlas = SubResource("CompressedTexture2D_6685u")
+atlas = ExtResource("3_6685u")
 region = Rect2(48, 0, 16, 32)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_ro432"]
-atlas = SubResource("CompressedTexture2D_6685u")
+atlas = ExtResource("3_6685u")
 region = Rect2(48, 96, 16, 32)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_oeasd"]
-atlas = SubResource("CompressedTexture2D_6685u")
+atlas = ExtResource("3_6685u")
 region = Rect2(32, 96, 16, 32)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_8d2p5"]
-atlas = SubResource("CompressedTexture2D_6685u")
+atlas = ExtResource("3_6685u")
 region = Rect2(16, 96, 16, 32)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_pvqy4"]
-atlas = SubResource("CompressedTexture2D_6685u")
+atlas = ExtResource("3_6685u")
 region = Rect2(0, 96, 16, 32)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_kimch"]
@@ -168,55 +165,52 @@ region = Rect2(64, 0, 16, 32)
 atlas = ExtResource("3_tjg5f")
 region = Rect2(80, 0, 16, 32)
 
-[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_mpi6n"]
-load_path = "res://.godot/imported/Reira_run 4 hướng còn lại.png-a2210811e5b16bb641c9e5941934ff9a.ctex"
-
 [sub_resource type="AtlasTexture" id="AtlasTexture_mpi6n"]
-atlas = SubResource("CompressedTexture2D_mpi6n")
+atlas = ExtResource("5_sgmg4")
 region = Rect2(0, 0, 16, 32)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_kps1j"]
-atlas = SubResource("CompressedTexture2D_mpi6n")
+atlas = ExtResource("5_sgmg4")
 region = Rect2(16, 0, 16, 32)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_5ok2c"]
-atlas = SubResource("CompressedTexture2D_mpi6n")
+atlas = ExtResource("5_sgmg4")
 region = Rect2(32, 0, 16, 32)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_gxy7f"]
-atlas = SubResource("CompressedTexture2D_mpi6n")
+atlas = ExtResource("5_sgmg4")
 region = Rect2(48, 0, 16, 32)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_skbpe"]
-atlas = SubResource("CompressedTexture2D_mpi6n")
+atlas = ExtResource("5_sgmg4")
 region = Rect2(64, 0, 16, 32)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_yus07"]
-atlas = SubResource("CompressedTexture2D_mpi6n")
+atlas = ExtResource("5_sgmg4")
 region = Rect2(80, 0, 16, 32)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_ntg5d"]
-atlas = SubResource("CompressedTexture2D_mpi6n")
+atlas = ExtResource("5_sgmg4")
 region = Rect2(0, 32, 16, 32)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_a0iu3"]
-atlas = SubResource("CompressedTexture2D_mpi6n")
+atlas = ExtResource("5_sgmg4")
 region = Rect2(16, 32, 16, 32)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_41jy0"]
-atlas = SubResource("CompressedTexture2D_mpi6n")
+atlas = ExtResource("5_sgmg4")
 region = Rect2(32, 32, 16, 32)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_p4owe"]
-atlas = SubResource("CompressedTexture2D_mpi6n")
+atlas = ExtResource("5_sgmg4")
 region = Rect2(48, 32, 16, 32)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_6cm88"]
-atlas = SubResource("CompressedTexture2D_mpi6n")
+atlas = ExtResource("5_sgmg4")
 region = Rect2(64, 32, 16, 32)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_h3i01"]
-atlas = SubResource("CompressedTexture2D_mpi6n")
+atlas = ExtResource("5_sgmg4")
 region = Rect2(80, 32, 16, 32)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_rvigw"]
@@ -293,27 +287,27 @@ region = Rect2(80, 96, 16, 32)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_1fj2y"]
 atlas = ExtResource("5_sgmg4")
-region = Rect2(80, 64, 16, 32)
+region = Rect2(0, 64, 16, 32)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_fwjt6"]
 atlas = ExtResource("5_sgmg4")
-region = Rect2(64, 64, 16, 32)
+region = Rect2(16, 64, 16, 32)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_5ccui"]
 atlas = ExtResource("5_sgmg4")
-region = Rect2(48, 64, 16, 32)
+region = Rect2(32, 64, 16, 32)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_ch1qr"]
 atlas = ExtResource("5_sgmg4")
-region = Rect2(32, 64, 16, 32)
+region = Rect2(48, 64, 16, 32)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_l127i"]
 atlas = ExtResource("5_sgmg4")
-region = Rect2(16, 64, 16, 32)
+region = Rect2(64, 64, 16, 32)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_3xvaa"]
 atlas = ExtResource("5_sgmg4")
-region = Rect2(0, 64, 16, 32)
+region = Rect2(80, 64, 16, 32)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_p70qs"]
 atlas = ExtResource("5_sgmg4")
@@ -529,7 +523,7 @@ animations = [{
 }],
 "loop": true,
 "name": &"run_down_left",
-"speed": 5.0
+"speed": 7.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -552,7 +546,7 @@ animations = [{
 }],
 "loop": true,
 "name": &"run_down_right",
-"speed": 5.0
+"speed": 7.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -644,7 +638,7 @@ animations = [{
 }],
 "loop": true,
 "name": &"run_up_left",
-"speed": 5.0
+"speed": 7.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -667,7 +661,7 @@ animations = [{
 }],
 "loop": true,
 "name": &"run_up_right",
-"speed": 5.0
+"speed": 7.0
 }]
 
 [node name="CharacterBody2D" type="CharacterBody2D"]
@@ -684,6 +678,7 @@ shape = SubResource("RectangleShape2D_6685u")
 [node name="Body" type="AnimatedSprite2D" parent="."]
 position = Vector2(0, -16)
 sprite_frames = SubResource("SpriteFrames_h88hi")
+
 animation = &"go_down"
 
 [node name="follow" type="Camera2D" parent="."]
