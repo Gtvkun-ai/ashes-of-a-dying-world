@@ -10,21 +10,23 @@ resource_local_to_scene = true
 shader = ExtResource("1_5gb6s")
 shader_parameter/speed = 2.0
 shader_parameter/strength = 5.0
-shader_parameter/height_offset = 0.0
+shader_parameter/height_offset = -0.585
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_23vvl"]
-size = Vector2(55, 11)
+size = Vector2(54, 11)
 
 [node name="GrassMoving" type="Area2D"]
+collision_layer = 0
 script = ExtResource("1_qs7mt")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 material = SubResource("ShaderMaterial_qs7mt")
+position = Vector2(0, -32)
 scale = Vector2(4, 4)
 texture = ExtResource("2_1dq7v")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-position = Vector2(2.5, 26.5)
+position = Vector2(0, -5)
 shape = SubResource("RectangleShape2D_23vvl")
 script = ExtResource("4_tr5mf")
 
