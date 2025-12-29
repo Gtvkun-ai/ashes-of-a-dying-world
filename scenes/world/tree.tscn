@@ -1,0 +1,32 @@
+[gd_scene load_steps=5 format=3 uid="uid://3x0xwi0xk2ej"]
+
+[ext_resource type="Texture2D" uid="uid://cdwhvp0bl0kw3" path="res://assets/sprites/Tree for map/cay.png" id="1_thqfv"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_madqg"]
+atlas = ExtResource("1_thqfv")
+region = Rect2(0, 0, 117, 153)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_gvg74"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_madqg")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 5.0
+}]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_thqfv"]
+size = Vector2(45, 18)
+
+[node name="Tree" type="StaticBody2D"]
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+sprite_frames = SubResource("SpriteFrames_gvg74")
+animation = &"idle"
+offset = Vector2(0, -30)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(-1.5, 22)
+shape = SubResource("RectangleShape2D_thqfv")

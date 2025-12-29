@@ -1,7 +1,8 @@
-[gd_scene load_steps=5 format=4 uid="uid://35ajkrvdef1l"]
+[gd_scene load_steps=6 format=4 uid="uid://35ajkrvdef1l"]
 
 [ext_resource type="Texture2D" uid="uid://cyy57e0q36muo" path="res://assets/sprites/field1.png" id="1_ey7of"]
 [ext_resource type="PackedScene" uid="uid://hvmlrhjfrshs" path="res://assets/sprites/item cho map/grass_moving.tscn" id="2_drmq8"]
+[ext_resource type="PackedScene" uid="uid://3x0xwi0xk2ej" path="res://scenes/world/tree.tscn" id="3_vydvg"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ey7of"]
 texture = ExtResource("1_ey7of")
@@ -927,6 +928,9 @@ sources/1 = SubResource("TileSetAtlasSource_ey7of")
 [node name="Fields1" type="Node2D"]
 z_index = -10
 y_sort_enabled = true
+
+[node name="Tree" parent="." instance=ExtResource("3_vydvg")]
+position = Vector2(238, 112)
 
 [node name="field1" type="TileMapLayer" parent="."]
 z_index = -10
