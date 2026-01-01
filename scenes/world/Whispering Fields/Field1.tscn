@@ -938,4 +938,4 @@ tile_map_data = PackedByteArray("AAAAAAAAAQAAAAAAAAAAAAEAAQAAAAEAAAAAAAIAAQAAAAI
 tile_set = SubResource("TileSet_vydvg")
 
 [node name="Tree2" parent="." instance=ExtResource("3_vydvg")]
-position = Vector2(314, 112)
+position = Vector2(291, 112)
