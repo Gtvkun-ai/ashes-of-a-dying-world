@@ -1,101 +1,115 @@
 using Godot;
+using AshesofaDyingWorld.Entities.Player;
 
 public partial class Player : CharacterBody2D
 {
-	[Export] public float Speed { get; set; } = 100f;
-	[Export] public float RunSpeed { get; set; } = 200f;
-	[Export] public NodePath BodyPath { get; set; } = "Body";
-	[Export] public int StopFrameIndex { get; set; } = 0;
+    [Export] public float Speed { get; set; } = 100f;
+    [Export] public float RunSpeed { get; set; } = 200f;
+    [Export] public float RunStaminaCost { get; set; } = 20f;
+    [Export] public float MinStaminaToRun { get; set; } = 40f;
+    [Export] public NodePath BodyPath { get; set; } = "Body";
+    [Export] public int StopFrameIndex { get; set; } = 0;
 
-	private AnimatedSprite2D _body;
-	private string _lastMoveAnim = "go_down";
-	private bool _wasMoving = false;
+	private bool _isExhausted = false; // Cờ đánh dấu đang kiệt sức
 
-	public override void _Ready()
-	{
-		_body = GetNodeOrNull<AnimatedSprite2D>(BodyPath);
+    private AnimatedSprite2D _body;
+    private string _lastMoveAnim = "go_down";
+    private bool _wasMoving = false;
+    private bool _wasRunning = false; // Track trạng thái chạy trước đó
+    private PlayerStats _stats;
 
-		_body?.Play("Idle");
-	}
+    public override void _Ready()
+    {
+        _body = GetNodeOrNull<AnimatedSprite2D>(BodyPath);
+        _stats = GetNodeOrNull<PlayerStats>("PlayerStats");
+        _body?.Play("Idle");
+    }
 
-	public override void _PhysicsProcess(double delta)
-	{
-		Vector2 dir = Vector2.Zero;
-		if (Input.IsKeyPressed(Key.Left)) dir.X -= 1;
-		if (Input.IsKeyPressed(Key.Right)) dir.X += 1;
-		if (Input.IsKeyPressed(Key.Up)) dir.Y -= 1;
-		if (Input.IsKeyPressed(Key.Down)) dir.Y += 1;
+public override void _PhysicsProcess(double delta)
+{
 
-		bool moving = dir != Vector2.Zero;
-		bool isRunning = Input.IsKeyPressed(Key.Shift);
+	//Dòng hiện các input
+    Vector2 inputDir = Input.GetVector("ui_left", "ui_right", "ui_up", "ui_down");
+    bool moving = inputDir != Vector2.Zero; // Kiểm tra có di chuyển hay không
+    bool wantsToRun = Input.IsKeyPressed(Key.Shift); // Giữ Shift để chạy
+    
+    // Tính lượng stamina sẽ mất trong frame này
+    float staminaCostThisFrame = RunStaminaCost * (float)delta;
 
-		if (moving)
-		{
-			dir = dir.Normalized();
-			Velocity = dir * (isRunning ? RunSpeed : Speed);
-			// Xác định hành động (không có dấu _)
-			string action = isRunning ? "run" : "go";
-			// Xác định hướng (không có dấu _)
-			string vDir = "";
-			if (dir.Y > 0) vDir = "down";
-			else if (dir.Y < 0) vDir = "up";
-			// 2. Xác định thành phần ngang
-			string hDir = "";
-			if (dir.X > 0) hDir = "right";
-			else if (dir.X < 0) hDir = "left";
-			// 3. Kết hợp lại vào biến direction
-			string direction = "";
-			if (vDir != "" && hDir != "")
-			{
-				// Nếu có cả dọc và ngang (đi chéo) -> ví dụ: "down_left"
-				direction = $"{vDir}_{hDir}";
-			}
-			else
-			{
-				// Nếu chỉ có một chiều -> ví dụ: "down"
-				direction = $"{vDir}{hDir}";
-			}
-			//  Tự động thêm dấu _ vào giữa => Đảm bảo chỉ có 1 dấu gạch dưới
-			string anim = $"{action}_{direction}"; 
 
-			if (_body != null && (_body.Animation != anim || !_body.IsPlaying()))
-				_body.Play(anim);
+    if (_stats != null)
+    {
+        // QUAN TRỌNG: Thay vì so sánh với staminaCostThisFrame (quá nhỏ, chỉ 0.3),
+        // Hãy đặt ngưỡng cứng là 1.0f. Nếu dưới 1.0 là coi như hết hơi luôn.
+        // Điều này giúp thanh máu vừa cạn là nhân vật dừng ngay, không chạy ráng.
+        if (_stats.CurrentStamina <= 3.0f) 
+        {
+            _isExhausted = true;
+        }
+        else if (_stats.CurrentStamina >= MinStaminaToRun)
+        {
+            _isExhausted = false;
+        }
+    }
 
-			_lastMoveAnim = anim;
-		}
-		else
-		{
-			Velocity = Vector2.Zero;
+    bool canRun = false;
+    
+    // Phải chưa kiệt sức VÀ stamina thực tế phải lớn hơn 0
+    if (moving && wantsToRun && !_isExhausted && _stats != null && _stats.CurrentStamina > 0)
+    {
+        canRun = true;
+        _stats.ConsumeStamina(staminaCostThisFrame);
+    }
+    else
+    {
+        // Nếu không chạy được, đảm bảo tắt trạng thái chạy
+        canRun = false;
+        
+        // Nếu đang kiệt sức mà người chơi thả nút Shift, hoặc dừng lại,
+        // thì vẫn giữ cờ _isExhausted để bắt buộc hồi phục
+    }
 
-			if (_body != null && _wasMoving)
-			{
-				string idleAnim = _lastMoveAnim;
+    // DI CHUYỂN
+    if (moving)
+    {
+        inputDir = inputDir.Normalized();
+        Velocity = inputDir * (canRun ? RunSpeed : Speed);
 
-				// Chuyển từ chạy về đi bộ để lấy frame đứng
-				if (idleAnim.StartsWith("run"))
-				{
-					idleAnim = idleAnim.Replace("run", "go");
-				}
+        // Animation
+        string action = canRun ? "run" : "go";
+        string vDir = "";
+        if (inputDir.Y > 0) vDir = "down";
+        else if (inputDir.Y < 0) vDir = "up";
+        
+        string hDir = "";
+        if (inputDir.X > 0) hDir = "right";
+        else if (inputDir.X < 0) hDir = "left";
+        
+        string direction = (vDir != "" && hDir != "") ? $"{vDir}_{hDir}" : $"{vDir}{hDir}";
+        string anim = $"{action}_{direction}";
 
-				// Kiểm tra kỹ xem animation "go_..." có tồn tại không trước khi gán
-				var frames = _body.SpriteFrames;
-				if (frames != null && frames.HasAnimation(idleAnim))
-				{
-					_body.Animation = idleAnim;
-					int max = frames.GetFrameCount(idleAnim);
-					_body.Frame = Mathf.Clamp(StopFrameIndex, 0, max - 1);
-				}
-				else 
-				{
-					// Fallback nếu không tìm thấy animation (tránh crash)
-					GD.PrintErr($"Không tìm thấy animation: {idleAnim}");
-				}
-
-				_body.Stop();
-			}
-		}
-		// Di chuyển nhân vật
-		MoveAndSlide();
-		_wasMoving = moving;
-	}
+        if (_body != null && _body.Animation != anim)
+        {
+            if (_body.SpriteFrames.HasAnimation(anim)) _body.Play(anim);
+        }
+        _lastMoveAnim = anim;
+    }
+    else
+    {
+        Velocity = Vector2.Zero;
+        if (_body != null && _wasMoving)
+        {
+            string idleAnim = _lastMoveAnim.Replace("run", "go");
+            if (_body.SpriteFrames.HasAnimation(idleAnim))
+            {
+                _body.Animation = idleAnim;
+                _body.Frame = StopFrameIndex;
+            }
+            _body.Stop();
+        }
+    }
+    
+    MoveAndSlide();
+    _wasMoving = moving;
+}	
 }

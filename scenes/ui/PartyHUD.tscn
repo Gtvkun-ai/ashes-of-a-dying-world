@@ -1,0 +1,29 @@
+[gd_scene load_steps=3 format=3 uid="uid://dwcy7mw8do0ni"]
+
+[ext_resource type="Script" uid="uid://dc2f2188mgeit" path="res://src/UI/HUD/PartyHUDManager.cs" id="1_a33f2"]
+[ext_resource type="PackedScene" uid="uid://dhof418sft343" path="res://scenes/ui/CharacterUnitHUD.tscn" id="2_55nux"]
+
+[node name="PartyHUD" type="CanvasLayer"]
+script = ExtResource("1_a33f2")
+metadata/_edit_lock_ = true
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -240.0
+offset_top = -154.0
+offset_bottom = 154.0
+grow_horizontal = 0
+grow_vertical = 2
+
+[node name="CharacterUnitHUD" parent="VBoxContainer" instance=ExtResource("2_55nux")]
+layout_mode = 2
+
+[node name="CharacterUnitHUD2" parent="VBoxContainer" instance=ExtResource("2_55nux")]
+layout_mode = 2
+
+[node name="CharacterUnitHUD3" parent="VBoxContainer" instance=ExtResource("2_55nux")]
+layout_mode = 2

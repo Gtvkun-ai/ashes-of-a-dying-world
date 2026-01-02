@@ -1,10 +1,13 @@
-[gd_scene load_steps=89 format=3 uid="uid://brhkdy734ch4x"]
+[gd_scene load_steps=92 format=3 uid="uid://brhkdy734ch4x"]
 
 [ext_resource type="Texture2D" uid="uid://bux7goj4h7awf" path="res://assets/sprites/Reira_walk.png" id="1_kgkbq"]
 [ext_resource type="Script" uid="uid://jguaf0akgd71" path="res://src/Entities/Player/Player.cs" id="1_v6v2t"]
-[ext_resource type="Texture2D" uid="uid://d07xlvkf0ur7a" path="res://assets/sprites/Reira_walk 4 hướng còn lại.png" id="3_6685u"]
+[ext_resource type="Texture2D" uid="uid://l6f06auus8af" path="res://assets/sprites/Reira_walk 4 hướng còn lại.png" id="3_6685u"]
 [ext_resource type="Texture2D" uid="uid://br0o27aguajjq" path="res://assets/sprites/Reira_run.png" id="3_tjg5f"]
-[ext_resource type="Texture2D" uid="uid://n62jbed4dpin" path="res://assets/sprites/Reira_run 4 hướng còn lại.png" id="5_sgmg4"]
+[ext_resource type="Texture2D" uid="uid://b71p4i281p43h" path="res://assets/sprites/Reira_run 4 hướng còn lại.png" id="5_sgmg4"]
+[ext_resource type="Script" uid="uid://cqcbhn0crt0fx" path="res://src/Core/Data/PlayerStats.cs" id="6_kimch"]
+[ext_resource type="Resource" uid="uid://cpdjbs8w3cyi8" path="res://assets/resources/data/characters/Hyou.tres" id="7_owkge"]
+[ext_resource type="Script" uid="uid://bmhf2l4kgx1rl" path="res://src/Core/Data/EquipmentManager.cs" id="8_4rh2k"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_6685u"]
 size = Vector2(12.5, 5.5)
@@ -678,7 +681,15 @@ shape = SubResource("RectangleShape2D_6685u")
 [node name="Body" type="AnimatedSprite2D" parent="."]
 position = Vector2(0, -16)
 sprite_frames = SubResource("SpriteFrames_h88hi")
-
 animation = &"go_down"
 
 [node name="follow" type="Camera2D" parent="."]
+
+[node name="PlayerStats" type="Node" parent="." node_paths=PackedStringArray("EquipmentMgr")]
+script = ExtResource("6_kimch")
+ConfigData = ExtResource("7_owkge")
+EquipmentMgr = NodePath("../EquipmentManager")
+
+[node name="EquipmentManager" type="Node" parent="." node_paths=PackedStringArray("_playerStats")]
+script = ExtResource("8_4rh2k")
+_playerStats = NodePath("../PlayerStats")

@@ -7,10 +7,22 @@ namespace AshesofaDyingWorld.Entities.Player
 {
     public partial class PlayerStats : Node
     {
+        //Sự kiện để thông báo khi chỉ số thay đổi
+        [Signal] public delegate void StatsChangedEventHandler();
         [Export] public CharacterConfig ConfigData;
-        [Export] public EquipmentManager EquipmentMgr; // Kéo node EquipmentManager vào đây
+        [Export] public EquipmentManager EquipmentMgr; 
 
         public int CurrentLevel { get; private set; } = 1;
+
+        //Các giá trị hp, mp, stamina hiện tại
+        public float CurrentHP { get; private set; }
+        public float CurrentMP { get; private set; }
+        public float CurrentStamina { get; private set; }
+
+        //Các giá trị tối đa hp, mp, stamina
+        public float MaxHP { get; private set; }
+        public float MaxMP { get; private set; }
+        public float MaxStamina { get; private set; }
 
         // Chỉ số cuối cùng (Base + Equipment + Buffs)
         public Dictionary<AttributeType, int> FinalAttributes { get; private set; } = new();
@@ -19,11 +31,76 @@ namespace AshesofaDyingWorld.Entities.Player
         public float AttackDamage { get; private set; }
         public float Armor { get; private set; }
 
+        // Tốc độ hồi Stamina
+        [Export] public float StaminaRegenRate { get; set; } = 10f; // Hồi 10/giây
+
+        public override void _Ready()
+        {
+            RecalculateStats();   
+
+            //Đầy lại HP, MP, Stamina khi bắt đầu
+            CurrentHP = MaxHP;
+            CurrentMP = MaxMP;
+            CurrentStamina = MaxStamina; 
+
+            if (PlayerManager.Instance != null)
+            {
+                PlayerManager.Instance.RegisterMember(this); // Đăng ký với PlayerManager
+            }
+            
+            // Phát tín hiệu SAU KHI đã set đầy đủ giá trị
+            EmitSignal(SignalName.StatsChanged);
+        }
+
+        public override void _Process(double delta)
+        {
+            // Hồi Stamina nếu chưa đầy
+            if (CurrentStamina < MaxStamina)
+            {
+                ChangeStamina(StaminaRegenRate * (float)delta);
+            }
+        }
+
+        // Method tiêu hao Stamina
+        public bool ConsumeStamina(float amount)
+        {
+            if (CurrentStamina >= amount)
+            {
+                ChangeStamina(-amount);
+                return true;
+            }
+            return false; // Không đủ Stamina
+        }
+
+        // Method thay đổi Stamina
+        public void ChangeStamina(float amount)
+        {
+            CurrentStamina = Mathf.Clamp(CurrentStamina + amount, 0, MaxStamina);
+            EmitSignal(SignalName.StatsChanged);
+        }
+
+        // Method thay đổi HP
+        public void ChangeHP(float amount)
+        {
+            CurrentHP = Mathf.Clamp(CurrentHP + amount, 0, MaxHP);
+            EmitSignal(SignalName.StatsChanged);
+        }
+
+        // Method thay đổi MP
+        public void ChangeMP(float amount)
+        {
+            CurrentMP = Mathf.Clamp(CurrentMP + amount, 0, MaxMP);
+            EmitSignal(SignalName.StatsChanged);
+        }
+
         public void RecalculateStats()
         {
-            if (ConfigData == null) return;
-
-            // 1. Tính Attribute (Str, Dex...)
+            if (ConfigData == null) 
+            {
+                GD.PrintErr("PlayerStats: ConfigData is null!");
+                return;
+            }
+            // Tính Attribute (Str, Dex...)
             foreach (AttributeType attr in System.Enum.GetValues(typeof(AttributeType)))
             {
                 // Chỉ số gốc từ Tộc & Level
@@ -35,15 +112,20 @@ namespace AshesofaDyingWorld.Entities.Player
                 FinalAttributes[attr] = baseVal + equipVal;
             }
 
-            // 2. Tính Derived Stats (HP, MP) từ FinalAttributes
-            // Ví dụ: MaxHP = (Vit * 10) + (Str * 2)
-            float maxHP = (FinalAttributes[AttributeType.Vitality] * 10) + 
-                          (FinalAttributes[AttributeType.Strength] * 2);
-            
-            // 3. Tính Combat Stats (Dmg, Armor)
+            // Cập nhật Max HP, MP, Stamina từ Config TRƯỚC
+            MaxHP = ConfigData.CalculateMaxHP(CurrentLevel);
+            MaxMP = ConfigData.CalculateMaxMP(CurrentLevel);
+            MaxStamina = ConfigData.CalculateMaxStamina(CurrentLevel);
+
+            GD.Print($"[PlayerStats] MaxHP={MaxHP}, MaxMP={MaxMP}, MaxStamina={MaxStamina}");
+
+            // Tính Combat Stats (Dmg, Armor)
             CalculateCombatStats();
 
-            GD.Print($"Stats Updated. STR: {FinalAttributes[AttributeType.Strength]} (Base) + Equipment");
+            GD.Print($"Stats Updated. HP:{MaxHP} MP:{MaxMP} STR:{FinalAttributes[AttributeType.Strength]}");
+
+            // Phát tín hiệu thông báo chỉ số đã thay đổi
+            EmitSignal(SignalName.StatsChanged);
         }
 
         private void CalculateCombatStats()

@@ -9,6 +9,9 @@ public partial class ScreenMain : Node2D
 		
 	private const string PlayerPath = "res://src/Entities/Player/Player_anim.tscn";
 
+	private const string PartyHUDPath = "res://scenes/ui/PartyHUD.tscn";
+
+
 	private static readonly Vector2 DefaultSpawn = new(105f, 120f);
 
 	private void _on_login_pressed()
@@ -28,6 +31,12 @@ public partial class ScreenMain : Node2D
 		var spawn = world.GetNodeOrNull<Node2D>("SpawnPoint");
 		player.Position = spawn?.GlobalPosition ?? DefaultSpawn;
 		world.AddChild(player);
+
+		// Thêm PartyHUD vào world
+        var partyHUD = GD.Load<PackedScene>(PartyHUDPath).Instantiate();
+        world.AddChild(partyHUD);
+        GD.Print("[ScreenMain] PartyHUD added to world");
+
 
 		tree.Root.AddChild(world);
 		tree.CurrentScene.QueueFree();
