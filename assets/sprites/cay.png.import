@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://qxhk46yj7esn"
-path="res://.godot/imported/cỏ cao.png-13db4fa039b696c12bea4273f666c994.ctex"
+uid="uid://cdwhvp0bl0kw3"
+path="res://.godot/imported/cay.png-b819e2dcffa32c6fe026abf806cf024f.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/item cho map/cỏ cao.png"
-dest_files=["res://.godot/imported/cỏ cao.png-13db4fa039b696c12bea4273f666c994.ctex"]
+source_file="res://assets/sprites/cay.png"
+dest_files=["res://.godot/imported/cay.png-b819e2dcffa32c6fe026abf806cf024f.ctex"]
 
 [params]
 

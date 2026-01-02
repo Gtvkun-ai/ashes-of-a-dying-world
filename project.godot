@@ -24,8 +24,11 @@ PlayerManager="*res://src/Core/Managers/PlayerManager.cs"
 [dialogic]
 
 directories/dch_directory={}
-directories/dtl_directory={}
+directories/dtl_directory={
+"timeline": "res://timeline.dtl"
+}
 layout/style_directory={}
+glossary/default_case_sensitive=true
 
 [dotnet]
 

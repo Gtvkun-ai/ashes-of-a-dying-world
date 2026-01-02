@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bv55weu5u0u0k"
-path="res://.godot/imported/cỏ cao 1 layer.png-b24f6d3915891466a4a0c4bc346c1c44.ctex"
+uid="uid://bb3sqp68uvj7r"
+path="res://.godot/imported/phan 1 cua cay.png-2153afd5f21a74d8d31d3622764a3a40.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/item cho map/cỏ cao 1 layer.png"
-dest_files=["res://.godot/imported/cỏ cao 1 layer.png-b24f6d3915891466a4a0c4bc346c1c44.ctex"]
+source_file="res://assets/sprites/phan 1 cua cay.png"
+dest_files=["res://.godot/imported/phan 1 cua cay.png-2153afd5f21a74d8d31d3622764a3a40.ctex"]
 
 [params]
 

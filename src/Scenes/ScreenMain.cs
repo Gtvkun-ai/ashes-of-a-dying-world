@@ -16,6 +16,7 @@ public partial class ScreenMain : Node2D
 
 	private void _on_login_pressed()
 	{
+		
 		var tree = GetTree();
 		var world = GD.Load<PackedScene>(WorldPath).Instantiate<Node2D>();
 		var playerInstance = GD.Load<PackedScene>(PlayerPath).Instantiate();
