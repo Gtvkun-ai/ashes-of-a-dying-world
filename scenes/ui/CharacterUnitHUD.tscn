@@ -25,51 +25,56 @@ stretch_mode = 6
 
 [node name="Portrait" type="TextureRect" parent="TextureRect"]
 layout_mode = 0
-offset_left = 8.0
+offset_left = 13.0
 offset_top = 17.0
-offset_right = 72.0
+offset_right = 77.0
 offset_bottom = 81.0
 expand_mode = 1
 stretch_mode = 5
 
 [node name="NameLabel" type="Label" parent="TextureRect"]
 layout_mode = 0
-offset_left = 54.0
-offset_top = 1.0
-offset_right = 199.0
-offset_bottom = 24.0
+offset_left = 85.0
+offset_top = 5.0
+offset_right = 230.0
+offset_bottom = 28.0
 text = "Character Name"
 clip_text = true
 
-[node name="BarsContainer" type="VBoxContainer" parent="TextureRect"]
-layout_mode = 0
-offset_left = 72.0
-offset_top = 29.0
-offset_right = 152.0
-offset_bottom = 169.0
-scale = Vector2(1.5, 1)
-theme_override_constants/separation = 3
+[node name="BarsContainer" type="Control" parent="TextureRect"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="HPBar" type="TextureProgressBar" parent="TextureRect/BarsContainer"]
-custom_minimum_size = Vector2(0, 12)
-layout_mode = 2
-size_flags_horizontal = 3
+layout_mode = 0
+offset_left = 73.0
+offset_top = 29.0
+offset_right = 226.0
+offset_bottom = 41.0
 value = 100.0
 nine_patch_stretch = true
 texture_progress = ExtResource("3_cv7wn")
 
 [node name="MPBar" type="TextureProgressBar" parent="TextureRect/BarsContainer"]
-custom_minimum_size = Vector2(0, 12)
-layout_mode = 2
-size_flags_horizontal = 3
+layout_mode = 0
+offset_left = 72.0
+offset_top = 44.0
+offset_right = 217.0
+offset_bottom = 56.0
 value = 100.0
 nine_patch_stretch = true
 texture_progress = ExtResource("4_y4c6t")
 
 [node name="StaminaBar" type="TextureProgressBar" parent="TextureRect/BarsContainer"]
-custom_minimum_size = Vector2(0, 12)
-layout_mode = 2
-size_flags_horizontal = 3
+layout_mode = 0
+offset_left = 72.0
+offset_top = 59.0
+offset_right = 209.0
+offset_bottom = 71.0
 value = 100.0
 nine_patch_stretch = true
 texture_progress = ExtResource("5_o7qnh")

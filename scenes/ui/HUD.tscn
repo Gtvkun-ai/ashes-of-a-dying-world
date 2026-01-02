@@ -1,0 +1,44 @@
+[gd_scene load_steps=6 format=3 uid="uid://cccfp5vcenasx"]
+
+[ext_resource type="Script" uid="uid://co6h7ltyedpbk" path="res://src/UI/HUD/HUDManager.cs" id="1_4ed8p"]
+[ext_resource type="Texture2D" uid="uid://bh1k32urqxnj0" path="res://assets/sprites/UI_HUD/Status_bar/Khung.png" id="1_ig75s"]
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_atyv1"]
+load_path = "res://.godot/imported/Hp.png-5d2f7faffb242938e2e783653cae39c6.ctex"
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_6ll6g"]
+load_path = "res://.godot/imported/Mana.png-cf0942bc1436bb8754e24e5c350827e8.ctex"
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_ig75s"]
+load_path = "res://.godot/imported/Stamina.png-98421a0300725551787ed6fab6525fcf.ctex"
+
+[node name="HUD" type="CanvasLayer"]
+
+[node name="Control" type="Control" parent="." node_paths=PackedStringArray("HealthBar", "ManaBar", "StaminaBar")]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("1_4ed8p")
+HealthBar = NodePath("HealthBar")
+ManaBar = NodePath("ManaBar")
+StaminaBar = NodePath("StaminaBar")
+
+[node name="HealthBar" type="TextureProgressBar" parent="Control"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+texture_under = ExtResource("1_ig75s")
+texture_progress = SubResource("CompressedTexture2D_atyv1")
+
+[node name="ManaBar" type="TextureProgressBar" parent="Control"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+texture_progress = SubResource("CompressedTexture2D_6ll6g")
+
+[node name="StaminaBar" type="TextureProgressBar" parent="Control"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+texture_progress = SubResource("CompressedTexture2D_ig75s")
