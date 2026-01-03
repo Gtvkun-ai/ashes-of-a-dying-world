@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://lr287by5djcx"
-path="res://.godot/imported/Hyou_avt.png-48db6326325a0702846004a47fe15cce.ctex"
+uid="uid://l6f06auus8af"
+path="res://.godot/imported/Reira_walk 4 hướng còn lại.png-49409a1e279235e4a3d34146579b1685.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/Hyou_avt.png"
-dest_files=["res://.godot/imported/Hyou_avt.png-48db6326325a0702846004a47fe15cce.ctex"]
+source_file="res://assets/sprites/char/Hyou/Reira_walk 4 hướng còn lại.png"
+dest_files=["res://.godot/imported/Reira_walk 4 hướng còn lại.png-49409a1e279235e4a3d34146579b1685.ctex"]
 
 [params]
 

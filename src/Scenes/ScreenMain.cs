@@ -34,9 +34,9 @@ public partial class ScreenMain : Node2D
 		world.AddChild(player);
 
 		// Thêm PartyHUD vào world
-        var partyHUD = GD.Load<PackedScene>(PartyHUDPath).Instantiate();
-        world.AddChild(partyHUD);
-        GD.Print("[ScreenMain] PartyHUD added to world");
+		var partyHUD = GD.Load<PackedScene>(PartyHUDPath).Instantiate();
+		world.AddChild(partyHUD);
+		GD.Print("[ScreenMain] PartyHUD added to world");
 
 
 		tree.Root.AddChild(world);
