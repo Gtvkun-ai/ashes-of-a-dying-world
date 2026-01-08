@@ -37,7 +37,30 @@ public partial class ScreenMain : Node2D
         // Thêm PartyHUD vào world
         var partyHUD = GD.Load<PackedScene>(PartyHUDPath).Instantiate();
         world.AddChild(partyHUD);
-        GD.Print("[ScreenMain] PartyHUD added to world");
+    }
+        private void _on_login_pressed()
+	{
+		
+		var tree = GetTree();
+		var world = GD.Load<PackedScene>(WorldPath).Instantiate<Node2D>();
+		var playerInstance = GD.Load<PackedScene>(PlayerPath).Instantiate();
+		
+		// An toàn ép kiểu sang Player
+		var player = playerInstance as Player;
+		if (player == null)
+		{
+			GD.PrintErr("PlayerForAnimation scene không chứa Player script!");
+			playerInstance.QueueFree();
+			return;
+		}
+		var spawn = world.GetNodeOrNull<Node2D>("SpawnPoint");
+		player.Position = spawn?.GlobalPosition ?? DefaultSpawn;
+		world.AddChild(player);
+
+		// Thêm PartyHUD vào world
+		var partyHUD = GD.Load<PackedScene>(PartyHUDPath).Instantiate();
+		world.AddChild(partyHUD);
+		GD.Print("[ScreenMain] PartyHUD added to world");
 
         // Thêm GameMenuButton vào world (SỬA: Đúng path, không phải PartyHUDPath)
         var gameMenu = GD.Load<PackedScene>(GameMenuPath).Instantiate();

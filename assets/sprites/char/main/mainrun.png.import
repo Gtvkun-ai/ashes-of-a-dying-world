@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://lr287by5djcx"
-path="res://.godot/imported/Hyou_avt.png-48db6326325a0702846004a47fe15cce.ctex"
+uid="uid://btnbr1v25gfux"
+path="res://.godot/imported/mainrun.png-820d87a740b6e40442140fb4245ecc7e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/Hyou_avt.png"
-dest_files=["res://.godot/imported/Hyou_avt.png-48db6326325a0702846004a47fe15cce.ctex"]
+source_file="res://assets/sprites/char/main/mainrun.png"
+dest_files=["res://.godot/imported/mainrun.png-820d87a740b6e40442140fb4245ecc7e.ctex"]
 
 [params]
 
