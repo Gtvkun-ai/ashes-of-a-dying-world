@@ -1,4 +1,5 @@
 using Godot;
+using AshesofaDyingWorld.UI.HUD;
 
 namespace AshesofaDyingWorld.UI.Menus
 {
@@ -39,6 +40,7 @@ namespace AshesofaDyingWorld.UI.Menus
         
         private bool _isGridOpen = false;
         private Control _currentOpenPanel = null;
+        private CharacterDetailUI _characterDetailUI; // Để hiển thị thông tin nhân vật
 
         public override void _Ready()
         {
@@ -54,6 +56,15 @@ namespace AshesofaDyingWorld.UI.Menus
             {
                 MenuGridPanel.Hide();
                 GD.Print("[GameMenuButton] MenuGridPanel hidden");
+            }
+            
+            // Tạo CharacterDetailUI và thêm vào CharacterPanel
+            if (CharacterPanel != null)
+            {
+                _characterDetailUI = new CharacterDetailUI();
+                _characterDetailUI.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+                CharacterPanel.AddChild(_characterDetailUI);
+                GD.Print("[GameMenuButton] CharacterDetailUI added to CharacterPanel");
             }
             
             HideAllPanels();
@@ -111,6 +122,12 @@ namespace AshesofaDyingWorld.UI.Menus
             CloseCurrentPanel();
             panel.Show();
             _currentOpenPanel = panel;
+            
+            // Cập nhật thông tin khi mở CharacterPanel
+            if (panel == CharacterPanel && _characterDetailUI != null)
+            {
+                _characterDetailUI.UpdateCharacterInfo();
+            }
             
             if (MenuGridPanel != null)
                 MenuGridPanel.Hide();

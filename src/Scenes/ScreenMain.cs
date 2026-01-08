@@ -16,29 +16,6 @@ public partial class ScreenMain : Node2D
     private static readonly Vector2 DefaultSpawn = new(105f, 120f);
 
     private void _on_login_pressed()
-    {
-        var tree = GetTree();
-        var world = GD.Load<PackedScene>(WorldPath).Instantiate<Node2D>();
-        var playerInstance = GD.Load<PackedScene>(PlayerPath).Instantiate();
-        
-        // An toàn ép kiểu sang Player
-        var player = playerInstance as Player;
-        if (player == null)
-        {
-            GD.PrintErr("PlayerForAnimation scene không chứa Player script!");
-            playerInstance.QueueFree();
-            return;
-        }
-        
-        var spawn = world.GetNodeOrNull<Node2D>("SpawnPoint");
-        player.Position = spawn?.GlobalPosition ?? DefaultSpawn;
-        world.AddChild(player);
-
-        // Thêm PartyHUD vào world
-        var partyHUD = GD.Load<PackedScene>(PartyHUDPath).Instantiate();
-        world.AddChild(partyHUD);
-    }
-        private void _on_login_pressed()
 	{
 		
 		var tree = GetTree();

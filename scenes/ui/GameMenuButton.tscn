@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://c0eexaj1m1c2f"]
+[gd_scene load_steps=4 format=3 uid="uid://c0eexaj1m1c2f"]
 
 [ext_resource type="Texture2D" uid="uid://b82nmhf3fpyyi" path="res://assets/sprites/UI_HUD/Main_HUD/MHUD.png" id="1_hxt2v"]
 [ext_resource type="Script" uid="uid://bpovax0q5ndb0" path="res://src/UI/HUD/GameMenuButton.cs" id="1_yo4qo"]
+[ext_resource type="Script" uid="uid://fs5x5dblet5f" path="res://src/UI/HUD/CharacterDetailUI.cs" id="3_mwn0r"]
 
 [node name="GameMenuButton" type="CanvasLayer" node_paths=PackedStringArray("MenuButton", "MenuGridPanel", "MenuGrid", "CharacterButton", "InventoryButton", "SkillsButton", "QuestsButton", "SettingsButton", "MapButton", "PartyButton", "AchievementsButton", "CharacterPanel", "InventoryPanel", "SkillsPanel", "QuestsPanel", "SettingsPanel", "MapPanel", "PartyPanel", "AchievementsPanel")]
 script = ExtResource("1_yo4qo")
@@ -131,6 +132,7 @@ offset_right = -100.0
 offset_bottom = -100.0
 grow_horizontal = 2
 grow_vertical = 2
+script = ExtResource("3_mwn0r")
 
 [node name="InventoryPanel" type="Panel" parent="Control"]
 visible = false
