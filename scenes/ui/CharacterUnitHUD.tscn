@@ -1,7 +1,8 @@
-[gd_scene load_steps=7 format=3 uid="uid://dhof418sft343"]
+[gd_scene load_steps=8 format=3 uid="uid://dhof418sft343"]
 
 [ext_resource type="Script" uid="uid://dysvqu457ghpp" path="res://src/UI/HUD/CharacterUnitHUD.cs" id="1_xxxxx"]
 [ext_resource type="Texture2D" uid="uid://hvqt42ryuyvo" path="res://assets/sprites/UI_HUD/Status_bar/Hp.png" id="3_cv7wn"]
+[ext_resource type="Texture2D" uid="uid://c07m8ww25wmoy" path="res://assets/sprites/char/Hyou/HyouIco.png" id="3_gesrr"]
 [ext_resource type="Texture2D" uid="uid://duee8x77lgo6v" path="res://assets/sprites/UI_HUD/Status_bar/Mana.png" id="4_y4c6t"]
 [ext_resource type="Texture2D" uid="uid://cgh3ephybees7" path="res://assets/sprites/UI_HUD/Status_bar/Stamina.png" id="5_o7qnh"]
 [ext_resource type="Texture2D" uid="uid://bh1k32urqxnj0" path="res://assets/sprites/UI_HUD/Status_bar/Khung.png" id="6_frame"]
@@ -25,10 +26,11 @@ stretch_mode = 6
 
 [node name="Portrait" type="TextureRect" parent="TextureRect"]
 layout_mode = 0
-offset_left = 13.0
-offset_top = 17.0
-offset_right = 77.0
-offset_bottom = 81.0
+offset_left = 11.0
+offset_top = 1.0
+offset_right = 68.0
+offset_bottom = 99.0
+texture = ExtResource("3_gesrr")
 expand_mode = 1
 stretch_mode = 5
 

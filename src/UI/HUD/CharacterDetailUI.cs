@@ -43,19 +43,40 @@ public partial class CharacterDetailUI : Panel
         if(activceIndex >= PlayerManager.Instance.PartyMembers.Count) return;
 
         PlayerStats currentStats = PlayerManager.Instance.PartyMembers[activceIndex];
+        
+        // Kiểm tra null để tránh lỗi
+        if(currentStats == null || currentStats.ConfigData == null)
+        {
+            GD.PrintErr("CharacterDetailUI: Dữ liệu nhân vật không tồn tại!");
+            NameLabel.Text = "Lỗi: Không có dữ liệu";
+            return;
+        }
+        
         var Config = currentStats.ConfigData;
+        
+        // Kiểm tra Race có tồn tại không
+        if(Config.CharacterRace == null)
+        {
+            RaceLabel.Text = "Tộc: Không xác định";
+        }
+        else
+        {
+            RaceLabel.Text = $"Tộc: {Config.CharacterRace.RaceName}";
+        }
 
         // Hiển thị thông tin cơ bản
-        NameLabel.Text = $"Tên: {Config.Name}"; // Kết quả: Hyou
-        RaceLabel.Text = $"Tộc: {Config.CharacterRace.RaceName}"; // Kết quả: SpiritIce    
+        NameLabel.Text = $"Tên: {Config.Name}"; 
         LevelLabel.Text = $"Cấp độ: {currentStats.CurrentLevel}";
 
         //Hiển thị thông tin chi tiết
         string details = "--- CHỈ SỐ ---\n";
 
-        foreach (var attr in currentStats.FinalAttributes)
+        if(currentStats.FinalAttributes != null)
         {
-            details += $"{attr.Key}: {attr.Value}\n";
+            foreach (var attr in currentStats.FinalAttributes)
+            {
+                details += $"{attr.Key}: {attr.Value}\n";
+            }
         }
 
         details += $"\nSát thương: {currentStats.AttackDamage}";
@@ -63,5 +84,4 @@ public partial class CharacterDetailUI : Panel
 
         StatsTextLabel.Text = details;
     }
-
 }

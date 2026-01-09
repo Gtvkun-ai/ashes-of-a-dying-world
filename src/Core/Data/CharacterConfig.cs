@@ -8,7 +8,8 @@ namespace AshesofaDyingWorld.Core.Data
         [ExportGroup("Identity")]
         [Export] public string ID {get; set;}
         [Export] public string Name {get; set;}
-        [Export] public Texture2D Avatar {get; set;}
+        [Export] public Texture2D Icon {get; set;} // Icon tròn cho HUD/Menu
+        [Export] public Texture2D Avatar {get; set;} // Ảnh minh hoạ lớn cho character detail
 
         [ExportGroup("Origin")]
         [Export] public RaceData CharacterRace {get; set;}
