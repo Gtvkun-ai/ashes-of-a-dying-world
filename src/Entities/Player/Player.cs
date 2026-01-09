@@ -88,11 +88,21 @@ public override void _PhysicsProcess(double delta)
 		string direction = (vDir != "" && hDir != "") ? $"{vDir}_{hDir}" : $"{vDir}{hDir}";
 		string anim = $"{action}_{direction}";
 
-		if (_body != null && _body.Animation != anim)
+		if (_body.Animation != anim || !_body.IsPlaying())
 		{
-			if (_body.SpriteFrames.HasAnimation(anim)) _body.Play(anim);
+			if (_body.SpriteFrames.HasAnimation(anim)) 
+			{
+				_body.Play(anim);
+				
+				// Chỉ set frame 1 tại đúng thời điểm bắt đầu này
+				if (_body.SpriteFrames.GetFrameCount(anim) > 1)
+				{
+					_body.Frame = 1;
+				}
+			}
 		}
 		_lastMoveAnim = anim;
+		
 	}
 	else
 	{

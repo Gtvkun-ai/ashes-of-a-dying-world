@@ -1,0 +1,33 @@
+[gd_scene load_steps=5 format=3 uid="uid://cm5he8r8ot85v"]
+
+[ext_resource type="Texture2D" uid="uid://bbodahvt5v125" path="res://assets/sprites/stone 12345.png" id="1_um4o4"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_04423"]
+atlas = ExtResource("1_um4o4")
+region = Rect2(306, 661, 306, 661)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_3as73"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_04423")
+}],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_um4o4"]
+size = Vector2(169.06075, 42.90467)
+
+[node name="Stone2" type="StaticBody2D"]
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+position = Vector2(0, 20)
+scale = Vector2(0.1262255, 0.118333966)
+sprite_frames = SubResource("SpriteFrames_3as73")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(-0.49999982, 27)
+scale = Vector2(0.14787583, 0.13984494)
+shape = SubResource("RectangleShape2D_um4o4")
