@@ -18,7 +18,7 @@ animations = [{
 }]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_thqfv"]
-size = Vector2(45, 18)
+size = Vector2(47, 18)
 
 [node name="Tree" type="StaticBody2D"]
 
