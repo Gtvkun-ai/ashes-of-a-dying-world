@@ -1002,10 +1002,11 @@ position = Vector2(617, 542)
 y_sort_enabled = true
 
 [node name="slime1" parent="enemy" instance=ExtResource("7_jnbhc")]
+position = Vector2(673, 114)
 metadata/_edit_group_ = true
 
 [node name="slime2" parent="enemy" instance=ExtResource("7_jnbhc")]
-position = Vector2(34, 43)
+position = Vector2(921, 212)
 metadata/_edit_group_ = true
 
 [node name="tree for field" type="Node2D" parent="."]
