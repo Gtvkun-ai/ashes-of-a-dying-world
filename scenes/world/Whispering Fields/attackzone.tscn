@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://dqro7foc52qar" path="res://scenes/world/Whispering Fields/Attackzone.cs" id="1_8s45c"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_5ho8c"]
-radius = 22.022715
+radius = 12.0415945
 
 [node name="attackzone" type="Area2D"]
 modulate = Color(1, 0, 0.99607843, 1)

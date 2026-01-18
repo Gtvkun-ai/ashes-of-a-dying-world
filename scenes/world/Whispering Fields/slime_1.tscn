@@ -155,7 +155,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_mxn6w")
 }],
-"loop": true,
+"loop": false,
 "name": &"at_down",
 "speed": 5.0
 }, {
@@ -175,7 +175,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_cus7f")
 }],
-"loop": true,
+"loop": false,
 "name": &"at_left",
 "speed": 5.0
 }, {
@@ -195,7 +195,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_2nbvr")
 }],
-"loop": true,
+"loop": false,
 "name": &"at_right",
 "speed": 5.0
 }, {
@@ -215,7 +215,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_xrfsc")
 }],
-"loop": true,
+"loop": false,
 "name": &"at_up",
 "speed": 5.0
 }, {
@@ -226,7 +226,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_10bqd")
 }],
-"loop": true,
+"loop": false,
 "name": &"go_down",
 "speed": 5.0
 }, {
@@ -243,7 +243,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_ftjta")
 }],
-"loop": true,
+"loop": false,
 "name": &"go_left",
 "speed": 5.0
 }, {
@@ -260,7 +260,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_ro6we")
 }],
-"loop": true,
+"loop": false,
 "name": &"go_right",
 "speed": 5.0
 }, {
@@ -271,7 +271,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_7gnu6")
 }],
-"loop": true,
+"loop": false,
 "name": &"go_up",
 "speed": 5.0
 }, {
@@ -279,29 +279,29 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_nhac4")
 }],
-"loop": true,
+"loop": false,
 "name": &"idle",
 "speed": 5.0
 }]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_cs26v"]
-size = Vector2(20, 5)
+size = Vector2(16, 12)
 
 [node name="Slime1" type="CharacterBody2D"]
 y_sort_enabled = true
 script = ExtResource("1_t3ufe")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
-position = Vector2(0, 4.7683716e-07)
+position = Vector2(0, 5)
 scale = Vector2(0.5089287, 0.515625)
 sprite_frames = SubResource("SpriteFrames_kdubu")
-animation = &"go_up"
+animation = &"go_down"
 
 [node name="findzone" parent="AnimatedSprite2D" instance=ExtResource("3_t3ufe")]
 position = Vector2(0, 34.909092)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-position = Vector2(0, 17.5)
+position = Vector2(0, 20)
 shape = SubResource("RectangleShape2D_cs26v")
 
 [node name="attackzone" parent="." instance=ExtResource("4_gn8gp")]

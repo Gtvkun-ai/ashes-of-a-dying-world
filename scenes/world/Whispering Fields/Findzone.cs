@@ -7,17 +7,40 @@ public partial class Findzone : Area2D
 
 	public override void _Ready()
 	{
-		_slime = GetParent().GetParent<Slime1>();
+		// CÁCH SỬA AN TOÀN:
+		// Dòng này sẽ lấy node cha trực tiếp. 
+		// Yêu cầu trong Editor: Findzone phải là con trực tiếp của Slime1.
+		_slime = GetParentOrNull<Slime1>();
+
+		// Nếu không tìm thấy ở cha trực tiếp, thử tìm ở cấp "ông nội" (nếu bạn lỡ dùng Node trung gian)
+		if (_slime == null)
+		{
+			_slime = GetParent().GetParent() as Slime1;
+		}
+
+		// Nếu vẫn không thấy thì báo lỗi đỏ lòm để biết đường sửa
+		if (_slime == null)
+		{
+			GD.PrintErr("LỖI NGIÊM TRỌNG: Findzone không tìm thấy script Slime1 ở cha hoặc ông nội!");
+		}
+
 		BodyEntered += OnBodyEntered;
 		BodyExited += OnBodyExited;
 	}
 
-	// BẠN ĐANG THIẾU CÁC HÀM NÀY:
 	private void OnBodyEntered(Node2D body)
 	{
+		// In ra tên vật thể va chạm để kiểm tra
+		GD.Print("Có vật đi vào vùng phát hiện: " + body.Name);
+
 		if (body.IsInGroup("Player"))
 		{
-			_slime.StartChasing(body);
+			GD.Print(">>> ĐÚNG LÀ PLAYER! BẮT ĐẦU ĐUỔI!"); // Dòng này hiện ra thì Slime mới chạy
+			
+			if (_slime != null)
+			{
+				_slime.StartChasing(body);
+			}
 		}
 	}
 
@@ -25,7 +48,12 @@ public partial class Findzone : Area2D
 	{
 		if (body.IsInGroup("Player"))
 		{
-			_slime.StopChasing();
+			GD.Print("<<< Player đã chạy thoát.");
+			
+			if (_slime != null)
+			{
+				_slime.StopChasing();
+			}
 		}
 	}
 }

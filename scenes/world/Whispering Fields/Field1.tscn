@@ -1002,7 +1002,7 @@ position = Vector2(617, 542)
 y_sort_enabled = true
 
 [node name="slime1" parent="enemy" instance=ExtResource("7_jnbhc")]
-position = Vector2(673, 114)
+position = Vector2(200, 371)
 metadata/_edit_group_ = true
 
 [node name="slime2" parent="enemy" instance=ExtResource("7_jnbhc")]
@@ -1019,4 +1019,4 @@ position = Vector2(238, 112)
 position = Vector2(289, 112)
 
 [node name="CharacterBody2D" parent="." instance=ExtResource("8_na6kv")]
-position = Vector2(378, 165)
+position = Vector2(1269, 96)
