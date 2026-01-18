@@ -59,7 +59,7 @@ namespace AshesofaDyingWorld.UI.HUD
             
             for (int i = 0; i < unitHUDs.Length; i++)
             {
-                unitHUDs[i]?.SetHighlight(i == activeIndex);
+                unitHUDs[i]?.ApplyHighlight(i == activeIndex);
             }
         }
 
@@ -88,7 +88,7 @@ namespace AshesofaDyingWorld.UI.HUD
                     GD.Print($"[PartyHUD] Setting target for unit {i}: {members[i].ConfigData?.Name ?? "Unknown"}");
                     unitHUDs[i].SetTarget(members[i]);
                     unitHUDs[i].Show();
-                    unitHUDs[i].SetHighlight(i == PlayerManager.Instance.ActiveCharacterIndex);
+                    unitHUDs[i].ApplyHighlight(i == PlayerManager.Instance.ActiveCharacterIndex);
                 }
                 else
                 {

@@ -7,15 +7,42 @@ namespace AshesofaDyingWorld.UI.HUD
     {
         private PlayerStats _targetStats;
 
-        // Đổi từ ProgressBar sang TextureProgressBar để fix lỗi hiển thị
         [Export] public TextureProgressBar HealthBar;
         [Export] public TextureProgressBar ManaBar;
         [Export] public TextureProgressBar StaminaBar;
         [Export] public Label NameLabel;
+        [Export] public TextureRect Portrait;
+        
+        private TextureRect frameBackground;
+        private ShaderMaterial shaderMaterial;
+        private const string ShaderPath = "res://assets/shader/outline.gdshader";
 
         public override void _Ready()
         {
-            // Không cần tìm node con thủ công nữa
+            if(Portrait == null)
+            {
+                Portrait = GetNode<TextureRect>("TextureRect/Portrait");
+            }
+
+            // Lấy TextureRect đã có trong scene (background frame)
+            frameBackground = GetNode<TextureRect>("TextureRect");
+            
+            // Load shader và áp dụng vào frameBackground
+            var shader = GD.Load<Shader>(ShaderPath);
+            if (shader != null && frameBackground != null)
+            {
+                shaderMaterial = new ShaderMaterial();
+                shaderMaterial.Shader = shader;
+                frameBackground.Material = shaderMaterial;
+                
+                shaderMaterial.SetShaderParameter("line_thickness", 0.0f);
+                shaderMaterial.SetShaderParameter("line_color", new Color(1.0f, 1.0f, 1.0f, 1.0f));                
+                GD.Print("[CharacterUnitHUD] Shader applied to frameBackground");
+            }
+            else
+            {
+                GD.PrintErr($"[CharacterUnitHUD] Shader or frameBackground not found");
+            }
         }
 
         public void SetTarget(PlayerStats stats)
@@ -28,46 +55,51 @@ namespace AshesofaDyingWorld.UI.HUD
             {
                 _targetStats.StatsChanged += UpdateUI;
 
-                if (NameLabel != null && stats.ConfigData != null)
-                    NameLabel.Text = stats.ConfigData.Name;
+                if (stats.ConfigData != null)
+                {
+                    if (NameLabel != null)
+                        NameLabel.Text = stats.ConfigData.Name;
+                    
+                    if (Portrait != null && stats.ConfigData.Icon != null)
+                        Portrait.Texture = stats.ConfigData.Icon;
+                }
 
                 UpdateUI();
             }
         }
 
-private void UpdateUI()
+        private void UpdateUI()
         {
             if (_targetStats == null) return;
 
-            // 1. CẬP NHẬT THANH MÁU
             if (HealthBar != null)
             {
-                // Quan trọng: Phải gán MaxValue trước!
                 HealthBar.MaxValue = _targetStats.MaxHP; 
                 HealthBar.Value = _targetStats.CurrentHP;
             }
 
-            // 2. CẬP NHẬT THANH MANA
             if (ManaBar != null)
             {
                 ManaBar.MaxValue = _targetStats.MaxMP;
                 ManaBar.Value = _targetStats.CurrentMP;
             }
 
-            // 3. CẬP NHẬT THANH STAMINA
             if (StaminaBar != null)
             {
-                // SỬA LỖI Ở ĐÂY: Gán MaxValue bằng MaxStamina thật của nhân vật (90)
-                // Nếu không gán, nó mặc định là 100 -> Hiển thị sai lệch
                 StaminaBar.MaxValue = _targetStats.MaxStamina; 
                 StaminaBar.Value = _targetStats.CurrentStamina;
             }
         }
-        public void SetHighlight(bool isSelected)
-        {
-            Modulate = isSelected ? new Color(1, 1, 0.5f) : Colors.White;
-        }
 
+        public void ApplyHighlight(bool isSelected)
+        {
+            if (shaderMaterial != null)
+            {
+                shaderMaterial.SetShaderParameter("line_thickness", isSelected ? 20.0f : 0.0f);
+                GD.Print($"[CharacterUnitHUD] Highlight {(isSelected ? "ON" : "OFF")}");
+            }
+        }
+        
         public override void _ExitTree()
         {
             if (_targetStats != null)

@@ -1,22 +1,24 @@
-[gd_scene load_steps=4 format=3 uid="uid://c0eexaj1m1c2f"]
+[gd_scene load_steps=6 format=3 uid="uid://c0eexaj1m1c2f"]
 
 [ext_resource type="Texture2D" uid="uid://b82nmhf3fpyyi" path="res://assets/sprites/UI_HUD/Main_HUD/MHUD.png" id="1_hxt2v"]
 [ext_resource type="Script" uid="uid://bpovax0q5ndb0" path="res://src/UI/HUD/GameMenuButton.cs" id="1_yo4qo"]
-[ext_resource type="Script" uid="uid://fs5x5dblet5f" path="res://src/UI/HUD/CharacterDetailUI.cs" id="3_mwn0r"]
+[ext_resource type="Texture2D" uid="uid://cte6e51tk7a63" path="res://assets/sprites/button/characterbutton.png" id="3_57sev"]
+[ext_resource type="Script" uid="uid://damnke3aq4mhk" path="res://src/UI/HUD/CharacterDetailUI.cs" id="3_mwn0r"]
+[ext_resource type="Texture2D" uid="uid://cb2uwlsxfdiio" path="res://assets/sprites/bgWhite.png" id="5_guole"]
 
 [node name="GameMenuButton" type="CanvasLayer" node_paths=PackedStringArray("MenuButton", "MenuGridPanel", "MenuGrid", "CharacterButton", "InventoryButton", "SkillsButton", "QuestsButton", "SettingsButton", "MapButton", "PartyButton", "AchievementsButton", "CharacterPanel", "InventoryPanel", "SkillsPanel", "QuestsPanel", "SettingsPanel", "MapPanel", "PartyPanel", "AchievementsPanel")]
 script = ExtResource("1_yo4qo")
 MenuButton = NodePath("Control/MenuButton")
 MenuGridPanel = NodePath("Control/MenuGridPanel")
-MenuGrid = NodePath("Control/MenuGridPanel/MenuGrid")
-CharacterButton = NodePath("Control/MenuGridPanel/MenuGrid/CharacterButton")
-InventoryButton = NodePath("Control/MenuGridPanel/MenuGrid/InventoryButton")
-SkillsButton = NodePath("Control/MenuGridPanel/MenuGrid/SkillsButton")
-QuestsButton = NodePath("Control/MenuGridPanel/MenuGrid/QuestsButton")
-SettingsButton = NodePath("Control/MenuGridPanel/MenuGrid/SettingsButton")
-MapButton = NodePath("Control/MenuGridPanel/MenuGrid/MapButton")
-PartyButton = NodePath("Control/MenuGridPanel/MenuGrid/PartyButton")
-AchievementsButton = NodePath("Control/MenuGridPanel/MenuGrid/AchievementsButton")
+MenuGrid = NodePath("Control/MenuGridPanel/CenterContainer/MenuGrid")
+CharacterButton = NodePath("Control/MenuGridPanel/CenterContainer/MenuGrid/CharacterButton")
+InventoryButton = NodePath("Control/MenuGridPanel/CenterContainer/MenuGrid/InventoryButton")
+SkillsButton = NodePath("Control/MenuGridPanel/CenterContainer/MenuGrid/SkillsButton")
+QuestsButton = NodePath("Control/MenuGridPanel/CenterContainer/MenuGrid/QuestsButton")
+SettingsButton = NodePath("Control/MenuGridPanel/CenterContainer/MenuGrid/SettingsButton")
+MapButton = NodePath("Control/MenuGridPanel/CenterContainer/MenuGrid/MapButton")
+PartyButton = NodePath("Control/MenuGridPanel/CenterContainer/MenuGrid/PartyButton")
+AchievementsButton = NodePath("Control/MenuGridPanel/CenterContainer/MenuGrid/AchievementsButton")
 CharacterPanel = NodePath("Control/CharacterPanel")
 InventoryPanel = NodePath("Control/InventoryPanel")
 SkillsPanel = NodePath("Control/SkillsPanel")
@@ -53,69 +55,67 @@ icon_alignment = 1
 [node name="MenuGridPanel" type="Panel" parent="Control"]
 visible = false
 layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -300.0
-offset_top = -200.0
-offset_right = 300.0
-offset_bottom = 200.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="MenuGrid" type="GridContainer" parent="Control/MenuGridPanel"]
+[node name="CenterContainer" type="CenterContainer" parent="Control/MenuGridPanel"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 20.0
-offset_top = 20.0
-offset_right = -20.0
-offset_bottom = -20.0
 grow_horizontal = 2
 grow_vertical = 2
+
+[node name="MenuGrid" type="GridContainer" parent="Control/MenuGridPanel/CenterContainer"]
+layout_mode = 2
 theme_override_constants/h_separation = 20
 theme_override_constants/v_separation = 20
 columns = 4
 
-[node name="CharacterButton" type="Button" parent="Control/MenuGridPanel/MenuGrid"]
+[node name="CharacterButton" type="Button" parent="Control/MenuGridPanel/CenterContainer/MenuGrid"]
 custom_minimum_size = Vector2(120, 80)
 layout_mode = 2
 text = "Nhân vật"
+icon = ExtResource("3_57sev")
+flat = true
+icon_alignment = 1
+vertical_icon_alignment = 0
+expand_icon = true
 
-[node name="InventoryButton" type="Button" parent="Control/MenuGridPanel/MenuGrid"]
+[node name="InventoryButton" type="Button" parent="Control/MenuGridPanel/CenterContainer/MenuGrid"]
 custom_minimum_size = Vector2(120, 80)
 layout_mode = 2
 text = "Kho đồ"
 
-[node name="SkillsButton" type="Button" parent="Control/MenuGridPanel/MenuGrid"]
+[node name="SkillsButton" type="Button" parent="Control/MenuGridPanel/CenterContainer/MenuGrid"]
 custom_minimum_size = Vector2(120, 80)
 layout_mode = 2
 text = "Kỹ năng"
 
-[node name="QuestsButton" type="Button" parent="Control/MenuGridPanel/MenuGrid"]
+[node name="QuestsButton" type="Button" parent="Control/MenuGridPanel/CenterContainer/MenuGrid"]
 custom_minimum_size = Vector2(120, 80)
 layout_mode = 2
 text = "Nhiệm vụ"
 
-[node name="PartyButton" type="Button" parent="Control/MenuGridPanel/MenuGrid"]
+[node name="PartyButton" type="Button" parent="Control/MenuGridPanel/CenterContainer/MenuGrid"]
 custom_minimum_size = Vector2(120, 80)
 layout_mode = 2
 text = "Tổ đội"
 
-[node name="MapButton" type="Button" parent="Control/MenuGridPanel/MenuGrid"]
+[node name="MapButton" type="Button" parent="Control/MenuGridPanel/CenterContainer/MenuGrid"]
 custom_minimum_size = Vector2(120, 80)
 layout_mode = 2
 text = "Bản đồ"
 
-[node name="AchievementsButton" type="Button" parent="Control/MenuGridPanel/MenuGrid"]
+[node name="AchievementsButton" type="Button" parent="Control/MenuGridPanel/CenterContainer/MenuGrid"]
 custom_minimum_size = Vector2(120, 80)
 layout_mode = 2
 text = "Thành tựu"
 
-[node name="SettingsButton" type="Button" parent="Control/MenuGridPanel/MenuGrid"]
+[node name="SettingsButton" type="Button" parent="Control/MenuGridPanel/CenterContainer/MenuGrid"]
 custom_minimum_size = Vector2(120, 80)
 layout_mode = 2
 text = "Cài đặt"
@@ -126,13 +126,10 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 100.0
-offset_top = 100.0
-offset_right = -100.0
-offset_bottom = -100.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("3_mwn0r")
+BackgroundTexture = ExtResource("5_guole")
 
 [node name="InventoryPanel" type="Panel" parent="Control"]
 visible = false
@@ -140,10 +137,6 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 100.0
-offset_top = 100.0
-offset_right = -100.0
-offset_bottom = -100.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -153,10 +146,6 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 100.0
-offset_top = 100.0
-offset_right = -100.0
-offset_bottom = -100.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -166,10 +155,6 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 100.0
-offset_top = 100.0
-offset_right = -100.0
-offset_bottom = -100.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -179,10 +164,6 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 100.0
-offset_top = 100.0
-offset_right = -100.0
-offset_bottom = -100.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -192,10 +173,6 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 100.0
-offset_top = 100.0
-offset_right = -100.0
-offset_bottom = -100.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -205,10 +182,6 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 100.0
-offset_top = 100.0
-offset_right = -100.0
-offset_bottom = -100.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -218,9 +191,5 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 100.0
-offset_top = 100.0
-offset_right = -100.0
-offset_bottom = -100.0
 grow_horizontal = 2
 grow_vertical = 2

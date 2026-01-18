@@ -43,6 +43,12 @@ namespace AshesofaDyingWorld.Core.Managers
             
         }
 
+        // Method public để UI có thể gọi
+        public void SetActiveCharacter(int index)
+        {
+            SwitchToCharacter(index);
+        }
+
         public void RegisterMember(PlayerStats member)
         {
             if (!PartyMembers.Contains(member) && PartyMembers.Count < 3)
