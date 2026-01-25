@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=4 uid="uid://35ajkrvdef1l"]
+[gd_scene load_steps=11 format=4 uid="uid://35ajkrvdef1l"]
 
 [ext_resource type="Texture2D" uid="uid://cyy57e0q36muo" path="res://assets/sprites/field1.png" id="1_ey7of"]
 [ext_resource type="PackedScene" uid="uid://o237ootja225" path="res://scenes/world/stone_1.tscn" id="3_man2x"]
@@ -8,7 +8,6 @@
 [ext_resource type="PackedScene" uid="uid://bvkmnt355ktwd" path="res://scenes/world/stone_4.tscn" id="6_qln1y"]
 [ext_resource type="PackedScene" uid="uid://2cobf3p3jhuw" path="res://scenes/world/Whispering Fields/slime_1.tscn" id="7_jnbhc"]
 [ext_resource type="PackedScene" uid="uid://r8kuo6htf0u8" path="res://scenes/world/stone_5.tscn" id="7_xvu3u"]
-[ext_resource type="PackedScene" uid="uid://brhkdy734ch4x" path="res://src/Entities/Player/Player_anim.tscn" id="8_na6kv"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ey7of"]
 texture = ExtResource("1_ey7of")
@@ -1017,6 +1016,3 @@ position = Vector2(238, 112)
 
 [node name="Tree2" parent="tree for field" instance=ExtResource("3_vydvg")]
 position = Vector2(289, 112)
-
-[node name="CharacterBody2D" parent="." instance=ExtResource("8_na6kv")]
-position = Vector2(1269, 96)

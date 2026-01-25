@@ -9,8 +9,9 @@
 [ext_resource type="Resource" uid="uid://cpdjbs8w3cyi8" path="res://assets/resources/data/characters/Hyou.tres" id="7_owkge"]
 [ext_resource type="Script" uid="uid://bmhf2l4kgx1rl" path="res://src/Core/Data/EquipmentManager.cs" id="8_4rh2k"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_6685u"]
-size = Vector2(12, 5.5)
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_kimch"]
+radius = 7.0
+height = 27.0
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_tjg5f"]
 atlas = ExtResource("1_kgkbq")
@@ -675,8 +676,8 @@ script = ExtResource("1_v6v2t")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 y_sort_enabled = true
-position = Vector2(0, -2.75)
-shape = SubResource("RectangleShape2D_6685u")
+position = Vector2(0, -12.5)
+shape = SubResource("CapsuleShape2D_kimch")
 
 [node name="Body" type="AnimatedSprite2D" parent="."]
 position = Vector2(0, -16)
