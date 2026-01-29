@@ -35,13 +35,18 @@ namespace AshesofaDyingWorld.UI.HUD
         private StatHexagonChart _statsChart;
         
         // Cấu hình màu sắc chủ đạo (Gold/Elite Style)
-        private readonly Color _accentColor = new Color("ffd700"); // Vàng kim
-        private readonly Color _subTextColor = new Color("cccccc"); // Xám bạc
-        private readonly Color _tabActiveColor = new Color("ffd700"); // Tab đang active
-        private readonly Color _tabInactiveColor = new Color("666666"); // Tab không active
-
+        private readonly Color _accentColor = new Color("#38bdf8"); // Xanh băng sáng
+        private readonly Color _subTextColor = new Color("#94a3b8"); // Xám xanh (Slate 400)
+        
+        // Màu trạng thái Tab
+        private readonly Color _tabActiveColor = new Color("#38bdf8"); // Sáng
+        private readonly Color _tabInactiveColor = new Color("#64748b"); // Tối hơn
         private string _currentTab = "overview"; // Mặc định là overview
 
+        private Color _themeBgColor = new Color("#0f172a", 0.90f); // Nền xanh đen thẫm
+        private Color _themeBorderColor = new Color("#38bdf8");    // Viền xanh
+        private Color _btnNormalColor = new Color("#1e293b");      // Nền nút thường
+        private Color _btnHoverColor = new Color("#334155");       // Nền nút hover
         public override void _Ready()
         {
             // 1. Setup Root
@@ -78,6 +83,48 @@ namespace AshesofaDyingWorld.UI.HUD
                 _backgroundDisplay.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
                 _backgroundDisplay.StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered;
                 AddChild(_backgroundDisplay);
+            }
+        }
+
+        // --- HÀM TỰ ĐỘNG PHỐI MÀU (ĐÃ SỬA CHO CHARACTER UI) ---
+        private void ApplyIceTheme()
+        {
+            // 1. Tạo Style cho các Nút Tab (Tổng quan, Kỹ năng...)
+            var btnNormal = new StyleBoxFlat
+            {
+                BgColor = _btnNormalColor,
+                CornerRadiusTopLeft = 5, CornerRadiusTopRight = 5,
+                CornerRadiusBottomRight = 0, CornerRadiusBottomLeft = 0, // Tab thường bo góc trên
+                ContentMarginLeft = 15, ContentMarginRight = 15,
+                ContentMarginTop = 8, ContentMarginBottom = 8
+            };
+
+            var btnHover = (StyleBoxFlat)btnNormal.Duplicate();
+            btnHover.BgColor = _btnHoverColor;
+            btnHover.BorderColor = _themeBorderColor; // Hover thì hiện viền màu băng
+            btnHover.BorderWidthBottom = 2; // Viền dưới sáng lên
+
+            var btnPressed = (StyleBoxFlat)btnNormal.Duplicate();
+            btnPressed.BgColor = new Color("#0f172a"); // Khi chọn thì trùng màu nền panel
+            btnPressed.BorderColor = _themeBorderColor;
+            btnPressed.BorderWidthTop = 2; // Highlight cạnh trên
+
+            // Danh sách các nút Tab cần tô màu
+            Button[] tabButtons = { _btnOverview, _btnEquipment, _btnSkills, _btnTalents };
+
+            foreach (var btn in tabButtons)
+            {
+                if (btn != null)
+                {
+                    btn.AddThemeStyleboxOverride("normal", btnNormal);
+                    btn.AddThemeStyleboxOverride("hover", btnHover);
+                    btn.AddThemeStyleboxOverride("pressed", btnPressed);
+                    // Chỉnh màu chữ
+                    btn.AddThemeColorOverride("font_color", _tabInactiveColor);
+                    btn.AddThemeColorOverride("font_hover_color", Colors.White);
+                    btn.AddThemeColorOverride("font_pressed_color", _accentColor);
+                    btn.AddThemeColorOverride("font_focus_color", _accentColor);
+                }
             }
         }
 
@@ -217,36 +264,53 @@ namespace AshesofaDyingWorld.UI.HUD
             contentContainer.AddChild(_talentsPanel);
         }
 
-        private Control CreateOverviewPanel()
+private Control CreateOverviewPanel()
         {
             var panel = new PanelContainer();
             panel.SetAnchorsPreset(LayoutPreset.FullRect);
-            panel.Visible = true; // Tab mặc định
+            panel.Visible = true;
             
-            // Thêm background solid để che phủ hoàn toàn
+            // Ice Theme: Nền tối gần solid, viền xanh băng (alpha 0.95 để che phủ hoàn toàn)
             var panelStyle = new StyleBoxFlat();
-            panelStyle.BgColor = new Color(0.1f, 0.1f, 0.1f, 1.0f); // Màu xám đậm
+            panelStyle.BgColor = new Color(0.05f, 0.08f, 0.15f, 1f);
+            panelStyle.BorderColor = new Color(_themeBorderColor.R, _themeBorderColor.G, _themeBorderColor.B, 0.5f);
+            panelStyle.SetBorderWidthAll(2);
+            panelStyle.CornerRadiusBottomLeft = 10;
+            panelStyle.CornerRadiusBottomRight = 10;
+            
             panel.AddThemeStyleboxOverride("panel", panelStyle);
 
             var scrollContainer = new ScrollContainer();
+            // Thêm margin để nội dung không sát lề
+            var margin = new MarginContainer();
+            margin.AddThemeConstantOverride("margin_left", 15);
+            margin.AddThemeConstantOverride("margin_right", 15);
+            margin.AddThemeConstantOverride("margin_top", 15);
+            margin.AddThemeConstantOverride("margin_bottom", 15);
+            
             panel.AddChild(scrollContainer);
+            scrollContainer.AddChild(margin); // Scroll chứa Margin
 
             _statsTextContainer = new VBoxContainer();
-            _statsTextContainer.AddThemeConstantOverride("separation", 8);
-            scrollContainer.AddChild(_statsTextContainer);
+            _statsTextContainer.AddThemeConstantOverride("separation", 5); // Giảm khoảng cách chút
+            _statsTextContainer.SizeFlagsHorizontal = SizeFlags.ExpandFill; // Giãn ngang
+            margin.AddChild(_statsTextContainer); // Margin chứa VBox
 
             return panel;
         }
-
         private Control CreateEquipmentPanel()
         {
             var panel = new PanelContainer();
             panel.SetAnchorsPreset(LayoutPreset.FullRect);
             panel.Visible = false;
             
-            // Thêm background solid để che phủ hoàn toàn
+            // Ice Theme: Nền tối gần solid, viền xanh băng
             var panelStyle = new StyleBoxFlat();
-            panelStyle.BgColor = new Color(0.1f, 0.1f, 0.1f, 1.0f); // Màu xám đậm
+            panelStyle.BgColor = new Color(0.05f, 0.08f, 0.15f, 1f);
+            panelStyle.BorderColor = new Color(_themeBorderColor.R, _themeBorderColor.G, _themeBorderColor.B, 0.5f);
+            panelStyle.SetBorderWidthAll(2);
+            panelStyle.CornerRadiusBottomLeft = 10;
+            panelStyle.CornerRadiusBottomRight = 10;
             panel.AddThemeStyleboxOverride("panel", panelStyle);
 
             var label = new Label();
@@ -264,9 +328,13 @@ namespace AshesofaDyingWorld.UI.HUD
             panel.SetAnchorsPreset(LayoutPreset.FullRect);
             panel.Visible = false;
             
-            // Thêm background solid để che phủ hoàn toàn
+            // Ice Theme: Nền tối gần solid, viền xanh băng
             var panelStyle = new StyleBoxFlat();
-            panelStyle.BgColor = new Color(0.1f, 0.1f, 0.1f, 1.0f); // Màu xám đậm
+            panelStyle.BgColor = new Color(0.05f, 0.08f, 0.15f, 1f);
+            panelStyle.BorderColor = new Color(_themeBorderColor.R, _themeBorderColor.G, _themeBorderColor.B, 0.5f);
+            panelStyle.SetBorderWidthAll(2);
+            panelStyle.CornerRadiusBottomLeft = 10;
+            panelStyle.CornerRadiusBottomRight = 10;
             panel.AddThemeStyleboxOverride("panel", panelStyle);
             
             var label = new Label();
@@ -284,9 +352,13 @@ namespace AshesofaDyingWorld.UI.HUD
             panel.SetAnchorsPreset(LayoutPreset.FullRect);
             panel.Visible = false;
             
-            // Thêm background solid để che phủ hoàn toàn
+            // Ice Theme: Nền tối gần solid, viền xanh băng
             var panelStyle = new StyleBoxFlat();
-            panelStyle.BgColor = new Color(0.1f, 0.1f, 0.1f, 1.0f); // Màu xám đậm
+            panelStyle.BgColor = new Color(0.05f, 0.08f, 0.15f, 1f);
+            panelStyle.BorderColor = new Color(_themeBorderColor.R, _themeBorderColor.G, _themeBorderColor.B, 0.5f);
+            panelStyle.SetBorderWidthAll(2);
+            panelStyle.CornerRadiusBottomLeft = 10;
+            panelStyle.CornerRadiusBottomRight = 10;
             panel.AddThemeStyleboxOverride("panel", panelStyle);
 
             var centerContainer = new CenterContainer();
