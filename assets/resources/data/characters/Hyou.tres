@@ -1,13 +1,13 @@
 [gd_resource type="Resource" script_class="CharacterConfig" load_steps=5 format=3 uid="uid://cpdjbs8w3cyi8"]
 
-[ext_resource type="Texture2D" uid="uid://lr287by5djcx" path="res://assets/sprites/char/Hyou/Hyou_avt.png" id="1_dor51"]
+[ext_resource type="VideoStream" uid="uid://4788ud6a1hxu" path="res://assets/sprites/char/Hyou/Hyou_avt.ogv" id="1_dor51"]
 [ext_resource type="Script" uid="uid://cfybswbojyqyb" path="res://src/Core/Data/CharacterConfig.cs" id="1_dt2gn"]
 [ext_resource type="Resource" uid="uid://onq8eelbwsx8" path="res://assets/resources/data/races/spiritIce.tres" id="2_pl1xm"]
 [ext_resource type="Texture2D" uid="uid://c07m8ww25wmoy" path="res://assets/sprites/char/Hyou/HyouIco.png" id="3_3vsim"]
 
 [resource]
 script = ExtResource("1_dt2gn")
-ID = "Vilian"
+ID = "villain_001"
 Name = "Hyou"
 Icon = ExtResource("3_3vsim")
 Avatar = ExtResource("1_dor51")

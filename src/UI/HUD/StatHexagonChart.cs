@@ -29,7 +29,7 @@ namespace AshesofaDyingWorld.UI.HUD
 
         public override void _Ready()
         {
-            CustomMinimumSize = new Vector2(450, 450);
+            CustomMinimumSize = new Vector2(200, 200);
             // Bật antialias cho 2D drawing nếu project setting chưa bật (Godot 4.x)
             // RenderingServer.SetDefaultClearColor(Colors.Transparent); 
         }

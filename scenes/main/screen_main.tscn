@@ -1,9 +1,8 @@
-[gd_scene load_steps=6 format=3 uid="uid://caqnp10danp0c"]
+[gd_scene load_steps=5 format=3 uid="uid://caqnp10danp0c"]
 
 [ext_resource type="Script" uid="uid://dmkiugm0xl2mi" path="res://src/Scenes/ScreenMain.cs" id="1_4tkux"]
 [ext_resource type="Texture2D" uid="uid://by2s11nqd7j07" path="res://assets/sprites/loginForm.png" id="4_4tkux"]
 [ext_resource type="Texture2D" uid="uid://wuosknutle7h" path="res://assets/sprites/loginBtn.png" id="5_dsk4t"]
-[ext_resource type="VideoStream" uid="uid://ov3phkh7gsu5" path="res://assets/video/bgLogin.ogv" id="5_xqi7u"]
 [ext_resource type="Texture2D" uid="uid://betfpi3n0j56r" path="res://assets/sprites/exitBtn.png" id="6_dsk4t"]
 
 [node name="ScreenMain" type="Node2D"]
@@ -16,15 +15,6 @@ offset_top = 213.0
 offset_right = 802.0
 offset_bottom = 459.0
 texture_normal = ExtResource("4_4tkux")
-
-[node name="VideoStreamPlayer" type="VideoStreamPlayer" parent="."]
-z_index = -5
-offset_right = 1920.0
-offset_bottom = 1080.0
-scale = Vector2(0.597846, 0.598206)
-stream = ExtResource("5_xqi7u")
-autoplay = true
-loop = true
 
 [node name="login" type="Button" parent="."]
 z_index = 7

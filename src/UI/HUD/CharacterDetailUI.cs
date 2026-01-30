@@ -6,71 +6,68 @@ namespace AshesofaDyingWorld.UI.HUD
 {
     public partial class CharacterDetailUI : Control
     {
-        [Export] public Texture2D BackgroundTexture; // Ảnh nền custom
+        [Export] public Texture2D BackgroundTexture; 
         
         // UI Elements
-        private VBoxContainer _characterListContainer; // Container cho danh sách avatar nhân vật
-        private TextureRect _avatarDisplay; // Avatar lớn bên phải
+        private VBoxContainer _characterListContainer;
+        private VideoStreamPlayer _avatarDisplay;
         private TextureRect _backgroundDisplay;
         
         // Tab system
         private Button _btnOverview;
         private Button _btnEquipment;
         private Button _btnSkills;
-        private Button _btnTalents;
         
         // Content panels
         private Control _overviewPanel;
         private Control _equipmentPanel;
         private Control _skillsPanel;
-        private Control _talentsPanel;
         
         // Overview panel elements
         private Label _nameLabel;
         private Label _levelLabel;
         private Label _raceLabel;
         private VBoxContainer _statsTextContainer;
-        
-        // Talents panel elements
-        private StatHexagonChart _statsChart;
-        
-        // Cấu hình màu sắc chủ đạo (Gold/Elite Style)
-        private readonly Color _accentColor = new Color("#38bdf8"); // Xanh băng sáng
-        private readonly Color _subTextColor = new Color("#94a3b8"); // Xám xanh (Slate 400)
-        
-        // Màu trạng thái Tab
-        private readonly Color _tabActiveColor = new Color("#38bdf8"); // Sáng
-        private readonly Color _tabInactiveColor = new Color("#64748b"); // Tối hơn
-        private string _currentTab = "overview"; // Mặc định là overview
 
-        private Color _themeBgColor = new Color("#0f172a", 0.90f); // Nền xanh đen thẫm
-        private Color _themeBorderColor = new Color("#38bdf8");    // Viền xanh
-        private Color _btnNormalColor = new Color("#1e293b");      // Nền nút thường
-        private Color _btnHoverColor = new Color("#334155");       // Nền nút hover
+        // bar gốc (Hp, Mana, Stamina)
+        private VBoxContainer _resourceBarsContainer;
+        private ProgressBar _hpBar;
+        private ProgressBar _mpBar;
+        private ProgressBar _staminaBar;
+        private Label _hpValueLabel;
+        private Label _mpValueLabel;
+        private Label _staminaValueLabel;
+        
+        // Chart
+        private StatHexagonChart _overviewStatsChart; 
+        
+        // Cấu hình màu sắc
+        private readonly Color _accentColor = new Color("#38bdf8"); 
+        private readonly Color _subTextColor = new Color("#94a3b8"); 
+        private readonly Color _tabActiveColor = new Color("#38bdf8");
+        private readonly Color _tabInactiveColor = new Color("#64748b");
+        private string _currentTab = "overview";
+        private Color _themeBorderColor = new Color("#38bdf8");   
+        private Color _btnNormalColor = new Color("#1e293b");     
+        private Color _btnHoverColor = new Color("#334155");       
+
         public override void _Ready()
         {
-            // 1. Setup Root
             SetAnchorsPreset(LayoutPreset.FullRect);
-            
-            // 2. BACKGROUND LAYER (Nền tối hoặc ảnh custom)
             SetupBackground();
 
-            // 3. Main Layout: HBox với 3 cột
             var mainHBox = new HBoxContainer();
             mainHBox.SetAnchorsPreset(LayoutPreset.FullRect);
             mainHBox.AddThemeConstantOverride("separation", 0);
             AddChild(mainHBox);
 
-            // CỘT 1: Danh sách nhân vật bên trái (15% width)
             SetupCharacterListColumn(mainHBox);
-
-            // CỘT 2: Nội dung chính với tab system (55% width)
             SetupMainContentColumn(mainHBox);
-
-            // CỘT 3: Avatar lớn bên phải (30% width)
             SetupAvatarColumn(mainHBox);
 
             VisibilityChanged += OnVisibilityChanged;
+            
+            ApplyIceTheme();
         }
 
         private void SetupBackground()
@@ -86,31 +83,28 @@ namespace AshesofaDyingWorld.UI.HUD
             }
         }
 
-        // --- HÀM TỰ ĐỘNG PHỐI MÀU (ĐÃ SỬA CHO CHARACTER UI) ---
         private void ApplyIceTheme()
         {
-            // 1. Tạo Style cho các Nút Tab (Tổng quan, Kỹ năng...)
             var btnNormal = new StyleBoxFlat
             {
                 BgColor = _btnNormalColor,
                 CornerRadiusTopLeft = 5, CornerRadiusTopRight = 5,
-                CornerRadiusBottomRight = 0, CornerRadiusBottomLeft = 0, // Tab thường bo góc trên
                 ContentMarginLeft = 15, ContentMarginRight = 15,
                 ContentMarginTop = 8, ContentMarginBottom = 8
             };
 
             var btnHover = (StyleBoxFlat)btnNormal.Duplicate();
             btnHover.BgColor = _btnHoverColor;
-            btnHover.BorderColor = _themeBorderColor; // Hover thì hiện viền màu băng
-            btnHover.BorderWidthBottom = 2; // Viền dưới sáng lên
+            btnHover.BorderColor = _themeBorderColor;
+            btnHover.BorderWidthBottom = 2;
 
             var btnPressed = (StyleBoxFlat)btnNormal.Duplicate();
-            btnPressed.BgColor = new Color("#0f172a"); // Khi chọn thì trùng màu nền panel
+            btnPressed.BgColor = new Color("#0f172a");
             btnPressed.BorderColor = _themeBorderColor;
-            btnPressed.BorderWidthTop = 2; // Highlight cạnh trên
+            btnPressed.BorderWidthTop = 2;
 
-            // Danh sách các nút Tab cần tô màu
-            Button[] tabButtons = { _btnOverview, _btnEquipment, _btnSkills, _btnTalents };
+            // ĐÃ XÓA: _btnTalents khỏi danh sách này
+            Button[] tabButtons = { _btnOverview, _btnEquipment, _btnSkills };
 
             foreach (var btn in tabButtons)
             {
@@ -119,7 +113,6 @@ namespace AshesofaDyingWorld.UI.HUD
                     btn.AddThemeStyleboxOverride("normal", btnNormal);
                     btn.AddThemeStyleboxOverride("hover", btnHover);
                     btn.AddThemeStyleboxOverride("pressed", btnPressed);
-                    // Chỉnh màu chữ
                     btn.AddThemeColorOverride("font_color", _tabInactiveColor);
                     btn.AddThemeColorOverride("font_hover_color", Colors.White);
                     btn.AddThemeColorOverride("font_pressed_color", _accentColor);
@@ -128,47 +121,34 @@ namespace AshesofaDyingWorld.UI.HUD
             }
         }
 
-        // CỘT 1: Danh sách nhân vật có thể scroll (Dọc - VBox)
         private void SetupCharacterListColumn(HBoxContainer parent)
         {
             var listPanel = new PanelContainer();
-            listPanel.CustomMinimumSize = new Vector2(120, 0); // Chiều rộng cố định cho cột dọc
+            listPanel.CustomMinimumSize = new Vector2(120, 0); 
             parent.AddChild(listPanel);
 
             var listVBox = new VBoxContainer();
             listPanel.AddChild(listVBox);
 
-            // Title cho danh sách
             var titleLabel = new Label();
             titleLabel.HorizontalAlignment = HorizontalAlignment.Center;
-            titleLabel.AddThemeFontSizeOverride("font_size", 14);
-            titleLabel.AddThemeColorOverride("font_color", _accentColor);
             listVBox.AddChild(titleLabel);
 
-            // Không dùng scroll container nữa, hiển thị trực tiếp theo chiều dọc
             _characterListContainer = new VBoxContainer();
             _characterListContainer.AddThemeConstantOverride("separation", 10);
             _characterListContainer.SizeFlagsHorizontal = SizeFlags.ExpandFill;
             _characterListContainer.SizeFlagsVertical = SizeFlags.ExpandFill;
-            _characterListContainer.Alignment = BoxContainer.AlignmentMode.Begin; // Bắt đầu từ trên xuống
             listVBox.AddChild(_characterListContainer);
         }
 
-        // CỘT 2: Nội dung chính với tab
         private void SetupMainContentColumn(HBoxContainer parent)
         {
             var contentVBox = new VBoxContainer();
             contentVBox.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-            contentVBox.AddThemeConstantOverride("separation", 0);
             parent.AddChild(contentVBox);
 
-            // Header với tên nhân vật
             SetupContentHeader(contentVBox);
-
-            // Tab bar
             SetupTabBar(contentVBox);
-
-            // Content area cho các tab
             SetupContentArea(contentVBox);
         }
 
@@ -180,12 +160,10 @@ namespace AshesofaDyingWorld.UI.HUD
             parent.AddChild(headerMargin);
 
             var headerVBox = new VBoxContainer();
-            headerVBox.AddThemeConstantOverride("separation", 5);
             headerMargin.AddChild(headerVBox);
 
             _nameLabel = new Label();
             _nameLabel.AddThemeFontSizeOverride("font_size", 36);
-            _nameLabel.AddThemeColorOverride("font_color", Colors.White);
             _nameLabel.Uppercase = true;
             headerVBox.AddChild(_nameLabel);
 
@@ -198,7 +176,6 @@ namespace AshesofaDyingWorld.UI.HUD
 
             var separator = new Label();
             separator.Text = "|";
-            separator.AddThemeColorOverride("font_color", _subTextColor);
             subInfoHBox.AddChild(separator);
 
             _raceLabel = CreateStyledLabel(18, _subTextColor);
@@ -228,9 +205,7 @@ namespace AshesofaDyingWorld.UI.HUD
             _btnSkills.Pressed += () => SwitchTab("skills");
             tabHBox.AddChild(_btnSkills);
 
-            _btnTalents = CreateTabButton("THIÊN PHÚ");
-            _btnTalents.Pressed += () => SwitchTab("talents");
-            tabHBox.AddChild(_btnTalents);
+            // ĐÃ XÓA: Button Thiên Phú
         }
 
         private void SetupContentArea(VBoxContainer parent)
@@ -247,76 +222,89 @@ namespace AshesofaDyingWorld.UI.HUD
             contentContainer.SizeFlagsVertical = SizeFlags.ExpandFill;
             contentMargin.AddChild(contentContainer);
 
-            // TAB 1: Tổng quan - Text chỉ số
             _overviewPanel = CreateOverviewPanel();
             contentContainer.AddChild(_overviewPanel);
 
-            // TAB 2: Trang bị
             _equipmentPanel = CreateEquipmentPanel();
             contentContainer.AddChild(_equipmentPanel);
 
-            // TAB 3: Kỹ năng
             _skillsPanel = CreateSkillsPanel();
             contentContainer.AddChild(_skillsPanel);
 
-            // TAB 4: Thiên phú - Hexagon chart
-            _talentsPanel = CreateTalentsPanel();
-            contentContainer.AddChild(_talentsPanel);
         }
 
-private Control CreateOverviewPanel()
+        private Control CreateOverviewPanel()
         {
             var panel = new PanelContainer();
+            //FullRect dùng để hiển thị panel đúng kích thước cha
             panel.SetAnchorsPreset(LayoutPreset.FullRect);
-            panel.Visible = true;
-            
-            // Ice Theme: Nền tối gần solid, viền xanh băng (alpha 0.95 để che phủ hoàn toàn)
-            var panelStyle = new StyleBoxFlat();
-            panelStyle.BgColor = new Color(0.05f, 0.08f, 0.15f, 1f);
-            panelStyle.BorderColor = new Color(_themeBorderColor.R, _themeBorderColor.G, _themeBorderColor.B, 0.5f);
-            panelStyle.SetBorderWidthAll(2);
-            panelStyle.CornerRadiusBottomLeft = 10;
-            panelStyle.CornerRadiusBottomRight = 10;
-            
-            panel.AddThemeStyleboxOverride("panel", panelStyle);
+            panel.AddThemeStyleboxOverride("panel", GetCommonPanelStyle());
 
-            var scrollContainer = new ScrollContainer();
-            // Thêm margin để nội dung không sát lề
-            var margin = new MarginContainer();
-            margin.AddThemeConstantOverride("margin_left", 15);
-            margin.AddThemeConstantOverride("margin_right", 15);
-            margin.AddThemeConstantOverride("margin_top", 15);
-            margin.AddThemeConstantOverride("margin_bottom", 15);
-            
-            panel.AddChild(scrollContainer);
-            scrollContainer.AddChild(margin); // Scroll chứa Margin
+            var mainVBox = new VBoxContainer();
+            mainVBox.AddThemeConstantOverride("separation", 15);
+            panel.AddChild(mainVBox);
 
+            
+            // 1. Tạo Tiêu đề và Dòng kẻ ngang (Nằm trực tiếp trong mainVBox)
+            var titleLabel = new Label();
+            titleLabel.Text = "CHỈ SỐ NHÂN VẬT";
+            titleLabel.AddThemeFontSizeOverride("font_size", 20);
+            titleLabel.AddThemeColorOverride("font_color", _accentColor);
+            mainVBox.AddChild(titleLabel);
+            
+            mainVBox.AddChild(new HSeparator());
+            // -----------------------------------------------------------
+
+            // 2. Tạo khu vực chứa 2 cột (Stats bên trái, Bar bên phải)
+            var statsAreaHBox = new HBoxContainer();
+            statsAreaHBox.AddThemeConstantOverride("separation", 20);
+            mainVBox.AddChild(statsAreaHBox);
+
+            // Cột Trái: Chỉ chứa các dòng STR, DEX... 
             _statsTextContainer = new VBoxContainer();
-            _statsTextContainer.AddThemeConstantOverride("separation", 5); // Giảm khoảng cách chút
-            _statsTextContainer.SizeFlagsHorizontal = SizeFlags.ExpandFill; // Giãn ngang
-            margin.AddChild(_statsTextContainer); // Margin chứa VBox
+            _statsTextContainer.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+            statsAreaHBox.AddChild(_statsTextContainer);
+
+            // Cột Phải: Chứa HP, MP, Stamina
+            _resourceBarsContainer = new VBoxContainer();
+            _resourceBarsContainer.SizeFlagsHorizontal = SizeFlags.ShrinkEnd;
+            _resourceBarsContainer.AddThemeConstantOverride("separation", 8);
+            statsAreaHBox.AddChild(_resourceBarsContainer);
+
+            // Tạo sẵn các thanh Bar
+            _resourceBarsContainer.AddChild(CreateResourceBarRow("HP", new Color("#ef4444"), out _hpBar, out _hpValueLabel));
+            _resourceBarsContainer.AddChild(CreateResourceBarRow("MP", new Color("#3b82f6"), out _mpBar, out _mpValueLabel));
+            _resourceBarsContainer.AddChild(CreateResourceBarRow("STA", new Color("#22c55e"), out _staminaBar, out _staminaValueLabel));
+
+            // --- Phần biểu đồ Hexagon  
+            var hexagonContainer = new HBoxContainer();
+            mainVBox.AddChild(hexagonContainer);
+
+            _overviewStatsChart = new StatHexagonChart();
+            _overviewStatsChart.MainColor = _accentColor;
+            _overviewStatsChart.ChartRadiusOffset = 35f;
+            _overviewStatsChart.FontSize = 10;
+            _overviewStatsChart.CustomMinimumSize = new Vector2(220, 220);
+            _overviewStatsChart.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
+
+            hexagonContainer.AddChild(_overviewStatsChart);
 
             return panel;
         }
+
         private Control CreateEquipmentPanel()
         {
             var panel = new PanelContainer();
-            panel.SetAnchorsPreset(LayoutPreset.FullRect);
+            // QUAN TRỌNG: Phải set FullRect để panel bung đầy màn hình, không bị đè lệch
+            panel.SetAnchorsPreset(LayoutPreset.FullRect); 
             panel.Visible = false;
             
-            // Ice Theme: Nền tối gần solid, viền xanh băng
-            var panelStyle = new StyleBoxFlat();
-            panelStyle.BgColor = new Color(0.05f, 0.08f, 0.15f, 1f);
-            panelStyle.BorderColor = new Color(_themeBorderColor.R, _themeBorderColor.G, _themeBorderColor.B, 0.5f);
-            panelStyle.SetBorderWidthAll(2);
-            panelStyle.CornerRadiusBottomLeft = 10;
-            panelStyle.CornerRadiusBottomRight = 10;
-            panel.AddThemeStyleboxOverride("panel", panelStyle);
+            // Thêm style nền để che đi các panel phía sau (nếu có)
+            panel.AddThemeStyleboxOverride("panel", GetCommonPanelStyle());
 
             var label = new Label();
-            label.Text = "TRANG BỊ (Đang phát triển)";
+            label.Text = "TRANG BỊ (Đang cập nhật)";
             label.HorizontalAlignment = HorizontalAlignment.Center;
-            label.VerticalAlignment = VerticalAlignment.Center;
             panel.AddChild(label);
 
             return panel;
@@ -325,86 +313,74 @@ private Control CreateOverviewPanel()
         private Control CreateSkillsPanel()
         {
             var panel = new PanelContainer();
+            // QUAN TRỌNG: Set FullRect
             panel.SetAnchorsPreset(LayoutPreset.FullRect);
             panel.Visible = false;
-            
-            // Ice Theme: Nền tối gần solid, viền xanh băng
-            var panelStyle = new StyleBoxFlat();
-            panelStyle.BgColor = new Color(0.05f, 0.08f, 0.15f, 1f);
-            panelStyle.BorderColor = new Color(_themeBorderColor.R, _themeBorderColor.G, _themeBorderColor.B, 0.5f);
-            panelStyle.SetBorderWidthAll(2);
-            panelStyle.CornerRadiusBottomLeft = 10;
-            panelStyle.CornerRadiusBottomRight = 10;
-            panel.AddThemeStyleboxOverride("panel", panelStyle);
-            
+
+            // Thêm style nền
+            panel.AddThemeStyleboxOverride("panel", GetCommonPanelStyle());
+
             var label = new Label();
-            label.Text = "KỸ NĂNG (Đang phát triển)";
+            label.Text = "KỸ NĂNG (Đang cập nhật)";
             label.HorizontalAlignment = HorizontalAlignment.Center;
-            label.VerticalAlignment = VerticalAlignment.Center;
             panel.AddChild(label);
 
             return panel;
         }
 
-        private Control CreateTalentsPanel()
+        // Tạo style chung cho các panel để đồng bộ và tránh lỗi trong suốt
+        private StyleBoxFlat GetCommonPanelStyle()
         {
-            var panel = new PanelContainer();
-            panel.SetAnchorsPreset(LayoutPreset.FullRect);
-            panel.Visible = false;
-            
-            // Ice Theme: Nền tối gần solid, viền xanh băng
-            var panelStyle = new StyleBoxFlat();
-            panelStyle.BgColor = new Color(0.05f, 0.08f, 0.15f, 1f);
-            panelStyle.BorderColor = new Color(_themeBorderColor.R, _themeBorderColor.G, _themeBorderColor.B, 0.5f);
-            panelStyle.SetBorderWidthAll(2);
-            panelStyle.CornerRadiusBottomLeft = 10;
-            panelStyle.CornerRadiusBottomRight = 10;
-            panel.AddThemeStyleboxOverride("panel", panelStyle);
-
-            var centerContainer = new CenterContainer();
-            centerContainer.SetAnchorsPreset(LayoutPreset.FullRect);
-            panel.AddChild(centerContainer);
-
-            _statsChart = new StatHexagonChart();
-            _statsChart.MainColor = _accentColor;
-            _statsChart.ChartRadiusOffset = 100f;
-            centerContainer.AddChild(_statsChart);
-
-            return panel;
+            var style = new StyleBoxFlat();
+            style.BgColor = new Color(0.05f, 0.08f, 0.15f, 1f); // Màu nền tối, không trong suốt
+            style.BorderColor = new Color(_themeBorderColor.R, _themeBorderColor.G, _themeBorderColor.B, 0.5f);
+            style.SetBorderWidthAll(2);
+            style.CornerRadiusBottomLeft = 10;
+            style.CornerRadiusBottomRight = 10;
+            return style;
         }
 
-        // CỘT 3: Avatar lớn bên phải
         private void SetupAvatarColumn(HBoxContainer parent)
         {
             var avatarPanel = new PanelContainer();
             avatarPanel.CustomMinimumSize = new Vector2(350, 0);
-            // Cho phép panel này giãn hết chiều cao của cha
             avatarPanel.SizeFlagsVertical = SizeFlags.ExpandFill; 
             parent.AddChild(avatarPanel);
 
-            var avatarMargin = new MarginContainer();
-            // Giảm margin xuống 0 nếu muốn sát viền, hoặc giữ nguyên tùy ý
-            avatarMargin.AddThemeConstantOverride("margin_left", 0); 
-            avatarMargin.AddThemeConstantOverride("margin_right", 0);
-            avatarMargin.AddThemeConstantOverride("margin_top", 0);
-            avatarMargin.AddThemeConstantOverride("margin_bottom", 0);
-            avatarPanel.AddChild(avatarMargin);
-
-            
-            _avatarDisplay = new TextureRect();
-            _avatarDisplay.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize; // Cho phép resize tự do
-            
-            _avatarDisplay.StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered;            
-            // Quan trọng: Lệnh này bảo Godot kéo giãn control này lấp đầy chiều dọc và ngang của cha
-            _avatarDisplay.SizeFlagsVertical = SizeFlags.ExpandFill;
-            _avatarDisplay.SizeFlagsHorizontal = SizeFlags.ExpandFill;            
-            // Add trực tiếp vào Margin (hoặc Panel)
+            _avatarDisplay = new VideoStreamPlayer();
             _avatarDisplay.SetAnchorsPreset(LayoutPreset.FullRect);
+            _avatarDisplay.Loop = true;
+            _avatarDisplay.Autoplay = true;
+            _avatarDisplay.VolumeDb = -80;
+            _avatarDisplay.BufferingMsec = 0;
+            
+        var chromaShader = GD.Load<Shader>("res://assets/shader/chroma_key.gdshader");
+        if (chromaShader != null)
+        {
+            var shaderMaterial = new ShaderMaterial();
+            shaderMaterial.Shader = chromaShader;
 
-            avatarMargin.AddChild(_avatarDisplay);
+            // Set màu xanh chuẩn (nếu ảnh gốc của bạn là nền xanh lá 0,255,0)
+            shaderMaterial.SetShaderParameter("chroma_key", new Vector3(0f, 1f, 0f));
+            
+            // Tinh chỉnh 3 thông số này:
+            
+            // 1. Similarity: Tăng dần đến khi nền biến mất (khoảng 0.4 - 0.45)
+            shaderMaterial.SetShaderParameter("similarity", 0.4f);
+            
+            // 2. Smoothness: Giữ thấp để viền sắc nét, không bị mờ ảo (0.03 - 0.08)
+            shaderMaterial.SetShaderParameter("smoothness", 0.03f);
+            
+            // 3. Spill: ĐÂY LÀ CHÌA KHÓA. 
+            // Hãy set là 1.0 (tối đa) để nó khử sạch màu xanh bám trên viền trắng.
+            shaderMaterial.SetShaderParameter("spill", 0.9f);
+            
+            _avatarDisplay.Material = shaderMaterial;
+        }
+            
+            avatarPanel.AddChild(_avatarDisplay);
         }
 
-        // Helper tạo Label nhanh
         private Label CreateStyledLabel(int size, Color color)
         {
             var lbl = new Label();
@@ -413,29 +389,23 @@ private Control CreateOverviewPanel()
             return lbl;
         }
 
-        // Helper tạo Tab Button
         private Button CreateTabButton(string text)
         {
             var btn = new Button();
             btn.Text = text;
             btn.CustomMinimumSize = new Vector2(120, 35);
-            btn.AddThemeFontSizeOverride("font_size", 14);
             return btn;
         }
 
-        // Chuyển tab
         private void SwitchTab(string tabName)
         {
-            // 1. Ẩn TOÀN BỘ các panel - Disable processing và mouse filter
             HidePanel(_overviewPanel);
             HidePanel(_equipmentPanel);
             HidePanel(_skillsPanel);
-            HidePanel(_talentsPanel);
-
-            // Reset màu button
+            // ĐÃ XÓA: HidePanel(_talentsPanel);
+            
             ResetTabButtonColors();
 
-            // 2. Chỉ bật panel cần thiết
             switch (tabName)
             {
                 case "overview":
@@ -450,17 +420,11 @@ private Control CreateOverviewPanel()
                     ShowPanel(_skillsPanel);
                     _btnSkills.AddThemeColorOverride("font_color", _tabActiveColor);
                     break;
-                case "talents":
-                    ShowPanel(_talentsPanel);
-                    _btnTalents.AddThemeColorOverride("font_color", _tabActiveColor);
-                    break;
+                // ĐÃ XÓA: Case talents
             }
-            
-            // Lưu lại tab hiện tại để dùng cho hàm Update (Xem Bước 2)
             _currentTab = tabName; 
         }
 
-        // Helper methods để ẩn/hiện panels một cách triệt để
         private void HidePanel(Control panel)
         {
             if (panel != null)
@@ -485,34 +449,28 @@ private Control CreateOverviewPanel()
             _btnOverview.AddThemeColorOverride("font_color", _tabInactiveColor);
             _btnEquipment.AddThemeColorOverride("font_color", _tabInactiveColor);
             _btnSkills.AddThemeColorOverride("font_color", _tabInactiveColor);
-            _btnTalents.AddThemeColorOverride("font_color", _tabInactiveColor);
+            // ĐÃ XÓA: Talents button reset
         }
 
         private void LoadCharacterList()
         {
-            // Xóa các avatar cũ
             var children = _characterListContainer.GetChildren();
-            foreach (var child in children)
-            {
-                child.QueueFree();
-            }
+            foreach (var child in children) child.QueueFree();
 
-            // Thêm avatar của tất cả nhân vật trong party
             for (int i = 0; i < PlayerManager.Instance.PartyMembers.Count; i++)
             {
-                int index = i; // Capture for closure
+                int index = i; 
                 var character = PlayerManager.Instance.PartyMembers[i];
                 
                 if (character?.ConfigData?.Icon != null)
                 {
                     var btn = new TextureButton();
                     btn.TextureNormal = character.ConfigData.Icon;
-                    btn.CustomMinimumSize = new Vector2(70, 70); // Size nhỏ hơn
+                    btn.CustomMinimumSize = new Vector2(70, 70);
                     btn.StretchMode = TextureButton.StretchModeEnum.KeepAspectCentered;
                     btn.IgnoreTextureSize = true;
                     btn.Pressed += () => OnCharacterSelected(index);
                     
-                    // Highlight nếu là nhân vật đang chọn
                     if (index == PlayerManager.Instance.ActiveCharacterIndex)
                     {
                         var style = new StyleBoxFlat();
@@ -522,7 +480,6 @@ private Control CreateOverviewPanel()
                         style.SetCornerRadiusAll(5);
                         btn.AddThemeStyleboxOverride("normal", style);
                     }
-                    
                     _characterListContainer.AddChild(btn);
                 }
             }
@@ -549,49 +506,25 @@ private Control CreateOverviewPanel()
 
             var config = currentStats.ConfigData;
 
-            // 1. Update header
             _nameLabel.Text = config.Name;
             _levelLabel.Text = $"LV. {currentStats.CurrentLevel:00}";
             _raceLabel.Text = config.CharacterRace?.RaceName?.ToUpper() ?? "UNKNOWN";
 
-            // 2. Update Avatar
-            if (config.Avatar != null)
+            if (config.Avatar is VideoStream videoStream)
             {
-                _avatarDisplay.Texture = config.Avatar;
+                _avatarDisplay.Stream = videoStream;
+                _avatarDisplay.Play();
             }
 
-            // 3. Update Overview panel - Text chỉ số
-            UpdateOverviewPanel(currentStats);
-
-            // 4. Update Talents panel - Hexagon chart
-            UpdateTalentsPanel(currentStats);
-
-            // 5. Load character list
+            UpdateOverviewPanel(currentStats);            
             LoadCharacterList();
-
-            // 6. Show default tab
             SwitchTab(_currentTab);
         }
 
         private void UpdateOverviewPanel(PlayerStats stats)
         {
-            // Xóa stats cũ
-            foreach (var child in _statsTextContainer.GetChildren())
-            {
-                child.QueueFree();
-            }
+            foreach (var child in _statsTextContainer.GetChildren()) child.QueueFree();
 
-            // Title
-            var titleLabel = new Label();
-            titleLabel.Text = "CHỈ SỐ NHÂN VẬT";
-            titleLabel.AddThemeFontSizeOverride("font_size", 20);
-            titleLabel.AddThemeColorOverride("font_color", _accentColor);
-            _statsTextContainer.AddChild(titleLabel);
-
-            var separator = new HSeparator();
-            _statsTextContainer.AddChild(separator);
-
-            // Hiển thị các chỉ số dạng text
             if (stats.FinalAttributes != null)
             {
                 foreach (var attr in stats.FinalAttributes)
@@ -615,22 +548,96 @@ private Control CreateOverviewPanel()
                     _statsTextContainer.AddChild(hbox);
                 }
             }
-        }
 
-        private void UpdateTalentsPanel(PlayerStats stats)
-        {
-            _statsChart.ClearStats();
-            if (stats.FinalAttributes != null)
+            if (_overviewStatsChart != null)
             {
-                foreach (var attr in stats.FinalAttributes)
+                _overviewStatsChart.ClearStats();
+                if (stats.FinalAttributes != null)
                 {
-                    _statsChart.SetStat(FormatStatName(attr.Key.ToString()), attr.Value);
+                    foreach (var attr in stats.FinalAttributes)
+                    {
+                        _overviewStatsChart.SetStat(FormatStatName(attr.Key.ToString()), attr.Value);
+                    }
                 }
+                _overviewStatsChart.UpdateAllStats();
             }
-            _statsChart.UpdateAllStats();
+            
+            UpdateResourceBars(stats);
+
         }
 
-        // Hàm làm gọn tên chỉ số
+        private void UpdateResourceBars(PlayerStats stats)
+        {
+            SetBarValue(_hpBar, _hpValueLabel, (int)stats.CurrentHP, (int)stats.MaxHP);
+            SetBarValue(_mpBar, _mpValueLabel, (int)stats.CurrentMP, (int)stats.MaxMP);
+            SetBarValue(_staminaBar, _staminaValueLabel, (int)stats.CurrentStamina, (int)stats.MaxStamina);
+
+        }
+        private void SetBarValue(ProgressBar bar, Label valueLabel, int current, int max)
+        {
+            max = Mathf.Max(1, max);
+            current = Mathf.Clamp(current, 0, max);
+
+            if (bar != null)
+            {
+                bar.MinValue = 0;
+                bar.MaxValue = max;
+                bar.Value = current;
+            }
+
+            if (valueLabel != null)
+            {
+                valueLabel.Text = $"{current}/{max}";
+            }
+        }
+
+        private HBoxContainer CreateResourceBarRow(string labelText, Color fillColor, out ProgressBar bar, out Label valueLabel)
+        {
+            var row = new HBoxContainer();
+            row.AddThemeConstantOverride("separation", 8);
+
+            var nameLabel = new Label();
+            nameLabel.Text = labelText;
+            nameLabel.CustomMinimumSize = new Vector2(40, 0);
+            nameLabel.AddThemeFontSizeOverride("font_size", 14);
+            nameLabel.AddThemeColorOverride("font_color", _subTextColor);
+            row.AddChild(nameLabel);
+
+            bar = new ProgressBar();
+            bar.CustomMinimumSize = new Vector2(160, 18);
+            bar.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+
+            var bg = new StyleBoxFlat();
+            bg.BgColor = new Color(0.1f, 0.12f, 0.2f, 1f);
+            bg.CornerRadiusTopLeft = 4;
+            bg.CornerRadiusTopRight = 4;
+            bg.CornerRadiusBottomLeft = 4;
+            bg.CornerRadiusBottomRight = 4;
+
+            var fill = new StyleBoxFlat();
+            fill.BgColor = fillColor;
+            fill.CornerRadiusTopLeft = 4;
+            fill.CornerRadiusTopRight = 4;
+            fill.CornerRadiusBottomLeft = 4;
+            fill.CornerRadiusBottomRight = 4;
+
+            bar.AddThemeStyleboxOverride("background", bg);
+            bar.AddThemeStyleboxOverride("fill", fill);
+
+            row.AddChild(bar);
+
+            valueLabel = new Label();
+            valueLabel.Text = "0/0";
+            valueLabel.CustomMinimumSize = new Vector2(60, 0);
+            valueLabel.AddThemeFontSizeOverride("font_size", 14);
+            valueLabel.AddThemeColorOverride("font_color", Colors.White);
+            row.AddChild(valueLabel);
+
+            return row;
+        }
+
+
+
         private string FormatStatName(string original)
         {
             return original switch
