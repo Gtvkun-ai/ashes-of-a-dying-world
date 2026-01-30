@@ -944,7 +944,7 @@ tile_set = SubResource("TileSet_vydvg")
 y_sort_enabled = true
 
 [node name="stone5" parent="stone for field" instance=ExtResource("7_xvu3u")]
-position = Vector2(1771, 279)
+position = Vector2(1725, 283)
 
 [node name="stone6" parent="stone for field" instance=ExtResource("7_xvu3u")]
 position = Vector2(447, 282)
@@ -1012,7 +1012,808 @@ metadata/_edit_group_ = true
 y_sort_enabled = true
 
 [node name="Tree" parent="tree for field" instance=ExtResource("3_vydvg")]
-position = Vector2(238, 112)
+position = Vector2(14, 30)
 
 [node name="Tree2" parent="tree for field" instance=ExtResource("3_vydvg")]
+
+position = Vector2(13, 84)
+
+[node name="Tree3" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(143, -1)
+
+[node name="Tree4" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(60, -2)
+
+[node name="Tree5" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(225, -2)
+
+[node name="Tree6" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(306, -1)
+
+[node name="Tree7" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(387, -2)
+
+[node name="Tree8" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(818, 0)
+
+[node name="Tree9" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(475, -1)
+
+[node name="Tree10" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(561, -2)
+
+[node name="Tree11" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(646, -1)
+
+[node name="Tree12" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(734, 0)
+
+[node name="Tree13" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(818, -1)
+
+[node name="Tree14" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(904, -2)
+
+[node name="Tree15" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(989, -1)
+
+[node name="Tree16" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1077, 0)
+
+[node name="Tree17" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(187, -27)
+
+[node name="Tree18" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(104, -28)
+
+[node name="Tree19" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(269, -28)
+
+[node name="Tree20" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(350, -27)
+
+[node name="Tree21" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(431, -28)
+
+[node name="Tree22" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(862, -26)
+
+[node name="Tree23" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(519, -27)
+
+[node name="Tree24" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(605, -28)
+
+[node name="Tree25" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(690, -27)
+
+[node name="Tree26" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(778, -26)
+
+[node name="Tree27" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(862, -27)
+
+[node name="Tree28" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(948, -28)
+
+[node name="Tree29" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1033, -27)
+
+[node name="Tree30" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1121, -26)
+
+[node name="Tree31" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(187, 41)
+
+[node name="Tree32" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(104, 40)
+
+[node name="Tree33" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(269, 40)
+
+[node name="Tree34" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(350, 41)
+
+[node name="Tree35" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(431, 40)
+
+[node name="Tree36" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(862, 42)
+
+[node name="Tree37" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(519, 41)
+
+[node name="Tree38" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(605, 40)
+
+[node name="Tree39" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(690, 41)
+
+[node name="Tree40" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(778, 42)
+
+[node name="Tree41" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(862, 41)
+
+[node name="Tree42" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(948, 40)
+
+[node name="Tree43" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1033, 41)
+
+[node name="Tree44" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1099, 41)
+
+[node name="Tree45" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1170, -20)
+
+[node name="Tree46" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1256, -21)
+
+[node name="Tree47" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1341, -20)
+
+[node name="Tree48" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1407, -20)
+
+[node name="Tree49" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1407, -20)
+
+[node name="Tree50" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1493, -21)
+
+[node name="Tree51" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1578, -20)
+
+[node name="Tree52" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1644, -20)
+
+[node name="Tree53" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1645, -20)
+
+[node name="Tree54" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1731, -21)
+
+[node name="Tree55" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1816, -20)
+
+[node name="Tree56" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1882, -20)
+
+[node name="Tree57" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1215, 4)
+
+[node name="Tree58" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1301, 3)
+
+[node name="Tree59" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1386, 4)
+
+[node name="Tree60" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1452, 4)
+
+[node name="Tree61" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1529, 8)
+
+[node name="Tree62" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1615, 7)
+
+[node name="Tree63" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1700, 8)
+
+[node name="Tree64" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1766, 8)
+
+[node name="Tree65" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1173, 31)
+
+[node name="Tree66" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1259, 30)
+
+[node name="Tree67" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1344, 31)
+
+[node name="Tree68" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1410, 31)
+
+[node name="Tree69" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1497, 35)
+
+[node name="Tree70" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1583, 34)
+
+[node name="Tree71" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1668, 35)
+
+[node name="Tree72" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1734, 35)
+
+[node name="Tree73" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(33, 1839)
+
+[node name="Tree74" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(119, 1838)
+
+[node name="Tree75" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(204, 1839)
+
+[node name="Tree76" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(270, 1839)
+
+[node name="Tree78" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(271, 1838)
+
+[node name="Tree79" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(356, 1839)
+
+[node name="Tree80" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(422, 1839)
+
+[node name="Tree77" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(53, 1806)
+
+[node name="Tree81" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(139, 1805)
+
+[node name="Tree82" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(224, 1806)
+
+[node name="Tree83" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(290, 1806)
+
+[node name="Tree84" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(291, 1805)
+
+[node name="Tree85" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(376, 1806)
+
+[node name="Tree86" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(442, 1806)
+
+[node name="Tree87" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(732, 1841)
+
+[node name="Tree88" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(818, 1840)
+
+[node name="Tree89" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(903, 1841)
+
+[node name="Tree90" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(969, 1841)
+
+[node name="Tree91" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(970, 1840)
+
+[node name="Tree92" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1055, 1841)
+
+[node name="Tree93" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1121, 1841)
+
+[node name="Tree94" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1241, 1839)
+
+[node name="Tree95" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1327, 1838)
+
+[node name="Tree96" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1412, 1839)
+
+[node name="Tree97" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1478, 1839)
+
+[node name="Tree98" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1479, 1838)
+
+[node name="Tree99" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1564, 1839)
+
+[node name="Tree100" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1630, 1839)
+
+[node name="Tree138" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1790, 1836)
+
+[node name="Tree139" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1787, 1789)
+
+[node name="Tree140" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1786, 1744)
+
+[node name="Tree141" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1787, 1705)
+
+[node name="Tree142" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1788, 1660)
+
+[node name="Tree143" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1789, 1621)
+
+[node name="Tree190" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1806, 939)
+
+[node name="Tree191" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1803, 892)
+
+[node name="Tree192" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1802, 847)
+
+[node name="Tree193" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1803, 808)
+
+[node name="Tree194" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1804, 763)
+
+[node name="Tree195" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1805, 724)
+
+[node name="Tree196" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1866, 915)
+
+[node name="Tree197" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1863, 868)
+
+[node name="Tree198" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1862, 823)
+
+[node name="Tree199" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1863, 784)
+
+[node name="Tree200" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1864, 739)
+
+[node name="Tree201" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1865, 700)
+
+[node name="Tree202" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1800, 233)
+
+[node name="Tree203" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1797, 186)
+
+[node name="Tree204" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1796, 141)
+
+[node name="Tree205" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1797, 102)
+
+[node name="Tree206" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1798, 57)
+
+[node name="Tree207" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1799, 18)
+
+[node name="Tree208" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1807, 535)
+
+[node name="Tree209" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1804, 488)
+
+[node name="Tree210" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1803, 443)
+
+[node name="Tree211" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1804, 404)
+
+[node name="Tree212" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1805, 359)
+
+[node name="Tree213" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1806, 320)
+
+[node name="Tree214" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1883, 245)
+
+[node name="Tree215" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1880, 198)
+
+[node name="Tree216" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1879, 153)
+
+[node name="Tree217" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1880, 114)
+
+[node name="Tree218" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1881, 69)
+
+[node name="Tree219" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1882, 30)
+
+[node name="Tree220" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1885, 500)
+
+[node name="Tree221" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1882, 453)
+
+[node name="Tree222" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1881, 408)
+
+[node name="Tree223" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1882, 369)
+
+[node name="Tree224" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1883, 324)
+
+[node name="Tree225" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1884, 285)
+
+[node name="Tree226" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(16, 347)
+
+[node name="Tree227" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(13, 300)
+
+[node name="Tree228" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(12, 255)
+
+[node name="Tree229" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(13, 216)
+
+[node name="Tree230" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(14, 171)
+
+[node name="Tree231" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(15, 132)
+
+[node name="Tree232" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(-44, 210)
+
+[node name="Tree233" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(-47, 163)
+
+[node name="Tree234" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(-48, 118)
+
+[node name="Tree235" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(-47, 79)
+
+[node name="Tree236" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(-46, 34)
+
+[node name="Tree237" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(-45, -5)
+
+[node name="Tree238" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(-45, 470)
+
+[node name="Tree239" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(-48, 423)
+
+[node name="Tree240" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(-49, 378)
+
+[node name="Tree241" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(-48, 339)
+
+[node name="Tree242" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(-47, 294)
+
+[node name="Tree243" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(-46, 255)
+
+[node name="Tree244" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(11, 578)
+
+[node name="Tree245" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(8, 531)
+
+[node name="Tree246" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(7, 486)
+
+[node name="Tree247" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(8, 447)
+
+[node name="Tree248" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(9, 402)
+
+[node name="Tree249" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(10, 363)
+
+[node name="Tree254" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(-46, 558)
+
+[node name="Tree255" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(-45, 519)
+
+[node name="Tree262" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(-36, 1837)
+
+[node name="Tree263" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(-39, 1790)
+
+[node name="Tree264" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(-40, 1745)
+
+[node name="Tree265" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(-39, 1706)
+
+[node name="Tree266" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(-38, 1661)
+
+[node name="Tree267" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(-37, 1622)
+
+[node name="Tree268" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(-90, 1817)
+
+[node name="Tree269" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(-91, 1772)
+
+[node name="Tree270" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(-90, 1733)
+
+[node name="Tree271" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(-89, 1688)
+
+[node name="Tree272" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(-88, 1649)
+
+[node name="Tree273" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(-92, 1902)
+
+[node name="Tree274" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(-93, 1857)
+
+[node name="Tree275" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(-92, 1818)
+
+[node name="Tree276" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(-91, 1773)
+
+[node name="Tree277" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(-90, 1734)
+
+[node name="Tree158" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1788, 1400)
+
+[node name="Tree159" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1785, 1353)
+
+[node name="Tree160" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1784, 1308)
+
+[node name="Tree161" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1785, 1269)
+
+[node name="Tree162" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1786, 1224)
+
+[node name="Tree163" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1787, 1185)
+
+[node name="Tree144" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1786, 1574)
+
+[node name="Tree145" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1785, 1529)
+
+[node name="Tree146" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1786, 1490)
+
+[node name="Tree147" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1787, 1445)
+
+[node name="Tree148" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1790, 1836)
+
+[node name="Tree149" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1787, 1789)
+
+[node name="Tree150" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1786, 1744)
+
+[node name="Tree151" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1787, 1705)
+
+[node name="Tree152" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1788, 1660)
+
+[node name="Tree153" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1789, 1621)
+
+[node name="Tree154" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1786, 1574)
+
+[node name="Tree155" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1785, 1529)
+
+[node name="Tree156" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1786, 1490)
+
+[node name="Tree157" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1787, 1445)
+
+[node name="Tree164" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1857, 1813)
+
+[node name="Tree165" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1854, 1766)
+
+[node name="Tree166" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1853, 1721)
+
+[node name="Tree167" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1854, 1682)
+
+[node name="Tree168" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1855, 1637)
+
+[node name="Tree169" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1856, 1598)
+
+[node name="Tree170" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1855, 1377)
+
+[node name="Tree171" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1852, 1330)
+
+[node name="Tree172" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1851, 1285)
+
+[node name="Tree173" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1852, 1246)
+
+[node name="Tree174" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1853, 1201)
+
+[node name="Tree175" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1854, 1162)
+
+[node name="Tree176" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1853, 1551)
+
+[node name="Tree177" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1852, 1506)
+
+[node name="Tree178" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1853, 1467)
+
+[node name="Tree179" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1854, 1422)
+
+[node name="Tree180" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1857, 1813)
+
+[node name="Tree181" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1854, 1766)
+
+[node name="Tree182" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1853, 1721)
+
+[node name="Tree183" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1854, 1682)
+
+[node name="Tree184" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1855, 1637)
+
+[node name="Tree185" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1856, 1598)
+
+[node name="Tree186" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1853, 1551)
+
+[node name="Tree187" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1852, 1506)
+
+[node name="Tree188" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1853, 1467)
+
+[node name="Tree189" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1854, 1422)
+
+[node name="Tree101" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1175, 1883)
+
+[node name="Tree102" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1261, 1882)
+
+[node name="Tree103" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1346, 1883)
+
+[node name="Tree104" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1412, 1883)
+
+[node name="Tree105" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1413, 1882)
+
+[node name="Tree106" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1498, 1883)
+
+[node name="Tree107" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1564, 1883)
+
+[node name="Tree108" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1394, 1883)
+
+[node name="Tree109" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1480, 1882)
+
+[node name="Tree110" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1565, 1883)
+
+[node name="Tree111" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1631, 1883)
+
+[node name="Tree112" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1632, 1882)
+
+[node name="Tree113" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1717, 1883)
+
+[node name="Tree114" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1783, 1883)
+
+[node name="Tree115" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(699, 1891)
+
+[node name="Tree116" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(785, 1890)
+
+[node name="Tree117" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(870, 1891)
+
+[node name="Tree118" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(936, 1891)
+
+[node name="Tree119" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(937, 1890)
+
+[node name="Tree120" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1022, 1891)
+
+[node name="Tree121" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(1088, 1891)
+
+[node name="Tree122" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(219, 1891)
+
+[node name="Tree123" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(305, 1890)
+
+[node name="Tree124" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(390, 1891)
+
+[node name="Tree125" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(456, 1891)
+
+[node name="Tree126" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(457, 1890)
+
+[node name="Tree127" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(542, 1891)
+
+[node name="Tree136" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(523, 1826)
+
+[node name="Tree137" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(625, 1828)
+
+[node name="Tree128" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(608, 1891)
+
+[node name="Tree129" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(-16, 1891)
+
+[node name="Tree130" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(70, 1890)
+
+[node name="Tree131" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(155, 1891)
+
+[node name="Tree132" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(221, 1891)
+
+[node name="Tree133" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(222, 1890)
+
+[node name="Tree134" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(307, 1891)
+
+[node name="Tree135" parent="tree for field" instance=ExtResource("3_vydvg")]
+position = Vector2(553, 1809)
+
+[node name="CharacterBody2D" parent="." instance=ExtResource("8_na6kv")]
+position = Vector2(305, 185)
+
 position = Vector2(289, 112)
