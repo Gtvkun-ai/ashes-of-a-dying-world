@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://bua4s7byh8xsp"]
 
-[ext_resource type="Script" uid="uid://deue3e6gppr7k" path="res://scenes/world/Whispering Fields/Findzone.cs" id="1_v5g2b"]
+[ext_resource type="Script" uid="uid://deue3e6gppr7k" path="res://scenes/world/WhisperingFields/Findzone.cs" id="1_v5g2b"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_dvqgk"]
 radius = 205.4775

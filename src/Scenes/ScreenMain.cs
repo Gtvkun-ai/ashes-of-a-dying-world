@@ -5,7 +5,7 @@ public partial class ScreenMain : Node2D
 {
 	[Export] public PackedScene PlayerScene { get; set; }
 
-	private const string WorldPath = "res://scenes/world/Whispering Fields/Field1.tscn";
+	private const string WorldPath = "res://scenes/world/WhisperingFields/Field1.tscn";
 		
 	private const string PlayerPath = "res://src/Entities/Player/Player_anim.tscn";
 
@@ -17,10 +17,24 @@ public partial class ScreenMain : Node2D
 
 	private void _on_login_pressed()
 	{
-		
 		var tree = GetTree();
-		var world = GD.Load<PackedScene>(WorldPath).Instantiate<Node2D>();
-		var playerInstance = GD.Load<PackedScene>(PlayerPath).Instantiate();
+		
+		var worldScene = GD.Load<PackedScene>(WorldPath);
+		if (worldScene == null)
+		{
+			GD.PrintErr($"[ScreenMain] Cannot load world scene: {WorldPath}");
+			return;
+		}
+		var world = worldScene.Instantiate<Node2D>();
+		
+		var playerScene = GD.Load<PackedScene>(PlayerPath);
+		if (playerScene == null)
+		{
+			GD.PrintErr($"[ScreenMain] Cannot load player scene: {PlayerPath}");
+			world.QueueFree();
+			return;
+		}
+		var playerInstance = playerScene.Instantiate();
 		
 		// An toàn ép kiểu sang Player
 		var player = playerInstance as Player;

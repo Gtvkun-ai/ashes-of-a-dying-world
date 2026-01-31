@@ -1,9 +1,9 @@
 [gd_scene load_steps=40 format=3 uid="uid://2cobf3p3jhuw"]
 
 [ext_resource type="Texture2D" uid="uid://cuo7to38hr3re" path="res://assets/sprites/monster/slime/slime 2.png" id="1_cs26v"]
-[ext_resource type="Script" uid="uid://bopjo761a1dq6" path="res://scenes/world/Whispering Fields/Slime1.cs" id="1_t3ufe"]
-[ext_resource type="PackedScene" uid="uid://bua4s7byh8xsp" path="res://scenes/world/Whispering Fields/findzone.tscn" id="3_t3ufe"]
-[ext_resource type="PackedScene" uid="uid://ijiph7yntgno" path="res://scenes/world/Whispering Fields/attackzone.tscn" id="4_gn8gp"]
+[ext_resource type="Script" uid="uid://bopjo761a1dq6" path="res://scenes/world/WhisperingFields/Slime1.cs" id="1_t3ufe"]
+[ext_resource type="PackedScene" uid="uid://bua4s7byh8xsp" path="res://scenes/world/WhisperingFields/findzone.tscn" id="3_t3ufe"]
+[ext_resource type="PackedScene" uid="uid://ijiph7yntgno" path="res://scenes/world/WhisperingFields/attackzone.tscn" id="4_gn8gp"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_tebun"]
 atlas = ExtResource("1_cs26v")

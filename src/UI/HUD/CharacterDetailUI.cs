@@ -51,6 +51,9 @@ namespace AshesofaDyingWorld.UI.HUD
         private Color _btnNormalColor = new Color("#1e293b");     
         private Color _btnHoverColor = new Color("#334155");       
 
+        private TextureRect _avatarDisplayRect;     // Cái này để hiện lên UI (có thể resize)
+        private SubViewport _videoViewport;         // Cái này để chứa video gốc
+        private VideoStreamPlayer _hiddenPlayer;    // Cái này là trình phát video thật (nằm ẩn)
         public override void _Ready()
         {
             SetAnchorsPreset(LayoutPreset.FullRect);
@@ -343,44 +346,68 @@ namespace AshesofaDyingWorld.UI.HUD
         private void SetupAvatarColumn(HBoxContainer parent)
         {
             var avatarPanel = new PanelContainer();
-            avatarPanel.CustomMinimumSize = new Vector2(350, 0);
-            avatarPanel.SizeFlagsVertical = SizeFlags.ExpandFill; 
+            avatarPanel.CustomMinimumSize = new Vector2(300, 0);
+            avatarPanel.SizeFlagsVertical = SizeFlags.ExpandFill;
+            avatarPanel.ZIndex = 100;  // Đảm bảo panel avatar luôn ở trên cùng
             parent.AddChild(avatarPanel);
 
-            _avatarDisplay = new VideoStreamPlayer();
-            _avatarDisplay.SetAnchorsPreset(LayoutPreset.FullRect);
-            _avatarDisplay.Loop = true;
-            _avatarDisplay.Autoplay = true;
-            _avatarDisplay.VolumeDb = -80;
-            _avatarDisplay.BufferingMsec = 0;
-            
-        var chromaShader = GD.Load<Shader>("res://assets/shader/chroma_key.gdshader");
-        if (chromaShader != null)
-        {
-            var shaderMaterial = new ShaderMaterial();
-            shaderMaterial.Shader = chromaShader;
+            var avatarMargin = new MarginContainer();
+            avatarMargin.SetAnchorsPreset(LayoutPreset.FullRect);
+            // Margin tùy chỉnh
+            avatarMargin.AddThemeConstantOverride("margin_left", 10);
+            avatarMargin.AddThemeConstantOverride("margin_right", 10);
+            avatarMargin.AddThemeConstantOverride("margin_top", 10);
+            avatarMargin.AddThemeConstantOverride("margin_bottom", 10);
+            avatarPanel.AddChild(avatarMargin);
 
-            // Set màu xanh chuẩn (nếu ảnh gốc của bạn là nền xanh lá 0,255,0)
-            shaderMaterial.SetShaderParameter("chroma_key", new Vector3(0f, 1f, 0f));
-            
-            // Tinh chỉnh 3 thông số này:
-            
-            // 1. Similarity: Tăng dần đến khi nền biến mất (khoảng 0.4 - 0.45)
-            shaderMaterial.SetShaderParameter("similarity", 0.4f);
-            
-            // 2. Smoothness: Giữ thấp để viền sắc nét, không bị mờ ảo (0.03 - 0.08)
-            shaderMaterial.SetShaderParameter("smoothness", 0.03f);
-            
-            // 3. Spill: ĐÂY LÀ CHÌA KHÓA. 
-            // Hãy set là 1.0 (tối đa) để nó khử sạch màu xanh bám trên viền trắng.
-            shaderMaterial.SetShaderParameter("spill", 0.9f);
-            
-            _avatarDisplay.Material = shaderMaterial;
-        }
-            
-            avatarPanel.AddChild(_avatarDisplay);
-        }
+            // 1. TẠO VIEWPORT & PLAYER ẨN (Nơi render video gốc)
+            // Lưu ý: Viewport cần kích thước cố định bằng đúng độ phân giải video của bạn
+            _videoViewport = new SubViewport();
+            _videoViewport.Size = new Vector2I(720, 1082);
+            _videoViewport.TransparentBg = true; // Để nền trong suốt cho Shader hoạt động tốt
+            _videoViewport.RenderTargetUpdateMode = SubViewport.UpdateMode.WhenParentVisible; // Tối ưu hiệu năng
+            AddChild(_videoViewport); // Add vào cây nhưng nó sẽ không hiện ra màn hình
 
+            _hiddenPlayer = new VideoStreamPlayer();
+            _hiddenPlayer.Loop = true;  // Set loop trước khi play
+            _hiddenPlayer.Autoplay = false;  // Tắt autoplay, sẽ play thủ công
+            _hiddenPlayer.VolumeDb = -80;
+            _hiddenPlayer.BufferingMsec = 0;
+            _hiddenPlayer.Finished += OnVideoFinished;  // Thêm event handler để đảm bảo loop
+            _videoViewport.AddChild(_hiddenPlayer); // Nhét Player vào trong Viewport
+
+            // TẠO TEXTURE RECT (Nơi hiển thị trên UI)
+            _avatarDisplayRect = new TextureRect();
+            _avatarDisplayRect.SetAnchorsPreset(LayoutPreset.FullRect);
+            _avatarDisplayRect.ZIndex = 10;  // Z-index cao để luôn hiển thị trên
+            
+            // ĐÂY LÀ CHÌA KHÓA: TextureRect hỗ trợ Expand!
+            _avatarDisplayRect.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize; 
+            _avatarDisplayRect.StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered; // Hoặc KeepAspectCentered
+            
+            // Lấy texture từ Viewport gán vào Rect
+            _avatarDisplayRect.Texture = _videoViewport.GetTexture();
+
+            // --- SETUP SHADER ---
+            // Bây giờ bạn gắn Shader vào TextureRect chứ không phải VideoStreamPlayer
+            var chromaShader = GD.Load<Shader>("res://assets/shader/chroma_key.gdshader");
+            if (chromaShader != null)
+            {
+                var shaderMaterial = new ShaderMaterial();
+                shaderMaterial.Shader = chromaShader;
+                // Cấu hình tham số cho Shader 
+                shaderMaterial.SetShaderParameter("chroma_key", new Vector3(0f, 1f, 0f));
+                // Tham số điều chỉnh hiệu ứng
+                shaderMaterial.SetShaderParameter("similarity", 0.4f);
+                // Tham số điều chỉnh hiệu ứng
+                shaderMaterial.SetShaderParameter("smoothness", 0.03f);
+                shaderMaterial.SetShaderParameter("spill", 0.9f);
+                
+                _avatarDisplayRect.Material = shaderMaterial; // Gán vào Rect
+            }
+
+            avatarMargin.AddChild(_avatarDisplayRect);
+        }
         private Label CreateStyledLabel(int size, Color color)
         {
             var lbl = new Label();
@@ -509,13 +536,21 @@ namespace AshesofaDyingWorld.UI.HUD
             _nameLabel.Text = config.Name;
             _levelLabel.Text = $"LV. {currentStats.CurrentLevel:00}";
             _raceLabel.Text = config.CharacterRace?.RaceName?.ToUpper() ?? "UNKNOWN";
-
             if (config.Avatar is VideoStream videoStream)
-            {
-                _avatarDisplay.Stream = videoStream;
-                _avatarDisplay.Play();
-            }
-
+                {
+                    // Dừng video cũ nếu có
+                    if (_hiddenPlayer.IsPlaying())
+                    {
+                        _hiddenPlayer.Stop();
+                    }
+                    
+                    // Gán stream mới
+                    _hiddenPlayer.Stream = videoStream;
+                    _hiddenPlayer.Loop = true;  // Đảm bảo loop được set
+                    
+                    // Chờ 1 frame rồi mới play để đảm bảo stream đã load
+                    CallDeferred(MethodName.PlayVideoDeferred);
+                }
             UpdateOverviewPanel(currentStats);            
             LoadCharacterList();
             SwitchTab(_currentTab);
@@ -650,6 +685,23 @@ namespace AshesofaDyingWorld.UI.HUD
                 "Luck" => "LUK",
                 _ => original.Substring(0, Mathf.Min(3, original.Length)).ToUpper()
             };
+        }
+
+        private void PlayVideoDeferred()
+        {
+            if (_hiddenPlayer != null && _hiddenPlayer.Stream != null)
+            {
+                _hiddenPlayer.Play();
+            }
+        }
+
+        private void OnVideoFinished()
+        {
+            // Backup: Nếu Loop không hoạt động, tự động play lại
+            if (_hiddenPlayer != null && _hiddenPlayer.Stream != null)
+            {
+                _hiddenPlayer.Play();
+            }
         }
     }
 }

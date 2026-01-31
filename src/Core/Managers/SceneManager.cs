@@ -6,7 +6,7 @@ public partial class SceneManager : Node
 {
 	public Player Player { get; set; }
 
-	[Export] public string SceneDirPath = "res://scenes/world/Whispering Fields/";
+	[Export] public string SceneDirPath = "res://scenes/world/WhisperingFields/";
 
 	private string _targetSpawnID = "";
 
