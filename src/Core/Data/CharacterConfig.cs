@@ -10,6 +10,7 @@ namespace AshesofaDyingWorld.Core.Data
 		[Export] public string Name {get; set;}
 		[Export] public Texture2D Icon {get; set;} // Icon tròn cho HUD/Menu
 		[Export] public VideoStream Avatar { get; set; } // Video ogv cho HUD/Menu
+		[Export] public PackedScene BodyScene { get; set; } // Scene AnimatedSprite2D cho body nhân vật (VD: Hyou_body.tscn)
 		[ExportGroup("Origin")]
 		[Export] public RaceData CharacterRace {get; set;}
 
