@@ -1,0 +1,13 @@
+[gd_scene load_steps=2 format=3 uid="uid://cuvb1bj8tm5wr"]
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_hjc2g"]
+animations = [{
+"frames": [],
+"loop": true,
+"name": &"sword_up",
+"speed": 5.0
+}]
+
+[node name="WoodSword" type="AnimatedSprite2D"]
+sprite_frames = SubResource("SpriteFrames_hjc2g")
+animation = &"sword_up"
