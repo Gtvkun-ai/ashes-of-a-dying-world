@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=4 uid="uid://35ajkrvdef1l"]
+[gd_scene load_steps=15 format=4 uid="uid://35ajkrvdef1l"]
 
 [ext_resource type="Texture2D" uid="uid://cyy57e0q36muo" path="res://assets/sprites/field1.png" id="1_ey7of"]
 [ext_resource type="PackedScene" uid="uid://o237ootja225" path="res://scenes/world/stone_1.tscn" id="3_man2x"]
@@ -8,6 +8,10 @@
 [ext_resource type="PackedScene" uid="uid://bvkmnt355ktwd" path="res://scenes/world/stone_4.tscn" id="6_qln1y"]
 [ext_resource type="PackedScene" uid="uid://2cobf3p3jhuw" path="res://scenes/world/WhisperingFields/slime_1.tscn" id="7_jnbhc"]
 [ext_resource type="PackedScene" uid="uid://r8kuo6htf0u8" path="res://scenes/world/stone_5.tscn" id="7_xvu3u"]
+[ext_resource type="PackedScene" uid="uid://b5hpvdqiypg5l" path="res://scenes/world/grass.tscn" id="9_ndsxw"]
+[ext_resource type="PackedScene" uid="uid://bs3fndem6lq72" path="res://scenes/world/red_flower.tscn" id="10_bytlt"]
+[ext_resource type="PackedScene" uid="uid://dn6mkbqn5m3hq" path="res://scenes/world/purple_flower.tscn" id="11_bw5vd"]
+[ext_resource type="PackedScene" uid="uid://ba3xfy2hbjo78" path="res://scenes/world/blue_flower.tscn" id="12_rcymj"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ey7of"]
 texture = ExtResource("1_ey7of")
@@ -1015,7 +1019,6 @@ y_sort_enabled = true
 position = Vector2(14, 30)
 
 [node name="Tree2" parent="tree for field" instance=ExtResource("3_vydvg")]
-
 position = Vector2(13, 84)
 
 [node name="Tree3" parent="tree for field" instance=ExtResource("3_vydvg")]
@@ -1812,3 +1815,36 @@ position = Vector2(307, 1891)
 
 [node name="Tree135" parent="tree for field" instance=ExtResource("3_vydvg")]
 position = Vector2(553, 1809)
+
+[node name="grass" type="Node2D" parent="."]
+y_sort_enabled = true
+
+[node name="grass2" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(247, 193)
+
+[node name="grass3" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(241, 209)
+
+[node name="grass4" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(231, 191)
+
+[node name="red_flower" type="Node2D" parent="."]
+y_sort_enabled = true
+position = Vector2(-102, -6)
+
+[node name="red_flower" parent="red_flower" instance=ExtResource("10_bytlt")]
+position = Vector2(263, 194)
+
+[node name="purple_flower" type="Node2D" parent="."]
+y_sort_enabled = true
+position = Vector2(238, 121)
+
+[node name="purple_flower" parent="purple_flower" instance=ExtResource("11_bw5vd")]
+position = Vector2(8, 0)
+
+[node name="blue_flower" type="Node2D" parent="."]
+y_sort_enabled = true
+position = Vector2(263, 194)
+
+[node name="blue_flower" parent="blue_flower" instance=ExtResource("12_rcymj")]
+position = Vector2(35, -42)
