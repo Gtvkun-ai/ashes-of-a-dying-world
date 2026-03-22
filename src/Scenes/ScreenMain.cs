@@ -81,6 +81,9 @@ public partial class ScreenMain : Node2D
 		{
 			GD.PrintErr("Không tìm thấy SceneManager để set player");
 		}
+
+		// Tự động trang bị WoodSword từ túi đồ
+		player.AutoEquipStarterWeapon();
 	}
 
 	private void _on_exits_pressed() => GetTree().Quit();

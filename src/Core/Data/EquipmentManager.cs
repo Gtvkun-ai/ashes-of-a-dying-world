@@ -15,6 +15,22 @@ namespace AshesofaDyingWorld.Core.Managers
         //Sự kiện UI để lắng nghe ( khi mặc đồ thì UI đổi hình)
         [Signal] public delegate void EquipmentChangedEventHandler(int slot, EquipmentItemData item);
         
+        // Signal khi vũ khí thay đổi (để Player cập nhật sprite)
+        [Signal] public delegate void WeaponVisualChangedEventHandler(PackedScene weaponScene);
+
+        /// <summary>
+        /// Lấy item đang trang bị ở slot
+        /// </summary>
+        public EquipmentItemData GetEquippedItem(EquipmentSlot slot)
+        {
+            return _equippedItems.ContainsKey(slot) ? _equippedItems[slot] : null;
+        }
+
+        /// <summary>
+        /// Kiểm tra có vũ khí đang trang bị không
+        /// </summary>
+        public bool HasWeaponEquipped => _equippedItems.ContainsKey(EquipmentSlot.MainHand);
+
         //hàm mặc đồ
         public void EquipItem(EquipmentItemData newItem)
         {
@@ -44,6 +60,12 @@ namespace AshesofaDyingWorld.Core.Managers
             
             // Bắn signal cho UI
             EmitSignal(SignalName.EquipmentChanged, (int)newItem.SlotType, newItem);
+
+            // Nếu là vũ khí, bắn signal để Player cập nhật sprite
+            if (newItem.SlotType == EquipmentSlot.MainHand && newItem.WeaponScene != null)
+            {
+                EmitSignal(SignalName.WeaponVisualChanged, newItem.WeaponScene);
+            }
         }
 
         //hàm tháo đồ
@@ -57,7 +79,13 @@ namespace AshesofaDyingWorld.Core.Managers
                 _playerStats.RecalculateStats();
                 
                 // Bắn signal cho UI
-                EmitSignal(SignalName.EquipmentChanged, (int)slot, default(Variant));   
+                EmitSignal(SignalName.EquipmentChanged, (int)slot, default(Variant));
+
+                // Nếu là vũ khí, xóa visual
+                if (slot == EquipmentSlot.MainHand)
+                {
+                    EmitSignal(SignalName.WeaponVisualChanged, default(Variant));
+                }
             }
             
         }

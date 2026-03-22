@@ -19,6 +19,10 @@ namespace AshesofaDyingWorld.Core.Data
         // Sát thương cơ bản hoặc phòng thủ cơ bản
         [Export] public float BaseValue {get; set;} =  0;
 
+        [ExportGroup("Visual")]
+        // Scene chứa AnimatedSprite2D của vũ khí (VD: woodSword.tscn)
+        [Export] public PackedScene WeaponScene {get; set;}
+
         // Thuộc tính cộng thêm khi trang bị
         [ExportGroup("Bonus Attributes")]
         [Export] public Dictionary<AttributeType, int> AttributeBonuses { get; set; } = new();

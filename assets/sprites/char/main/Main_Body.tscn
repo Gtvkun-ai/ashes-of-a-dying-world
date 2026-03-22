@@ -878,7 +878,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_1o5qb")
 }],
-"loop": true,
+"loop": false,
 "name": &"sword_down",
 "speed": 5.0
 }, {
@@ -910,7 +910,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_xuxdc")
 }],
-"loop": true,
+"loop": false,
 "name": &"sword_left",
 "speed": 5.0
 }, {
@@ -942,7 +942,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_sdgpq")
 }],
-"loop": true,
+"loop": false,
 "name": &"sword_right",
 "speed": 5.0
 }, {
@@ -974,7 +974,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_rnopo")
 }],
-"loop": true,
+"loop": false,
 "name": &"sword_up",
 "speed": 5.0
 }]

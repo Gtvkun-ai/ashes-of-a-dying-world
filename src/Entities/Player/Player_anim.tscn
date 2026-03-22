@@ -1,9 +1,9 @@
 [gd_scene load_steps=7 format=3 uid="uid://brhkdy734ch4x"]
 
 [ext_resource type="Script" uid="uid://jguaf0akgd71" path="res://src/Entities/Player/Player.cs" id="1_v6v2t"]
-[ext_resource type="PackedScene" uid="uid://duqdt7585p3xh" path="res://assets/sprites/char/Hyou/Hyou_body.tscn" id="2_6685u"]
+[ext_resource type="PackedScene" uid="uid://b3eivxlgndgut" path="res://assets/sprites/char/main/Main_Body.tscn" id="2_6685u"]
 [ext_resource type="Script" uid="uid://cqcbhn0crt0fx" path="res://src/Core/Data/PlayerStats.cs" id="6_kimch"]
-[ext_resource type="Resource" uid="uid://cpdjbs8w3cyi8" path="res://assets/resources/data/characters/Hyou.tres" id="7_owkge"]
+[ext_resource type="Resource" uid="uid://btue7yvcpa6pm" path="res://assets/resources/data/characters/Main.tres" id="7_owkge"]
 [ext_resource type="Script" uid="uid://bmhf2l4kgx1rl" path="res://src/Core/Data/EquipmentManager.cs" id="8_4rh2k"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_kimch"]
@@ -24,6 +24,10 @@ shape = SubResource("CapsuleShape2D_kimch")
 [node name="Body" parent="." instance=ExtResource("2_6685u")]
 position = Vector2(0, -16)
 animation = &"run_up_left"
+
+[node name="WeaponSprite" type="AnimatedSprite2D" parent="."]
+visible = false
+position = Vector2(0, -16)
 
 [node name="follow" type="Camera2D" parent="."]
 
