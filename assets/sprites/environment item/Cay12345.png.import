@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bbodahvt5v125"
-path="res://.godot/imported/stone 12345.png-ff414d56f7297c5bdd02375d205b02f2.ctex"
+uid="uid://dr8ieynufkykf"
+path="res://.godot/imported/Cay12345.png-589de6e9300a78c7e9d2b0a4bfc1d96c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/stone 12345.png"
-dest_files=["res://.godot/imported/stone 12345.png-ff414d56f7297c5bdd02375d205b02f2.ctex"]
+source_file="res://assets/sprites/environment item/Cay12345.png"
+dest_files=["res://.godot/imported/Cay12345.png-589de6e9300a78c7e9d2b0a4bfc1d96c.ctex"]
 
 [params]
 

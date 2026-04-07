@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bakb4oqwtr7ke"
-path="res://.godot/imported/phan 2 cua cay.png-1971f9e9d592c32dcd44266cfc2f9597.ctex"
+uid="uid://bbodahvt5v125"
+path="res://.godot/imported/stone 12345.png-f9e1dec283e660ce9dc946525c32f852.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/phan 2 cua cay.png"
-dest_files=["res://.godot/imported/phan 2 cua cay.png-1971f9e9d592c32dcd44266cfc2f9597.ctex"]
+source_file="res://assets/sprites/environment item/stone 12345.png"
+dest_files=["res://.godot/imported/stone 12345.png-f9e1dec283e660ce9dc946525c32f852.ctex"]
 
 [params]
 

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cb2uwlsxfdiio"
-path="res://.godot/imported/bgWhite.png-ee876c537af1935a0b5d98b80e21a4c0.ctex"
+uid="uid://betfpi3n0j56r"
+path="res://.godot/imported/exitBtn.png-2bc2b1e6eb7a57f09cddb1c5be4e84df.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/bgWhite.png"
-dest_files=["res://.godot/imported/bgWhite.png-ee876c537af1935a0b5d98b80e21a4c0.ctex"]
+source_file="res://assets/sprites/setting item/exitBtn.png"
+dest_files=["res://.godot/imported/exitBtn.png-2bc2b1e6eb7a57f09cddb1c5be4e84df.ctex"]
 
 [params]
 

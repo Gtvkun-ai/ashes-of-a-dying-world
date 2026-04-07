@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cqooxh3h0tb1v"
-path="res://.godot/imported/vật thể.png-8b8995a61c0e535f736140c7d47f9b17.ctex"
+uid="uid://cdwhvp0bl0kw3"
+path="res://.godot/imported/cay.png-1202c6b5813501235bdf9e4e20c5db1e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/vật thể.png"
-dest_files=["res://.godot/imported/vật thể.png-8b8995a61c0e535f736140c7d47f9b17.ctex"]
+source_file="res://assets/sprites/environment item/cay.png"
+dest_files=["res://.godot/imported/cay.png-1202c6b5813501235bdf9e4e20c5db1e.ctex"]
 
 [params]
 
