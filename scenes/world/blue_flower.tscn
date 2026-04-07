@@ -18,8 +18,9 @@ animations = [{
 }]
 
 [node name="blue_flower" type="Node2D"]
+scale = Vector2(1.75, 1.75)
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
-position = Vector2(0, 26)
+position = Vector2(0, 12)
 sprite_frames = SubResource("SpriteFrames_jhf8v")
 animation = &"idle"

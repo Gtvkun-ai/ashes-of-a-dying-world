@@ -956,6 +956,12 @@ position = Vector2(447, 282)
 [node name="Stone3" parent="stone for field" instance=ExtResource("4_man2x")]
 position = Vector2(388, 253)
 
+[node name="stone17" parent="stone for field" instance=ExtResource("7_xvu3u")]
+position = Vector2(1385, 1526)
+
+[node name="Stone4" parent="stone for field" instance=ExtResource("4_man2x")]
+position = Vector2(1720, 1133)
+
 [node name="stone8" parent="stone for field" instance=ExtResource("3_man2x")]
 position = Vector2(339, 1488)
 
@@ -965,6 +971,45 @@ position = Vector2(656, 1191)
 [node name="stone7" parent="stone for field" instance=ExtResource("6_qln1y")]
 position = Vector2(1083, 1217)
 
+[node name="stone18" parent="stone for field" instance=ExtResource("3_man2x")]
+position = Vector2(286, 818)
+
+[node name="stone20" parent="stone for field" instance=ExtResource("3_man2x")]
+position = Vector2(1456, 695)
+
+[node name="stone21" parent="stone for field" instance=ExtResource("3_man2x")]
+position = Vector2(1060, 1625)
+
+[node name="stone27" parent="stone for field" instance=ExtResource("3_man2x")]
+position = Vector2(337, 1130)
+
+[node name="stone28" parent="stone for field" instance=ExtResource("3_man2x")]
+position = Vector2(1323, 950)
+
+[node name="stone30" parent="stone for field" instance=ExtResource("3_man2x")]
+position = Vector2(1310, 42)
+
+[node name="stone29" parent="stone for field" instance=ExtResource("3_man2x")]
+position = Vector2(688, 688)
+
+[node name="stone22" parent="stone for field" instance=ExtResource("3_man2x")]
+position = Vector2(1496, 1220)
+
+[node name="stone23" parent="stone for field" instance=ExtResource("3_man2x")]
+position = Vector2(1329, 1157)
+
+[node name="stone24" parent="stone for field" instance=ExtResource("3_man2x")]
+position = Vector2(1568, 1055)
+
+[node name="stone19" parent="stone for field" instance=ExtResource("6_qln1y")]
+position = Vector2(358, 1112)
+
+[node name="stone25" parent="stone for field" instance=ExtResource("6_qln1y")]
+position = Vector2(1178, 519)
+
+[node name="stone26" parent="stone for field" instance=ExtResource("6_qln1y")]
+position = Vector2(676, 687)
+
 [node name="stone4" parent="stone for field" instance=ExtResource("6_qln1y")]
 position = Vector2(1685, 240)
 
@@ -973,6 +1018,24 @@ position = Vector2(1310, 941)
 
 [node name="Stone2" parent="stone for field" instance=ExtResource("4_man2x")]
 position = Vector2(1125, 1232)
+
+[node name="Stone5" parent="stone for field" instance=ExtResource("4_man2x")]
+position = Vector2(599, 1458)
+
+[node name="Stone6" parent="stone for field" instance=ExtResource("4_man2x")]
+position = Vector2(941, 601)
+
+[node name="Stone10" parent="stone for field" instance=ExtResource("4_man2x")]
+position = Vector2(1301, 39)
+
+[node name="Stone8" parent="stone for field" instance=ExtResource("4_man2x")]
+position = Vector2(1200, 525)
+
+[node name="Stone9" parent="stone for field" instance=ExtResource("4_man2x")]
+position = Vector2(315, 1122)
+
+[node name="Stone7" parent="stone for field" instance=ExtResource("4_man2x")]
+position = Vector2(1444, 703)
 
 [node name="stone1" parent="stone for field" instance=ExtResource("3_man2x")]
 position = Vector2(136, 493)
@@ -999,7 +1062,7 @@ position = Vector2(1662, 432)
 position = Vector2(1225, 85)
 
 [node name="stone16" parent="stone for field" instance=ExtResource("3_man2x")]
-position = Vector2(617, 542)
+position = Vector2(1555, 1786)
 
 [node name="enemy" type="Node2D" parent="."]
 y_sort_enabled = true
@@ -1820,31 +1883,316 @@ position = Vector2(553, 1809)
 y_sort_enabled = true
 
 [node name="grass2" parent="grass" instance=ExtResource("9_ndsxw")]
-position = Vector2(247, 193)
+position = Vector2(656, 614)
+
+[node name="grass34" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(553, 702)
+
+[node name="grass35" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(913, 699)
+
+[node name="grass36" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(837, 487)
+
+[node name="grass37" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(1048, 539)
+
+[node name="grass38" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(1253, 668)
+
+[node name="grass6" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(1573, 348)
+
+[node name="grass7" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(899, 1188)
+
+[node name="grass8" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(537, 928)
+
+[node name="grass9" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(137, 1506)
+
+[node name="grass10" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(139, 1600)
+
+[node name="grass11" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(345, 1614)
+
+[node name="grass12" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(553, 1607)
+
+[node name="grass13" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(1572, 1148)
+
+[node name="grass14" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(1221, 1124)
+
+[node name="grass15" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(1266, 1363)
+
+[node name="grass16" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(976, 1372)
+
+[node name="grass17" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(1284, 1561)
+
+[node name="grass18" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(1439, 1511)
+
+[node name="grass19" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(1674, 1266)
+
+[node name="grass20" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(754, 1458)
+
+[node name="grass21" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(1375, 541)
+
+[node name="grass22" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(1255, 473)
+
+[node name="grass23" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(1428, 523)
+
+[node name="grass24" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(1625, 662)
+
+[node name="grass25" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(1738, 672)
+
+[node name="grass26" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(1121, 178)
+
+[node name="grass27" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(821, 8)
+
+[node name="grass28" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(434, 98)
+
+[node name="grass29" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(164, 95)
+
+[node name="grass30" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(656, 222)
 
 [node name="grass3" parent="grass" instance=ExtResource("9_ndsxw")]
-position = Vector2(241, 209)
+position = Vector2(976, 405)
+
+[node name="grass5" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(387, 538)
 
 [node name="grass4" parent="grass" instance=ExtResource("9_ndsxw")]
-position = Vector2(231, 191)
+position = Vector2(546, 427)
+
+[node name="grass31" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(51, 580)
+
+[node name="grass32" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(805, 323)
+
+[node name="grass33" parent="grass" instance=ExtResource("9_ndsxw")]
+position = Vector2(341, 251)
 
 [node name="red_flower" type="Node2D" parent="."]
 y_sort_enabled = true
 position = Vector2(-102, -6)
 
 [node name="red_flower" parent="red_flower" instance=ExtResource("10_bytlt")]
-position = Vector2(263, 194)
+position = Vector2(462, 116)
+
+[node name="red_flower2" parent="red_flower" instance=ExtResource("10_bytlt")]
+position = Vector2(370, 602)
+
+[node name="red_flower3" parent="red_flower" instance=ExtResource("10_bytlt")]
+position = Vector2(1123, 520)
+
+[node name="red_flower4" parent="red_flower" instance=ExtResource("10_bytlt")]
+position = Vector2(911, 801)
+
+[node name="red_flower5" parent="red_flower" instance=ExtResource("10_bytlt")]
+position = Vector2(1448, 800)
+
+[node name="red_flower6" parent="red_flower" instance=ExtResource("10_bytlt")]
+position = Vector2(912, 1288)
+
+[node name="red_flower7" parent="red_flower" instance=ExtResource("10_bytlt")]
+position = Vector2(691, 1095)
+
+[node name="red_flower8" parent="red_flower" instance=ExtResource("10_bytlt")]
+position = Vector2(1683, 1147)
+
+[node name="red_flower9" parent="red_flower" instance=ExtResource("10_bytlt")]
+position = Vector2(1793, 1057)
+
+[node name="red_flower10" parent="red_flower" instance=ExtResource("10_bytlt")]
+position = Vector2(1258, 1062)
+
+[node name="red_flower11" parent="red_flower" instance=ExtResource("10_bytlt")]
+position = Vector2(1215, 1384)
+
+[node name="red_flower12" parent="red_flower" instance=ExtResource("10_bytlt")]
+position = Vector2(930, 1583)
+
+[node name="red_flower13" parent="red_flower" instance=ExtResource("10_bytlt")]
+position = Vector2(603, 1478)
+
+[node name="red_flower14" parent="red_flower" instance=ExtResource("10_bytlt")]
+position = Vector2(270, 1416)
+
+[node name="red_flower15" parent="red_flower" instance=ExtResource("10_bytlt")]
+position = Vector2(524, 1291)
+
+[node name="red_flower16" parent="red_flower" instance=ExtResource("10_bytlt")]
+position = Vector2(735, 187)
+
+[node name="red_flower17" parent="red_flower" instance=ExtResource("10_bytlt")]
+position = Vector2(1218, 111)
+
+[node name="red_flower18" parent="red_flower" instance=ExtResource("10_bytlt")]
+position = Vector2(194, 233)
+
+[node name="red_flower19" parent="red_flower" instance=ExtResource("10_bytlt")]
+position = Vector2(629, 381)
 
 [node name="purple_flower" type="Node2D" parent="."]
 y_sort_enabled = true
 position = Vector2(238, 121)
 
 [node name="purple_flower" parent="purple_flower" instance=ExtResource("11_bw5vd")]
-position = Vector2(8, 0)
+position = Vector2(933, 47)
+
+[node name="purple_flower7" parent="purple_flower" instance=ExtResource("11_bw5vd")]
+position = Vector2(-193, 537)
+
+[node name="purple_flower8" parent="purple_flower" instance=ExtResource("11_bw5vd")]
+position = Vector2(-116, 650)
+
+[node name="purple_flower9" parent="purple_flower" instance=ExtResource("11_bw5vd")]
+position = Vector2(-124, 658)
+
+[node name="purple_flower10" parent="purple_flower" instance=ExtResource("11_bw5vd")]
+position = Vector2(-119, 819)
+
+[node name="purple_flower11" parent="purple_flower" instance=ExtResource("11_bw5vd")]
+position = Vector2(-212, 747)
+
+[node name="purple_flower12" parent="purple_flower" instance=ExtResource("11_bw5vd")]
+position = Vector2(1490, 1553)
+
+[node name="purple_flower13" parent="purple_flower" instance=ExtResource("11_bw5vd")]
+position = Vector2(1427, 1570)
+
+[node name="purple_flower14" parent="purple_flower" instance=ExtResource("11_bw5vd")]
+position = Vector2(1491, 336)
+
+[node name="purple_flower16" parent="purple_flower" instance=ExtResource("11_bw5vd")]
+position = Vector2(1189, 50)
+
+[node name="purple_flower17" parent="purple_flower" instance=ExtResource("11_bw5vd")]
+position = Vector2(997, 214)
+
+[node name="purple_flower2" parent="purple_flower" instance=ExtResource("11_bw5vd")]
+position = Vector2(1403, -87)
+
+[node name="purple_flower3" parent="purple_flower" instance=ExtResource("11_bw5vd")]
+position = Vector2(1213, -39)
+
+[node name="purple_flower4" parent="purple_flower" instance=ExtResource("11_bw5vd")]
+position = Vector2(1235, 218)
+
+[node name="purple_flower5" parent="purple_flower" instance=ExtResource("11_bw5vd")]
+position = Vector2(980, -71)
 
 [node name="blue_flower" type="Node2D" parent="."]
 y_sort_enabled = true
 position = Vector2(263, 194)
 
 [node name="blue_flower" parent="blue_flower" instance=ExtResource("12_rcymj")]
-position = Vector2(35, -42)
+position = Vector2(1073, 1273)
+
+[node name="blue_flower2" parent="blue_flower" instance=ExtResource("12_rcymj")]
+position = Vector2(1191, 1181)
+
+[node name="blue_flower34" parent="blue_flower" instance=ExtResource("12_rcymj")]
+position = Vector2(-24, 943)
+
+[node name="blue_flower35" parent="blue_flower" instance=ExtResource("12_rcymj")]
+position = Vector2(-231, 1007)
+
+[node name="blue_flower28" parent="blue_flower" instance=ExtResource("12_rcymj")]
+position = Vector2(-130, 971)
+
+[node name="blue_flower29" parent="blue_flower" instance=ExtResource("12_rcymj")]
+position = Vector2(-51, 773)
+
+[node name="blue_flower30" parent="blue_flower" instance=ExtResource("12_rcymj")]
+position = Vector2(-78, 575)
+
+[node name="blue_flower31" parent="blue_flower" instance=ExtResource("12_rcymj")]
+position = Vector2(42.999985, 778)
+
+[node name="blue_flower33" parent="blue_flower" instance=ExtResource("12_rcymj")]
+position = Vector2(10, 686)
+
+[node name="blue_flower3" parent="blue_flower" instance=ExtResource("12_rcymj")]
+position = Vector2(1240, 991)
+
+[node name="blue_flower4" parent="blue_flower" instance=ExtResource("12_rcymj")]
+position = Vector2(1393, 966)
+
+[node name="blue_flower5" parent="blue_flower" instance=ExtResource("12_rcymj")]
+position = Vector2(1459, 1056)
+
+[node name="blue_flower6" parent="blue_flower" instance=ExtResource("12_rcymj")]
+position = Vector2(1424, 1212)
+
+[node name="blue_flower8" parent="blue_flower" instance=ExtResource("12_rcymj")]
+position = Vector2(1336, 1131)
+
+[node name="blue_flower9" parent="blue_flower" instance=ExtResource("12_rcymj")]
+position = Vector2(1323, 1301)
+
+[node name="blue_flower11" parent="blue_flower" instance=ExtResource("12_rcymj")]
+position = Vector2(1250, 1473)
+
+[node name="blue_flower12" parent="blue_flower" instance=ExtResource("12_rcymj")]
+position = Vector2(1146, 1449)
+
+[node name="blue_flower13" parent="blue_flower" instance=ExtResource("12_rcymj")]
+position = Vector2(1100, 1343)
+
+[node name="blue_flower14" parent="blue_flower" instance=ExtResource("12_rcymj")]
+position = Vector2(878, 1346)
+
+[node name="blue_flower16" parent="blue_flower" instance=ExtResource("12_rcymj")]
+position = Vector2(960, 1455)
+
+[node name="blue_flower17" parent="blue_flower" instance=ExtResource("12_rcymj")]
+position = Vector2(950, 1270)
+
+[node name="blue_flower18" parent="blue_flower" instance=ExtResource("12_rcymj")]
+position = Vector2(31, 1350)
+
+[node name="blue_flower19" parent="blue_flower" instance=ExtResource("12_rcymj")]
+position = Vector2(237, 1368)
+
+[node name="blue_flower20" parent="blue_flower" instance=ExtResource("12_rcymj")]
+position = Vector2(301, 1444)
+
+[node name="blue_flower21" parent="blue_flower" instance=ExtResource("12_rcymj")]
+position = Vector2(138, 1432)
+
+[node name="blue_flower22" parent="blue_flower" instance=ExtResource("12_rcymj")]
+position = Vector2(-234, 1378)
+
+[node name="blue_flower24" parent="blue_flower" instance=ExtResource("12_rcymj")]
+position = Vector2(70, 1462)
+
+[node name="blue_flower25" parent="blue_flower" instance=ExtResource("12_rcymj")]
+position = Vector2(-157, 1450)
+
+[node name="blue_flower26" parent="blue_flower" instance=ExtResource("12_rcymj")]
+position = Vector2(1159, 355)
+
+[node name="blue_flower27" parent="blue_flower" instance=ExtResource("12_rcymj")]
+position = Vector2(1159, 355)
