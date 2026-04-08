@@ -1,6 +1,6 @@
 [gd_scene format=4 uid="uid://35ajkrvdef1l"]
 
-[ext_resource type="Texture2D" path="res://assets/sprites/field1.png" id="1_ey7of"]
+[ext_resource type="Texture2D" uid="uid://cyy57e0q36muo" path="res://assets/sprites/field1.png" id="1_ey7of"]
 [ext_resource type="PackedScene" uid="uid://o237ootja225" path="res://scenes/world/stone_1.tscn" id="3_man2x"]
 [ext_resource type="PackedScene" uid="uid://3x0xwi0xk2ej" path="res://scenes/world/tree.tscn" id="3_vydvg"]
 [ext_resource type="PackedScene" uid="uid://cm5he8r8ot85v" path="res://scenes/world/stone_2.tscn" id="4_man2x"]

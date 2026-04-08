@@ -167,5 +167,43 @@ namespace AshesofaDyingWorld.Entities.Player
 			// Hệ số tốc độ cuối cùng, giới hạn trong khoảng [0.5, 3]
 			AttackSpeed = Mathf.Clamp(dexFactor * weightFactor, 0.5f, 3.0f);
 		}
+
+		// ----- Knockback resistance helpers -----
+
+		// Tính tỉ lệ cuối cùng bị knockback khi trúng đòn, dựa trên Defense
+		// baseChance: tỉ lệ cơ bản do đòn đánh quy định (0..1)
+		public float ComputeKnockbackChance(float baseChance)
+		{
+			int def = 0;
+			if (FinalAttributes != null &&
+				FinalAttributes.TryGetValue(AttributeType.Defense, out int defVal))
+			{
+				def = defVal;
+			}
+
+			// Defense càng cao, chance càng giảm.
+			// Ví dụ: mỗi 5 DEF giảm ~10% tỉ lệ (giới hạn tối thiểu 10%).
+			float defenseFactor = 1.0f / (1.0f + def * 0.05f);
+			float finalChance = Mathf.Clamp(baseChance * defenseFactor, 0.1f, 1.0f);
+			return finalChance;
+		}
+
+		// Tính lực knockback cuối cùng (khoảng cách đẩy lùi), dựa trên Vitality
+		// baseForce: lực cơ bản do đòn đánh quy định
+		public float ComputeKnockbackForce(float baseForce)
+		{
+			int vit = 0;
+			if (FinalAttributes != null &&
+				FinalAttributes.TryGetValue(AttributeType.Vitality, out int vitVal))
+			{
+				vit = vitVal;
+			}
+
+			// Vitality càng cao, khoảng cách bị đẩy càng thấp.
+			// Ví dụ: mỗi 5 VIT giảm ~10% lực knockback, nhưng không giảm quá 70%.
+			float vitalityFactor = 1.0f / (1.0f + vit * 0.05f);
+			vitalityFactor = Mathf.Clamp(vitalityFactor, 0.3f, 1.0f);
+			return baseForce * vitalityFactor;
+		}
 	}
 }

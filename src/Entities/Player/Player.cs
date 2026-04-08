@@ -20,6 +20,8 @@ private bool _isExhausted = false;
 
 private AnimatedSprite2D _body;
 private AnimatedSprite2D _weaponSprite;
+private Area2D _hurtbox;
+private Area2D _hitbox;
 private string _lastMoveAnim = "go_down";
 private string _lastDirection = "down";
 private bool _wasMoving = false;
@@ -45,6 +47,8 @@ private float _weaponBaseSpeedScale = 1f;
 public override void _Ready()
 {
 _weaponSprite = GetNodeOrNull<AnimatedSprite2D>("WeaponSprite");
+_hurtbox = GetNodeOrNull<Area2D>("Hurtbox");
+_hitbox = GetNodeOrNull<Area2D>("WeaponSprite/Hitbox");
 _stats = GetNodeOrNull<PlayerStats>("PlayerStats");
 _equipMgr = GetNodeOrNull<EquipmentManager>("EquipmentManager");
 
@@ -72,6 +76,12 @@ _body.FrameChanged += OnBodyFrameChanged;
 if (_weaponSprite != null)
 {
 _weaponSprite.FrameChanged += OnWeaponFrameChanged;
+}
+
+if (_hurtbox != null)
+{
+_hurtbox.BodyEntered += OnHurtboxBodyEntered;
+_hurtbox.AreaEntered += OnHurtboxAreaEntered;
 }
 
 if (_body != null)
@@ -308,6 +318,7 @@ _weaponSprite.SpeedScale = _weaponBaseSpeedScale * attackSpeedMult;
 }
 
 string attackDir = GetAttackDirection();
+UpdateHitboxForDirection(attackDir);
 bool playedBodyAttack = false;
 bool playedWeaponAttack = false;
 if (!TryGetAttackFrameRange(attackStep, out int startFrame, out int endFrame))
@@ -361,6 +372,11 @@ if (!playedWeaponAttack)
 {
 _activeWeaponAttackAnim = "";
 }
+
+if (_hitbox != null)
+{
+_hitbox.Monitoring = true;
+}
 }
 
 private string GetAttackDirection()
@@ -370,6 +386,31 @@ if (_lastDirection.Contains("up")) return "up";
 if (_lastDirection.Contains("left")) return "left";
 if (_lastDirection.Contains("right")) return "right";
 return "down";
+}
+
+private void UpdateHitboxForDirection(string attackDir)
+{
+if (_hitbox == null) return;
+
+float offset = 20f; // chỉnh cho hợp tầm với vũ khí
+Vector2 localPos = Vector2.Zero;
+switch (attackDir)
+{
+case "up":
+localPos = new Vector2(0, -offset);
+break;
+case "down":
+localPos = new Vector2(0, offset);
+break;
+case "left":
+localPos = new Vector2(-offset, 0);
+break;
+case "right":
+localPos = new Vector2(offset, 0);
+break;
+}
+
+_hitbox.Position = localPos;
 }
 
 private Vector2 GetAttackDirectionVector()
@@ -456,6 +497,16 @@ _weaponSprite.FrameProgress = 1f;
 _weaponSprite.Visible = false;
 }
 
+private void OnHurtboxBodyEntered(Node2D body)
+{
+// TODO: Gọi TakeDamage từ dữ liệu body (enemy, projectile...)
+}
+
+private void OnHurtboxAreaEntered(Area2D area)
+{
+// TODO: Gọi TakeDamage khi trúng Hitbox_Enemy
+}
+
 private void FinishAttack()
 {
 _isAttacking = false;
@@ -491,6 +542,11 @@ _body.Stop();
 if (_weaponSprite != null)
 {
 _weaponSprite.SpeedScale = _weaponBaseSpeedScale;
+}
+
+if (_hitbox != null)
+{
+_hitbox.Monitoring = false;
 }
 }
 
@@ -538,6 +594,13 @@ private void OnWeaponVisualChanged(PackedScene weaponScene)
 {
 if (_weaponSprite == null) return;
 
+// Xóa hitbox cũ (nếu có)
+if (_hitbox != null)
+{
+_hitbox.QueueFree();
+_hitbox = null;
+}
+
 if (weaponScene == null)
 {
 _weaponSprite.SpriteFrames = null;
@@ -546,13 +609,23 @@ GD.Print("[Player] Weapon visual cleared.");
 return;
 }
 
-var weaponInstance = weaponScene.Instantiate<AnimatedSprite2D>();
-if (weaponInstance != null)
+Node weaponInstance = weaponScene.Instantiate();
+if (weaponInstance is AnimatedSprite2D spriteSource)
 {
-_weaponSprite.SpriteFrames = weaponInstance.SpriteFrames;
+_weaponSprite.SpriteFrames = spriteSource.SpriteFrames;
 _weaponSprite.Visible = false;
+
+// Tìm Hitbox trong weapon scene (nếu có) và gắn sang WeaponSprite
+Area2D newHitbox = weaponInstance.GetNodeOrNull<Area2D>("Hitbox");
+if (newHitbox != null && _weaponSprite != null)
+{
+newHitbox.GetParent()?.RemoveChild(newHitbox);
+_weaponSprite.AddChild(newHitbox);
+_hitbox = newHitbox;
+}
+
 weaponInstance.QueueFree();
-GD.Print("[Player] Weapon visual loaded.");
+GD.Print("[Player] Weapon visual (and hitbox) loaded.");
 }
 }
 

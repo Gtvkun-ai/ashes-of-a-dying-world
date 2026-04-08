@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="CharacterConfig" load_steps=7 format=3 uid="uid://cpdjbs8w3cyi8"]
+[gd_resource type="Resource" script_class="CharacterConfig" format=3 uid="uid://cpdjbs8w3cyi8"]
 
 [ext_resource type="VideoStream" uid="uid://c6crxtafxvhjc" path="res://assets/sprites/char/Hyou/Hyou_avt.ogv" id="1_dor51"]
 [ext_resource type="Script" uid="uid://cfybswbojyqyb" path="res://src/Core/Data/CharacterConfig.cs" id="1_dt2gn"]

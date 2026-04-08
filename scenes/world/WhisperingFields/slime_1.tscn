@@ -1,4 +1,4 @@
-[gd_scene load_steps=40 format=3 uid="uid://2cobf3p3jhuw"]
+[gd_scene format=3 uid="uid://2cobf3p3jhuw"]
 
 [ext_resource type="Texture2D" uid="uid://cuo7to38hr3re" path="res://assets/sprites/monster/slime/slime 2.png" id="1_cs26v"]
 [ext_resource type="Script" uid="uid://bopjo761a1dq6" path="res://scenes/world/WhisperingFields/Slime1.cs" id="1_t3ufe"]
@@ -287,22 +287,33 @@ animations = [{
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_cs26v"]
 size = Vector2(16, 12)
 
-[node name="Slime1" type="CharacterBody2D"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_8ov0e"]
+size = Vector2(23, 14)
+
+[node name="Slime1" type="CharacterBody2D" unique_id=657747274]
 y_sort_enabled = true
 script = ExtResource("1_t3ufe")
 
-[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=1941029776]
 position = Vector2(0, 5)
 scale = Vector2(0.5089287, 0.515625)
 sprite_frames = SubResource("SpriteFrames_kdubu")
 animation = &"go_down"
 
-[node name="findzone" parent="AnimatedSprite2D" instance=ExtResource("3_t3ufe")]
+[node name="findzone" parent="AnimatedSprite2D" unique_id=288034313 instance=ExtResource("3_t3ufe")]
 position = Vector2(0, 34.909092)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=380990352]
 position = Vector2(0, 20)
 shape = SubResource("RectangleShape2D_cs26v")
 
-[node name="attackzone" parent="." instance=ExtResource("4_gn8gp")]
+[node name="attackzone" parent="." unique_id=1090105260 instance=ExtResource("4_gn8gp")]
 position = Vector2(0, 18)
+
+[node name="Hurtbox" type="Area2D" parent="." unique_id=1271440066]
+collision_layer = 16
+collision_mask = 8
+
+[node name="HurtboxShape" type="CollisionShape2D" parent="Hurtbox" unique_id=445188175]
+position = Vector2(-0.5, 18)
+shape = SubResource("RectangleShape2D_8ov0e")

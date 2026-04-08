@@ -14,6 +14,8 @@ namespace AshesofaDyingWorld.Core.Managers
 
         private List<EquipmentItemData> _items = new();
 
+        [Export] public int MaxSlots { get; set; } = 20;
+
         public IReadOnlyList<EquipmentItemData> Items => _items;
 
         public override void _Ready()
@@ -34,6 +36,13 @@ namespace AshesofaDyingWorld.Core.Managers
         public void AddItem(EquipmentItemData item)
         {
             if (item == null) return;
+
+            if (_items.Count >= MaxSlots)
+            {
+                GD.Print("[Inventory] Kho do da day, khong the them item moi.");
+                return;
+            }
+
             _items.Add(item);
             GD.Print($"[Inventory] +{item.ItemName}");
             EmitSignal(SignalName.InventoryChanged);

@@ -6,9 +6,12 @@
 [ext_resource type="Script" uid="uid://bmhf2l4kgx1rl" path="res://src/Core/Data/EquipmentManager.cs" id="8_4rh2k"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_6685u"]
-size = Vector2(10.5, 6)
+size = Vector2(8.5, 2.5)
 
-[node name="CharacterBody2D" type="CharacterBody2D" unique_id=903573863 groups=["Player"]]
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_sgmg4"]
+radius = 6.5
+height = 27.0
+
 [node name="CharacterBody2D" type="CharacterBody2D" unique_id=1143067928 groups=["Player"]]
 y_sort_enabled = true
 scale = Vector2(2, 2)
@@ -16,29 +19,21 @@ collision_mask = 9
 script = ExtResource("1_v6v2t")
 BodyPath = NodePath("")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=267566997]
-
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1263195701]
 y_sort_enabled = true
-position = Vector2(-0.25, -5.5)
+position = Vector2(0.25, 11.75)
 shape = SubResource("RectangleShape2D_6685u")
-
-[node name="WeaponSprite" type="AnimatedSprite2D" parent="." unique_id=1036535693]
-visible = false
-position = Vector2(0, -16)
-
-[node name="follow" type="Camera2D" parent="." unique_id=2082200356]
-
-[node name="PlayerStats" type="Node" parent="." unique_id=2097928758 node_paths=PackedStringArray("EquipmentMgr")]
-[node name="Body" parent="." unique_id=1353158444 instance=ExtResource("2_6685u")]
-position = Vector2(0, -16)
-animation = &"run_up_left"
-frame = 0
-frame_progress = 0.0
 
 [node name="WeaponSprite" type="AnimatedSprite2D" parent="." unique_id=126676805]
 visible = false
 position = Vector2(0, -16)
+
+[node name="Hurtbox" type="Area2D" parent="." unique_id=900000001]
+collision_layer = 0
+collision_mask = 0
+
+[node name="HurtboxShape" type="CollisionShape2D" parent="Hurtbox" unique_id=900000002]
+shape = SubResource("CapsuleShape2D_sgmg4")
 
 [node name="follow" type="Camera2D" parent="." unique_id=497279611]
 
@@ -47,7 +42,6 @@ script = ExtResource("6_kimch")
 ConfigData = ExtResource("7_owkge")
 EquipmentMgr = NodePath("../EquipmentManager")
 
-[node name="EquipmentManager" type="Node" parent="." unique_id=1207258995 node_paths=PackedStringArray("_playerStats")]
 [node name="EquipmentManager" type="Node" parent="." unique_id=307736108 node_paths=PackedStringArray("_playerStats")]
 script = ExtResource("8_4rh2k")
 _playerStats = NodePath("../PlayerStats")
