@@ -24,6 +24,7 @@ public partial class Slime1 : CharacterBody2D
 	private Vector2 _startPosition;
 	private bool _isAttacking = false;
 	private bool _isChasing = false;
+	private bool _hasAppliedAttackHit = false;
 	private Node2D _player;
 
 	private string _currentDirection = "down";
@@ -63,7 +64,20 @@ public partial class Slime1 : CharacterBody2D
 					// 0–2: lao vào player, 3–4: bật lùi ra
 					int frame = _animatedSprite.Frame;
 					Vector2 dir = DirectionFromCurrent();
-					if (frame <= 2)
+
+					// Đòn đánh trúng được tính ở khoảng frame 1–2 (lúc đang lao tới).
+					// Sau khi đã tính hit (dù trúng hay miss vì ngoài range), slime sẽ
+					// chuyển sang pha bật lùi ngay để không "dính" vào người player.
+					if (!_hasAppliedAttackHit && frame >= 1 && frame <= 2)
+					{
+						TryApplyAttackHitToPlayer();
+						_hasAppliedAttackHit = true;
+					}
+
+					// Nếu chưa xử lý hit thì cho phép tiếp tục lao tới (frame 0–2),
+					// còn nếu đã xử lý hit rồi thì luôn bật lùi ra.
+					bool shouldDashIn = !_hasAppliedAttackHit && frame <= 2;
+					if (shouldDashIn)
 					{
 						motion = dir * AttackDashSpeed * (float)delta;
 					}
@@ -84,17 +98,23 @@ public partial class Slime1 : CharacterBody2D
 		if (_isChasing && _player != null)
 		{
 			float dist = GlobalPosition.DistanceTo(_player.GlobalPosition);
-			
-			// [MỚI] Chỉ di chuyển nếu còn xa (ví dụ: xa hơn 25px)
-			// Nếu đã đến gần (<= 25px) thì đứng yên (để chuẩn bị đánh), KHÔNG húc vào người nữa
-			if (dist > 2f) 
+			// Giữ khoảng cách an toàn ~AttackRange trước khi ra đòn
+			// để slime không áp sát quá sát rồi mới lao, tránh kéo dính player
+			float stopDistance = AttackRange; // có thể chỉnh trong Inspector qua AttackRange
+			if (dist > stopDistance)
 			{
 				direction = (_player.GlobalPosition - GlobalPosition).Normalized();
 			}
-			else 
+			else
 			{
-				// Đã áp sát -> Phanh lại ngay
+				// Đã vào tầm đánh mong muốn -> đứng lại, chờ logic Attack quyết định
 				direction = Vector2.Zero;
+
+				// Nếu đã trong tầm đánh và chưa tấn công, chủ động ra đòn luôn
+				if (!_isAttacking && dist <= AttackRange)
+				{
+					Attack();
+				}
 			}
 		}
 		else
@@ -109,23 +129,6 @@ public partial class Slime1 : CharacterBody2D
 
 		Velocity = direction * Speed;
 		MoveAndSlide();
-		for (int i = 0; i < GetSlideCollisionCount(); i++)
-{
-	var collision = GetSlideCollision(i);
-	var body = collision.GetCollider() as Node;
-	
-	// Nếu vật va chạm là Player (kiểm tra group)
-	if (body != null && body.IsInGroup("Player"))
-	{
-		var pusherPosition = (body as Node2D).GlobalPosition;
-		var pushDirection = (GlobalPosition - pusherPosition).Normalized();
-		
-		// Đẩy Slime văng ra (Lực đẩy 300)
-		Velocity += pushDirection * 300f; 
-		if (_isAttacking) return;
-		MoveAndSlide();
-	}
-}
 		UpdateAnimation(direction);
 	}
 
@@ -187,9 +190,7 @@ public partial class Slime1 : CharacterBody2D
 	{
 		if (_isAttacking) return;
 
-		// DEBUG: In ra để biết lệnh tấn công đã kích hoạt
-		GD.Print("1. Bắt đầu Tấn công! Đang khóa di chuyển.");
-
+		_hasAppliedAttackHit = false;
 		_isAttacking = true;
 		Velocity = Vector2.Zero; // Phanh gấp
 
@@ -201,9 +202,6 @@ public partial class Slime1 : CharacterBody2D
 		}
 
 		string animName = $"at_{_currentDirection}";
-		
-		// DEBUG: In ra tên animation đang thử chạy
-		GD.Print($"2. Đang thử chạy animation: {animName}");
 
 		if (_animatedSprite.SpriteFrames.HasAnimation(animName))
 		{
@@ -327,10 +325,15 @@ public partial class Slime1 : CharacterBody2D
 		
 		if (currentAnim.StartsWith("at_"))
 		{
-			GD.Print("4. Đã kết thúc đòn đánh. Mở khóa di chuyển.");
-			TryApplyAttackHitToPlayer();
+			// Nếu vì lý do nào đó mà chưa kịp tính hit trong lúc lao tới,
+			// fallback: tính một lần tại cuối animation (nhưng bình thường sẽ không vào nhánh này)
+			if (!_hasAppliedAttackHit)
+			{
+				TryApplyAttackHitToPlayer();
+			}
 			_animatedSprite.AnimationFinished -= OnAttackFinished;
 			_isAttacking = false;
+			_hasAppliedAttackHit = false;
 
 			// QUY TẮC 3: Đánh xong 1 chuỗi, giờ làm gì tiếp?
 			DecideNextMove();
@@ -341,12 +344,16 @@ public partial class Slime1 : CharacterBody2D
 	{
 		if (_player == null) return;
 
-		// Chỉ tính là trúng nếu player vẫn còn trong AttackRange
-		float distance = GlobalPosition.DistanceTo(_player.GlobalPosition);
-		if (distance > AttackRange) return;
-
 		var player = _player as Player;
 		if (player == null) return;
+
+		// Chỉ coi là trúng nếu player vẫn còn trong tầm đánh
+		float distance = GlobalPosition.DistanceTo(player.GlobalPosition);
+		if (distance > AttackRange)
+		{
+			GD.Print($"[Slime] Attack miss: distance={distance} > range={AttackRange}");
+			return;
+		}
 
 		var stats = player.GetNodeOrNull<AshesofaDyingWorld.Entities.Player.PlayerStats>("PlayerStats");
 		int damage = Damage;
@@ -355,6 +362,7 @@ public partial class Slime1 : CharacterBody2D
 		{
 			// Trừ HP player
 			stats.ChangeHP(-damage);
+			GD.Print($"[Slime] Hit player for {damage} dmg. SlimePos={GlobalPosition}, PlayerPos={player.GlobalPosition}");
 
 			// Tính tỉ lệ bị knockback sau khi áp dụng Defense
 			float finalChance = stats.ComputeKnockbackChance(AttackKnockbackChance);
@@ -362,8 +370,11 @@ public partial class Slime1 : CharacterBody2D
 			{
 				// Tính lực knockback sau khi áp dụng Vitality
 				float finalForce = stats.ComputeKnockbackForce(AttackKnockbackForce);
-				Vector2 dir = (player.GlobalPosition - GlobalPosition).Normalized();
-				player.Velocity += dir * finalForce;
+				// Hướng knockback dựa trên hướng tấn công (at_*),
+				// và dùng ApplyExternalForce để player trượt lùi nhưng giữ nguyên animation
+				Vector2 hitDir = DirectionFromCurrent();
+				GD.Print($"[Slime] Knockback dir={_currentDirection}, hitDir={hitDir}, force={finalForce}");
+				player.ApplyExternalForce(hitDir * finalForce);
 			}
 		}
 	}

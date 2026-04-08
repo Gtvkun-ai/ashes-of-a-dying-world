@@ -15,6 +15,7 @@ public partial class Player : CharacterBody2D
 [Export] public NodePath BodyPath { get; set; } = "Body";
 [Export] public int StopFrameIndex { get; set; } = 0;
 [Export] public float AttackLungeSpeed { get; set; } = 60f;
+[Export] public float KnockbackAnimLockTime { get; set; } = 0.15f;
 
 private bool _isExhausted = false;
 
@@ -43,6 +44,8 @@ private InventoryManager _inventory;
 
 private float _bodyBaseSpeedScale = 1f;
 private float _weaponBaseSpeedScale = 1f;
+private bool _hitboxJustActivated = false;
+private float _knockbackAnimTimer = 0f;
 
 public override void _Ready()
 {
@@ -101,6 +104,16 @@ if (Input.IsActionJustPressed("attack"))
 QueueAttack();
 }
 
+// Đếm ngược thời gian khóa animation khi bị knockback (trượt lùi)
+if (_knockbackAnimTimer > 0f)
+{
+_knockbackAnimTimer -= (float)delta;
+if (_knockbackAnimTimer < 0f)
+{
+_knockbackAnimTimer = 0f;
+}
+}
+
 if (_isAttacking)
 {
 if (_isWaitingSecondHit)
@@ -119,6 +132,39 @@ FinishAttack();
 
 Velocity = Velocity.MoveToward(Vector2.Zero, Deceleration * (float)delta);
 MoveAndSlide();
+if (_hitboxJustActivated && _hitbox != null)
+{
+_hitbox.Monitoring = false;
+_hitboxJustActivated = false;
+}
+return;
+}
+
+// Khi đang bị knockback, chỉ trượt lùi bằng ngoại lực.
+// Không nhận input di chuyển và không đổi hướng mặt/animation.
+if (_knockbackAnimTimer > 0f)
+{
+string knockbackAnim = _lastMoveAnim.Replace("run", "go");
+if (_body != null && _body.SpriteFrames.HasAnimation(knockbackAnim))
+{
+if (_body.Animation != knockbackAnim || !_body.IsPlaying())
+{
+_body.Play(knockbackAnim);
+if (_body.SpriteFrames.GetFrameCount(knockbackAnim) > 1 && _body.Frame == StopFrameIndex)
+{
+_body.Frame = 1;
+}
+}
+}
+
+if (_weaponSprite != null && _weaponSprite.Visible)
+{
+_weaponSprite.Visible = false;
+}
+
+Velocity = Velocity.MoveToward(Vector2.Zero, Deceleration * (float)delta);
+MoveAndSlide();
+_wasMoving = Velocity.LengthSquared() > 1f;
 return;
 }
 
@@ -178,8 +224,10 @@ string direction = ResolveDirection(animDir);
 string anim = $"{action}_{direction}";
 
 _lastDirection = direction;
+_lastMoveAnim = anim;
+bool allowAnimChange = true;
 
-if (_body != null && (_body.Animation != anim || !_body.IsPlaying()))
+if (allowAnimChange && _body != null && (_body.Animation != anim || !_body.IsPlaying()))
 {
 if (_body.SpriteFrames.HasAnimation(anim))
 {
@@ -190,7 +238,6 @@ _body.Frame = 1;
 }
 }
 }
-_lastMoveAnim = anim;
 
 if (_weaponSprite != null && _weaponSprite.Visible)
 {
@@ -199,7 +246,8 @@ _weaponSprite.Visible = false;
 }
 else
 {
-if (_body != null && _wasMoving)
+// Chỉ update về idle khi không còn trong trạng thái knockback
+if (_body != null && _wasMoving && _knockbackAnimTimer <= 0f)
 {
 string idleAnim = _lastMoveAnim.Replace("run", "go");
 if (_body.SpriteFrames.HasAnimation(idleAnim))
@@ -360,8 +408,6 @@ playedWeaponAttack = true;
 }
 }
 
-GD.Print($"[Player] Attack step {attackStep}! Direction: {attackDir} | Frame {_attackStartFrame}->{_attackEndFrame}");
-
 if (!playedBodyAttack)
 {
 FinishAttack();
@@ -371,11 +417,6 @@ return;
 if (!playedWeaponAttack)
 {
 _activeWeaponAttackAnim = "";
-}
-
-if (_hitbox != null)
-{
-_hitbox.Monitoring = true;
 }
 }
 
@@ -457,6 +498,8 @@ if (!_isAttacking || _isCompletingAttackStep) return;
 
 _isCompletingAttackStep = true;
 
+TriggerAttackHitWindow();
+
 if (_activeAttackStep == 1)
 {
 if (_queuedAttackCount > 0)
@@ -478,6 +521,14 @@ return;
 FinishAttack();
 
 _isCompletingAttackStep = false;
+}
+
+private void TriggerAttackHitWindow()
+{
+if (_hitbox == null) return;
+
+_hitbox.Monitoring = true;
+_hitboxJustActivated = true;
 }
 
 private void OnWeaponAnimationFinished()
@@ -588,6 +639,19 @@ return _lastDirection;
 }
 
 return (vDir != "" && hDir != "") ? $"{vDir}_{hDir}" : $"{vDir}{hDir}";
+}
+
+// Gọi từ enemy / môi trường để đẩy lùi player nhưng giữ nguyên animation hiện tại
+public void ApplyExternalForce(Vector2 force, float animLockTime = -1f)
+{
+	Velocity += force;
+
+// Nếu không truyền thời lượng riêng, dùng giá trị export mặc định
+float lockTime = animLockTime >= 0f ? animLockTime : KnockbackAnimLockTime;
+if (lockTime > 0f)
+{
+_knockbackAnimTimer = Mathf.Max(_knockbackAnimTimer, lockTime);
+}
 }
 
 private void OnWeaponVisualChanged(PackedScene weaponScene)

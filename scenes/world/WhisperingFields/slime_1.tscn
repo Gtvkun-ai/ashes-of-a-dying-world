@@ -292,13 +292,17 @@ size = Vector2(23, 14)
 
 [node name="Slime1" type="CharacterBody2D" unique_id=657747274]
 y_sort_enabled = true
+collision_layer = 2
+collision_mask = 8
 script = ExtResource("1_t3ufe")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=1941029776]
 position = Vector2(0, 5)
 scale = Vector2(0.5089287, 0.515625)
 sprite_frames = SubResource("SpriteFrames_kdubu")
-animation = &"go_down"
+animation = &"at_down"
+frame = 4
+frame_progress = 1.0
 
 [node name="findzone" parent="AnimatedSprite2D" unique_id=288034313 instance=ExtResource("3_t3ufe")]
 position = Vector2(0, 34.909092)
