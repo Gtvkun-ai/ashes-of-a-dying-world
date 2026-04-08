@@ -70,7 +70,7 @@ namespace AshesofaDyingWorld.UI.Menus
                 CharacterButton.Pressed += () => OpenPanel(CharacterPanel, "Character");
             
             if (InventoryButton != null)
-                InventoryButton.Pressed += () => OpenPanel(InventoryPanel, "Inventory");
+                InventoryButton.Pressed += OpenInventoryTab;
             
             if (SkillsButton != null)
                 SkillsButton.Pressed += () => OpenPanel(SkillsPanel, "Skills");
@@ -91,6 +91,18 @@ namespace AshesofaDyingWorld.UI.Menus
                 AchievementsButton.Pressed += () => OpenPanel(AchievementsPanel, "Achievements");
             
             GD.Print("[GameMenuButton] All buttons connected");
+        }
+
+        private void OpenInventoryTab()
+        {
+            if (CharacterPanel is CharacterDetailUI characterUI)
+            {
+                OpenPanel(CharacterPanel, "Inventory");
+                characterUI.OpenEquipmentTab();
+                return;
+            }
+
+            OpenPanel(InventoryPanel, "Inventory");
         }
 
         private void ToggleMenuGrid()

@@ -23,6 +23,10 @@ namespace AshesofaDyingWorld.Core.Data
         // Scene chứa AnimatedSprite2D của vũ khí (VD: woodSword.tscn)
         [Export] public PackedScene WeaponScene {get; set;}
 
+        [ExportGroup("Weapon Properties")]
+        // Độ nặng của vũ khí: 1 = trung bình, >1 = nặng hơn, <1 = nhẹ hơn
+        [Export] public float WeaponWeight { get; set; } = 1f;
+
         // Thuộc tính cộng thêm khi trang bị
         [ExportGroup("Bonus Attributes")]
         [Export] public Dictionary<AttributeType, int> AttributeBonuses { get; set; } = new();

@@ -1,4 +1,4 @@
-[gd_scene load_steps=127 format=3 uid="uid://b3eivxlgndgut"]
+[gd_scene format=3 uid="uid://b3eivxlgndgut"]
 
 [ext_resource type="Texture2D" uid="uid://cn1x5nhhvmmo3" path="res://assets/sprites/char/main/mainwalk.png" id="1_p2bgk"]
 [ext_resource type="Texture2D" uid="uid://btnbr1v25gfux" path="res://assets/sprites/char/main/mainrun.png" id="2_p5vha"]
@@ -980,8 +980,6 @@ animations = [{
 "speed": 5.0
 }]
 
-[node name="Body" type="AnimatedSprite2D"]
+[node name="Body" type="AnimatedSprite2D" unique_id=1467656115]
 sprite_frames = SubResource("SpriteFrames_3405f")
 animation = &"sword_up"
-frame = 8
-frame_progress = 1.0

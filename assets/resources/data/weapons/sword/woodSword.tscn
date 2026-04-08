@@ -1,4 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://cuvb1bj8tm5wr"]
+[gd_scene format=3 uid="uid://cuvb1bj8tm5wr"]
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_hjc2g"]
 animations = [{
@@ -23,7 +23,7 @@ animations = [{
 "speed": 5.0
 }]
 
-[node name="WoodSword" type="AnimatedSprite2D"]
+[node name="WoodSword" type="AnimatedSprite2D" unique_id=120632023]
 position = Vector2(-12, 3)
 sprite_frames = SubResource("SpriteFrames_hjc2g")
 animation = &"sword_down"

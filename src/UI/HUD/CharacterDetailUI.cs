@@ -1,6 +1,8 @@
 using Godot;
 using AshesofaDyingWorld.Entities.Player;
+using AshesofaDyingWorld.Core.Data;
 using AshesofaDyingWorld.Core.Managers;
+using System.Collections.Generic;
 
 namespace AshesofaDyingWorld.UI.HUD
 {
@@ -57,6 +59,15 @@ namespace AshesofaDyingWorld.UI.HUD
         private NinePatchRect _panelGlow;           // Lớp glow phía sau khung panel
         private Control _equipmentBodyContainer;    // Container chứa AnimatedSprite2D body trong tab Equipment
         private GridContainer _inventoryGrid;       // Grid 4x3 chứa 12 ô inventory trong tab Equipment
+        private readonly List<TextureRect> _inventorySlotIcons = new();
+        private readonly List<Label> _inventorySlotLabels = new();
+        private readonly List<Button> _inventorySlotButtons = new();
+        private readonly List<string> _inventorySlotItemIds = new();
+        private InventoryManager _boundInventory;
+        private readonly Dictionary<EquipmentSlot, TextureRect> _equipmentSlotIcons = new();
+        private readonly Dictionary<EquipmentSlot, Texture2D> _equipmentSlotDefaultIcons = new();
+        private readonly Dictionary<EquipmentSlot, Button> _equipmentSlotButtons = new();
+        private EquipmentManager _boundEquipmentManager;
         
         public override void _Ready()
         {
@@ -94,6 +105,19 @@ namespace AshesofaDyingWorld.UI.HUD
             
             // Thêm nút Exit
             AddExitButton();
+        }
+
+        public override void _ExitTree()
+        {
+            if (_boundInventory != null)
+            {
+                _boundInventory.InventoryChanged -= OnInventoryChanged;
+            }
+
+            if (_boundEquipmentManager != null)
+            {
+                _boundEquipmentManager.EquipmentChanged -= OnEquipmentChanged;
+            }
         }
 
         private void SetupBackground()
@@ -583,9 +607,9 @@ void fragment() {
             leftSlotsVBox.Alignment = BoxContainer.AlignmentMode.Center;
             leftHBox.AddChild(leftSlotsVBox);
 
-            CreateEquipmentSlot(leftSlotsVBox, "Đầu", "res://assets/resources/data/icon/Exit.tres");
-            CreateEquipmentSlot(leftSlotsVBox, "Áo", "res://assets/resources/data/icon/Exit.tres");
-            CreateEquipmentSlot(leftSlotsVBox, "Quần", "res://assets/resources/data/icon/Exit.tres");
+            CreateEquipmentSlot(leftSlotsVBox, "Đầu", "res://assets/resources/data/icon/Exit.tres", EquipmentSlot.Head);
+            CreateEquipmentSlot(leftSlotsVBox, "Áo", "res://assets/resources/data/icon/Exit.tres", EquipmentSlot.Body);
+            CreateEquipmentSlot(leftSlotsVBox, "Quần", "res://assets/resources/data/icon/Exit.tres", EquipmentSlot.Legs);
 
             // --- Body Idle ở giữa ---
             _equipmentBodyContainer = new Control();
@@ -600,9 +624,9 @@ void fragment() {
             rightSlotsVBox.Alignment = BoxContainer.AlignmentMode.Center;
             leftHBox.AddChild(rightSlotsVBox);
 
-            CreateEquipmentSlot(rightSlotsVBox, "Giày", "res://assets/resources/data/icon/Exit.tres");
-            CreateEquipmentSlot(rightSlotsVBox, "Vũ khí", "res://assets/resources/data/icon/Exit.tres");
-            CreateEquipmentSlot(rightSlotsVBox, "Phụ", "res://assets/resources/data/icon/Exit.tres");
+            CreateEquipmentSlot(rightSlotsVBox, "Giày", "res://assets/resources/data/icon/Exit.tres", EquipmentSlot.Accessory2);
+            CreateEquipmentSlot(rightSlotsVBox, "Vũ khí", "res://assets/resources/data/icon/Exit.tres", EquipmentSlot.MainHand);
+            CreateEquipmentSlot(rightSlotsVBox, "Phụ", "res://assets/resources/data/icon/Exit.tres", EquipmentSlot.OffHand);
 
             // ========== NỬA PHẢI: Inventory Grid 4x3 (12 ô) ==========
             var inventoryVBox = new VBoxContainer();
@@ -634,29 +658,46 @@ void fragment() {
         {
             var slot = new PanelContainer();
             slot.CustomMinimumSize = new Vector2(48, 48);
+            int slotIndex = _inventorySlotButtons.Count;
 
             var style = new StyleBoxFlat();
             style.BgColor = new Color(0, 0, 0, 0.85f); // Nền đen
-            Color borderCol = _currentThemeColor != default ? _currentThemeColor : _themeBorderColor;
+            Color borderCol = _currentThemeColor != default ? _currentThemeColor : _themeBorderColor; // Màu viền theo theme nhân vật hoặc mặc định
             style.BorderColor = new Color(borderCol.R, borderCol.G, borderCol.B, 0.6f);
-            style.SetBorderWidthAll(2);
-            style.SetCornerRadiusAll(4);
+            style.SetBorderWidthAll(2); // Viền 2px
+            style.SetCornerRadiusAll(4); // Bo góc nhẹ
             slot.AddThemeStyleboxOverride("panel", style);
 
             // Icon/placeholder
             var center = new CenterContainer();
             slot.AddChild(center);
+
+            var content = new VBoxContainer();
+            content.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
+            content.SizeFlagsVertical = SizeFlags.ShrinkCenter; // Không expand, giữ kích thước vừa đủ cho icon và label
+            content.Alignment = BoxContainer.AlignmentMode.Center; // Căn giữa cả icon và label
+            content.AddThemeConstantOverride("separation", 1);
+            center.AddChild(content);
+
+            var iconRect = new TextureRect();
+            iconRect.CustomMinimumSize = new Vector2(24, 24);
+            iconRect.ExpandMode = TextureRect.ExpandModeEnum.FitHeightProportional;
+            iconRect.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
+            iconRect.Visible = false;
+            content.AddChild(iconRect);
+
             var lbl = new Label();
             lbl.Text = "";
-            lbl.AddThemeFontSizeOverride("font_size", 14);
+            lbl.HorizontalAlignment = HorizontalAlignment.Center;
+            lbl.AddThemeFontSizeOverride("font_size", 8);
             lbl.AddThemeColorOverride("font_color", new Color(0.4f, 0.4f, 0.4f, 0.5f));
-            center.AddChild(lbl);
+            content.AddChild(lbl);
 
             // Hover effect
             var hoverBtn = new Button();
             hoverBtn.Text = "";
-            hoverBtn.SetAnchorsPreset(LayoutPreset.FullRect);
-            hoverBtn.MouseDefaultCursorShape = CursorShape.PointingHand;
+            hoverBtn.SetAnchorsPreset(LayoutPreset.FullRect); // Đảm bảo button phủ toàn bộ slot để bắt hover
+            hoverBtn.MouseDefaultCursorShape = CursorShape.PointingHand; // Đổi con trỏ khi hover
             var normalStyle = new StyleBoxFlat();
             normalStyle.BgColor = new Color(0, 0, 0, 0);
             hoverBtn.AddThemeStyleboxOverride("normal", normalStyle);
@@ -664,13 +705,158 @@ void fragment() {
             hoverStyle.BgColor = new Color(1f, 1f, 1f, 0.08f);
             hoverStyle.SetCornerRadiusAll(4);
             hoverBtn.AddThemeStyleboxOverride("hover", hoverStyle);
+            hoverBtn.Pressed += () => OnInventorySlotPressed(slotIndex);
             slot.AddChild(hoverBtn);
+
+            _inventorySlotIcons.Add(iconRect);
+            _inventorySlotLabels.Add(lbl);
+            _inventorySlotButtons.Add(hoverBtn);
+            _inventorySlotItemIds.Add(string.Empty);
 
             parent.AddChild(slot);
         }
 
+        // Cập nhật hiển thị cho grid inventory dựa trên InventoryManager hiện tại
+        private void RefreshInventoryGrid()
+        {
+            if (_inventorySlotIcons.Count == 0) return;
+
+            var inventory = ResolveInventoryManager(); 
+            RebindInventory(inventory);
+
+            for (int i = 0; i < _inventorySlotIcons.Count; i++)
+            {
+                var iconRect = _inventorySlotIcons[i];
+                var lbl = _inventorySlotLabels[i];
+                var button = _inventorySlotButtons[i];
+
+                var item = (inventory != null && i < inventory.Items.Count) ? inventory.Items[i] : null;
+                if (item == null) // Nếu không có item nào ở slot này, reset về trạng thái trống
+                {
+                    iconRect.Texture = null;
+                    iconRect.Visible = false;
+                    lbl.Text = "";
+                    button.TooltipText = "";
+                    _inventorySlotItemIds[i] = string.Empty;
+                    continue;
+                }
+
+                iconRect.Texture = item.Icon;
+                iconRect.Visible = item.Icon != null;
+                lbl.Text = item.Icon == null ? CompactItemName(item.ItemName) : "";
+                button.TooltipText = item.ItemName;
+                _inventorySlotItemIds[i] = item.ID;
+            }
+        }
+
+        private void OnInventorySlotPressed(int slotIndex)
+        {
+            if (slotIndex < 0 || slotIndex >= _inventorySlotItemIds.Count) return;
+
+            string itemId = _inventorySlotItemIds[slotIndex];
+            if (string.IsNullOrEmpty(itemId)) return;
+
+            var player = ResolvePlayer();
+            if (player == null)
+            {
+                GD.PrintErr("[CharacterDetailUI] Không tìm thấy Player để equip item.");
+                return;
+            }
+
+            player.EquipFromInventory(itemId);
+            RefreshInventoryGrid();
+            RefreshEquipmentSlots();
+        }
+
+        private Player ResolvePlayer()
+        {
+            var sceneManager = GetTree()?.Root?.GetNodeOrNull<SceneManager>("SceneManager");
+            if (sceneManager?.Player != null)
+            {
+                return sceneManager.Player;
+            }
+
+            var playerNodes = GetTree()?.GetNodesInGroup("Player");
+            if (playerNodes != null)
+            {
+                foreach (var node in playerNodes)
+                {
+                    if (node is Player player)
+                    {
+                        return player;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private InventoryManager ResolveInventoryManager()
+        {
+            var sceneManager = GetTree()?.Root?.GetNodeOrNull<SceneManager>("SceneManager");
+            var playerFromSceneManager = sceneManager?.Player;
+            if (playerFromSceneManager != null)
+            {
+                var inventoryFromPlayer = playerFromSceneManager.GetNodeOrNull<InventoryManager>("InventoryManager");
+                if (inventoryFromPlayer != null)
+                    return inventoryFromPlayer;
+            }
+
+            var playerNodes = GetTree()?.GetNodesInGroup("Player");
+            if (playerNodes != null)
+            {
+                // Nếu có nhiều node Player, ưu tiên node nào có InventoryManager
+                foreach (var node in playerNodes)
+                {
+                    if (node is Node playerNode)
+                    {
+                        var inventory = playerNode.GetNodeOrNull<InventoryManager>("InventoryManager");
+                        if (inventory != null)
+                            return inventory;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private void RebindInventory(InventoryManager inventory)
+        {
+            if (_boundInventory == inventory) return;
+
+            if (_boundInventory != null)
+            {
+                _boundInventory.InventoryChanged -= OnInventoryChanged;
+            }
+
+            _boundInventory = inventory;
+
+            if (_boundInventory != null)
+            {
+                _boundInventory.InventoryChanged += OnInventoryChanged;
+            }
+        }
+
+        private void OnInventoryChanged()
+        {
+            RefreshInventoryGrid(); // Cập nhật lại grid khi có thay đổi trong inventory
+        }
+
+        private string CompactItemName(string itemName)
+        {
+            if (string.IsNullOrEmpty(itemName)) return "";
+            return itemName.Length <= 2 ? itemName.ToUpper() : itemName.Substring(0, 2).ToUpper();
+        }
+
+        public void OpenEquipmentTab()
+        {
+            SwitchTab("equipment");
+            RefreshInventoryGrid();
+            RefreshEquipmentSlots();
+        }
+
         // Tạo một slot trang bị (đang mặc) - nhỏ gọn
-        private void CreateEquipmentSlot(Container parent, string slotName, string iconPath = null)
+        private void CreateEquipmentSlot(Container parent, string slotName, string iconPath = null, EquipmentSlot? slotType = null)
         {
             var slotVBox = new VBoxContainer();
             slotVBox.AddThemeConstantOverride("separation", 2);
@@ -694,21 +880,20 @@ void fragment() {
             slotStyle.SetCornerRadiusAll(5);
             slotPanel.AddThemeStyleboxOverride("panel", slotStyle);
 
+            Texture2D defaultTexture = null;
             if (!string.IsNullOrEmpty(iconPath))
             {
-                var texture = GD.Load<Texture2D>(iconPath);
-                if (texture != null)
-                {
-                    var iconRect = new TextureRect();
-                    iconRect.Texture = texture;
-                    iconRect.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
-                    iconRect.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
-                    iconRect.SetAnchorsPreset(LayoutPreset.Center);
-                    iconRect.Size = new Vector2(slotSize, slotSize);
-                    iconRect.Position = new Vector2(-slotSize / 2f, -slotSize / 2f);
-                    slotPanel.AddChild(iconRect);
-                }
+                defaultTexture = GD.Load<Texture2D>(iconPath);
             }
+
+            var iconRect = new TextureRect();
+            iconRect.Texture = defaultTexture;
+            iconRect.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
+            iconRect.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
+            iconRect.SetAnchorsPreset(LayoutPreset.Center);
+            iconRect.Size = new Vector2(slotSize, slotSize);
+            iconRect.Position = new Vector2(-slotSize / 2f, -slotSize / 2f);
+            slotPanel.AddChild(iconRect);
 
             // Button trong suốt để bắt click
             var clickButton = new Button();
@@ -722,6 +907,11 @@ void fragment() {
             hoverStyle.BgColor = new Color(1f, 1f, 1f, 0.12f);
             hoverStyle.SetCornerRadiusAll(5);
             clickButton.AddThemeStyleboxOverride("hover", hoverStyle);
+            if (slotType.HasValue)
+            {
+                var capturedSlot = slotType.Value;
+                clickButton.Pressed += () => OnEquipmentSlotPressed(capturedSlot);
+            }
             slotPanel.AddChild(clickButton);
 
             slotVBox.AddChild(slotPanel);
@@ -734,7 +924,81 @@ void fragment() {
             nameLabel.AddThemeColorOverride("font_color", _subTextColor);
             slotVBox.AddChild(nameLabel);
 
+            if (slotType.HasValue)
+            {
+                _equipmentSlotIcons[slotType.Value] = iconRect;
+                _equipmentSlotDefaultIcons[slotType.Value] = defaultTexture;
+                _equipmentSlotButtons[slotType.Value] = clickButton;
+            }
+
             parent.AddChild(slotVBox);
+        }
+
+        private EquipmentManager ResolveEquipmentManager()
+        {
+            var player = ResolvePlayer();
+            if (player != null)
+            {
+                return player.GetNodeOrNull<EquipmentManager>("EquipmentManager");
+            }
+
+            return null;
+        }
+
+        private void RebindEquipmentManager(EquipmentManager equipmentManager)
+        {
+            if (_boundEquipmentManager == equipmentManager) return;
+
+            if (_boundEquipmentManager != null)
+            {
+                _boundEquipmentManager.EquipmentChanged -= OnEquipmentChanged;
+            }
+
+            _boundEquipmentManager = equipmentManager;
+
+            if (_boundEquipmentManager != null)
+            {
+                _boundEquipmentManager.EquipmentChanged += OnEquipmentChanged;
+            }
+        }
+
+        private void OnEquipmentChanged(int slot, EquipmentItemData item)
+        {
+            RefreshEquipmentSlots();
+        }
+
+        private void RefreshEquipmentSlots()
+        {
+            var equipmentManager = ResolveEquipmentManager();
+            RebindEquipmentManager(equipmentManager);
+
+            foreach (var pair in _equipmentSlotIcons)
+            {
+                var slotType = pair.Key;
+                var iconRect = pair.Value;
+                var button = _equipmentSlotButtons[slotType];
+
+                var equipped = equipmentManager?.GetEquippedItem(slotType);
+                var fallback = _equipmentSlotDefaultIcons[slotType];
+
+                iconRect.Texture = equipped?.Icon ?? fallback;
+                button.TooltipText = equipped != null
+                    ? $"{equipped.ItemName} (Chuot trai de thao)"
+                    : "Trong (Chuot trai de thao neu co do)";
+            }
+        }
+
+        private void OnEquipmentSlotPressed(EquipmentSlot slotType)
+        {
+            var equipmentManager = ResolveEquipmentManager();
+            if (equipmentManager == null) return;
+
+            var equipped = equipmentManager.GetEquippedItem(slotType);
+            if (equipped == null) return;
+
+            equipmentManager.UnequipItem(slotType);
+            RefreshEquipmentSlots();
+            RefreshInventoryGrid();
         }
 
         private Control CreateSkillsPanel()
@@ -1076,6 +1340,8 @@ void fragment() {
                 }
             UpdateOverviewPanel(currentStats);
             UpdateEquipmentBody(config);
+            RefreshInventoryGrid();
+            RefreshEquipmentSlots();
             LoadCharacterList();
             SwitchTab(_currentTab);
         }

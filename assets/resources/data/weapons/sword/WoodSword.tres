@@ -1,5 +1,6 @@
-[gd_resource type="Resource" script_class="EquipmentItemData" load_steps=3 format=3]
+[gd_resource type="Resource" format=3 uid="uid://dfqbrbuxibsyc"]
 
+[ext_resource type="Texture2D" uid="uid://bpl2o2cx3dj8w" path="res://assets/sprites/icon/swordwoodIco.png" id="1_q4yj7"]
 [ext_resource type="Script" uid="uid://0rcnky7tuhpg" path="res://src/Core/Data/EquipmentItemData.cs" id="1_script"]
 [ext_resource type="PackedScene" uid="uid://cuvb1bj8tm5wr" path="res://assets/resources/data/weapons/sword/woodSword.tscn" id="2_weapon"]
 
@@ -7,9 +8,9 @@
 script = ExtResource("1_script")
 ID = "weapon_wood_sword"
 ItemName = "Wood Sword"
-SlotType = 0
-MinLevel = 1
-RequiredClass = "All"
+Icon = ExtResource("1_q4yj7")
 BaseValue = 8.0
 WeaponScene = ExtResource("2_weapon")
-metadata/_custom_type_script = ExtResource("1_script")
+PassiveSkills = null
+metadata/_custom_type_script = "uid://0rcnky7tuhpg"
+WeaponWeight = 0.6

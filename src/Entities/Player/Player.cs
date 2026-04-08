@@ -9,8 +9,12 @@ public partial class Player : CharacterBody2D
 [Export] public float RunSpeed { get; set; } = 200f;
 [Export] public float RunStaminaCost { get; set; } = 20f;
 [Export] public float MinStaminaToRun { get; set; } = 40f;
+[Export] public float Acceleration { get; set; } = 1200f;
+[Export] public float Deceleration { get; set; } = 1600f;
+[Export] public float ComboContinueWindow { get; set; } = 1f;
 [Export] public NodePath BodyPath { get; set; } = "Body";
 [Export] public int StopFrameIndex { get; set; } = 0;
+[Export] public float AttackLungeSpeed { get; set; } = 60f;
 
 private bool _isExhausted = false;
 
@@ -19,18 +23,32 @@ private AnimatedSprite2D _weaponSprite;
 private string _lastMoveAnim = "go_down";
 private string _lastDirection = "down";
 private bool _wasMoving = false;
-private bool _wasRunning = false;
 private bool _isAttacking = false;
+private int _queuedAttackCount = 0;
+private int _comboHitCount = 0;
+private int _activeAttackStep = 0;
+private int _attackStartFrame = 0;
+private int _attackEndFrame = 0;
+private string _activeAttackAnim = "";
+private int _weaponAttackEndFrame = 0;
+private string _activeWeaponAttackAnim = "";
+private bool _isCompletingAttackStep = false;
+private bool _isWaitingSecondHit = false;
+private float _secondHitWaitTimer = 0f;
 private PlayerStats _stats;
 private EquipmentManager _equipMgr;
 private InventoryManager _inventory;
 
+private float _bodyBaseSpeedScale = 1f;
+private float _weaponBaseSpeedScale = 1f;
+
 public override void _Ready()
 {
-_body = GetNodeOrNull<AnimatedSprite2D>(BodyPath);
 _weaponSprite = GetNodeOrNull<AnimatedSprite2D>("WeaponSprite");
 _stats = GetNodeOrNull<PlayerStats>("PlayerStats");
 _equipMgr = GetNodeOrNull<EquipmentManager>("EquipmentManager");
+
+ResolveBodySprite();
 
 _inventory = GetNodeOrNull<InventoryManager>("InventoryManager");
 if (_inventory == null)
@@ -49,32 +67,64 @@ _equipMgr.WeaponVisualChanged += OnWeaponVisualChanged;
 
 if (_body != null)
 {
-_body.AnimationFinished += OnBodyAnimationFinished;
+_body.FrameChanged += OnBodyFrameChanged;
 }
 if (_weaponSprite != null)
 {
-_weaponSprite.AnimationFinished += OnWeaponAnimationFinished;
+_weaponSprite.FrameChanged += OnWeaponFrameChanged;
+}
+
+if (_body != null)
+{
+_bodyBaseSpeedScale = _body.SpeedScale;
+}
+if (_weaponSprite != null)
+{
+_weaponBaseSpeedScale = _weaponSprite.SpeedScale;
 }
 }
 
 public override void _PhysicsProcess(double delta)
 {
+if (Input.IsActionJustPressed("attack"))
+{
+QueueAttack();
+}
+
 if (_isAttacking)
 {
-Velocity = Vector2.Zero;
+if (_isWaitingSecondHit)
+{
+_secondHitWaitTimer -= (float)delta;
+if (_queuedAttackCount > 0)
+{
+_queuedAttackCount--;
+StartAttack(2);
+}
+else if (_secondHitWaitTimer <= 0f)
+{
+FinishAttack();
+}
+}
+
+Velocity = Velocity.MoveToward(Vector2.Zero, Deceleration * (float)delta);
 MoveAndSlide();
 return;
 }
 
-if (Input.IsActionJustPressed("attack"))
+Vector2 inputDir = Input.GetVector("ui_left", "ui_right", "ui_up", "ui_down");
+bool hasInput = inputDir != Vector2.Zero;
+if (hasInput)
 {
-TryAttack();
-return;
+inputDir = inputDir.Normalized();
 }
 
-Vector2 inputDir = Input.GetVector("ui_left", "ui_right", "ui_up", "ui_down");
-bool moving = inputDir != Vector2.Zero;
 bool wantsToRun = Input.IsKeyPressed(Key.Shift);
+if (InputMap.HasAction("run"))
+{
+wantsToRun = wantsToRun || Input.IsActionPressed("run");
+}
+
 float staminaCostThisFrame = RunStaminaCost * (float)delta;
 
 if (_stats != null)
@@ -91,36 +141,35 @@ _isExhausted = false;
 
 bool canRun = false;
 
-if (moving && wantsToRun && !_isExhausted && _stats != null && _stats.CurrentStamina > 0)
+if (hasInput && wantsToRun && !_isExhausted && _stats != null && _stats.CurrentStamina > 0)
 {
 canRun = true;
 _stats.ConsumeStamina(staminaCostThisFrame);
 }
-else
+
+float targetSpeed = canRun ? RunSpeed : Speed;
+Vector2 targetVelocity = hasInput ? inputDir * targetSpeed : Vector2.Zero;
+float velocityStep = (hasInput ? Acceleration : Deceleration) * (float)delta;
+Velocity = Velocity.MoveToward(targetVelocity, velocityStep);
+
+if (!hasInput && Velocity.LengthSquared() < 1f)
 {
-canRun = false;
+Velocity = Vector2.Zero;
 }
+
+bool moving = Velocity.LengthSquared() > 1f;
 
 if (moving)
 {
-inputDir = inputDir.Normalized();
-Velocity = inputDir * (canRun ? RunSpeed : Speed);
+Vector2 animDir = hasInput ? inputDir : Velocity.Normalized();
 
 string action = canRun ? "run" : "go";
-string vDir = "";
-if (inputDir.Y > 0) vDir = "down";
-else if (inputDir.Y < 0) vDir = "up";
-
-string hDir = "";
-if (inputDir.X > 0) hDir = "right";
-else if (inputDir.X < 0) hDir = "left";
-
-string direction = (vDir != "" && hDir != "") ? $"{vDir}_{hDir}" : $"{vDir}{hDir}";
+string direction = ResolveDirection(animDir);
 string anim = $"{action}_{direction}";
 
 _lastDirection = direction;
 
-if (_body.Animation != anim || !_body.IsPlaying())
+if (_body != null && (_body.Animation != anim || !_body.IsPlaying()))
 {
 if (_body.SpriteFrames.HasAnimation(anim))
 {
@@ -140,7 +189,6 @@ _weaponSprite.Visible = false;
 }
 else
 {
-Velocity = Vector2.Zero;
 if (_body != null && _wasMoving)
 {
 string idleAnim = _lastMoveAnim.Replace("run", "go");
@@ -157,7 +205,46 @@ MoveAndSlide();
 _wasMoving = moving;
 }
 
-private void TryAttack()
+// Resolve body để đảm bảo nó luôn tồn tại và có thể được truy cập, ngay cả khi 
+private void ResolveBodySprite()
+{
+string bodyPathText = BodyPath.ToString(); // Dùng để lưu giá trị gốc của BodyPath trước khi có thể thay đổi nó nếu cần thiết
+if (string.IsNullOrEmpty(bodyPathText))
+{
+bodyPathText = "Body";
+}
+
+_body = GetNodeOrNull<AnimatedSprite2D>(bodyPathText);
+if (_body != null)
+{
+if (BodyPath.ToString() != bodyPathText)
+{
+BodyPath = new NodePath(bodyPathText);
+}
+return;
+}
+
+PackedScene bodyScene = _stats?.ConfigData?.BodyScene;
+if (bodyScene == null)
+{
+GD.PrintErr("[Player] Body scene is missing in CharacterConfig.");
+return;
+}
+
+var bodyInstance = bodyScene.Instantiate<AnimatedSprite2D>();
+if (bodyInstance == null)
+{
+GD.PrintErr("[Player] BodyScene root must be AnimatedSprite2D.");
+return;
+}
+
+bodyInstance.Name = "Body";
+AddChild(bodyInstance);
+_body = bodyInstance;
+BodyPath = new NodePath("Body");
+}
+
+private void QueueAttack()
 {
 if (_equipMgr == null || !_equipMgr.HasWeaponEquipped)
 {
@@ -165,15 +252,84 @@ GD.Print("[Player] Chua trang bi vu khi!");
 return;
 }
 
+const int maxComboHits = 2;
+
+if (_isAttacking)
+{
+int totalPlannedHits = _comboHitCount + _queuedAttackCount;
+if (totalPlannedHits < maxComboHits)
+{
+_queuedAttackCount++;
+}
+return;
+}
+
+_comboHitCount = 0;
+_queuedAttackCount = 0;
+StartAttack(1);
+}
+
+private void StartAttack(int attackStep)
+{
+if (_equipMgr == null || !_equipMgr.HasWeaponEquipped)
+{
+FinishAttack();
+return;
+}
+
 _isAttacking = true;
+_activeAttackStep = attackStep;
+_comboHitCount = attackStep;
+_isWaitingSecondHit = false;
+_secondHitWaitTimer = 0f;
+float attackSpeedMult = 1f;
+if (_stats != null)
+{
+attackSpeedMult = _stats.AttackSpeed;
+}
+
+Vector2 lungeDir = GetAttackDirectionVector();
+if (lungeDir != Vector2.Zero)
+{
+Velocity = lungeDir * AttackLungeSpeed * attackSpeedMult;
+}
+else
+{
 Velocity = Vector2.Zero;
+}
+
+if (_body != null)
+{
+_body.SpeedScale = _bodyBaseSpeedScale * attackSpeedMult;
+}
+if (_weaponSprite != null)
+{
+_weaponSprite.SpeedScale = _weaponBaseSpeedScale * attackSpeedMult;
+}
 
 string attackDir = GetAttackDirection();
+bool playedBodyAttack = false;
+bool playedWeaponAttack = false;
+if (!TryGetAttackFrameRange(attackStep, out int startFrame, out int endFrame))
+{
+FinishAttack();
+return;
+}
 
 string bodyAnim = $"sword_{attackDir}";
 if (_body != null && _body.SpriteFrames.HasAnimation(bodyAnim))
 {
+int bodyFrameCount = _body.SpriteFrames.GetFrameCount(bodyAnim);
+if (bodyFrameCount > 0)
+{
+_attackStartFrame = Mathf.Clamp(startFrame, 0, bodyFrameCount - 1);
+_attackEndFrame = Mathf.Clamp(endFrame, _attackStartFrame, bodyFrameCount - 1);
+_activeAttackAnim = bodyAnim;
 _body.Play(bodyAnim);
+_body.Frame = _attackStartFrame;
+_body.FrameProgress = 0f;
+playedBodyAttack = true;
+}
 }
 
 if (_weaponSprite != null && _weaponSprite.SpriteFrames != null)
@@ -181,12 +337,30 @@ if (_weaponSprite != null && _weaponSprite.SpriteFrames != null)
 string weaponAnim = $"sword_{attackDir}";
 if (_weaponSprite.SpriteFrames.HasAnimation(weaponAnim))
 {
+int weaponFrameCount = _weaponSprite.SpriteFrames.GetFrameCount(weaponAnim);
+int weaponStartFrame = Mathf.Clamp(startFrame, 0, Mathf.Max(0, weaponFrameCount - 1));
+_weaponAttackEndFrame = Mathf.Clamp(endFrame, weaponStartFrame, Mathf.Max(0, weaponFrameCount - 1));
+_activeWeaponAttackAnim = weaponAnim;
 _weaponSprite.Visible = true;
 _weaponSprite.Play(weaponAnim);
+_weaponSprite.Frame = weaponStartFrame;
+_weaponSprite.FrameProgress = 0f;
+playedWeaponAttack = true;
 }
 }
 
-GD.Print($"[Player] Attack! Direction: {attackDir}");
+GD.Print($"[Player] Attack step {attackStep}! Direction: {attackDir} | Frame {_attackStartFrame}->{_attackEndFrame}");
+
+if (!playedBodyAttack)
+{
+FinishAttack();
+return;
+}
+
+if (!playedWeaponAttack)
+{
+_activeWeaponAttackAnim = "";
+}
 }
 
 private string GetAttackDirection()
@@ -198,23 +372,103 @@ if (_lastDirection.Contains("right")) return "right";
 return "down";
 }
 
-private void OnBodyAnimationFinished()
+private Vector2 GetAttackDirectionVector()
 {
-if (!_isAttacking) return;
+string dir = GetAttackDirection();
+switch (dir)
+{
+case "up":
+return Vector2.Up;
+case "down":
+return Vector2.Down;
+case "left":
+return Vector2.Left;
+case "right":
+return Vector2.Right;
+case "up_left":
+return (Vector2.Up + Vector2.Left).Normalized();
+case "up_right":
+return (Vector2.Up + Vector2.Right).Normalized();
+case "down_left":
+return (Vector2.Down + Vector2.Left).Normalized();
+case "down_right":
+return (Vector2.Down + Vector2.Right).Normalized();
+default:
+return Vector2.Zero;
+}
+}
+
+private void OnBodyFrameChanged()
+{
+if (!_isAttacking || _body == null) return;
+if (_body.Animation != _activeAttackAnim) return;
+if (_body.Frame < _attackEndFrame) return;
+
+_body.Stop();
+_body.FrameProgress = 1f;
+
+CompleteAttackStep();
+}
+
+private void CompleteAttackStep()
+{
+if (!_isAttacking || _isCompletingAttackStep) return;
+
+_isCompletingAttackStep = true;
+
+if (_activeAttackStep == 1)
+{
+if (_queuedAttackCount > 0)
+{
+_queuedAttackCount--;
+StartAttack(2);
+}
+else
+{
+_isWaitingSecondHit = true;
+float attackSpeedMult = _stats != null ? _stats.AttackSpeed : 1f;
+_secondHitWaitTimer = ComboContinueWindow / Mathf.Max(0.1f, attackSpeedMult);
+}
+
+_isCompletingAttackStep = false;
+return;
+}
+
 FinishAttack();
+
+_isCompletingAttackStep = false;
 }
 
 private void OnWeaponAnimationFinished()
 {
-if (_weaponSprite != null)
-{
-_weaponSprite.Visible = false;
+// Do nothing: combo now resolves on explicit frame windows.
 }
+
+private void OnWeaponFrameChanged()
+{
+if (!_isAttacking || _weaponSprite == null) return;
+if (_activeWeaponAttackAnim == "") return;
+if (_weaponSprite.Animation != _activeWeaponAttackAnim) return;
+if (_weaponSprite.Frame < _weaponAttackEndFrame) return;
+
+_weaponSprite.Stop();
+_weaponSprite.FrameProgress = 1f;
+_weaponSprite.Visible = false;
 }
 
 private void FinishAttack()
 {
 _isAttacking = false;
+_queuedAttackCount = 0;
+_comboHitCount = 0;
+_activeAttackStep = 0;
+_attackStartFrame = 0;
+_attackEndFrame = 0;
+_activeAttackAnim = "";
+_weaponAttackEndFrame = 0;
+_activeWeaponAttackAnim = "";
+_isWaitingSecondHit = false;
+_secondHitWaitTimer = 0f;
 
 if (_weaponSprite != null)
 {
@@ -224,6 +478,7 @@ _weaponSprite.Visible = false;
 
 if (_body != null)
 {
+_body.SpeedScale = _bodyBaseSpeedScale;
 string idleAnim = _lastMoveAnim.Replace("run", "go");
 if (_body.SpriteFrames.HasAnimation(idleAnim))
 {
@@ -232,6 +487,51 @@ _body.Frame = StopFrameIndex;
 }
 _body.Stop();
 }
+
+if (_weaponSprite != null)
+{
+_weaponSprite.SpeedScale = _weaponBaseSpeedScale;
+}
+}
+
+private bool TryGetAttackFrameRange(int attackStep, out int startFrame, out int endFrame)
+{
+startFrame = 0;
+endFrame = 0;
+
+if (attackStep == 1)
+{
+startFrame = 0;
+endFrame = 4;
+return true;
+}
+
+if (attackStep == 2)
+{
+startFrame = 5;
+endFrame = 8;
+return true;
+}
+
+return false;
+}
+
+private string ResolveDirection(Vector2 dir)
+{
+string vDir = "";
+if (dir.Y > 0.2f) vDir = "down";
+else if (dir.Y < -0.2f) vDir = "up";
+
+string hDir = "";
+if (dir.X > 0.2f) hDir = "right";
+else if (dir.X < -0.2f) hDir = "left";
+
+if (vDir == "" && hDir == "")
+{
+return _lastDirection;
+}
+
+return (vDir != "" && hDir != "") ? $"{vDir}_{hDir}" : $"{vDir}{hDir}";
 }
 
 private void OnWeaponVisualChanged(PackedScene weaponScene)

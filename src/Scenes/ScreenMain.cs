@@ -4,6 +4,7 @@ using System;
 public partial class ScreenMain : Node2D
 {
 	[Export] public PackedScene PlayerScene { get; set; }
+	[Export] public bool AutoEquipStarterWeaponOnSpawn { get; set; } = false;
 
 	private const string WorldPath = "res://scenes/world/WhisperingFields/Field1.tscn";
 		
@@ -82,8 +83,11 @@ public partial class ScreenMain : Node2D
 			GD.PrintErr("Không tìm thấy SceneManager để set player");
 		}
 
-		// Tự động trang bị WoodSword từ túi đồ
-		player.AutoEquipStarterWeapon();
+		// Chỉ auto-equip khi được bật rõ ràng trong Inspector.
+		if (AutoEquipStarterWeaponOnSpawn)
+		{
+			player.AutoEquipStarterWeapon();
+		}
 	}
 
 	private void _on_exits_pressed() => GetTree().Quit();

@@ -30,6 +30,7 @@ namespace AshesofaDyingWorld.Entities.Player
 		// Các chỉ số chiến đấu
 		public float AttackDamage { get; private set; }
 		public float Armor { get; private set; }
+		public float AttackSpeed { get; private set; } = 1f; // Hệ số tốc độ đánh (1 = bình thường)
 
 		// Tốc độ hồi Stamina
 		[Export] public float StaminaRegenRate { get; set; } = 10f; // Hồi 10/giây
@@ -140,6 +141,31 @@ namespace AshesofaDyingWorld.Entities.Player
 							   (EquipmentMgr.GetTotalBaseValue(EquipmentSlot.Body) + 
 								EquipmentMgr.GetTotalBaseValue(EquipmentSlot.Head)) : 0;
 			Armor = equipArmor + (FinalAttributes[AttributeType.Defense] * 1.5f);
+
+			// Tốc độ đánh: dựa trên Dexterity và độ nặng vũ khí
+			int dex = FinalAttributes.ContainsKey(AttributeType.Dexterity)
+				? FinalAttributes[AttributeType.Dexterity]
+				: 0;
+
+			// Mỗi 1 Dex cho ~2% tốc độ đánh
+			float dexFactor = 1.0f + dex * 0.02f;
+
+			// Lấy độ nặng vũ khí (1 = trung bình, >1 = nặng hơn => chậm hơn)
+			float weaponWeight = 1.0f;
+			if (EquipmentMgr != null)
+			{
+				var mainWeapon = EquipmentMgr.GetEquippedItem(EquipmentSlot.MainHand);
+				if (mainWeapon != null && mainWeapon.WeaponWeight > 0f)
+				{
+					weaponWeight = mainWeapon.WeaponWeight;
+				}
+			}
+
+			// Vũ khí càng nặng thì hệ số càng giảm
+			float weightFactor = 1.0f / Mathf.Max(0.5f, weaponWeight); // Clamp để tránh chia cho số quá nhỏ
+
+			// Hệ số tốc độ cuối cùng, giới hạn trong khoảng [0.5, 3]
+			AttackSpeed = Mathf.Clamp(dexFactor * weightFactor, 0.5f, 3.0f);
 		}
 	}
 }
