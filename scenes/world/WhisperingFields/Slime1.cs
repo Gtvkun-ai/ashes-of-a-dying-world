@@ -241,6 +241,7 @@ public partial class Slime1 : CharacterBody2D
 
 		var player = weaponSprite.GetParent() as Player;
 		if (player == null) return;
+		if (!player.IsAttackHitboxActive()) return;
 
 		// Lấy damage + STR + vũ khí từ PlayerStats nếu có
 		int damage = 1;

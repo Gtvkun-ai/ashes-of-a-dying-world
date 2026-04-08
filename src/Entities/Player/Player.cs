@@ -9,6 +9,7 @@ public partial class Player : CharacterBody2D
 [Export] public float RunSpeed { get; set; } = 200f;
 [Export] public float RunStaminaCost { get; set; } = 20f;
 [Export] public float MinStaminaToRun { get; set; } = 40f;
+	[Export] public float BaseAttackStaminaCost { get; set; } = 15f;
 [Export] public float Acceleration { get; set; } = 1200f;
 [Export] public float Deceleration { get; set; } = 1600f;
 [Export] public float ComboContinueWindow { get; set; } = 1f;
@@ -32,6 +33,8 @@ private int _comboHitCount = 0;
 private int _activeAttackStep = 0;
 private int _attackStartFrame = 0;
 private int _attackEndFrame = 0;
+private int _attackHitStartFrame = 0;
+private int _attackHitEndFrame = 0;
 private string _activeAttackAnim = "";
 private int _weaponAttackEndFrame = 0;
 private string _activeWeaponAttackAnim = "";
@@ -44,7 +47,6 @@ private InventoryManager _inventory;
 
 private float _bodyBaseSpeedScale = 1f;
 private float _weaponBaseSpeedScale = 1f;
-private bool _hitboxJustActivated = false;
 private float _knockbackAnimTimer = 0f;
 
 public override void _Ready()
@@ -95,6 +97,8 @@ if (_weaponSprite != null)
 {
 _weaponBaseSpeedScale = _weaponSprite.SpeedScale;
 }
+
+SetHitboxActive(false);
 }
 
 public override void _PhysicsProcess(double delta)
@@ -132,11 +136,6 @@ FinishAttack();
 
 Velocity = Velocity.MoveToward(Vector2.Zero, Deceleration * (float)delta);
 MoveAndSlide();
-if (_hitboxJustActivated && _hitbox != null)
-{
-_hitbox.Monitoring = false;
-_hitboxJustActivated = false;
-}
 return;
 }
 
@@ -335,6 +334,12 @@ FinishAttack();
 return;
 }
 
+        // Tiêu hao Stamina dựa trên độ nặng của vũ khí
+        if (!TryConsumeAttackStamina(attackStep))
+        {
+            return;
+        }
+
 _isAttacking = true;
 _activeAttackStep = attackStep;
 _comboHitCount = attackStep;
@@ -375,6 +380,12 @@ FinishAttack();
 return;
 }
 
+if (!TryGetAttackHitFrameRange(attackStep, out int hitStartFrame, out int hitEndFrame))
+{
+FinishAttack();
+return;
+}
+
 string bodyAnim = $"sword_{attackDir}";
 if (_body != null && _body.SpriteFrames.HasAnimation(bodyAnim))
 {
@@ -383,6 +394,8 @@ if (bodyFrameCount > 0)
 {
 _attackStartFrame = Mathf.Clamp(startFrame, 0, bodyFrameCount - 1);
 _attackEndFrame = Mathf.Clamp(endFrame, _attackStartFrame, bodyFrameCount - 1);
+_attackHitStartFrame = Mathf.Clamp(hitStartFrame, _attackStartFrame, _attackEndFrame);
+_attackHitEndFrame = Mathf.Clamp(hitEndFrame, _attackHitStartFrame, _attackEndFrame);
 _activeAttackAnim = bodyAnim;
 _body.Play(bodyAnim);
 _body.Frame = _attackStartFrame;
@@ -419,6 +432,47 @@ if (!playedWeaponAttack)
 _activeWeaponAttackAnim = "";
 }
 }
+
+	private float ComputeAttackStaminaCost(int attackStep)
+	{
+		// Trọng lượng vũ khí: 1 = trung bình, >1 = nặng, <1 = nhẹ
+		float weaponWeight = 1f;
+		if (_equipMgr != null)
+		{
+			var mainWeapon = _equipMgr.GetEquippedItem(EquipmentSlot.MainHand);
+			if (mainWeapon != null && mainWeapon.WeaponWeight > 0f)
+			{
+				weaponWeight = mainWeapon.WeaponWeight;
+			}
+		}
+
+		// Đòn thứ 2 trong combo có thể tốn thêm một chút thể lực
+		float stepMultiplier = attackStep == 2 ? 1.2f : 1f;
+		return BaseAttackStaminaCost * weaponWeight * stepMultiplier;
+	}
+
+	private bool TryConsumeAttackStamina(int attackStep)
+	{
+		if (_stats == null)
+		{
+			return true;
+		}
+
+		float cost = ComputeAttackStaminaCost(attackStep);
+		if (!_stats.ConsumeStamina(cost))
+		{
+			GD.Print($"[Player] Not enough stamina to attack. Need {cost:F1}, current={_stats.CurrentStamina:F1}");
+
+			// Nếu đang trong combo mà không đủ thể lực cho hit tiếp theo thì kết thúc combo
+			if (_isAttacking)
+			{
+				FinishAttack();
+			}
+			return false;
+		}
+
+		return true;
+	}
 
 private string GetAttackDirection()
 {
@@ -484,6 +538,9 @@ private void OnBodyFrameChanged()
 {
 if (!_isAttacking || _body == null) return;
 if (_body.Animation != _activeAttackAnim) return;
+
+bool isHitFrame = _body.Frame >= _attackHitStartFrame && _body.Frame <= _attackHitEndFrame;
+SetHitboxActive(isHitFrame);
 if (_body.Frame < _attackEndFrame) return;
 
 _body.Stop();
@@ -497,8 +554,7 @@ private void CompleteAttackStep()
 if (!_isAttacking || _isCompletingAttackStep) return;
 
 _isCompletingAttackStep = true;
-
-TriggerAttackHitWindow();
+SetHitboxActive(false);
 
 if (_activeAttackStep == 1)
 {
@@ -521,14 +577,6 @@ return;
 FinishAttack();
 
 _isCompletingAttackStep = false;
-}
-
-private void TriggerAttackHitWindow()
-{
-if (_hitbox == null) return;
-
-_hitbox.Monitoring = true;
-_hitboxJustActivated = true;
 }
 
 private void OnWeaponAnimationFinished()
@@ -566,6 +614,8 @@ _comboHitCount = 0;
 _activeAttackStep = 0;
 _attackStartFrame = 0;
 _attackEndFrame = 0;
+_attackHitStartFrame = 0;
+_attackHitEndFrame = 0;
 _activeAttackAnim = "";
 _weaponAttackEndFrame = 0;
 _activeWeaponAttackAnim = "";
@@ -595,10 +645,7 @@ if (_weaponSprite != null)
 _weaponSprite.SpeedScale = _weaponBaseSpeedScale;
 }
 
-if (_hitbox != null)
-{
-_hitbox.Monitoring = false;
-}
+SetHitboxActive(false);
 }
 
 private bool TryGetAttackFrameRange(int attackStep, out int startFrame, out int endFrame)
@@ -617,6 +664,28 @@ if (attackStep == 2)
 {
 startFrame = 5;
 endFrame = 8;
+return true;
+}
+
+return false;
+}
+
+private bool TryGetAttackHitFrameRange(int attackStep, out int startFrame, out int endFrame)
+{
+startFrame = 0;
+endFrame = 0;
+
+if (attackStep == 1)
+{
+startFrame = 2;
+endFrame = 3;
+return true;
+}
+
+if (attackStep == 2)
+{
+startFrame = 6;
+endFrame = 7;
 return true;
 }
 
@@ -669,6 +738,7 @@ if (weaponScene == null)
 {
 _weaponSprite.SpriteFrames = null;
 _weaponSprite.Visible = false;
+SetHitboxActive(false);
 GD.Print("[Player] Weapon visual cleared.");
 return;
 }
@@ -686,10 +756,30 @@ if (newHitbox != null && _weaponSprite != null)
 newHitbox.GetParent()?.RemoveChild(newHitbox);
 _weaponSprite.AddChild(newHitbox);
 _hitbox = newHitbox;
+SetHitboxActive(false);
 }
 
 weaponInstance.QueueFree();
 GD.Print("[Player] Weapon visual (and hitbox) loaded.");
+}
+}
+
+public bool IsAttackHitboxActive()
+{
+return _isAttacking && _hitbox != null && _hitbox.Monitoring && _hitbox.Monitorable;
+}
+
+private void SetHitboxActive(bool active)
+{
+if (_hitbox == null) return;
+
+_hitbox.Monitoring = active;
+_hitbox.Monitorable = active;
+
+var shape = _hitbox.GetNodeOrNull<CollisionShape2D>("HitboxShape");
+if (shape != null)
+{
+shape.Disabled = !active;
 }
 }
 
