@@ -6,7 +6,7 @@
 [ext_resource type="Script" uid="uid://bmhf2l4kgx1rl" path="res://src/Core/Data/EquipmentManager.cs" id="8_4rh2k"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_6685u"]
-size = Vector2(8.5, 2.5)
+size = Vector2(7, 2.5)
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_sgmg4"]
 radius = 6.5
@@ -21,7 +21,7 @@ BodyPath = NodePath("")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1263195701]
 y_sort_enabled = true
-position = Vector2(0.25, 11.75)
+position = Vector2(0, 11.75)
 shape = SubResource("RectangleShape2D_6685u")
 
 [node name="WeaponSprite" type="AnimatedSprite2D" parent="." unique_id=126676805]
