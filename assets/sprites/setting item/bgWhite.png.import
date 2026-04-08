@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cdwhvp0bl0kw3"
-path="res://.godot/imported/cay.png-b819e2dcffa32c6fe026abf806cf024f.ctex"
+uid="uid://cb2uwlsxfdiio"
+path="res://.godot/imported/bgWhite.png-9969d9788a9eb7366dfc998cda301dda.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/cay.png"
-dest_files=["res://.godot/imported/cay.png-b819e2dcffa32c6fe026abf806cf024f.ctex"]
+source_file="res://assets/sprites/setting item/bgWhite.png"
+dest_files=["res://.godot/imported/bgWhite.png-9969d9788a9eb7366dfc998cda301dda.ctex"]
 
 [params]
 

@@ -5,11 +5,11 @@
 [ext_resource type="Resource" uid="uid://btue7yvcpa6pm" path="res://assets/resources/data/characters/Main.tres" id="7_owkge"]
 [ext_resource type="Script" uid="uid://bmhf2l4kgx1rl" path="res://src/Core/Data/EquipmentManager.cs" id="8_4rh2k"]
 
-[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_kimch"]
-radius = 7.0
-height = 27.0
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_6685u"]
+size = Vector2(10.5, 6)
 
 [node name="CharacterBody2D" type="CharacterBody2D" unique_id=903573863 groups=["Player"]]
+[node name="CharacterBody2D" type="CharacterBody2D" unique_id=1143067928 groups=["Player"]]
 y_sort_enabled = true
 scale = Vector2(2, 2)
 collision_mask = 9
@@ -17,9 +17,11 @@ script = ExtResource("1_v6v2t")
 BodyPath = NodePath("")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=267566997]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1263195701]
 y_sort_enabled = true
-position = Vector2(0, -12.5)
-shape = SubResource("CapsuleShape2D_kimch")
+position = Vector2(-0.25, -5.5)
+shape = SubResource("RectangleShape2D_6685u")
 
 [node name="WeaponSprite" type="AnimatedSprite2D" parent="." unique_id=1036535693]
 visible = false
@@ -28,10 +30,24 @@ position = Vector2(0, -16)
 [node name="follow" type="Camera2D" parent="." unique_id=2082200356]
 
 [node name="PlayerStats" type="Node" parent="." unique_id=2097928758 node_paths=PackedStringArray("EquipmentMgr")]
+[node name="Body" parent="." unique_id=1353158444 instance=ExtResource("2_6685u")]
+position = Vector2(0, -16)
+animation = &"run_up_left"
+frame = 0
+frame_progress = 0.0
+
+[node name="WeaponSprite" type="AnimatedSprite2D" parent="." unique_id=126676805]
+visible = false
+position = Vector2(0, -16)
+
+[node name="follow" type="Camera2D" parent="." unique_id=497279611]
+
+[node name="PlayerStats" type="Node" parent="." unique_id=1279805624 node_paths=PackedStringArray("EquipmentMgr")]
 script = ExtResource("6_kimch")
 ConfigData = ExtResource("7_owkge")
 EquipmentMgr = NodePath("../EquipmentManager")
 
 [node name="EquipmentManager" type="Node" parent="." unique_id=1207258995 node_paths=PackedStringArray("_playerStats")]
+[node name="EquipmentManager" type="Node" parent="." unique_id=307736108 node_paths=PackedStringArray("_playerStats")]
 script = ExtResource("8_4rh2k")
 _playerStats = NodePath("../PlayerStats")

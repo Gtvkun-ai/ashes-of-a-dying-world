@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://by2s11nqd7j07"
-path="res://.godot/imported/loginForm.png-b3a000eeca01a426455604aa91828b71.ctex"
+uid="uid://cqooxh3h0tb1v"
+path="res://.godot/imported/vật thể.png-a55535419ea66d278b161f911f23d057.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/loginForm.png"
-dest_files=["res://.godot/imported/loginForm.png-b3a000eeca01a426455604aa91828b71.ctex"]
+source_file="res://assets/sprites/environment item/vật thể.png"
+dest_files=["res://.godot/imported/vật thể.png-a55535419ea66d278b161f911f23d057.ctex"]
 
 [params]
 

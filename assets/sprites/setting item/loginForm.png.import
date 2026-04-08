@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bb3sqp68uvj7r"
-path="res://.godot/imported/phan 1 cua cay.png-2153afd5f21a74d8d31d3622764a3a40.ctex"
+uid="uid://by2s11nqd7j07"
+path="res://.godot/imported/loginForm.png-4089d1f1468f4730f684af777d5f3ab9.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/phan 1 cua cay.png"
-dest_files=["res://.godot/imported/phan 1 cua cay.png-2153afd5f21a74d8d31d3622764a3a40.ctex"]
+source_file="res://assets/sprites/setting item/loginForm.png"
+dest_files=["res://.godot/imported/loginForm.png-4089d1f1468f4730f684af777d5f3ab9.ctex"]
 
 [params]
 

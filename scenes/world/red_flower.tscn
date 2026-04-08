@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3 uid="uid://bs3fndem6lq72"]
+[gd_scene format=3 uid="uid://bs3fndem6lq72"]
 
 [ext_resource type="Texture2D" uid="uid://cqooxh3h0tb1v" path="res://assets/sprites/vật thể.png" id="1_jv3e5"]
 
@@ -17,10 +17,10 @@ animations = [{
 "speed": 5.0
 }]
 
-[node name="red_flower" type="Node2D"]
+[node name="red_flower" type="Node2D" unique_id=1369062975]
 
-[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
-position = Vector2(0, 21.000002)
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=2115074369]
+position = Vector2(0, 22)
 scale = Vector2(1.75, 1.75)
 sprite_frames = SubResource("SpriteFrames_efhp4")
 animation = &"idle"
