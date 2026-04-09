@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using AshesofaDyingWorld.UI.HUD;
 
 public partial class ScreenMain : Node2D
 {
@@ -27,6 +28,13 @@ public partial class ScreenMain : Node2D
 			return;
 		}
 		var world = worldScene.Instantiate<Node2D>();
+		
+		// Thêm service thanh máu quái ở root để _Ready chạy trước world/enemy
+		if (EnemyHealthBarService.Instance == null)
+		{
+			var enemyHpService = new EnemyHealthBarService();
+			tree.Root.AddChild(enemyHpService);
+		}
 		
 		var playerScene = GD.Load<PackedScene>(PlayerPath);
 		if (playerScene == null)

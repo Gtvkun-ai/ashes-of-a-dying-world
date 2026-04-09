@@ -37,6 +37,7 @@ namespace AshesofaDyingWorld.UI.HUD
         private Label _hpValueLabel;
         private Label _mpValueLabel;
         private Label _staminaValueLabel;
+        private VBoxContainer _skillsListContainer;
         
         // Chart
         private StatHexagonChart _overviewStatsChart; 
@@ -58,7 +59,7 @@ namespace AshesofaDyingWorld.UI.HUD
         private NinePatchRect _panelFrame;          // Khung bọc ngoài toàn bộ UI
         private NinePatchRect _panelGlow;           // Lớp glow phía sau khung panel
         private Control _equipmentBodyContainer;    // Container chứa AnimatedSprite2D body trong tab Equipment
-        private GridContainer _inventoryGrid;       // Grid 4x3 chứa 12 ô inventory trong tab Equipment
+        private GridContainer _inventoryGrid;       // Grid inventory trong tab Equipment (số ô dựa theo InventoryManager.MaxSlots)
         private readonly List<TextureRect> _inventorySlotIcons = new();
         private readonly List<Label> _inventorySlotLabels = new();
         private readonly List<Button> _inventorySlotButtons = new();
@@ -68,6 +69,7 @@ namespace AshesofaDyingWorld.UI.HUD
         private readonly Dictionary<EquipmentSlot, Texture2D> _equipmentSlotDefaultIcons = new();
         private readonly Dictionary<EquipmentSlot, Button> _equipmentSlotButtons = new();
         private EquipmentManager _boundEquipmentManager;
+        private PlayerStats _observedStats;
         
         public override void _Ready()
         {
@@ -97,6 +99,10 @@ namespace AshesofaDyingWorld.UI.HUD
             SetupAvatarColumn(mainHBox);
 
             VisibilityChanged += OnVisibilityChanged;
+            if (PlayerManager.Instance != null)
+            {
+                PlayerManager.Instance.ActiveCharacterChanged += OnActiveCharacterChanged;
+            }
             
             ApplyIceTheme();
             
@@ -117,6 +123,16 @@ namespace AshesofaDyingWorld.UI.HUD
             if (_boundEquipmentManager != null)
             {
                 _boundEquipmentManager.EquipmentChanged -= OnEquipmentChanged;
+            }
+
+            if (_observedStats != null)
+            {
+                _observedStats.StatsChanged -= OnObservedStatsChanged;
+            }
+
+            if (PlayerManager.Instance != null)
+            {
+                PlayerManager.Instance.ActiveCharacterChanged -= OnActiveCharacterChanged;
             }
         }
 
@@ -515,7 +531,7 @@ void fragment() {
             _equipmentPanel = CreateEquipmentPanel();
             contentContainer.AddChild(_equipmentPanel);
 
-            _skillsPanel = CreateSkillsPanel();
+            _skillsPanel = CreateSkillsPanelLayout();
             contentContainer.AddChild(_skillsPanel);
 
         }
@@ -628,15 +644,13 @@ void fragment() {
             CreateEquipmentSlot(rightSlotsVBox, "Vũ khí", "res://assets/resources/data/icon/Exit.tres", EquipmentSlot.MainHand);
             CreateEquipmentSlot(rightSlotsVBox, "Phụ", "res://assets/resources/data/icon/Exit.tres", EquipmentSlot.OffHand);
 
-            // ========== NỬA PHẢI: Inventory Grid 4x3 (12 ô) ==========
+            // ========== NỬA PHẢI: Inventory Grid (theo số ô của túi đồ) ==========
             var inventoryVBox = new VBoxContainer();
             inventoryVBox.SizeFlagsHorizontal = SizeFlags.ExpandFill;
             inventoryVBox.SizeFlagsVertical = SizeFlags.ExpandFill;
             inventoryVBox.AddThemeConstantOverride("separation", 8);
             mainHBox.AddChild(inventoryVBox);
-
-
-            // Grid 4 cột x 3 hàng = 12 ô
+            // Grid 4 cột, số hàng tùy theo MaxSlots của InventoryManager (mặc định 20 ô => 5 hàng)
             _inventoryGrid = new GridContainer();
             _inventoryGrid.Columns = 4;
             _inventoryGrid.AddThemeConstantOverride("h_separation", 6);
@@ -645,7 +659,16 @@ void fragment() {
             _inventoryGrid.SizeFlagsVertical = SizeFlags.ShrinkCenter;
             inventoryVBox.AddChild(_inventoryGrid);
 
-            for (int i = 0; i < 12; i++)
+            // Tạo số ô inventory dựa trên MaxSlots của InventoryManager (nếu tìm được),
+            // nếu không thì mặc định 20 ô để khớp với cấu hình túi đồ.
+            var inventory = ResolveInventoryManager();
+            int slotCount = inventory != null ? inventory.MaxSlots : 20;
+            if (slotCount < 1)
+            {
+                slotCount = 20;
+            }
+
+            for (int i = 0; i < slotCount; i++)
             {
                 CreateInventorySlot(_inventoryGrid);
             }
@@ -1001,7 +1024,7 @@ void fragment() {
             RefreshInventoryGrid();
         }
 
-        private Control CreateSkillsPanel()
+        private Control CreateSkillsPanelPlaceholder()
         {
             var panel = new PanelContainer();
             // QUAN TRỌNG: Set FullRect
@@ -1020,6 +1043,195 @@ void fragment() {
         }
 
         // Tạo style chung cho các panel - trong suốt với viền phát sáng
+        private Control CreateSkillsPanelLayout()
+        {
+            var panel = new PanelContainer();
+            panel.SetAnchorsPreset(LayoutPreset.FullRect);
+            panel.Visible = false;
+            panel.AddThemeStyleboxOverride("panel", GetCommonPanelStyle());
+
+            var scrollContainer = new ScrollContainer();
+            scrollContainer.SetAnchorsPreset(LayoutPreset.FullRect);
+            scrollContainer.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+            scrollContainer.SizeFlagsVertical = SizeFlags.ExpandFill;
+            panel.AddChild(scrollContainer);
+
+            var mainVBox = new VBoxContainer();
+            mainVBox.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+            mainVBox.AddThemeConstantOverride("separation", 12);
+            scrollContainer.AddChild(mainVBox);
+
+            _skillsListContainer = new VBoxContainer();
+            _skillsListContainer.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+            _skillsListContainer.AddThemeConstantOverride("separation", 10);
+            mainVBox.AddChild(_skillsListContainer);
+
+            return panel;
+        }
+
+        private void UpdateSkillsPanel(CharacterConfig config)
+        {
+            if (_skillsListContainer == null)
+            {
+                return;
+            }
+
+            foreach (var child in _skillsListContainer.GetChildren())
+            {
+                child.QueueFree();
+            }
+
+            var skills = new List<SkillData>();
+            AddSkillsFromCollection(config?.ActiveSkills, skills);
+            AddSkillsFromCollection(config?.ComboSequence, skills);
+
+            if (skills.Count == 0)
+            {
+                _skillsListContainer.AddChild(CreateSkillEmptyState());
+                return;
+            }
+
+            foreach (var skill in skills)
+            {
+                _skillsListContainer.AddChild(CreateSkillEntry(skill));
+            }
+        }
+
+        private void AddSkillsFromCollection(Godot.Collections.Array<SkillData> source, List<SkillData> target)
+        {
+            if (source == null)
+            {
+                return;
+            }
+
+            foreach (var skill in source)
+            {
+                if (skill != null && !target.Contains(skill))
+                {
+                    target.Add(skill);
+                }
+            }
+        }
+
+        private Control CreateSkillEntry(SkillData skill)
+        {
+            var card = new PanelContainer();
+            card.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+            card.CustomMinimumSize = new Vector2(0, 104);
+
+            Color borderColor = _currentThemeColor != default ? _currentThemeColor : _themeBorderColor;
+            var cardStyle = new StyleBoxFlat();
+            cardStyle.BgColor = new Color(0.02f, 0.04f, 0.08f, 0.72f);
+            cardStyle.BorderColor = new Color(borderColor.R, borderColor.G, borderColor.B, 0.6f);
+            cardStyle.SetBorderWidthAll(2);
+            cardStyle.SetCornerRadiusAll(10);
+            cardStyle.ContentMarginLeft = 12;
+            cardStyle.ContentMarginRight = 12;
+            cardStyle.ContentMarginTop = 12;
+            cardStyle.ContentMarginBottom = 12;
+            card.AddThemeStyleboxOverride("panel", cardStyle);
+
+            var contentHBox = new HBoxContainer();
+            contentHBox.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+            contentHBox.AddThemeConstantOverride("separation", 12);
+            card.AddChild(contentHBox);
+
+            contentHBox.AddChild(CreateSkillIconFrame(skill));
+
+            var textVBox = new VBoxContainer();
+            textVBox.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+            textVBox.AddThemeConstantOverride("separation", 6);
+            contentHBox.AddChild(textVBox);
+
+            var titleLabel = new Label();
+            titleLabel.Text = string.IsNullOrWhiteSpace(skill?.SkillName) ? "Ky nang chua dat ten" : skill.SkillName;
+            titleLabel.AddThemeFontSizeOverride("font_size", 18);
+            titleLabel.AddThemeColorOverride("font_color", Colors.White);
+            textVBox.AddChild(titleLabel);
+
+            var descriptionLabel = new Label();
+            descriptionLabel.Text = string.IsNullOrWhiteSpace(skill?.Description)
+                ? "Ky nang nay chua co mo ta."
+                : skill.Description;
+            descriptionLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            descriptionLabel.AddThemeFontSizeOverride("font_size", 13);
+            descriptionLabel.AddThemeColorOverride("font_color", _subTextColor);
+            textVBox.AddChild(descriptionLabel);
+
+            return card;
+        }
+
+        private Control CreateSkillIconFrame(SkillData skill)
+        {
+            var frame = new PanelContainer();
+            frame.CustomMinimumSize = new Vector2(84, 84);
+
+            Color borderColor = _currentThemeColor != default ? _currentThemeColor : _themeBorderColor;
+            var frameStyle = new StyleBoxFlat();
+            frameStyle.BgColor = new Color(0f, 0f, 0f, 0.55f);
+            frameStyle.BorderColor = new Color(borderColor.R, borderColor.G, borderColor.B, 0.85f);
+            frameStyle.SetBorderWidthAll(2);
+            frameStyle.SetCornerRadiusAll(8);
+            frameStyle.ContentMarginLeft = 8;
+            frameStyle.ContentMarginRight = 8;
+            frameStyle.ContentMarginTop = 8;
+            frameStyle.ContentMarginBottom = 8;
+            frame.AddThemeStyleboxOverride("panel", frameStyle);
+
+            var center = new CenterContainer();
+            frame.AddChild(center);
+
+            if (skill?.Icon != null)
+            {
+                var iconRect = new TextureRect();
+                iconRect.Texture = skill.Icon;
+                iconRect.CustomMinimumSize = new Vector2(56, 56);
+                iconRect.ExpandMode = TextureRect.ExpandModeEnum.FitHeightProportional;
+                iconRect.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
+                center.AddChild(iconRect);
+            }
+            else
+            {
+                var fallbackLabel = new Label();
+                fallbackLabel.Text = "NO ICON";
+                fallbackLabel.HorizontalAlignment = HorizontalAlignment.Center;
+                fallbackLabel.VerticalAlignment = VerticalAlignment.Center;
+                fallbackLabel.AddThemeFontSizeOverride("font_size", 11);
+                fallbackLabel.AddThemeColorOverride("font_color", _subTextColor);
+                center.AddChild(fallbackLabel);
+            }
+
+            return frame;
+        }
+
+        private Control CreateSkillEmptyState()
+        {
+            var emptyPanel = new PanelContainer();
+            emptyPanel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+
+            Color borderColor = _currentThemeColor != default ? _currentThemeColor : _themeBorderColor;
+            var style = new StyleBoxFlat();
+            style.BgColor = new Color(0.02f, 0.04f, 0.08f, 0.55f);
+            style.BorderColor = new Color(borderColor.R, borderColor.G, borderColor.B, 0.45f);
+            style.SetBorderWidthAll(1);
+            style.SetCornerRadiusAll(10);
+            style.ContentMarginLeft = 16;
+            style.ContentMarginRight = 16;
+            style.ContentMarginTop = 16;
+            style.ContentMarginBottom = 16;
+            emptyPanel.AddThemeStyleboxOverride("panel", style);
+
+            var label = new Label();
+            label.Text = "Nhan vat nay chua duoc gan du lieu ky nang.";
+            label.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            label.HorizontalAlignment = HorizontalAlignment.Center;
+            label.AddThemeFontSizeOverride("font_size", 13);
+            label.AddThemeColorOverride("font_color", _subTextColor);
+            emptyPanel.AddChild(label);
+
+            return emptyPanel;
+        }
+
         private StyleBoxFlat GetCommonPanelStyle()
         {
             var style = new StyleBoxFlat();
@@ -1304,6 +1516,7 @@ void fragment() {
 
             PlayerStats currentStats = PlayerManager.Instance.PartyMembers[activeIndex];
             if (currentStats == null || currentStats.ConfigData == null) return;
+            BindObservedStats(currentStats);
 
             var config = currentStats.ConfigData;
 
@@ -1339,6 +1552,7 @@ void fragment() {
                     CallDeferred(MethodName.PlayVideoDeferred);
                 }
             UpdateOverviewPanel(currentStats);
+            UpdateSkillsPanel(config);
             UpdateEquipmentBody(config);
             RefreshInventoryGrid();
             RefreshEquipmentSlots();
@@ -1630,5 +1844,44 @@ void fragment() {
             // Tránh xung đột trạng thái
             CallDeferred(MethodName.PlayVideoDeferred);
         }    
+        private void BindObservedStats(PlayerStats stats)
+        {
+            if (_observedStats == stats)
+            {
+                return;
+            }
+
+            if (_observedStats != null)
+            {
+                _observedStats.StatsChanged -= OnObservedStatsChanged;
+            }
+
+            _observedStats = stats;
+
+            if (_observedStats != null)
+            {
+                _observedStats.StatsChanged += OnObservedStatsChanged;
+            }
+        }
+
+        private void OnObservedStatsChanged()
+        {
+            if (!Visible)
+            {
+                return;
+            }
+
+            UpdateCharacterInfo();
+        }
+
+        private void OnActiveCharacterChanged(int index)
+        {
+            if (!Visible)
+            {
+                return;
+            }
+
+            UpdateCharacterInfo();
+        }
     }
 }

@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using AshesofaDyingWorld.Core.Data;
+using AshesofaDyingWorld.UI.HUD;
 
 public partial class Slime1 : CharacterBody2D
 {
@@ -9,7 +10,7 @@ public partial class Slime1 : CharacterBody2D
 	[Export] public float WanderRadius = 100f;
 	[Export] public float AttackRange = 30f; // Khoảng cách để đánh cú tiếp theo
 	[Export] public int Level = 5;            // Level mặc định của slime
-	[Export] public int MaxHP = 60;          // Máu tối đa của slime cơ bản
+	[Export] public int MaxHP = 600;          // Máu tối đa của slime cơ bản
 	[Export] public float Weight = 10f;           // Trọng lượng cơ bản của slime
 	[Export] public float KnockbackChance = 0.2f; // Tỉ lệ base, sẽ cộng thêm theo STR, vũ khí, trọng lượng
 	[Export] public float KnockbackForce = 300f;  // Lực đẩy base, sẽ scale theo STR, vũ khí, trọng lượng
@@ -34,14 +35,26 @@ public partial class Slime1 : CharacterBody2D
 		_animatedSprite = GetNode<AnimatedSprite2D>("AnimatedSprite2D");
 		_startPosition = GlobalPosition;
 		InitStats();
+
 		_hurtbox = GetNodeOrNull<Area2D>("Hurtbox");
 		if (_hurtbox != null)
 		{
 			_hurtbox.AreaEntered += OnHurtboxAreaEntered;
 		}
-		UpdateTargetPosition();
-	}
 
+		UpdateTargetPosition();
+
+		// Đăng ký thanh máu nổi trên đầu với EnemyHealthBarService
+		if (EnemyHealthBarService.Instance != null)
+		{
+			EnemyHealthBarService.Instance.RegisterEnemy(
+				this,
+				() => CurrentHP,
+				() => MaxHP,
+				() => Level
+			);
+		}
+	}
 	private void InitStats()
 	{
 		if (Level < 1) Level = 1;
@@ -92,7 +105,6 @@ public partial class Slime1 : CharacterBody2D
 			MoveAndSlide(); 
 			return;
 		}
-
 		Vector2 direction = Vector2.Zero;
 
 		if (_isChasing && _player != null)
@@ -295,6 +307,12 @@ public partial class Slime1 : CharacterBody2D
 	{
 		GD.Print("[Slime] Died.");
 
+		// Hủy đăng ký thanh máu khi slime chết
+		if (EnemyHealthBarService.Instance != null)
+		{
+			EnemyHealthBarService.Instance.UnregisterEnemy(this);
+		}
+
 		// Nếu kẻ giết là một slime khác, cho nó +1 level
 		if (killer is Slime1 slimeKiller)
 		{
@@ -361,21 +379,26 @@ public partial class Slime1 : CharacterBody2D
 
 		if (stats != null)
 		{
-			// Trừ HP player
-			stats.ChangeHP(-damage);
-			GD.Print($"[Slime] Hit player for {damage} dmg. SlimePos={GlobalPosition}, PlayerPos={player.GlobalPosition}");
+			// Check block theo hướng kẻ tấn công đứng tương đối với player.
+			// Ví dụ slime đứng bên phải player thì vector này là Right.
+			Vector2 attackerDirection = (GlobalPosition - player.GlobalPosition).Normalized();
+			Vector2 hitDir = DirectionFromCurrent();
+			float hpDamage = player.ReceiveMeleeHit(damage, attackerDirection);
+			GD.Print($"[Slime] Hit player for {hpDamage} dmg (raw {damage}). SlimePos={GlobalPosition}, PlayerPos={player.GlobalPosition}");
 
-			// Tính tỉ lệ bị knockback sau khi áp dụng Defense
-			float finalChance = stats.ComputeKnockbackChance(AttackKnockbackChance);
-			if (GD.Randf() <= finalChance)
+			// Tính tỉ lệ bị knockback sau khi áp dụng Defense (chỉ nếu còn sát thương vào HP)
+			if (hpDamage > 0f)
 			{
-				// Tính lực knockback sau khi áp dụng Vitality
-				float finalForce = stats.ComputeKnockbackForce(AttackKnockbackForce);
-				// Hướng knockback dựa trên hướng tấn công (at_*),
-				// và dùng ApplyExternalForce để player trượt lùi nhưng giữ nguyên animation
-				Vector2 hitDir = DirectionFromCurrent();
-				GD.Print($"[Slime] Knockback dir={_currentDirection}, hitDir={hitDir}, force={finalForce}");
-				player.ApplyExternalForce(hitDir * finalForce);
+				float finalChance = stats.ComputeKnockbackChance(AttackKnockbackChance);
+				if (GD.Randf() <= finalChance)
+				{
+					// Tính lực knockback sau khi áp dụng Vitality
+					float finalForce = stats.ComputeKnockbackForce(AttackKnockbackForce);
+					// Hướng knockback dựa trên hướng tấn công (at_*),
+					// và dùng ApplyExternalForce để player trượt lùi nhưng giữ nguyên animation
+					GD.Print($"[Slime] Knockback dir={_currentDirection}, hitDir={hitDir}, force={finalForce}");
+					player.ApplyExternalForce(hitDir * finalForce);
+				}
 			}
 		}
 	}

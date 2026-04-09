@@ -2,28 +2,27 @@
 
 [ext_resource type="Texture2D" uid="uid://cn1x5nhhvmmo3" path="res://assets/sprites/char/main/mainwalk.png" id="1_p2bgk"]
 [ext_resource type="Texture2D" uid="uid://btnbr1v25gfux" path="res://assets/sprites/char/main/mainrun.png" id="2_p5vha"]
-[ext_resource type="Texture2D" uid="uid://cnyxnlxlqoxqq" path="res://assets/sprites/char/main/main slash.png" id="3_4sbev"]
 [ext_resource type="Texture2D" uid="uid://i1p2hasyle4g" path="res://assets/sprites/char/main/animation slash.png" id="4_b6vh8"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_p5vha"]
 atlas = ExtResource("1_p2bgk")
 region = Rect2(0, 0, 16, 32)
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_ktaoc"]
-atlas = ExtResource("3_4sbev")
-region = Rect2(320, 0, 16, 32)
-
 [sub_resource type="AtlasTexture" id="AtlasTexture_jkhj7"]
-atlas = ExtResource("3_4sbev")
-region = Rect2(320, 128, 16, 32)
+atlas = ExtResource("4_b6vh8")
+region = Rect2(480, 0, 48, 64)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_w02a6"]
-atlas = ExtResource("3_4sbev")
-region = Rect2(320, 64, 16, 32)
+atlas = ExtResource("4_b6vh8")
+region = Rect2(480, 128, 48, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_gx8ye"]
+atlas = ExtResource("4_b6vh8")
+region = Rect2(480, 64, 48, 64)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_whift"]
-atlas = ExtResource("3_4sbev")
-region = Rect2(320, 192, 16, 32)
+atlas = ExtResource("4_b6vh8")
+region = Rect2(480, 192, 48, 64)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_4sbev"]
 atlas = ExtResource("1_p2bgk")
@@ -501,18 +500,10 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": SubResource("AtlasTexture_ktaoc")
-}],
-"loop": true,
-"name": &"block_down",
-"speed": 5.0
-}, {
-"frames": [{
-"duration": 1.0,
 "texture": SubResource("AtlasTexture_jkhj7")
 }],
 "loop": true,
-"name": &"block_left",
+"name": &"block_woodSword_down",
 "speed": 5.0
 }, {
 "frames": [{
@@ -520,7 +511,15 @@ animations = [{
 "texture": SubResource("AtlasTexture_w02a6")
 }],
 "loop": true,
-"name": &"block_right",
+"name": &"block_woodSword_left",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_gx8ye")
+}],
+"loop": true,
+"name": &"block_woodSword_right",
 "speed": 5.0
 }, {
 "frames": [{
@@ -528,7 +527,7 @@ animations = [{
 "texture": SubResource("AtlasTexture_whift")
 }],
 "loop": true,
-"name": &"block_up",
+"name": &"block_woodSword_up",
 "speed": 5.0
 }, {
 "frames": [{
@@ -982,4 +981,4 @@ animations = [{
 
 [node name="Body" type="AnimatedSprite2D" unique_id=1467656115]
 sprite_frames = SubResource("SpriteFrames_3405f")
-animation = &"sword_up"
+animation = &"block_woodSword_down"

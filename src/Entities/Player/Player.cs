@@ -2,6 +2,7 @@
 using AshesofaDyingWorld.Entities.Player;
 using AshesofaDyingWorld.Core.Data;
 using AshesofaDyingWorld.Core.Managers;
+using System.Collections.Generic;
 
 public partial class Player : CharacterBody2D
 {
@@ -28,6 +29,7 @@ private string _lastMoveAnim = "go_down";
 private string _lastDirection = "down";
 private bool _wasMoving = false;
 private bool _isAttacking = false;
+private bool _isBlocking = false;
 private int _queuedAttackCount = 0;
 private int _comboHitCount = 0;
 private int _activeAttackStep = 0;
@@ -48,6 +50,13 @@ private InventoryManager _inventory;
 private float _bodyBaseSpeedScale = 1f;
 private float _weaponBaseSpeedScale = 1f;
 private float _knockbackAnimTimer = 0f;
+private readonly Dictionary<SkillData, float> _skillCooldowns = new();
+private SkillData _activeTimedSkill;
+private float _activeTimedSkillRemaining = 0f;
+private float _activeMoveSpeedMultiplier = 1f;
+private int _activeDexterityBonus = 0;
+
+private const string SkillSlot1Action = "skill_1";
 
 public override void _Ready()
 {
@@ -56,6 +65,8 @@ _hurtbox = GetNodeOrNull<Area2D>("Hurtbox");
 _hitbox = GetNodeOrNull<Area2D>("WeaponSprite/Hitbox");
 _stats = GetNodeOrNull<PlayerStats>("PlayerStats");
 _equipMgr = GetNodeOrNull<EquipmentManager>("EquipmentManager");
+
+EnsureDefaultSkills();
 
 ResolveBodySprite();
 
@@ -103,6 +114,15 @@ SetHitboxActive(false);
 
 public override void _PhysicsProcess(double delta)
 {
+	// Cập nhật trạng thái block (giữ X hoặc action "block")
+	_isBlocking = Input.IsKeyPressed(Key.X) || Input.IsActionPressed("block");
+	UpdateSkillTimers((float)delta);
+
+if (Input.IsActionJustPressed(SkillSlot1Action))
+{
+TryActivateSkillSlot(0);
+}
+
 if (Input.IsActionJustPressed("attack"))
 {
 QueueAttack();
@@ -202,7 +222,7 @@ canRun = true;
 _stats.ConsumeStamina(staminaCostThisFrame);
 }
 
-float targetSpeed = canRun ? RunSpeed : Speed;
+float targetSpeed = (canRun ? RunSpeed : Speed) * GetMoveSpeedMultiplier();
 Vector2 targetVelocity = hasInput ? inputDir * targetSpeed : Vector2.Zero;
 float velocityStep = (hasInput ? Acceleration : Deceleration) * (float)delta;
 Velocity = Velocity.MoveToward(targetVelocity, velocityStep);
@@ -245,21 +265,59 @@ _weaponSprite.Visible = false;
 }
 else
 {
-// Chỉ update về idle khi không còn trong trạng thái knockback
-if (_body != null && _wasMoving && _knockbackAnimTimer <= 0f)
-{
-string idleAnim = _lastMoveAnim.Replace("run", "go");
-if (_body.SpriteFrames.HasAnimation(idleAnim))
-{
-_body.Animation = idleAnim;
-_body.Frame = StopFrameIndex;
+	// Chỉ update về idle khi không còn trong trạng thái knockback
+	// hoặc khi vừa thoát khỏi animation block (nhả phím X)
+	if (_body != null && _knockbackAnimTimer <= 0f)
+	{
+		string currentAnimName = _body.Animation.ToString();
+		bool wasMovingOrLeavingBlock = _wasMoving
+			|| (!string.IsNullOrEmpty(currentAnimName) && currentAnimName.StartsWith("block") && !_isBlocking);
+		if (wasMovingOrLeavingBlock)
+		{
+			string idleAnim = _lastMoveAnim.Replace("run", "go");
+			if (_body.SpriteFrames.HasAnimation(idleAnim))
+			{
+				_body.Animation = idleAnim;
+				_body.Frame = StopFrameIndex;
+			}
+			_body.Stop();
+		}
+	}
 }
-_body.Stop();
-}
-}
+
+	// Nếu đang giữ block và không tấn công/knockback thì ưu tiên animation block
+	if (_isBlocking && !_isAttacking && _knockbackAnimTimer <= 0f && _body != null && _body.SpriteFrames != null)
+	{
+		string blockDir = GetAttackDirection(); // dùng hướng nhìn hiện tại
+
+		// Nếu có vũ khí (ví dụ Wood Sword), ưu tiên animation block_woodSword_huong
+		string desiredAnim = $"block_{blockDir}";
+		if (_equipMgr != null && _equipMgr.HasWeaponEquipped)
+		{
+			string weaponBlockAnim = $"block_woodSword_{blockDir}";
+			if (_body.SpriteFrames.HasAnimation(weaponBlockAnim))
+			{
+				desiredAnim = weaponBlockAnim;
+			}
+		}
+
+		if (_body.SpriteFrames.HasAnimation(desiredAnim))
+		{
+			if (_body.Animation != desiredAnim || !_body.IsPlaying())
+			{
+				_body.Play(desiredAnim);
+			}
+		}
+	}
 
 MoveAndSlide();
 _wasMoving = moving;
+
+	// Hồi Stamina: chỉ khi không chạy và không đánh
+	if (_stats != null && !_isAttacking && !canRun && _stats.CurrentStamina < _stats.MaxStamina)
+	{
+		_stats.ChangeStamina(_stats.StaminaRegenRate * (float)delta);
+	}
 }
 
 // Resolve body để đảm bảo nó luôn tồn tại và có thể được truy cập, ngay cả khi 
@@ -301,397 +359,6 @@ _body = bodyInstance;
 BodyPath = new NodePath("Body");
 }
 
-private void QueueAttack()
-{
-if (_equipMgr == null || !_equipMgr.HasWeaponEquipped)
-{
-GD.Print("[Player] Chua trang bi vu khi!");
-return;
-}
-
-const int maxComboHits = 2;
-
-if (_isAttacking)
-{
-int totalPlannedHits = _comboHitCount + _queuedAttackCount;
-if (totalPlannedHits < maxComboHits)
-{
-_queuedAttackCount++;
-}
-return;
-}
-
-_comboHitCount = 0;
-_queuedAttackCount = 0;
-StartAttack(1);
-}
-
-private void StartAttack(int attackStep)
-{
-if (_equipMgr == null || !_equipMgr.HasWeaponEquipped)
-{
-FinishAttack();
-return;
-}
-
-        // Tiêu hao Stamina dựa trên độ nặng của vũ khí
-        if (!TryConsumeAttackStamina(attackStep))
-        {
-            return;
-        }
-
-_isAttacking = true;
-_activeAttackStep = attackStep;
-_comboHitCount = attackStep;
-_isWaitingSecondHit = false;
-_secondHitWaitTimer = 0f;
-float attackSpeedMult = 1f;
-if (_stats != null)
-{
-attackSpeedMult = _stats.AttackSpeed;
-}
-
-Vector2 lungeDir = GetAttackDirectionVector();
-if (lungeDir != Vector2.Zero)
-{
-Velocity = lungeDir * AttackLungeSpeed * attackSpeedMult;
-}
-else
-{
-Velocity = Vector2.Zero;
-}
-
-if (_body != null)
-{
-_body.SpeedScale = _bodyBaseSpeedScale * attackSpeedMult;
-}
-if (_weaponSprite != null)
-{
-_weaponSprite.SpeedScale = _weaponBaseSpeedScale * attackSpeedMult;
-}
-
-string attackDir = GetAttackDirection();
-UpdateHitboxForDirection(attackDir);
-bool playedBodyAttack = false;
-bool playedWeaponAttack = false;
-if (!TryGetAttackFrameRange(attackStep, out int startFrame, out int endFrame))
-{
-FinishAttack();
-return;
-}
-
-if (!TryGetAttackHitFrameRange(attackStep, out int hitStartFrame, out int hitEndFrame))
-{
-FinishAttack();
-return;
-}
-
-string bodyAnim = $"sword_{attackDir}";
-if (_body != null && _body.SpriteFrames.HasAnimation(bodyAnim))
-{
-int bodyFrameCount = _body.SpriteFrames.GetFrameCount(bodyAnim);
-if (bodyFrameCount > 0)
-{
-_attackStartFrame = Mathf.Clamp(startFrame, 0, bodyFrameCount - 1);
-_attackEndFrame = Mathf.Clamp(endFrame, _attackStartFrame, bodyFrameCount - 1);
-_attackHitStartFrame = Mathf.Clamp(hitStartFrame, _attackStartFrame, _attackEndFrame);
-_attackHitEndFrame = Mathf.Clamp(hitEndFrame, _attackHitStartFrame, _attackEndFrame);
-_activeAttackAnim = bodyAnim;
-_body.Play(bodyAnim);
-_body.Frame = _attackStartFrame;
-_body.FrameProgress = 0f;
-playedBodyAttack = true;
-}
-}
-
-if (_weaponSprite != null && _weaponSprite.SpriteFrames != null)
-{
-string weaponAnim = $"sword_{attackDir}";
-if (_weaponSprite.SpriteFrames.HasAnimation(weaponAnim))
-{
-int weaponFrameCount = _weaponSprite.SpriteFrames.GetFrameCount(weaponAnim);
-int weaponStartFrame = Mathf.Clamp(startFrame, 0, Mathf.Max(0, weaponFrameCount - 1));
-_weaponAttackEndFrame = Mathf.Clamp(endFrame, weaponStartFrame, Mathf.Max(0, weaponFrameCount - 1));
-_activeWeaponAttackAnim = weaponAnim;
-_weaponSprite.Visible = true;
-_weaponSprite.Play(weaponAnim);
-_weaponSprite.Frame = weaponStartFrame;
-_weaponSprite.FrameProgress = 0f;
-playedWeaponAttack = true;
-}
-}
-
-if (!playedBodyAttack)
-{
-FinishAttack();
-return;
-}
-
-if (!playedWeaponAttack)
-{
-_activeWeaponAttackAnim = "";
-}
-}
-
-	private float ComputeAttackStaminaCost(int attackStep)
-	{
-		// Trọng lượng vũ khí: 1 = trung bình, >1 = nặng, <1 = nhẹ
-		float weaponWeight = 1f;
-		if (_equipMgr != null)
-		{
-			var mainWeapon = _equipMgr.GetEquippedItem(EquipmentSlot.MainHand);
-			if (mainWeapon != null && mainWeapon.WeaponWeight > 0f)
-			{
-				weaponWeight = mainWeapon.WeaponWeight;
-			}
-		}
-
-		// Đòn thứ 2 trong combo có thể tốn thêm một chút thể lực
-		float stepMultiplier = attackStep == 2 ? 1.2f : 1f;
-		return BaseAttackStaminaCost * weaponWeight * stepMultiplier;
-	}
-
-	private bool TryConsumeAttackStamina(int attackStep)
-	{
-		if (_stats == null)
-		{
-			return true;
-		}
-
-		float cost = ComputeAttackStaminaCost(attackStep);
-		if (!_stats.ConsumeStamina(cost))
-		{
-			GD.Print($"[Player] Not enough stamina to attack. Need {cost:F1}, current={_stats.CurrentStamina:F1}");
-
-			// Nếu đang trong combo mà không đủ thể lực cho hit tiếp theo thì kết thúc combo
-			if (_isAttacking)
-			{
-				FinishAttack();
-			}
-			return false;
-		}
-
-		return true;
-	}
-
-private string GetAttackDirection()
-{
-if (_lastDirection.Contains("down")) return "down";
-if (_lastDirection.Contains("up")) return "up";
-if (_lastDirection.Contains("left")) return "left";
-if (_lastDirection.Contains("right")) return "right";
-return "down";
-}
-
-private void UpdateHitboxForDirection(string attackDir)
-{
-if (_hitbox == null) return;
-
-float offset = 20f; // chỉnh cho hợp tầm với vũ khí
-Vector2 localPos = Vector2.Zero;
-switch (attackDir)
-{
-case "up":
-localPos = new Vector2(0, -offset);
-break;
-case "down":
-localPos = new Vector2(0, offset);
-break;
-case "left":
-localPos = new Vector2(-offset, 0);
-break;
-case "right":
-localPos = new Vector2(offset, 0);
-break;
-}
-
-_hitbox.Position = localPos;
-}
-
-private Vector2 GetAttackDirectionVector()
-{
-string dir = GetAttackDirection();
-switch (dir)
-{
-case "up":
-return Vector2.Up;
-case "down":
-return Vector2.Down;
-case "left":
-return Vector2.Left;
-case "right":
-return Vector2.Right;
-case "up_left":
-return (Vector2.Up + Vector2.Left).Normalized();
-case "up_right":
-return (Vector2.Up + Vector2.Right).Normalized();
-case "down_left":
-return (Vector2.Down + Vector2.Left).Normalized();
-case "down_right":
-return (Vector2.Down + Vector2.Right).Normalized();
-default:
-return Vector2.Zero;
-}
-}
-
-private void OnBodyFrameChanged()
-{
-if (!_isAttacking || _body == null) return;
-if (_body.Animation != _activeAttackAnim) return;
-
-bool isHitFrame = _body.Frame >= _attackHitStartFrame && _body.Frame <= _attackHitEndFrame;
-SetHitboxActive(isHitFrame);
-if (_body.Frame < _attackEndFrame) return;
-
-_body.Stop();
-_body.FrameProgress = 1f;
-
-CompleteAttackStep();
-}
-
-private void CompleteAttackStep()
-{
-if (!_isAttacking || _isCompletingAttackStep) return;
-
-_isCompletingAttackStep = true;
-SetHitboxActive(false);
-
-if (_activeAttackStep == 1)
-{
-if (_queuedAttackCount > 0)
-{
-_queuedAttackCount--;
-StartAttack(2);
-}
-else
-{
-_isWaitingSecondHit = true;
-float attackSpeedMult = _stats != null ? _stats.AttackSpeed : 1f;
-_secondHitWaitTimer = ComboContinueWindow / Mathf.Max(0.1f, attackSpeedMult);
-}
-
-_isCompletingAttackStep = false;
-return;
-}
-
-FinishAttack();
-
-_isCompletingAttackStep = false;
-}
-
-private void OnWeaponAnimationFinished()
-{
-// Do nothing: combo now resolves on explicit frame windows.
-}
-
-private void OnWeaponFrameChanged()
-{
-if (!_isAttacking || _weaponSprite == null) return;
-if (_activeWeaponAttackAnim == "") return;
-if (_weaponSprite.Animation != _activeWeaponAttackAnim) return;
-if (_weaponSprite.Frame < _weaponAttackEndFrame) return;
-
-_weaponSprite.Stop();
-_weaponSprite.FrameProgress = 1f;
-_weaponSprite.Visible = false;
-}
-
-private void OnHurtboxBodyEntered(Node2D body)
-{
-// TODO: Gọi TakeDamage từ dữ liệu body (enemy, projectile...)
-}
-
-private void OnHurtboxAreaEntered(Area2D area)
-{
-// TODO: Gọi TakeDamage khi trúng Hitbox_Enemy
-}
-
-private void FinishAttack()
-{
-_isAttacking = false;
-_queuedAttackCount = 0;
-_comboHitCount = 0;
-_activeAttackStep = 0;
-_attackStartFrame = 0;
-_attackEndFrame = 0;
-_attackHitStartFrame = 0;
-_attackHitEndFrame = 0;
-_activeAttackAnim = "";
-_weaponAttackEndFrame = 0;
-_activeWeaponAttackAnim = "";
-_isWaitingSecondHit = false;
-_secondHitWaitTimer = 0f;
-
-if (_weaponSprite != null)
-{
-_weaponSprite.Stop();
-_weaponSprite.Visible = false;
-}
-
-if (_body != null)
-{
-_body.SpeedScale = _bodyBaseSpeedScale;
-string idleAnim = _lastMoveAnim.Replace("run", "go");
-if (_body.SpriteFrames.HasAnimation(idleAnim))
-{
-_body.Animation = idleAnim;
-_body.Frame = StopFrameIndex;
-}
-_body.Stop();
-}
-
-if (_weaponSprite != null)
-{
-_weaponSprite.SpeedScale = _weaponBaseSpeedScale;
-}
-
-SetHitboxActive(false);
-}
-
-private bool TryGetAttackFrameRange(int attackStep, out int startFrame, out int endFrame)
-{
-startFrame = 0;
-endFrame = 0;
-
-if (attackStep == 1)
-{
-startFrame = 0;
-endFrame = 4;
-return true;
-}
-
-if (attackStep == 2)
-{
-startFrame = 5;
-endFrame = 8;
-return true;
-}
-
-return false;
-}
-
-private bool TryGetAttackHitFrameRange(int attackStep, out int startFrame, out int endFrame)
-{
-startFrame = 0;
-endFrame = 0;
-
-if (attackStep == 1)
-{
-startFrame = 2;
-endFrame = 3;
-return true;
-}
-
-if (attackStep == 2)
-{
-startFrame = 6;
-endFrame = 7;
-return true;
-}
-
-return false;
-}
-
 private string ResolveDirection(Vector2 dir)
 {
 string vDir = "";
@@ -710,98 +377,8 @@ return _lastDirection;
 return (vDir != "" && hDir != "") ? $"{vDir}_{hDir}" : $"{vDir}{hDir}";
 }
 
-// Gọi từ enemy / môi trường để đẩy lùi player nhưng giữ nguyên animation hiện tại
-public void ApplyExternalForce(Vector2 force, float animLockTime = -1f)
+public override void _ExitTree()
 {
-	Velocity += force;
-
-// Nếu không truyền thời lượng riêng, dùng giá trị export mặc định
-float lockTime = animLockTime >= 0f ? animLockTime : KnockbackAnimLockTime;
-if (lockTime > 0f)
-{
-_knockbackAnimTimer = Mathf.Max(_knockbackAnimTimer, lockTime);
-}
-}
-
-private void OnWeaponVisualChanged(PackedScene weaponScene)
-{
-if (_weaponSprite == null) return;
-
-// Xóa hitbox cũ (nếu có)
-if (_hitbox != null)
-{
-_hitbox.QueueFree();
-_hitbox = null;
-}
-
-if (weaponScene == null)
-{
-_weaponSprite.SpriteFrames = null;
-_weaponSprite.Visible = false;
-SetHitboxActive(false);
-GD.Print("[Player] Weapon visual cleared.");
-return;
-}
-
-Node weaponInstance = weaponScene.Instantiate();
-if (weaponInstance is AnimatedSprite2D spriteSource)
-{
-_weaponSprite.SpriteFrames = spriteSource.SpriteFrames;
-_weaponSprite.Visible = false;
-
-// Tìm Hitbox trong weapon scene (nếu có) và gắn sang WeaponSprite
-Area2D newHitbox = weaponInstance.GetNodeOrNull<Area2D>("Hitbox");
-if (newHitbox != null && _weaponSprite != null)
-{
-newHitbox.GetParent()?.RemoveChild(newHitbox);
-_weaponSprite.AddChild(newHitbox);
-_hitbox = newHitbox;
-SetHitboxActive(false);
-}
-
-weaponInstance.QueueFree();
-GD.Print("[Player] Weapon visual (and hitbox) loaded.");
-}
-}
-
-public bool IsAttackHitboxActive()
-{
-return _isAttacking && _hitbox != null && _hitbox.Monitoring && _hitbox.Monitorable;
-}
-
-private void SetHitboxActive(bool active)
-{
-if (_hitbox == null) return;
-
-_hitbox.Monitoring = active;
-_hitbox.Monitorable = active;
-
-var shape = _hitbox.GetNodeOrNull<CollisionShape2D>("HitboxShape");
-if (shape != null)
-{
-shape.Disabled = !active;
-}
-}
-
-public void EquipFromInventory(string itemId)
-{
-if (_inventory == null || _equipMgr == null) return;
-
-var item = _inventory.GetItem(itemId);
-if (item != null)
-{
-_equipMgr.EquipItem(item);
-GD.Print($"[Player] Equipped {item.ItemName} from inventory.");
-}
-}
-
-public void AutoEquipStarterWeapon()
-{
-CallDeferred(nameof(DoAutoEquip));
-}
-
-private void DoAutoEquip()
-{
-EquipFromInventory("weapon_wood_sword");
+EndActiveTimedSkill();
 }
 }

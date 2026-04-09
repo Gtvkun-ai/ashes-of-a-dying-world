@@ -26,6 +26,8 @@ namespace AshesofaDyingWorld.Entities.Player
 
 		// Chỉ số cuối cùng (Base + Equipment + Buffs)
 		public Dictionary<AttributeType, int> FinalAttributes { get; private set; } = new();
+		private readonly Dictionary<AttributeType, int> _temporaryAttributeBonuses = new();
+		private bool _resourcesInitialized = false;
 		
 		// Các chỉ số chiến đấu
 		public float AttackDamage { get; private set; }
@@ -43,6 +45,7 @@ namespace AshesofaDyingWorld.Entities.Player
 			CurrentHP = MaxHP;
 			CurrentMP = MaxMP;
 			CurrentStamina = MaxStamina; 
+			_resourcesInitialized = true;
 
 			if (PlayerManager.Instance != null)
 			{
@@ -55,11 +58,7 @@ namespace AshesofaDyingWorld.Entities.Player
 
 		public override void _Process(double delta)
 		{
-			// Hồi Stamina nếu chưa đầy
-			if (CurrentStamina < MaxStamina)
-			{
-				ChangeStamina(StaminaRegenRate * (float)delta);
-			}
+			// Không tự hồi ở đây nữa; Player sẽ quyết định khi nào được hồi.
 		}
 
 		// Method tiêu hao Stamina
@@ -109,14 +108,22 @@ namespace AshesofaDyingWorld.Entities.Player
 				
 				// Chỉ số cộng từ Trang bị
 				int equipVal = EquipmentMgr != null ? EquipmentMgr.GetTotalAttributeBonus(attr) : 0;
+				int buffVal = _temporaryAttributeBonuses.TryGetValue(attr, out int bonusVal) ? bonusVal : 0;
 
-				FinalAttributes[attr] = baseVal + equipVal;
+				FinalAttributes[attr] = baseVal + equipVal + buffVal;
 			}
 
 			// Cập nhật Max HP, MP, Stamina từ Config TRƯỚC
 			MaxHP = ConfigData.CalculateMaxHP(CurrentLevel);
 			MaxMP = ConfigData.CalculateMaxMP(CurrentLevel);
 			MaxStamina = ConfigData.CalculateMaxStamina(CurrentLevel);
+
+			if (_resourcesInitialized)
+			{
+				CurrentHP = Mathf.Clamp(CurrentHP, 0, MaxHP);
+				CurrentMP = Mathf.Clamp(CurrentMP, 0, MaxMP);
+				CurrentStamina = Mathf.Clamp(CurrentStamina, 0, MaxStamina);
+			}
 
 			GD.Print($"[PlayerStats] MaxHP={MaxHP}, MaxMP={MaxMP}, MaxStamina={MaxStamina}");
 
@@ -127,6 +134,25 @@ namespace AshesofaDyingWorld.Entities.Player
 
 			// Phát tín hiệu thông báo chỉ số đã thay đổi
 			EmitSignal(SignalName.StatsChanged);
+		}
+
+		public int GetAttributeValue(AttributeType type)
+		{
+			return FinalAttributes.TryGetValue(type, out int value) ? value : 0;
+		}
+
+		public void SetTemporaryAttributeBonus(AttributeType type, int amount)
+		{
+			if (amount == 0)
+			{
+				_temporaryAttributeBonuses.Remove(type);
+			}
+			else
+			{
+				_temporaryAttributeBonuses[type] = amount;
+			}
+
+			RecalculateStats();
 		}
 
 		private void CalculateCombatStats()

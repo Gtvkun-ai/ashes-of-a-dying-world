@@ -14,3 +14,6 @@ WeaponScene = ExtResource("2_weapon")
 PassiveSkills = null
 metadata/_custom_type_script = "uid://0rcnky7tuhpg"
 WeaponWeight = 0.6
+BlockChance = 0.25
+BlockDamageReduction = 0.4
+BlockStaminaPerDamage = 0.6

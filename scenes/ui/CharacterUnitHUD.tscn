@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://dhof418sft343"]
+[gd_scene format=3 uid="uid://dhof418sft343"]
 
 [ext_resource type="Script" uid="uid://dysvqu457ghpp" path="res://src/UI/HUD/CharacterUnitHUD.cs" id="1_xxxxx"]
 [ext_resource type="Texture2D" uid="uid://hvqt42ryuyvo" path="res://assets/sprites/UI_HUD/Status_bar/Hp.png" id="3_cv7wn"]
@@ -8,7 +8,7 @@
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_1"]
 
-[node name="CharacterUnitHUD" type="PanelContainer" node_paths=PackedStringArray("HealthBar", "ManaBar", "StaminaBar", "NameLabel")]
+[node name="CharacterUnitHUD" type="PanelContainer" unique_id=441943603 node_paths=PackedStringArray("HealthBar", "ManaBar", "StaminaBar", "NameLabel")]
 custom_minimum_size = Vector2(240, 100)
 theme_override_styles/panel = SubResource("StyleBoxEmpty_1")
 script = ExtResource("1_xxxxx")
@@ -17,13 +17,13 @@ ManaBar = NodePath("TextureRect/BarsContainer/MPBar")
 StaminaBar = NodePath("TextureRect/BarsContainer/StaminaBar")
 NameLabel = NodePath("TextureRect/NameLabel")
 
-[node name="TextureRect" type="TextureRect" parent="."]
+[node name="TextureRect" type="TextureRect" parent="." unique_id=715616795]
 layout_mode = 2
 texture = ExtResource("6_frame")
 expand_mode = 1
 stretch_mode = 6
 
-[node name="Portrait" type="TextureRect" parent="TextureRect"]
+[node name="Portrait" type="TextureRect" parent="TextureRect" unique_id=913581316]
 layout_mode = 0
 offset_left = 11.0
 offset_top = 1.0
@@ -32,7 +32,7 @@ offset_bottom = 99.0
 expand_mode = 1
 stretch_mode = 5
 
-[node name="NameLabel" type="Label" parent="TextureRect"]
+[node name="NameLabel" type="Label" parent="TextureRect" unique_id=633488482]
 layout_mode = 0
 offset_left = 85.0
 offset_top = 5.0
@@ -41,7 +41,7 @@ offset_bottom = 28.0
 text = "Character Name"
 clip_text = true
 
-[node name="BarsContainer" type="Control" parent="TextureRect"]
+[node name="BarsContainer" type="Control" parent="TextureRect" unique_id=140682410]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -49,7 +49,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="HPBar" type="TextureProgressBar" parent="TextureRect/BarsContainer"]
+[node name="HPBar" type="TextureProgressBar" parent="TextureRect/BarsContainer" unique_id=717410387]
 layout_mode = 0
 offset_left = 73.0
 offset_top = 29.0
@@ -59,7 +59,7 @@ value = 100.0
 nine_patch_stretch = true
 texture_progress = ExtResource("3_cv7wn")
 
-[node name="MPBar" type="TextureProgressBar" parent="TextureRect/BarsContainer"]
+[node name="MPBar" type="TextureProgressBar" parent="TextureRect/BarsContainer" unique_id=1493351887]
 layout_mode = 0
 offset_left = 72.0
 offset_top = 44.0
@@ -69,7 +69,7 @@ value = 100.0
 nine_patch_stretch = true
 texture_progress = ExtResource("4_y4c6t")
 
-[node name="StaminaBar" type="TextureProgressBar" parent="TextureRect/BarsContainer"]
+[node name="StaminaBar" type="TextureProgressBar" parent="TextureRect/BarsContainer" unique_id=1463706157]
 layout_mode = 0
 offset_left = 72.0
 offset_top = 59.0

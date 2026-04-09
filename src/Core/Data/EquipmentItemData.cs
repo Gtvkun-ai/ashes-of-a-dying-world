@@ -27,6 +27,15 @@ namespace AshesofaDyingWorld.Core.Data
         // Độ nặng của vũ khí: 1 = trung bình, >1 = nặng hơn, <1 = nhẹ hơn
         [Export] public float WeaponWeight { get; set; } = 1f;
 
+        // Xác suất chặn đòn cơ bản của vũ khí (0..1)
+        [Export] public float BlockChance { get; set; } = 0f;
+
+        // Tỉ lệ giảm sát thương khi chặn thành công (0..1)
+        [Export] public float BlockDamageReduction { get; set; } = 0.5f;
+
+        // Hệ số stamina mất trên mỗi 1 sát thương đã chặn
+        [Export] public float BlockStaminaPerDamage { get; set; } = 1.0f;
+
         // Thuộc tính cộng thêm khi trang bị
         [ExportGroup("Bonus Attributes")]
         [Export] public Dictionary<AttributeType, int> AttributeBonuses { get; set; } = new();

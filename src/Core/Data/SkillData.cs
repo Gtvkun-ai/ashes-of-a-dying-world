@@ -8,6 +8,11 @@ namespace AshesofaDyingWorld.Core.Data
         [Export] public string SkillName { get; set; }
         [Export] public Texture2D Icon {get; set;}
         [Export(PropertyHint.MultilineText)] public string Description { get; set; }
+
+        [ExportGroup("Buff Specs")]
+        [Export] public float Duration { get; set; } = 0.0f;
+        [Export] public float MoveSpeedBonusPercent { get; set; } = 0.0f;
+        [Export] public float DexterityBonusPercent { get; set; } = 0.0f;
         
         [ExportGroup("Combat Specs")]
         [Export] public float Cooldown { get; set; } = 5.0f;
