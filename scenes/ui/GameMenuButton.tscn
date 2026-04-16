@@ -1,11 +1,13 @@
-[gd_scene load_steps=5 format=3 uid="uid://c0eexaj1m1c2f"]
+[gd_scene format=3 uid="uid://c0eexaj1m1c2f"]
 
 [ext_resource type="Texture2D" uid="uid://b82nmhf3fpyyi" path="res://assets/sprites/UI_HUD/Main_HUD/MHUD.png" id="1_hxt2v"]
 [ext_resource type="Script" uid="uid://bpovax0q5ndb0" path="res://src/UI/HUD/GameMenuButton.cs" id="1_yo4qo"]
 [ext_resource type="Texture2D" uid="uid://cte6e51tk7a63" path="res://assets/sprites/button/characterbutton.png" id="3_57sev"]
 [ext_resource type="Script" uid="uid://damnke3aq4mhk" path="res://src/UI/HUD/CharacterDetailUI.cs" id="3_mwn0r"]
+[ext_resource type="Texture2D" uid="uid://ugh2xhkeu3qv" path="res://assets/sprites/button/inventorybutton.png" id="4_qlgdv"]
+[ext_resource type="Script" uid="uid://ctrmym1fgw4c7" path="res://scenes/ui/InventoryPanel.cs" id="6_bi2ku"]
 
-[node name="GameMenuButton" type="CanvasLayer" node_paths=PackedStringArray("MenuButton", "MenuGridPanel", "MenuGrid", "CharacterButton", "InventoryButton", "SkillsButton", "QuestsButton", "SettingsButton", "MapButton", "PartyButton", "AchievementsButton", "CharacterPanel", "InventoryPanel", "SkillsPanel", "QuestsPanel", "SettingsPanel", "MapPanel", "PartyPanel", "AchievementsPanel")]
+[node name="GameMenuButton" type="CanvasLayer" unique_id=1013761727 node_paths=PackedStringArray("MenuButton", "MenuGridPanel", "MenuGrid", "CharacterButton", "InventoryButton", "SkillsButton", "QuestsButton", "SettingsButton", "MapButton", "PartyButton", "AchievementsButton", "CharacterPanel", "InventoryPanel", "SkillsPanel", "QuestsPanel", "SettingsPanel", "MapPanel", "PartyPanel", "AchievementsPanel")]
 script = ExtResource("1_yo4qo")
 MenuButton = NodePath("Control/MenuButton")
 MenuGridPanel = NodePath("Control/MenuGridPanel")
@@ -27,7 +29,7 @@ MapPanel = NodePath("Control/MapPanel")
 PartyPanel = NodePath("Control/PartyPanel")
 AchievementsPanel = NodePath("Control/AchievementsPanel")
 
-[node name="Control" type="Control" parent="."]
+[node name="Control" type="Control" parent="." unique_id=1617480115]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -36,7 +38,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="MenuButton" type="Button" parent="Control"]
+[node name="MenuButton" type="Button" parent="Control" unique_id=414130023]
 layout_mode = 1
 anchors_preset = 1
 anchor_left = 1.0
@@ -51,7 +53,7 @@ icon = ExtResource("1_hxt2v")
 flat = true
 icon_alignment = 1
 
-[node name="MenuGridPanel" type="Panel" parent="Control"]
+[node name="MenuGridPanel" type="Panel" parent="Control" unique_id=1991528699]
 visible = false
 layout_mode = 1
 anchors_preset = 15
@@ -60,7 +62,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="CenterContainer" type="CenterContainer" parent="Control/MenuGridPanel"]
+[node name="CenterContainer" type="CenterContainer" parent="Control/MenuGridPanel" unique_id=1677215409]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -68,13 +70,13 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="MenuGrid" type="GridContainer" parent="Control/MenuGridPanel/CenterContainer"]
+[node name="MenuGrid" type="GridContainer" parent="Control/MenuGridPanel/CenterContainer" unique_id=883133061]
 layout_mode = 2
 theme_override_constants/h_separation = 20
 theme_override_constants/v_separation = 20
 columns = 4
 
-[node name="CharacterButton" type="Button" parent="Control/MenuGridPanel/CenterContainer/MenuGrid"]
+[node name="CharacterButton" type="Button" parent="Control/MenuGridPanel/CenterContainer/MenuGrid" unique_id=96121462]
 custom_minimum_size = Vector2(120, 80)
 layout_mode = 2
 text = "Nhân vật"
@@ -84,42 +86,43 @@ icon_alignment = 1
 vertical_icon_alignment = 0
 expand_icon = true
 
-[node name="InventoryButton" type="Button" parent="Control/MenuGridPanel/CenterContainer/MenuGrid"]
+[node name="InventoryButton" type="Button" parent="Control/MenuGridPanel/CenterContainer/MenuGrid" unique_id=124565106]
 custom_minimum_size = Vector2(120, 80)
 layout_mode = 2
 text = "Kho đồ"
+icon = ExtResource("4_qlgdv")
 
-[node name="SkillsButton" type="Button" parent="Control/MenuGridPanel/CenterContainer/MenuGrid"]
+[node name="SkillsButton" type="Button" parent="Control/MenuGridPanel/CenterContainer/MenuGrid" unique_id=1028255005]
 custom_minimum_size = Vector2(120, 80)
 layout_mode = 2
 text = "Kỹ năng"
 
-[node name="QuestsButton" type="Button" parent="Control/MenuGridPanel/CenterContainer/MenuGrid"]
+[node name="QuestsButton" type="Button" parent="Control/MenuGridPanel/CenterContainer/MenuGrid" unique_id=287327518]
 custom_minimum_size = Vector2(120, 80)
 layout_mode = 2
 text = "Nhiệm vụ"
 
-[node name="PartyButton" type="Button" parent="Control/MenuGridPanel/CenterContainer/MenuGrid"]
+[node name="PartyButton" type="Button" parent="Control/MenuGridPanel/CenterContainer/MenuGrid" unique_id=3788214]
 custom_minimum_size = Vector2(120, 80)
 layout_mode = 2
 text = "Tổ đội"
 
-[node name="MapButton" type="Button" parent="Control/MenuGridPanel/CenterContainer/MenuGrid"]
+[node name="MapButton" type="Button" parent="Control/MenuGridPanel/CenterContainer/MenuGrid" unique_id=1021166077]
 custom_minimum_size = Vector2(120, 80)
 layout_mode = 2
 text = "Bản đồ"
 
-[node name="AchievementsButton" type="Button" parent="Control/MenuGridPanel/CenterContainer/MenuGrid"]
+[node name="AchievementsButton" type="Button" parent="Control/MenuGridPanel/CenterContainer/MenuGrid" unique_id=1238626072]
 custom_minimum_size = Vector2(120, 80)
 layout_mode = 2
 text = "Thành tựu"
 
-[node name="SettingsButton" type="Button" parent="Control/MenuGridPanel/CenterContainer/MenuGrid"]
+[node name="SettingsButton" type="Button" parent="Control/MenuGridPanel/CenterContainer/MenuGrid" unique_id=786788382]
 custom_minimum_size = Vector2(120, 80)
 layout_mode = 2
 text = "Cài đặt"
 
-[node name="CharacterPanel" type="Panel" parent="Control"]
+[node name="CharacterPanel" type="Panel" parent="Control" unique_id=1718848405]
 visible = false
 layout_mode = 1
 anchors_preset = 15
@@ -129,7 +132,17 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("3_mwn0r")
 
-[node name="InventoryPanel" type="Panel" parent="Control"]
+[node name="InventoryPanel" type="Panel" parent="Control" unique_id=1988922088]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("6_bi2ku")
+
+[node name="SkillsPanel" type="Panel" parent="Control" unique_id=672229428]
 visible = false
 layout_mode = 1
 anchors_preset = 15
@@ -138,7 +151,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="SkillsPanel" type="Panel" parent="Control"]
+[node name="QuestsPanel" type="Panel" parent="Control" unique_id=1491814848]
 visible = false
 layout_mode = 1
 anchors_preset = 15
@@ -147,7 +160,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="QuestsPanel" type="Panel" parent="Control"]
+[node name="PartyPanel" type="Panel" parent="Control" unique_id=1963861048]
 visible = false
 layout_mode = 1
 anchors_preset = 15
@@ -156,7 +169,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="PartyPanel" type="Panel" parent="Control"]
+[node name="MapPanel" type="Panel" parent="Control" unique_id=1454606346]
 visible = false
 layout_mode = 1
 anchors_preset = 15
@@ -165,7 +178,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="MapPanel" type="Panel" parent="Control"]
+[node name="AchievementsPanel" type="Panel" parent="Control" unique_id=1700719121]
 visible = false
 layout_mode = 1
 anchors_preset = 15
@@ -174,16 +187,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="AchievementsPanel" type="Panel" parent="Control"]
-visible = false
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="SettingsPanel" type="Panel" parent="Control"]
+[node name="SettingsPanel" type="Panel" parent="Control" unique_id=1183217076]
 visible = false
 layout_mode = 1
 anchors_preset = 15
