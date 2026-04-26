@@ -1,7 +1,9 @@
 using Godot;
-using AshesofaDyingWorld.Core.Data;
-using AshesofaDyingWorld.Entities.Player;
 using System.Collections.Generic;
+using AshesofaDyingWorld.Core.Data;
+using AshesofaDyingWorld.Core.Managers;
+using AshesofaDyingWorld.Core.Save;
+using AshesofaDyingWorld.Entities.Player;
 
 public partial class Player
 {
@@ -22,7 +24,7 @@ config.ActiveSkills ??= new Godot.Collections.Array<SkillData>();
 
 foreach (var skill in config.ActiveSkills)
 {
-if (skill?.SkillName == "Tập trung")
+if (skill?.SkillName == "Táº­p trung")
 {
 return;
 }
@@ -35,9 +37,9 @@ private SkillData CreateFocusSkill()
 {
 return new SkillData
 {
-SkillName = "Tập trung",
+SkillName = "Táº­p trung",
 Icon = GD.Load<Texture2D>("res://assets/resources/data/icon/DEX.tres"),
-Description = "Tăng 10% tốc chạy và 10% DEX trong 1 phút.",
+Description = "TÄƒng 10% tá»‘c cháº¡y vÃ  10% DEX trong 1 phÃºt.",
 Duration = 60.0f,
 Cooldown = 600.0f,
 MoveSpeedBonusPercent = 10.0f,
@@ -174,6 +176,16 @@ public PlayerStats GetStatsNode()
 return _stats;
 }
 
+public InventoryManager GetInventoryManager()
+{
+return _inventory;
+}
+
+public EquipmentManager GetEquipmentManager()
+{
+return _equipMgr;
+}
+
 public SkillData GetActiveTimedSkill()
 {
 return _activeTimedSkill;
@@ -187,5 +199,215 @@ return Mathf.Max(0f, _activeTimedSkillRemaining);
 public float GetActiveTimedSkillDuration()
 {
 return _activeTimedSkill != null ? Mathf.Max(0f, _activeTimedSkill.Duration) : 0f;
+}
+
+public List<SkillSaveData> CaptureActiveSkills()
+{
+var result = new List<SkillSaveData>();
+var skills = _stats?.ConfigData?.ActiveSkills;
+if (skills == null)
+{
+return result;
+}
+
+foreach (var skill in skills)
+{
+if (skill == null)
+{
+continue;
+}
+
+result.Add(CreateSkillSaveData(skill));
+}
+
+return result;
+}
+
+public List<SkillCooldownSaveData> CaptureSkillCooldowns()
+{
+var result = new List<SkillCooldownSaveData>();
+foreach (var pair in _skillCooldowns)
+{
+if (pair.Key == null || pair.Value <= 0f)
+{
+continue;
+}
+
+result.Add(new SkillCooldownSaveData
+{
+SkillKey = BuildSkillKey(pair.Key),
+Remaining = pair.Value
+});
+}
+
+return result;
+}
+
+public TimedSkillSaveData CaptureActiveTimedSkill()
+{
+if (_activeTimedSkill == null)
+{
+return null;
+}
+
+float cooldownRemaining = 0f;
+if (_skillCooldowns.TryGetValue(_activeTimedSkill, out float storedCooldown))
+{
+cooldownRemaining = storedCooldown;
+}
+
+return new TimedSkillSaveData
+{
+SkillKey = BuildSkillKey(_activeTimedSkill),
+Remaining = Mathf.Max(0f, _activeTimedSkillRemaining),
+CooldownRemaining = Mathf.Max(0f, cooldownRemaining)
+};
+}
+
+public void RestoreSavedSkills(
+IReadOnlyList<SkillSaveData> activeSkills,
+IReadOnlyList<SkillCooldownSaveData> cooldowns,
+TimedSkillSaveData activeTimedSkill)
+{
+EndActiveTimedSkill();
+_skillCooldowns.Clear();
+
+if (_stats?.ConfigData != null && activeSkills != null && activeSkills.Count > 0)
+{
+var restoredSkills = new Godot.Collections.Array<SkillData>();
+foreach (var skillData in activeSkills)
+{
+SkillData skill = CreateSkillFromSaveData(skillData);
+if (skill != null)
+{
+restoredSkills.Add(skill);
+}
+}
+
+_stats.ConfigData.ActiveSkills = restoredSkills;
+}
+
+if (cooldowns != null)
+{
+foreach (var cooldown in cooldowns)
+{
+SkillData skill = FindSkillByKey(cooldown?.SkillKey);
+if (skill == null || cooldown.Remaining <= 0f)
+{
+continue;
+}
+
+_skillCooldowns[skill] = cooldown.Remaining;
+}
+}
+
+if (activeTimedSkill == null)
+{
+return;
+}
+
+SkillData activeSkill = FindSkillByKey(activeTimedSkill.SkillKey);
+if (activeSkill == null)
+{
+return;
+}
+
+ActivateTimedSkill(activeSkill);
+_activeTimedSkillRemaining = Mathf.Clamp(
+activeTimedSkill.Remaining,
+0f,
+Mathf.Max(0f, activeSkill.Duration));
+_skillCooldowns[activeSkill] = Mathf.Max(0f, activeTimedSkill.CooldownRemaining);
+}
+
+private SkillSaveData CreateSkillSaveData(SkillData skill)
+{
+return new SkillSaveData
+{
+SkillKey = BuildSkillKey(skill),
+ResourcePath = skill.ResourcePath ?? string.Empty,
+IconPath = skill.Icon?.ResourcePath ?? string.Empty,
+SkillName = skill.SkillName ?? string.Empty,
+Description = skill.Description ?? string.Empty,
+Duration = skill.Duration,
+MoveSpeedBonusPercent = skill.MoveSpeedBonusPercent,
+DexterityBonusPercent = skill.DexterityBonusPercent,
+Cooldown = skill.Cooldown,
+DamageMultiplier = skill.DamageMultiplier,
+ManaCost = skill.ManaCost,
+StaminaCost = skill.StaminaCost,
+AnimationName = skill.AnimationName ?? string.Empty
+};
+}
+
+private SkillData CreateSkillFromSaveData(SkillSaveData saveData)
+{
+if (saveData == null)
+{
+return null;
+}
+
+if (!string.IsNullOrEmpty(saveData.ResourcePath))
+{
+SkillData resourceSkill = GD.Load<SkillData>(saveData.ResourcePath);
+if (resourceSkill != null)
+{
+return resourceSkill;
+}
+}
+
+return new SkillData
+{
+SkillName = saveData.SkillName,
+Icon = !string.IsNullOrEmpty(saveData.IconPath) ? GD.Load<Texture2D>(saveData.IconPath) : null,
+Description = saveData.Description,
+Duration = saveData.Duration,
+MoveSpeedBonusPercent = saveData.MoveSpeedBonusPercent,
+DexterityBonusPercent = saveData.DexterityBonusPercent,
+Cooldown = saveData.Cooldown,
+DamageMultiplier = saveData.DamageMultiplier,
+ManaCost = saveData.ManaCost,
+StaminaCost = saveData.StaminaCost,
+AnimationName = saveData.AnimationName
+};
+}
+
+private SkillData FindSkillByKey(string skillKey)
+{
+if (string.IsNullOrEmpty(skillKey))
+{
+return null;
+}
+
+var skills = _stats?.ConfigData?.ActiveSkills;
+if (skills == null)
+{
+return null;
+}
+
+foreach (var skill in skills)
+{
+if (skill != null && BuildSkillKey(skill) == skillKey)
+{
+return skill;
+}
+}
+
+return null;
+}
+
+private string BuildSkillKey(SkillData skill)
+{
+if (skill == null)
+{
+return string.Empty;
+}
+
+if (!string.IsNullOrEmpty(skill.ResourcePath))
+{
+return $"path:{skill.ResourcePath}";
+}
+
+return $"name:{skill.SkillName}";
 }
 }

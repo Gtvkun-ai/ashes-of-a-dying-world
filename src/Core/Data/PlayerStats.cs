@@ -93,6 +93,32 @@ namespace AshesofaDyingWorld.Entities.Player
 			EmitSignal(SignalName.StatsChanged);
 		}
 
+		public void SetCharacterConfig(CharacterConfig config)
+		{
+			if (config == null)
+			{
+				return;
+			}
+
+			ConfigData = config;
+			RecalculateStats();
+		}
+
+		public void SetCurrentLevel(int level)
+		{
+			int maxLevel = ConfigData?.MaxLevel ?? level;
+			CurrentLevel = Mathf.Clamp(level, 1, Mathf.Max(1, maxLevel));
+			RecalculateStats();
+		}
+
+		public void RestoreResourceValues(float hp, float mp, float stamina)
+		{
+			CurrentHP = Mathf.Clamp(hp, 0, MaxHP);
+			CurrentMP = Mathf.Clamp(mp, 0, MaxMP);
+			CurrentStamina = Mathf.Clamp(stamina, 0, MaxStamina);
+			EmitSignal(SignalName.StatsChanged);
+		}
+
 		public void RecalculateStats()
 		{
 			if (ConfigData == null) 

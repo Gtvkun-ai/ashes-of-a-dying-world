@@ -1,18 +1,21 @@
 using Godot;
 using System.Collections.Generic;
+using System.Linq;
 using AshesofaDyingWorld.Core.Data;
 
 namespace AshesofaDyingWorld.Core.Managers
 {
     /// <summary>
-    /// Quản lý túi đồ (Inventory) của player.
-    /// AutoLoad hoặc add vào Player scene.
+    /// Quan ly tui do (Inventory) cua player.
+    /// AutoLoad hoac add vao Player scene.
     /// </summary>
     public partial class InventoryManager : Node
     {
+        private const string StarterWeaponPath = "res://assets/resources/data/weapons/sword/WoodSword.tres";
+
         [Signal] public delegate void InventoryChangedEventHandler();
 
-        private List<EquipmentItemData> _items = new();
+        private readonly List<EquipmentItemData> _items = new();
 
         [Export] public int MaxSlots { get; set; } = 20;
 
@@ -20,31 +23,69 @@ namespace AshesofaDyingWorld.Core.Managers
 
         public override void _Ready()
         {
-            // Thêm WoodSword mặc định vào túi đồ khi bắt đầu game
-            var woodSword = GD.Load<EquipmentItemData>("res://assets/resources/data/weapons/sword/WoodSword.tres");
+            if (_items.Count > 0)
+            {
+                return;
+            }
+
+            var woodSword = GD.Load<EquipmentItemData>(StarterWeaponPath);
             if (woodSword != null)
             {
                 AddItem(woodSword);
-                GD.Print("[Inventory] WoodSword đã được thêm vào túi đồ.");
+                GD.Print("[Inventory] Starter weapon added.");
             }
             else
             {
-                GD.PrintErr("[Inventory] Không tải được WoodSword.tres!");
+                GD.PrintErr("[Inventory] Failed to load starter weapon.");
             }
         }
 
         public void AddItem(EquipmentItemData item)
         {
-            if (item == null) return;
+            AddLoadedItem(item, true);
+        }
 
-            if (_items.Count >= MaxSlots)
+        public void ClearItems(bool emitSignal = true)
+        {
+            _items.Clear();
+            if (emitSignal)
             {
-                GD.Print("[Inventory] Kho do da day, khong the them item moi.");
-                return;
+                EmitSignal(SignalName.InventoryChanged);
+            }
+        }
+
+        public List<string> GetItemResourcePaths()
+        {
+            return _items
+                .Where(item => item != null && !string.IsNullOrEmpty(item.ResourcePath))
+                .Select(item => item.ResourcePath)
+                .ToList();
+        }
+
+        public void RestoreItems(IEnumerable<string> resourcePaths)
+        {
+            ClearItems(false);
+
+            if (resourcePaths != null)
+            {
+                foreach (string resourcePath in resourcePaths)
+                {
+                    if (string.IsNullOrEmpty(resourcePath))
+                    {
+                        continue;
+                    }
+
+                    EquipmentItemData item = GD.Load<EquipmentItemData>(resourcePath);
+                    if (item == null)
+                    {
+                        GD.PrintErr($"[Inventory] Failed to load item from save: {resourcePath}");
+                        continue;
+                    }
+
+                    AddLoadedItem(item, false);
+                }
             }
 
-            _items.Add(item);
-            GD.Print($"[Inventory] +{item.ItemName}");
             EmitSignal(SignalName.InventoryChanged);
         }
 
@@ -56,6 +97,7 @@ namespace AshesofaDyingWorld.Core.Managers
                 EmitSignal(SignalName.InventoryChanged);
                 return true;
             }
+
             return false;
         }
 
@@ -67,6 +109,27 @@ namespace AshesofaDyingWorld.Core.Managers
         public EquipmentItemData GetItem(string itemId)
         {
             return _items.Find(i => i.ID == itemId);
+        }
+
+        private void AddLoadedItem(EquipmentItemData item, bool emitSignal)
+        {
+            if (item == null)
+            {
+                return;
+            }
+
+            if (_items.Count >= MaxSlots)
+            {
+                GD.Print("[Inventory] Inventory is full.");
+                return;
+            }
+
+            _items.Add(item);
+            GD.Print($"[Inventory] +{item.ItemName}");
+            if (emitSignal)
+            {
+                EmitSignal(SignalName.InventoryChanged);
+            }
         }
     }
 }
