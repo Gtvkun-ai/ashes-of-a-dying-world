@@ -37,6 +37,11 @@ namespace AshesofaDyingWorld.Entities.Player
 		// Tốc độ hồi Stamina
 		[Export] public float StaminaRegenRate { get; set; } = 10f; // Hồi 10/giây
 
+		public override void _EnterTree()
+		{
+			RegisterWithPlayerManager();
+		}
+
 		public override void _Ready()
 		{
 			RecalculateStats();   
@@ -47,10 +52,7 @@ namespace AshesofaDyingWorld.Entities.Player
 			CurrentStamina = MaxStamina; 
 			_resourcesInitialized = true;
 
-			if (PlayerManager.Instance != null)
-			{
-				PlayerManager.Instance.RegisterMember(this); // Đăng ký với PlayerManager
-			}
+			RegisterWithPlayerManager();
 			
 			// Phát tín hiệu SAU KHI đã set đầy đủ giá trị
 			EmitSignal(SignalName.StatsChanged);
@@ -59,6 +61,19 @@ namespace AshesofaDyingWorld.Entities.Player
 		public override void _Process(double delta)
 		{
 			// Không tự hồi ở đây nữa; Player sẽ quyết định khi nào được hồi.
+		}
+
+		public override void _ExitTree()
+		{
+			if (PlayerManager.Instance != null)
+			{
+				PlayerManager.Instance.UnregisterMember(this);
+			}
+		}
+
+		private void RegisterWithPlayerManager()
+		{
+			PlayerManager.Instance?.RegisterMember(this);
 		}
 
 		// Method tiêu hao Stamina

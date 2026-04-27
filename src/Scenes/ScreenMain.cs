@@ -1,6 +1,7 @@
 using Godot;
 using AshesofaDyingWorld.UI.HUD;
 using AshesofaDyingWorld.Core.Managers;
+using AshesofaDyingWorld.Core.Save;
 
 public partial class ScreenMain : Node2D
 {
@@ -13,87 +14,112 @@ public partial class ScreenMain : Node2D
     private const string GameMenuPath = "res://scenes/ui/GameMenuButton.tscn";
 
     private static readonly Vector2 DefaultSpawn = new(105f, 120f);
+    private bool _isStartingGame = false;
 
     private async void _on_login_pressed()
     {
-        var tree = GetTree();
-        var saveSnapshot = SaveManager.Instance?.LoadSnapshot();
-        string targetWorldPath = saveSnapshot?.ScenePath ?? WorldPath;
+        await StartGameFromSnapshotAsync(SaveManager.Instance?.LoadSnapshot());
+    }
 
-        var worldScene = GD.Load<PackedScene>(targetWorldPath);
-        if (worldScene == null)
+    public async System.Threading.Tasks.Task<Error> StartGameFromSnapshotAsync(SaveGameData saveSnapshot)
+    {
+        if (_isStartingGame)
         {
-            GD.PrintErr($"[ScreenMain] Cannot load world scene: {targetWorldPath}");
-            return;
+            return Error.Busy;
         }
 
-        var world = worldScene.Instantiate<Node2D>();
-
-        if (EnemyHealthBarService.Instance == null)
+        _isStartingGame = true;
+        try
         {
-            var enemyHpService = new EnemyHealthBarService();
-            tree.Root.AddChild(enemyHpService);
+            var tree = GetTree();
+            if (tree?.Root == null || tree.CurrentScene == null)
+            {
+                return Error.DoesNotExist;
+            }
+
+            string targetWorldPath = saveSnapshot?.ScenePath ?? WorldPath;
+
+            var worldScene = GD.Load<PackedScene>(targetWorldPath);
+            if (worldScene == null)
+            {
+                GD.PrintErr($"[ScreenMain] Cannot load world scene: {targetWorldPath}");
+                return Error.FileNotFound;
+            }
+
+            var world = worldScene.Instantiate<Node2D>();
+
+            if (EnemyHealthBarService.Instance == null)
+            {
+                var enemyHpService = new EnemyHealthBarService();
+                tree.Root.AddChild(enemyHpService);
+            }
+
+            var playerScene = GD.Load<PackedScene>(PlayerPath);
+            if (playerScene == null)
+            {
+                GD.PrintErr($"[ScreenMain] Cannot load player scene: {PlayerPath}");
+                world.QueueFree();
+                return Error.FileNotFound;
+            }
+
+            var playerInstance = playerScene.Instantiate();
+            var player = playerInstance as Player;
+            if (player == null)
+            {
+                GD.PrintErr("Player scene khong chua Player script!");
+                playerInstance.QueueFree();
+                world.QueueFree();
+                return Error.CantCreate;
+            }
+
+            var spawn = world.GetNodeOrNull<Node2D>("SpawnPoint");
+            Vector2 spawnPosition = saveSnapshot?.PlayerPosition?.ToVector2()
+                ?? spawn?.GlobalPosition
+                ?? DefaultSpawn;
+            player.Position = spawnPosition;
+            world.AddChild(player);
+
+            tree.Root.AddChild(world);
+            tree.CurrentScene.QueueFree();
+            tree.CurrentScene = world;
+
+            var cam = player.GetNodeOrNull<Camera2D>("follow");
+            if (cam != null)
+            {
+                cam.Zoom = new Vector2(2f, 2f);
+                cam.CallDeferred("make_current");
+            }
+
+            var sceneManager = tree.Root.GetNodeOrNull<SceneManager>("SceneManager");
+            if (sceneManager != null)
+            {
+                sceneManager.SetPlayer(player);
+                sceneManager.EnsureWorldUi(world);
+            }
+            else
+            {
+                GD.PrintErr("Khong tim thay SceneManager de set player");
+                AddWorldUiFallback(world);
+            }
+
+            await ToSignal(tree, SceneTree.SignalName.ProcessFrame);
+
+            if (saveSnapshot != null && SaveManager.Instance != null)
+            {
+                SaveManager.Instance.ApplyLoadedGame(player, saveSnapshot);
+                return Error.Ok;
+            }
+
+            if (AutoEquipStarterWeaponOnSpawn)
+            {
+                player.AutoEquipStarterWeapon();
+            }
+
+            return Error.Ok;
         }
-
-        var playerScene = GD.Load<PackedScene>(PlayerPath);
-        if (playerScene == null)
+        finally
         {
-            GD.PrintErr($"[ScreenMain] Cannot load player scene: {PlayerPath}");
-            world.QueueFree();
-            return;
-        }
-
-        var playerInstance = playerScene.Instantiate();
-        var player = playerInstance as Player;
-        if (player == null)
-        {
-            GD.PrintErr("Player scene khong chua Player script!");
-            playerInstance.QueueFree();
-            world.QueueFree();
-            return;
-        }
-
-        var spawn = world.GetNodeOrNull<Node2D>("SpawnPoint");
-        Vector2 spawnPosition = saveSnapshot?.PlayerPosition?.ToVector2()
-            ?? spawn?.GlobalPosition
-            ?? DefaultSpawn;
-        player.Position = spawnPosition;
-        world.AddChild(player);
-
-        tree.Root.AddChild(world);
-        tree.CurrentScene.QueueFree();
-        tree.CurrentScene = world;
-
-        var cam = player.GetNodeOrNull<Camera2D>("follow");
-        if (cam != null)
-        {
-            cam.Zoom = new Vector2(2f, 2f);
-            cam.CallDeferred("make_current");
-        }
-
-        var sceneManager = tree.Root.GetNodeOrNull<SceneManager>("SceneManager");
-        if (sceneManager != null)
-        {
-            sceneManager.SetPlayer(player);
-            sceneManager.EnsureWorldUi(world);
-        }
-        else
-        {
-            GD.PrintErr("Khong tim thay SceneManager de set player");
-            AddWorldUiFallback(world);
-        }
-
-        await ToSignal(tree, SceneTree.SignalName.ProcessFrame);
-
-        if (saveSnapshot != null && SaveManager.Instance != null)
-        {
-            SaveManager.Instance.ApplyLoadedGame(player, saveSnapshot);
-            return;
-        }
-
-        if (AutoEquipStarterWeaponOnSpawn)
-        {
-            player.AutoEquipStarterWeapon();
+            _isStartingGame = false;
         }
     }
 

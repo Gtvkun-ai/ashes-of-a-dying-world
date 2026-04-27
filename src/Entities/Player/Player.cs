@@ -381,4 +381,43 @@ public override void _ExitTree()
 {
 EndActiveTimedSkill();
 }
+
+public void ResetTransientStateAfterLoad()
+{
+// Dọn trạng thái runtime có thể làm kẹt input sau khi load giữa lúc đang combat/knockback.
+FinishAttack();
+
+_isBlocking = false;
+_isExhausted = false;
+_knockbackAnimTimer = 0f;
+_wasMoving = false;
+Velocity = Vector2.Zero;
+
+if (_body != null)
+{
+_body.SpeedScale = _bodyBaseSpeedScale;
+string idleAnim = _lastMoveAnim.Replace("run", "go");
+if (_body.SpriteFrames != null && _body.SpriteFrames.HasAnimation(idleAnim))
+{
+_body.Animation = idleAnim;
+_body.Frame = StopFrameIndex;
+}
+_body.Stop();
+}
+
+if (_weaponSprite != null)
+{
+_weaponSprite.SpeedScale = _weaponBaseSpeedScale;
+_weaponSprite.Stop();
+_weaponSprite.Visible = false;
+}
+
+SetHitboxActive(false);
+
+ProcessMode = ProcessModeEnum.Inherit;
+SetProcess(true);
+SetPhysicsProcess(true);
+SetProcessInput(true);
+SetProcessUnhandledInput(true);
+}
 }

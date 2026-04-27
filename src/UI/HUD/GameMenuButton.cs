@@ -163,6 +163,26 @@ namespace AshesofaDyingWorld.UI.Menus
             AchievementsPanel?.Hide();
         }
 
+        public void ResetUiStateAfterLoad()
+        {
+            CloseCurrentPanel();
+            HideAllPanels();
+
+            _isGridOpen = false;
+
+            if (MenuGridPanel != null)
+            {
+                MenuGridPanel.Hide();
+            }
+
+            ProcessMode = ProcessModeEnum.Inherit;
+            SetProcess(true);
+            SetProcessInput(true);
+            SetProcessUnhandledInput(true);
+
+            GetViewport()?.GuiReleaseFocus();
+        }
+
         public override void _Input(InputEvent @event)
         {
             if (@event is InputEventKey keyEvent && keyEvent.Pressed && !keyEvent.Echo)

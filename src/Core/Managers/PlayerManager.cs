@@ -51,11 +51,49 @@ namespace AshesofaDyingWorld.Core.Managers
 
         public void RegisterMember(PlayerStats member)
         {
+            if (member == null)
+            {
+                return;
+            }
+
             if (!PartyMembers.Contains(member) && PartyMembers.Count < 3)
             {
                 PartyMembers.Add(member);
                 EmitSignal(SignalName.PartyUpdated);
             }
+        }
+
+        public void UnregisterMember(PlayerStats member)
+        {
+            if (member == null)
+            {
+                return;
+            }
+
+            if (!PartyMembers.Remove(member))
+            {
+                return;
+            }
+
+            if (PartyMembers.Count == 0)
+            {
+                ActiveCharacterIndex = 0;
+            }
+            else if (ActiveCharacterIndex >= PartyMembers.Count)
+            {
+                ActiveCharacterIndex = PartyMembers.Count - 1;
+            }
+
+            EmitSignal(SignalName.PartyUpdated);
+            EmitSignal(SignalName.ActiveCharacterChanged, ActiveCharacterIndex);
+        }
+
+        public void ResetParty()
+        {
+            PartyMembers.Clear();
+            ActiveCharacterIndex = 0;
+            EmitSignal(SignalName.PartyUpdated);
+            EmitSignal(SignalName.ActiveCharacterChanged, ActiveCharacterIndex);
         }
     }
 }

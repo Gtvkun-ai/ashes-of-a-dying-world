@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using AshesofaDyingWorld.Core.Data;
 using AshesofaDyingWorld.Core.Save;
 using AshesofaDyingWorld.Entities.Player;
+using AshesofaDyingWorld.UI.Menus;
 
 namespace AshesofaDyingWorld.Core.Managers
 {
@@ -14,8 +15,9 @@ namespace AshesofaDyingWorld.Core.Managers
         public static SaveManager Instance { get; private set; }
 
         private const string SavePath = "user://savegame.json";
-        private const Key QuickSaveKey = Key.F5;
-        private const Key QuickLoadKey = Key.F9;
+        private const string MainScenePath = "res://scenes/main/screen_main.tscn";
+        private const Key QuickSaveKey = Key.S;
+        private const Key QuickLoadKey = Key.L;
 
         private readonly JsonSerializerOptions _jsonOptions = new()
         {
@@ -43,18 +45,35 @@ namespace AshesofaDyingWorld.Core.Managers
                 return;
             }
 
-            if (keyEvent.Keycode == QuickSaveKey)
+            if (MatchesShortcut(keyEvent, QuickSaveKey, requireCtrl: true))
             {
                 SaveGame();
                 GetViewport().SetInputAsHandled(); // Ngăn chặn sự kiện tiếp tục nếu đã xử lý lưu game
                 return;
             }
 
-            if (keyEvent.Keycode == QuickLoadKey)
+            if (MatchesShortcut(keyEvent, QuickLoadKey, requireCtrl: true))
             {
                 _ = LoadGameAsync();
                 GetViewport().SetInputAsHandled();  // Ngăn chặn sự kiện tiếp tục nếu đã xử lý tải game
             }
+        }
+
+        private static bool MatchesShortcut(
+            InputEventKey keyEvent,
+            Key key,
+            bool requireCtrl = false,
+            bool requireShift = false,
+            bool requireAlt = false)
+        {
+            if (keyEvent.Keycode != key)
+            {
+                return false;
+            }
+
+            return keyEvent.CtrlPressed == requireCtrl
+                && keyEvent.ShiftPressed == requireShift
+                && keyEvent.AltPressed == requireAlt;
         }
 
         public bool HasSaveGame()
@@ -130,39 +149,87 @@ namespace AshesofaDyingWorld.Core.Managers
 
         public async Task<Error> LoadGameAsync()
         {
-            SaveGameData snapshot = LoadSnapshot();
-            if (snapshot == null)
+            try
             {
-                return Error.FileNotFound;
-            }
-
-            SceneManager sceneManager = GetTree().Root.GetNodeOrNull<SceneManager>("SceneManager");
-            if (sceneManager?.Player == null)
-            {
-                GD.PrintErr("[SaveManager] Cannot load because SceneManager.Player is missing.");
-                return Error.DoesNotExist;
-            }
-
-            string currentScenePath = GetTree().CurrentScene?.SceneFilePath ?? string.Empty;
-            string targetScenePath = snapshot.ScenePath ?? string.Empty;
-
-            if (!string.IsNullOrEmpty(targetScenePath) &&
-                !string.Equals(currentScenePath, targetScenePath, StringComparison.OrdinalIgnoreCase))
-            {
-                Error sceneError = await sceneManager.ChangeSceneToPathAsync(
-                    targetScenePath,
-                    snapshot.PlayerPosition?.ToVector2());
-
-                if (sceneError != Error.Ok)
+                SaveGameData snapshot = LoadSnapshot();
+                if (snapshot == null)
                 {
-                    return sceneError;
+                    return Error.FileNotFound;
                 }
-            }
 
-            ApplyLoadedGame(sceneManager.Player, snapshot);
-            sceneManager.EnsureWorldUi(GetTree().CurrentScene);
-            GD.Print("[SaveManager] Load completed.");
-            return Error.Ok;
+                SceneTree tree = GetTree();
+                if (tree == null)
+                {
+                    return Error.DoesNotExist;
+                }
+
+                if (!ResourceLoader.Exists(MainScenePath))
+                {
+                    GD.PrintErr($"[SaveManager] Main scene is missing: {MainScenePath}");
+                    return Error.FileNotFound;
+                }
+
+                SceneManager sceneManager = tree.Root.GetNodeOrNull<SceneManager>("SceneManager");
+                if (sceneManager == null)
+                {
+                    GD.PrintErr("[SaveManager] Cannot load because SceneManager is missing.");
+                    return Error.DoesNotExist;
+                }
+
+                tree.Paused = false;
+                tree.Root?.GuiReleaseFocus();
+
+                PlayerManager.Instance?.ResetParty();
+                sceneManager.SetPlayer(null);
+
+                Error sceneChangeError = tree.ChangeSceneToFile(MainScenePath);
+                if (sceneChangeError != Error.Ok)
+                {
+                    return sceneChangeError;
+                }
+
+                const int maxFramesToWait = 30;
+                Node currentScene = null;
+                Button loginButton = null;
+
+                for (int i = 0; i < maxFramesToWait; i++)
+                {
+                    await ToSignal(tree, SceneTree.SignalName.ProcessFrame);
+
+                    currentScene = tree.CurrentScene;
+                    if (currentScene == null)
+                    {
+                        continue;
+                    }
+
+                    loginButton = currentScene.GetNodeOrNull<Button>("login");
+                    if (loginButton != null)
+                    {
+                        break;
+                    }
+                }
+
+                if (currentScene == null)
+                {
+                    GD.PrintErr("[SaveManager] Main scene failed to load after waiting.");
+                    return Error.DoesNotExist;
+                }
+
+                if (loginButton == null)
+                {
+                    GD.PrintErr("[SaveManager] Login button not found on main scene after waiting.");
+                    return Error.DoesNotExist;
+                }
+
+                loginButton.EmitSignal(Button.SignalName.Pressed);
+                GD.Print("[SaveManager] Ctrl+L returned to main and auto-pressed login.");
+                return Error.Ok;
+            }
+            catch (Exception ex)
+            {
+                GD.PrintErr($"[SaveManager] Load failed with exception: {ex}");
+                return Error.Failed;
+            }
         }
 
         public void ApplyLoadedGame(Player player, SaveGameData snapshot)
@@ -210,6 +277,22 @@ namespace AshesofaDyingWorld.Core.Managers
             }
 
             PlayerManager.Instance?.SetActiveCharacter(snapshot.ActiveCharacterIndex);
+
+            // Đảm bảo người chơi không bị kẹt trạng thái sau khi load (đang attack/knockback/pause).
+            player.ResetTransientStateAfterLoad();
+
+            SceneTree tree = GetTree();
+            if (tree != null)
+            {
+                tree.Paused = false;
+                tree.Root?.GuiReleaseFocus();
+
+                Node currentScene = tree.CurrentScene;
+                if (currentScene != null)
+                {
+                    currentScene.GetNodeOrNull<GameMenuButton>("GameMenuButton")?.ResetUiStateAfterLoad();
+                }
+            }
         }
 
         private SaveGameData CaptureCurrentGame()

@@ -1,18 +1,22 @@
 using Godot;
+using System;
 using System.Threading.Tasks;
+using AshesofaDyingWorld.Core.Managers;
 using AshesofaDyingWorld.World.Objects;
 
 public partial class SceneManager : Node
 {
     private const string PartyHUDPath = "res://scenes/ui/PartyHUD.tscn";
     private const string GameMenuPath = "res://scenes/ui/GameMenuButton.tscn";
+    private const string DefaultPlayerScenePath = "res://src/Entities/Player/Player_anim.tscn";
+    private static readonly Vector2 DefaultCameraZoom = new(2f, 2f);
 
     public Player Player { get; set; }
 
     [Export] public string SceneDirPath = "res://scenes/world/WhisperingFields/";
 
     private string _targetSpawnID = "";
-    private bool _restoreExactPosition = false;
+    private bool _restoreExactPosition = false; // Đánh dấu nếu cần khôi phục vị trí chính xác thay vì tìm spawn point
     private Vector2 _targetPlayerPosition = Vector2.Zero;
     private bool _isSceneChangeInProgress = false;
 
@@ -55,17 +59,18 @@ public partial class SceneManager : Node
 
         _isSceneChangeInProgress = true;
 
-        Node previousParent = Player.GetParent();
-        previousParent?.RemoveChild(Player);
+        Node previousParent = Player.GetParent(); // lấy parrent hiện tại của player trước khi chuyển scene
+        previousParent?.RemoveChild(Player); // tách player
 
+        // Đặt thông tin spawn mục tiêu và vị trí khôi phục dựa trên tham số truyền vào
         _targetSpawnID = targetSpawnID ?? string.Empty;
-        _restoreExactPosition = playerPosition.HasValue;
+        _restoreExactPosition = playerPosition.HasValue; // nếu có vị trí cụ thể thì đánh dấu khôi phục vị trí chính xác, nếu không sẽ tìm spawn point
         _targetPlayerPosition = playerPosition ?? Vector2.Zero;
 
         Error error = GetTree().ChangeSceneToFile(scenePath);
         if (error != Error.Ok)
         {
-            previousParent?.AddChild(Player);
+            previousParent?.AddChild(Player); // nếu lỗi thì gắn player về parrent cũ
             _isSceneChangeInProgress = false;
             return error;
         }
@@ -84,6 +89,78 @@ public partial class SceneManager : Node
         return Error.Ok;
     }
 
+    public async Task<Error> ReloadSceneWithFreshPlayerAsync(string scenePath, Vector2? playerPosition = null)
+    {
+        if (_isSceneChangeInProgress)
+        {
+            return Error.Failed;
+        }
+
+        if (string.IsNullOrEmpty(scenePath) || !ResourceLoader.Exists(scenePath))
+        {
+            GD.PushError($"Scene file missing: {scenePath}");
+            return Error.FileNotFound;
+        }
+
+        string playerScenePath = ResolvePlayerScenePath(); // Cố gắng lấy đường dẫn scene của player hiện tại, nếu không tồn tại thì dùng mặc định
+        PackedScene playerScene = GD.Load<PackedScene>(playerScenePath);
+        if (playerScene == null)
+        {
+            GD.PrintErr($"[SceneManager] Failed to load player scene: {playerScenePath}");
+            return Error.FileNotFound;
+        }
+
+        _isSceneChangeInProgress = true;
+        _targetSpawnID = string.Empty;
+        _restoreExactPosition = false; // Đánh dấu không khôi phục vị trí chính xác, sẽ tìm spawn point thay vì đặt trực tiếp
+        _targetPlayerPosition = playerPosition ?? Vector2.Zero;
+
+        PlayerManager.Instance?.ResetParty();
+        Player = null;
+
+        Error error = GetTree().ChangeSceneToFile(scenePath);
+        if (error != Error.Ok)
+        {
+            _isSceneChangeInProgress = false;
+            return error;
+        }
+
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+
+        Node newSceneRoot = GetTree().CurrentScene;
+        if (newSceneRoot == null)
+        {
+            _isSceneChangeInProgress = false;
+            return Error.DoesNotExist;
+        }
+
+        Player newPlayer = playerScene.Instantiate<Player>();
+        if (newPlayer == null)
+        {
+            GD.PrintErr($"[SceneManager] Failed to instantiate player scene: {playerScenePath}");
+            _isSceneChangeInProgress = false;
+            return Error.CantCreate;
+        }
+
+        newSceneRoot.AddChild(newPlayer);
+        SetPlayer(newPlayer);
+
+        if (playerPosition.HasValue)
+        {
+            newPlayer.GlobalPosition = playerPosition.Value;
+        }
+
+        EnsureWorldUi(newSceneRoot);
+
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+
+        RestorePlayerCamera();
+        GD.Print($"[SceneManager] Fresh player instantiated in scene: {newSceneRoot.Name}");
+
+        _isSceneChangeInProgress = false;
+        return Error.Ok;
+    }
+
     public void OnSceneReady(Node newSceneRoot)
     {
         if (Player == null || newSceneRoot == null)
@@ -91,25 +168,33 @@ public partial class SceneManager : Node
             return;
         }
 
-        if (Player.GetParent() == newSceneRoot &&
+        bool playerAlreadyAttached = Player.GetParent() == newSceneRoot;
+
+        if (!playerAlreadyAttached)
+        {
+            newSceneRoot.AddChild(Player);
+            GD.Print($"[SceneManager] Player reattached to scene: {newSceneRoot.Name}");
+        }
+
+        EnsureWorldUi(newSceneRoot);
+
+        // player đã đúng scene và không cần khôi phục vị trí chính xác, cũng không có spawn point cụ thể nào được chỉ định,
+        //  nên giữ nguyên vị trí hiện tại và chỉ cần đảm bảo camera hoạt động đúng
+        if (playerAlreadyAttached &&
             !_restoreExactPosition &&
             string.IsNullOrEmpty(_targetSpawnID))
         {
-            EnsureWorldUi(newSceneRoot);
+            RestorePlayerCamera();
             return;
         }
 
-        if (Player.GetParent() != newSceneRoot)
-        {
-            newSceneRoot.AddChild(Player);
-        }
-        EnsureWorldUi(newSceneRoot);
-
+        // Nếu cần khôi phục vị trí chính xác, ưu tiên đặt player về vị trí đó
         if (_restoreExactPosition)
         {
             Player.GlobalPosition = _targetPlayerPosition;
             _restoreExactPosition = false;
             _targetSpawnID = "";
+            RestorePlayerCamera();
             return;
         }
 
@@ -126,6 +211,7 @@ public partial class SceneManager : Node
         }
 
         _targetSpawnID = "";
+        RestorePlayerCamera();
     }
 
     private SpawnPoint FindSpawnPoint(Node root, string id)
@@ -147,6 +233,7 @@ public partial class SceneManager : Node
         return null;
     }
 
+    // Phương thức này có thể được gọi từ các scene khác để khởi tạo player khi bắt đầu game hoặc load game
     public void EnsureWorldUi(Node sceneRoot)
     {
         if (sceneRoot == null)
@@ -154,10 +241,11 @@ public partial class SceneManager : Node
             return;
         }
 
-        EnsureOverlay(sceneRoot, "PartyHUD", PartyHUDPath);
+        EnsureOverlay(sceneRoot, "PartyHUD", PartyHUDPath); 
         EnsureOverlay(sceneRoot, "GameMenuButton", GameMenuPath);
     }
 
+    //  Phương thức này có thể được gọi khi bắt đầu game mới hoặc load game để đảm bảo player được tạo mới và đặt vào scene đúng cách
     private void EnsureOverlay(Node sceneRoot, string nodeName, string packedScenePath)
     {
         if (sceneRoot.GetNodeOrNull(nodeName) != null)
@@ -172,11 +260,60 @@ public partial class SceneManager : Node
             return;
         }
 
-        sceneRoot.AddChild(packedScene.Instantiate());
+        try
+        {
+            Node overlay = packedScene.Instantiate(); // Cố gắng tạo instance của scene
+            if (overlay == null)
+            {
+                GD.PrintErr($"[SceneManager] Overlay scene instantiated as null: {packedScenePath}");
+                return;
+            }
+
+            sceneRoot.AddChild(overlay);
+        }
+        catch (Exception ex)
+        {
+            GD.PrintErr($"[SceneManager] Failed to instantiate overlay '{packedScenePath}': {ex.Message}");
+        }
     }
 
     public void OnSceneLoaded(Node newSceneRoot)
     {
         OnSceneReady(newSceneRoot);
+    }
+
+    private void RestorePlayerCamera()
+    {
+        if (Player == null)
+        {
+            return;
+        }
+
+        Camera2D camera = Player.GetNodeOrNull<Camera2D>("follow");
+        if (camera == null)
+        {
+            GD.PrintErr("[SceneManager] Player camera 'follow' not found.");
+            return;
+        }
+
+        camera.Enabled = true;
+        camera.Zoom = DefaultCameraZoom;
+        camera.CallDeferred("make_current");
+        GD.Print("[SceneManager] Player camera restored.");
+    }
+
+    // Phương thức này cố gắng lấy đường dẫn scene của player hiện tại nếu có, nếu không tồn tại hoặc không hợp lệ thì trả về đường dẫn mặc định
+    private string ResolvePlayerScenePath()
+    {
+        if (Player != null && GodotObject.IsInstanceValid(Player))
+        {
+            string sceneFilePath = Player.SceneFilePath;
+            if (!string.IsNullOrEmpty(sceneFilePath) && ResourceLoader.Exists(sceneFilePath))
+            {
+                return sceneFilePath;
+            }
+        }
+
+        return DefaultPlayerScenePath;
     }
 }
