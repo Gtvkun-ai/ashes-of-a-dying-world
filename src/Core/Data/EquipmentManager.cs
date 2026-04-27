@@ -22,17 +22,27 @@ namespace AshesofaDyingWorld.Core.Managers
 
         public bool HasWeaponEquipped => _equippedItems.ContainsKey(EquipmentSlot.MainHand);
 
-        public void EquipItem(EquipmentItemData newItem)
+        public bool CanEquipItem(EquipmentItemData newItem)
         {
             if (newItem == null)
             {
-                return;
+                return false;
             }
 
             if (_playerStats.CurrentLevel < newItem.MinLevel)
             {
                 GD.Print("Level not high enough!");
-                return;
+                return false;
+            }
+
+            return true;
+        }
+
+        public bool EquipItem(EquipmentItemData newItem)
+        {
+            if (!CanEquipItem(newItem))
+            {
+                return false;
             }
 
             if (_equippedItems.ContainsKey(newItem.SlotType))
@@ -50,13 +60,15 @@ namespace AshesofaDyingWorld.Core.Managers
             {
                 EmitSignal(SignalName.WeaponVisualChanged, newItem.WeaponScene);
             }
+
+            return true;
         }
 
-        public void UnequipItem(EquipmentSlot slot)
+        public EquipmentItemData UnequipItem(EquipmentSlot slot)
         {
             if (!_equippedItems.ContainsKey(slot))
             {
-                return;
+                return null;
             }
 
             var removedItem = _equippedItems[slot];
@@ -70,6 +82,8 @@ namespace AshesofaDyingWorld.Core.Managers
             {
                 EmitSignal(SignalName.WeaponVisualChanged, default(Variant));
             }
+
+            return removedItem;
         }
 
         public int GetTotalAttributeBonus(AttributeType type)

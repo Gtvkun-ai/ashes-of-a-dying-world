@@ -1013,13 +1013,10 @@ void fragment() {
 
 		private void OnEquipmentSlotPressed(EquipmentSlot slotType)
 		{
-			var equipmentManager = ResolveEquipmentManager();
-			if (equipmentManager == null) return;
+			var player = ResolvePlayer();
+			if (player == null) return;
 
-			var equipped = equipmentManager.GetEquippedItem(slotType);
-			if (equipped == null) return;
-
-			equipmentManager.UnequipItem(slotType);
+			player.UnequipToInventory(slotType);
 			RefreshEquipmentSlots();
 			RefreshInventoryGrid();
 		}

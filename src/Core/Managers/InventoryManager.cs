@@ -40,9 +40,9 @@ namespace AshesofaDyingWorld.Core.Managers
             }
         }
 
-        public void AddItem(EquipmentItemData item)
+        public bool AddItem(EquipmentItemData item)
         {
-            AddLoadedItem(item, true);
+            return AddLoadedItem(item, true);
         }
 
         public void ClearItems(bool emitSignal = true)
@@ -101,6 +101,11 @@ namespace AshesofaDyingWorld.Core.Managers
             return false;
         }
 
+        public bool CanAddItem(EquipmentItemData item)
+        {
+            return item != null && _items.Count < MaxSlots;
+        }
+
         public bool HasItem(string itemId)
         {
             return _items.Exists(i => i.ID == itemId);
@@ -111,17 +116,17 @@ namespace AshesofaDyingWorld.Core.Managers
             return _items.Find(i => i.ID == itemId);
         }
 
-        private void AddLoadedItem(EquipmentItemData item, bool emitSignal)
+        private bool AddLoadedItem(EquipmentItemData item, bool emitSignal)
         {
             if (item == null)
             {
-                return;
+                return false;
             }
 
             if (_items.Count >= MaxSlots)
             {
                 GD.Print("[Inventory] Inventory is full.");
-                return;
+                return false;
             }
 
             _items.Add(item);
@@ -130,6 +135,8 @@ namespace AshesofaDyingWorld.Core.Managers
             {
                 EmitSignal(SignalName.InventoryChanged);
             }
+
+            return true;
         }
     }
 }
