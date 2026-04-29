@@ -32,7 +32,6 @@ namespace AshesofaDyingWorld.Core.Managers
             if (woodSword != null)
             {
                 AddItem(woodSword);
-                GD.Print("[Inventory] Starter weapon added.");
             }
             else
             {
@@ -93,7 +92,6 @@ namespace AshesofaDyingWorld.Core.Managers
         {
             if (_items.Remove(item))
             {
-                GD.Print($"[Inventory] -{item.ItemName}");
                 EmitSignal(SignalName.InventoryChanged);
                 return true;
             }
@@ -125,12 +123,10 @@ namespace AshesofaDyingWorld.Core.Managers
 
             if (_items.Count >= MaxSlots)
             {
-                GD.Print("[Inventory] Inventory is full.");
                 return false;
             }
 
             _items.Add(item);
-            GD.Print($"[Inventory] +{item.ItemName}");
             if (emitSignal)
             {
                 EmitSignal(SignalName.InventoryChanged);

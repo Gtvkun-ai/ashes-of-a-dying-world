@@ -39,7 +39,6 @@ namespace AshesofaDyingWorld.Core.Managers
             // Thông báo cho HUD và các nhân vật khác
             EmitSignal(SignalName.ActiveCharacterChanged, index);
             
-            GD.Print($"Đang điều khiển: {PartyMembers[index].ConfigData.Name}");
             
         }
 

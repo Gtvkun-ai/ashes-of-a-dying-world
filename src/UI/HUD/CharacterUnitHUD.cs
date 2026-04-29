@@ -51,7 +51,6 @@ namespace AshesofaDyingWorld.UI.HUD
                 
                 shaderMaterial.SetShaderParameter("line_thickness", 0.0f);
                 shaderMaterial.SetShaderParameter("line_color", new Color(1.0f, 1.0f, 1.0f, 1.0f));                
-                GD.Print("[CharacterUnitHUD] Shader applied to frameBackground");
             }
             else
             {
@@ -137,7 +136,6 @@ namespace AshesofaDyingWorld.UI.HUD
             if (shaderMaterial != null)
             {
                 shaderMaterial.SetShaderParameter("line_thickness", isSelected ? 20.0f : 0.0f);
-                GD.Print($"[CharacterUnitHUD] Highlight {(isSelected ? "ON" : "OFF")}");
             }
         }
         

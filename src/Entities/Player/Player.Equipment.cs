@@ -19,7 +19,6 @@ public partial class Player
 			_weaponSprite.SpriteFrames = null;
 			_weaponSprite.Visible = false;
 			SetHitboxActive(false);
-			GD.Print("[Player] Weapon visual cleared.");
 			return;
 		}
 
@@ -40,7 +39,6 @@ public partial class Player
 			}
 
 			weaponInstance.QueueFree();
-			GD.Print("[Player] Weapon visual (and hitbox) loaded.");
 		}
 	}
 
@@ -110,7 +108,6 @@ public partial class Player
 			return false;
 		}
 
-		GD.Print($"[Player] Equipped {item.ItemName} from inventory.");
 		return true;
 	}
 
@@ -126,7 +123,6 @@ public partial class Player
 
 		if (!_inventory.CanAddItem(equippedItem))
 		{
-			GD.Print("[Player] Inventory is full, cannot unequip item.");
 			return false;
 		}
 
@@ -143,7 +139,6 @@ public partial class Player
 			return false;
 		}
 
-		GD.Print($"[Player] Unequipped {removedItem.ItemName} to inventory.");
 		return true;
 	}
 

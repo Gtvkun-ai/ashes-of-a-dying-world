@@ -10,7 +10,6 @@ namespace AshesofaDyingWorld.UI.HUD
 	{
 		// UI Elements
 		private VBoxContainer _characterListContainer;
-		private VideoStreamPlayer _avatarDisplay;
 		private TextureRect _backgroundDisplay;
 		
 		// Tab system
@@ -52,9 +51,6 @@ namespace AshesofaDyingWorld.UI.HUD
 		private Color _btnNormalColor = new Color("#1e293b");     
 		private Color _btnHoverColor = new Color("#334155");       
 
-		private TextureRect _avatarDisplayRect;     // Cái này để hiện lên UI (có thể resize)
-		private SubViewport _videoViewport;         // Cái này để chứa video gốc
-		private VideoStreamPlayer _hiddenPlayer;    // Cái này là trình phát video thật (nằm ẩn)
 		private Color _currentThemeColor;           // Màu theme của nhân vật hiện tại
 		private NinePatchRect _panelFrame;          // Khung bọc ngoài toàn bộ UI
 		private NinePatchRect _panelGlow;           // Lớp glow phía sau khung panel
@@ -96,7 +92,6 @@ namespace AshesofaDyingWorld.UI.HUD
 
 			SetupCharacterListColumn(mainHBox);
 			SetupMainContentColumn(mainHBox);
-			SetupAvatarColumn(mainHBox);
 
 			VisibilityChanged += OnVisibilityChanged;
 			if (PlayerManager.Instance != null)
@@ -105,9 +100,6 @@ namespace AshesofaDyingWorld.UI.HUD
 			}
 			
 			ApplyIceTheme();
-			
-			// Add avatar overlay SAU CÙNG để nó render trên tất cả
-			AddAvatarOverlay();
 			
 			// Thêm nút Exit
 			AddExitButton();
@@ -1259,75 +1251,6 @@ void fragment() {
 			
 			return style;
 		}
-		private void SetupAvatarColumn(HBoxContainer parent)
-		{
-			// Dùng MarginContainer thay vì PanelContainer để không có nền đen
-			var avatarMargin = new MarginContainer();
-			avatarMargin.CustomMinimumSize = new Vector2(250, 0);  // Giảm để cột content rộng hơn
-			avatarMargin.SizeFlagsVertical = SizeFlags.ExpandFill;
-			avatarMargin.AddThemeConstantOverride("margin_left", 0);
-			avatarMargin.AddThemeConstantOverride("margin_right", 0);
-			avatarMargin.AddThemeConstantOverride("margin_top", 0);    // Không margin trên
-			avatarMargin.AddThemeConstantOverride("margin_bottom", 0); // Không margin dưới
-			parent.AddChild(avatarMargin);
-
-			// 1. TẠO VIEWPORT & PLAYER ẨN (Nơi render video gốc)
-			// Lưu ý: Viewport cần kích thước cố định bằng đúng độ phân giải video của bạn
-			_videoViewport = new SubViewport();
-			_videoViewport.Size = new Vector2I(980, 1420);
-			_videoViewport.TransparentBg = true; // Để nền trong suốt cho Shader hoạt động tốt
-			_videoViewport.RenderTargetUpdateMode = SubViewport.UpdateMode.WhenParentVisible; // Tối ưu hiệu năng
-			AddChild(_videoViewport); // Add vào cây nhưng nó sẽ không hiện ra màn hình
-
-			_hiddenPlayer = new VideoStreamPlayer();
-			_hiddenPlayer.Loop = false;  // Tắt loop, sẽ dùng signal Finished để restart
-			_hiddenPlayer.Autoplay = false;  // Tắt autoplay, sẽ play thủ công
-			_hiddenPlayer.VolumeDb = -80;
-			_hiddenPlayer.BufferingMsec = 0;
-			_hiddenPlayer.Finished += OnVideoFinished;  // Khi video kết thúc sẽ restart
-			_videoViewport.AddChild(_hiddenPlayer); // Nhét Player vào trong Viewport
-
-			// TẠO TEXTURE RECT (Nơi hiển thị trên UI)
-			_avatarDisplayRect = new TextureRect();
-			_avatarDisplayRect.SetAnchorsPreset(LayoutPreset.FullRect);
-			_avatarDisplayRect.ZIndex = 100;  // Z-index rất cao để luôn hiển thị trên cùng
-			
-			// ĐÂY LÀ CHÌA KHÓA: TextureRect hỗ trợ Expand!
-			_avatarDisplayRect.ExpandMode = TextureRect.ExpandModeEnum.FitWidthProportional;  // Giữ nguyên chiều cao
-			_avatarDisplayRect.StretchMode = TextureRect.StretchModeEnum.KeepAspect; // Không crop, giữ tỉ lệ
-			
-			// Lấy texture từ Viewport gán vào Rect
-			_avatarDisplayRect.Texture = _videoViewport.GetTexture();
-
-			// --- SETUP SHADER ---
-			// Bây giờ bạn gắn Shader vào TextureRect chứ không phải VideoStreamPlayer
-			var chromaShader = GD.Load<Shader>("res://assets/shader/chroma_key.gdshader");
-			if (chromaShader != null)
-			{
-				var shaderMaterial = new ShaderMaterial();
-				shaderMaterial.Shader = chromaShader;
-				// Cấu hình tham số cho Shader 
-				shaderMaterial.SetShaderParameter("chroma_key", new Vector3(0f, 1f, 0f));
-				// Tham số điều chỉnh hiệu ứng - đã tối ưu để giảm vỡ pixel
-				shaderMaterial.SetShaderParameter("similarity", 0.35f);   // Giảm xuống để bớt ăn vào subject
-				shaderMaterial.SetShaderParameter("smoothness", 0.4f);   // Tăng lên để edge mượt hơn
-				shaderMaterial.SetShaderParameter("spill", 0.6f);         // Giảm xuống để giữ màu gốc tốt hơn
-				
-				_avatarDisplayRect.Material = shaderMaterial; // Gán vào Rect
-			}
-
-		}
-		
-		// Method riêng để add avatar overlay - gọi sau cùng trong _Ready()
-		private void AddAvatarOverlay()
-		{
-			// Không dùng TopLevel nữa - avatar sẽ nằm trong bounds của UI 80%
-			_avatarDisplayRect.SetAnchorsPreset(LayoutPreset.RightWide);
-			_avatarDisplayRect.OffsetLeft = -320;  // Chiều rộng cột avatar
-			_avatarDisplayRect.ZIndex = 100;  // Đảm bảo hiển thị trên các panel
-			AddChild(_avatarDisplayRect);
-		}
-		
 		private void AddExitButton()
 		{
 			var exitTexture = GD.Load<Texture2D>("res://assets/resources/data/icon/Exit.tres");
@@ -1532,22 +1455,6 @@ void fragment() {
 			
 			// Cập nhật style panel với màu theme mới
 			UpdatePanelStyles();
-			
-			if (config.Avatar is VideoStream videoStream)
-				{
-					// Dừng video cũ nếu có
-					if (_hiddenPlayer.IsPlaying())
-					{
-						_hiddenPlayer.Stop();
-					}
-					
-					// Gán stream mới
-					_hiddenPlayer.Stream = videoStream;
-					_hiddenPlayer.Loop = true;  // Đảm bảo loop được set
-					
-					// Chờ 1 frame rồi mới play để đảm bảo stream đã load
-					CallDeferred(MethodName.PlayVideoDeferred);
-				}
 			UpdateOverviewPanel(currentStats);
 			UpdateSkillsPanel(config);
 			UpdateEquipmentBody(config);
@@ -1798,49 +1705,6 @@ void fragment() {
 			return null;
 		}
 
-		// Kiểm tra mỗi frame xem video đã kết thúc chưa để restart
-		public override void _Process(double delta)
-		{
-			// Chỉ xử lý khi UI đang hiển thị và có video stream
-			if (!Visible || _hiddenPlayer == null || _hiddenPlayer.Stream == null)
-				return;
-
-			// Lấy độ dài video (nếu có)
-			double streamLength = _hiddenPlayer.GetStreamLength();
-			
-			// Kiểm tra nếu video đã chạy đến cuối hoặc đã dừng
-			// StreamPosition >= streamLength - 0.1 nghĩa là gần hết video
-			// Hoặc IsPlaying() = false nghĩa là đã dừng
-			bool isAtEnd = streamLength > 0 && _hiddenPlayer.StreamPosition >= streamLength - 0.1;
-			bool isStopped = !_hiddenPlayer.IsPlaying();
-			
-			if (isAtEnd || isStopped)
-			{
-				// Reset về đầu và play lại
-				_hiddenPlayer.Stop();
-				_hiddenPlayer.Play();
-			}
-		}
-
-		// Mẹo nhỏ: Dùng CallDeferred để play video tránh lỗi trạng thái
-		// Call Deferred đảm bảo hàm được gọi sau khi frame hiện tại kết thúc
-		private void PlayVideoDeferred()
-		{
-			if (_hiddenPlayer != null && _hiddenPlayer.Stream != null)
-			{
-				// Mẹo: Stop trước khi Play để reset con trỏ về 0 chắc chắn
-				_hiddenPlayer.Stop(); 
-				_hiddenPlayer.Play();
-			}
-		}
-
-		// Signal handler khi video kết thúc - restart video
-		private void OnVideoFinished()
-		{
-			// Dùng CallDeferred để đợi hết frame hiện tại rồi mới Play lại
-			// Tránh xung đột trạng thái
-			CallDeferred(MethodName.PlayVideoDeferred);
-		}    
 		private void BindObservedStats(PlayerStats stats)
 		{
 			if (_observedStats == stats)

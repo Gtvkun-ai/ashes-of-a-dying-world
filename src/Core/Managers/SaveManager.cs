@@ -143,7 +143,6 @@ namespace AshesofaDyingWorld.Core.Managers
 
             file.StoreString(json);
             file.Flush();
-            GD.Print($"[SaveManager] Saved game to {ProjectSettings.GlobalizePath(SavePath)}");
             return Error.Ok;
         }
 
@@ -222,7 +221,6 @@ namespace AshesofaDyingWorld.Core.Managers
                 }
 
                 loginButton.EmitSignal(Button.SignalName.Pressed);
-                GD.Print("[SaveManager] Ctrl+L returned to main and auto-pressed login.");
                 return Error.Ok;
             }
             catch (Exception ex)

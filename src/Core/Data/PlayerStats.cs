@@ -166,12 +166,10 @@ namespace AshesofaDyingWorld.Entities.Player
 				CurrentStamina = Mathf.Clamp(CurrentStamina, 0, MaxStamina);
 			}
 
-			GD.Print($"[PlayerStats] MaxHP={MaxHP}, MaxMP={MaxMP}, MaxStamina={MaxStamina}");
 
 			// Tính Combat Stats (Dmg, Armor)
 			CalculateCombatStats();
 
-			GD.Print($"Stats Updated. HP:{MaxHP} MP:{MaxMP} STR:{FinalAttributes[AttributeType.Strength]}");
 
 			// Phát tín hiệu thông báo chỉ số đã thay đổi
 			EmitSignal(SignalName.StatsChanged);

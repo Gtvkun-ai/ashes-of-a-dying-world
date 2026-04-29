@@ -95,6 +95,7 @@ public partial class ScreenMain : Node2D
             {
                 sceneManager.SetPlayer(player);
                 sceneManager.EnsureWorldUi(world);
+                sceneManager.ConfigurePlayerCamera(world);
             }
             else
             {

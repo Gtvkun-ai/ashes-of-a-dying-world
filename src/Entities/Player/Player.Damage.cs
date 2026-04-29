@@ -37,7 +37,6 @@ return 0f;
 
 float hpDamage = rawDamage;
 
-GD.Print($"[Player] ReceiveMeleeHit: raw={rawDamage}, isBlocking={_isBlocking}, attackerDir={attackerDirection}, facing={GetAttackDirectionVector()}, staminaBefore={_stats.CurrentStamina}");
 
 // Nếu đang block và hướng tấn công nằm phía trước
 if (_isBlocking && IsAttackInFront(attackerDirection))
@@ -84,14 +83,12 @@ float effectiveBlockedDamage = blockedDamage * protectedRatio;
 float damageThrough = rawDamage - effectiveBlockedDamage;
 hpDamage = Mathf.Max(0f, damageThrough);
 
-GD.Print($"[Player] Blocked hit: blockedDamage={blockedDamage}, staminaCost={staminaCost}, usedStamina={usedStamina}, hpDamage={hpDamage}, staminaAfter={_stats.CurrentStamina}");
 }
 else
 {
 // Không còn stamina để block: vẫn giảm nhẹ sát thương nhờ tư thế thủ
 float damageThrough = rawDamage * 0.75f;
 hpDamage = Mathf.Max(0f, damageThrough);
-GD.Print($"[Player] No stamina to block, reduced damage to {hpDamage}");
 }
 }
 

@@ -91,7 +91,6 @@ return;
 
 if (_skillCooldowns.TryGetValue(skill, out float cooldownRemaining) && cooldownRemaining > 0f)
 {
-GD.Print($"[Player] Skill {skill.SkillName} is on cooldown: {cooldownRemaining:F1}s");
 return;
 }
 
@@ -129,7 +128,6 @@ _stats.SetTemporaryAttributeBonus(AttributeType.Dexterity, _activeDexterityBonus
 }
 
 _skillCooldowns[skill] = Mathf.Max(0f, skill.Cooldown);
-GD.Print($"[Player] Activated skill: {skill.SkillName}");
 
 if (_activeTimedSkillRemaining <= 0f)
 {

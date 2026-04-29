@@ -9,7 +9,6 @@ namespace AshesofaDyingWorld.UI.HUD
 
         public override void _Ready()
         {
-            GD.Print("[PartyHUD] _Ready called");
             
             // Lấy VBoxContainer và tìm các CharacterUnitHUD con
             var container = GetNode<VBoxContainer>("VBoxContainer");
@@ -29,10 +28,6 @@ namespace AshesofaDyingWorld.UI.HUD
                 {
                     GD.PrintErr($"[PartyHUD] Child {i} is not CharacterUnitHUD!");
                 }
-                else
-                {
-                    GD.Print($"[PartyHUD] Found CharacterUnitHUD at index {i}");
-                }
             }
 
             if (PlayerManager.Instance == null)
@@ -43,11 +38,9 @@ namespace AshesofaDyingWorld.UI.HUD
 
             // Lắng nghe khi có thành viên mới được thêm vào nhóm
             PlayerManager.Instance.PartyUpdated += RefreshPartyUI;
-            GD.Print("[PartyHUD] Connected to PartyUpdated");
 
             // Kết nối tín hiệu đổi nhân vật
             PlayerManager.Instance.ActiveCharacterChanged += UpdateSelection;
-            GD.Print("[PartyHUD] Connected to ActiveCharacterChanged");
 
             // Khởi tạo giao diện ban đầu
             RefreshPartyUI();
@@ -71,7 +64,6 @@ namespace AshesofaDyingWorld.UI.HUD
                 return;
             }
 
-            GD.Print($"[PartyHUD] RefreshPartyUI called. Party size: {PlayerManager.Instance.PartyMembers.Count}");
             
             var members = PlayerManager.Instance.PartyMembers; 
 
@@ -85,7 +77,6 @@ namespace AshesofaDyingWorld.UI.HUD
 
                 if(i < members.Count && members[i] != null)
                 {
-                    GD.Print($"[PartyHUD] Setting target for unit {i}: {members[i].ConfigData?.Name ?? "Unknown"}");
                     unitHUDs[i].SetTarget(members[i]);
                     unitHUDs[i].Show();
                     unitHUDs[i].ApplyHighlight(i == PlayerManager.Instance.ActiveCharacterIndex);

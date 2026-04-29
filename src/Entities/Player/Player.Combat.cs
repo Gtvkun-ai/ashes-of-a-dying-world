@@ -7,7 +7,6 @@ private void QueueAttack()
 {
 if (_equipMgr == null || !_equipMgr.HasWeaponEquipped)
 {
-GD.Print("[Player] Chua trang bi vu khi!");
 return;
 }
 
@@ -163,7 +162,6 @@ return true;
 float cost = ComputeAttackStaminaCost(attackStep);
 if (!_stats.ConsumeStamina(cost))
 {
-GD.Print($"[Player] Not enough stamina to attack. Need {cost:F1}, current={_stats.CurrentStamina:F1}");
 
 // Nếu đang trong combo mà không đủ thể lực cho hit tiếp theo thì kết thúc combo
 if (_isAttacking)

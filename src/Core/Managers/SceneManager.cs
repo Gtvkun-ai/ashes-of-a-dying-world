@@ -2,6 +2,7 @@ using Godot;
 using System;
 using System.Threading.Tasks;
 using AshesofaDyingWorld.Core.Managers;
+using AshesofaDyingWorld.World.Maps;
 using AshesofaDyingWorld.World.Objects;
 
 public partial class SceneManager : Node
@@ -154,8 +155,7 @@ public partial class SceneManager : Node
 
         await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
 
-        RestorePlayerCamera();
-        GD.Print($"[SceneManager] Fresh player instantiated in scene: {newSceneRoot.Name}");
+        ConfigurePlayerCamera(newSceneRoot);
 
         _isSceneChangeInProgress = false;
         return Error.Ok;
@@ -173,7 +173,6 @@ public partial class SceneManager : Node
         if (!playerAlreadyAttached)
         {
             newSceneRoot.AddChild(Player);
-            GD.Print($"[SceneManager] Player reattached to scene: {newSceneRoot.Name}");
         }
 
         EnsureWorldUi(newSceneRoot);
@@ -184,7 +183,7 @@ public partial class SceneManager : Node
             !_restoreExactPosition &&
             string.IsNullOrEmpty(_targetSpawnID))
         {
-            RestorePlayerCamera();
+            ConfigurePlayerCamera(newSceneRoot);
             return;
         }
 
@@ -194,7 +193,7 @@ public partial class SceneManager : Node
             Player.GlobalPosition = _targetPlayerPosition;
             _restoreExactPosition = false;
             _targetSpawnID = "";
-            RestorePlayerCamera();
+            ConfigurePlayerCamera(newSceneRoot);
             return;
         }
 
@@ -202,7 +201,6 @@ public partial class SceneManager : Node
         if (targetPoint != null)
         {
             Player.GlobalPosition = targetPoint.GlobalPosition;
-            GD.Print($"Player spawned at point ID: {_targetSpawnID}");
         }
         else
         {
@@ -211,7 +209,7 @@ public partial class SceneManager : Node
         }
 
         _targetSpawnID = "";
-        RestorePlayerCamera();
+        ConfigurePlayerCamera(newSceneRoot);
     }
 
     private SpawnPoint FindSpawnPoint(Node root, string id)
@@ -282,7 +280,7 @@ public partial class SceneManager : Node
         OnSceneReady(newSceneRoot);
     }
 
-    private void RestorePlayerCamera()
+    public void ConfigurePlayerCamera(Node sceneRoot)
     {
         if (Player == null)
         {
@@ -298,8 +296,55 @@ public partial class SceneManager : Node
 
         camera.Enabled = true;
         camera.Zoom = DefaultCameraZoom;
+        ApplyCameraLimits(camera, sceneRoot);
         camera.CallDeferred("make_current");
-        GD.Print("[SceneManager] Player camera restored.");
+    }
+
+    private void ApplyCameraLimits(Camera2D camera, Node sceneRoot)
+    {
+        if (camera == null)
+        {
+            return;
+        }
+
+        GameLevel level = sceneRoot as GameLevel ?? FindGameLevel(sceneRoot);
+        if (level == null || !level.TryGetCameraBounds(out Rect2 bounds))
+        {
+            camera.LimitLeft = -10000000;
+            camera.LimitTop = -10000000;
+            camera.LimitRight = 10000000;
+            camera.LimitBottom = 10000000;
+            return;
+        }
+
+        camera.LimitLeft = Mathf.RoundToInt(bounds.Position.X);
+        camera.LimitTop = Mathf.RoundToInt(bounds.Position.Y);
+        camera.LimitRight = Mathf.RoundToInt(bounds.End.X);
+        camera.LimitBottom = Mathf.RoundToInt(bounds.End.Y);
+    }
+
+    private GameLevel FindGameLevel(Node node)
+    {
+        if (node == null)
+        {
+            return null;
+        }
+
+        if (node is GameLevel level)
+        {
+            return level;
+        }
+
+        foreach (Node child in node.GetChildren())
+        {
+            GameLevel found = FindGameLevel(child);
+            if (found != null)
+            {
+                return found;
+            }
+        }
+
+        return null;
     }
 
     // Phương thức này cố gắng lấy đường dẫn scene của player hiện tại nếu có, nếu không tồn tại hoặc không hợp lệ thì trả về đường dẫn mặc định

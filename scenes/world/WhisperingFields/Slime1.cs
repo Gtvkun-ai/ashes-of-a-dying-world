@@ -60,7 +60,6 @@ public partial class Slime1 : CharacterBody2D
 		if (Level < 1) Level = 1;
 		if (MaxHP < 1) MaxHP = 1;
 		CurrentHP = MaxHP;
-		GD.Print($"[Slime] Init stats: Lv{Level}, HP {CurrentHP}/{MaxHP}");
 	}
 
 	public override void _PhysicsProcess(double delta)
@@ -236,7 +235,6 @@ public partial class Slime1 : CharacterBody2D
 		if (amount <= 0 || CurrentHP <= 0) return;
 
 		CurrentHP = Mathf.Max(0, CurrentHP - amount);
-		GD.Print($"[Slime] Took {amount} damage. HP: {CurrentHP}/{MaxHP}");
 
 		if (CurrentHP <= 0)
 		{
@@ -305,7 +303,6 @@ public partial class Slime1 : CharacterBody2D
 
 	private void Die(Node2D killer)
 	{
-		GD.Print("[Slime] Died.");
 
 		// Hủy đăng ký thanh máu khi slime chết
 		if (EnemyHealthBarService.Instance != null)
@@ -334,7 +331,6 @@ public partial class Slime1 : CharacterBody2D
 		CurrentHP = MaxHP; // Hồi đầy máu khi lên level
 		Damage += 2 * amount;
 
-		GD.Print($"[Slime] Leveled up! New Lv{Level}, HP {CurrentHP}/{MaxHP}, Damage {Damage}");
 	}
 
 	private void OnAttackFinished()
@@ -370,7 +366,6 @@ public partial class Slime1 : CharacterBody2D
 		float distance = GlobalPosition.DistanceTo(player.GlobalPosition);
 		if (distance > AttackRange)
 		{
-			GD.Print($"[Slime] Attack miss: distance={distance} > range={AttackRange}");
 			return;
 		}
 
@@ -384,7 +379,6 @@ public partial class Slime1 : CharacterBody2D
 			Vector2 attackerDirection = (GlobalPosition - player.GlobalPosition).Normalized();
 			Vector2 hitDir = DirectionFromCurrent();
 			float hpDamage = player.ReceiveMeleeHit(damage, attackerDirection);
-			GD.Print($"[Slime] Hit player for {hpDamage} dmg (raw {damage}). SlimePos={GlobalPosition}, PlayerPos={player.GlobalPosition}");
 
 			// Tính tỉ lệ bị knockback sau khi áp dụng Defense (chỉ nếu còn sát thương vào HP)
 			if (hpDamage > 0f)
@@ -396,7 +390,6 @@ public partial class Slime1 : CharacterBody2D
 					float finalForce = stats.ComputeKnockbackForce(AttackKnockbackForce);
 					// Hướng knockback dựa trên hướng tấn công (at_*),
 					// và dùng ApplyExternalForce để player trượt lùi nhưng giữ nguyên animation
-					GD.Print($"[Slime] Knockback dir={_currentDirection}, hitDir={hitDir}, force={finalForce}");
 					player.ApplyExternalForce(hitDir * finalForce);
 				}
 			}

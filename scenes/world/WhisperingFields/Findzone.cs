@@ -30,12 +30,8 @@ public partial class Findzone : Area2D
 
 	private void OnBodyEntered(Node2D body)
 	{
-		// In ra tên vật thể va chạm để kiểm tra
-		GD.Print("Có vật đi vào vùng phát hiện: " + body.Name);
-
 		if (body.IsInGroup("Player"))
 		{
-			GD.Print(">>> ĐÚNG LÀ PLAYER! BẮT ĐẦU ĐUỔI!"); // Dòng này hiện ra thì Slime mới chạy
 			
 			if (_slime != null)
 			{
@@ -48,7 +44,6 @@ public partial class Findzone : Area2D
 	{
 		if (body.IsInGroup("Player"))
 		{
-			GD.Print("<<< Player đã chạy thoát.");
 			
 			if (_slime != null)
 			{

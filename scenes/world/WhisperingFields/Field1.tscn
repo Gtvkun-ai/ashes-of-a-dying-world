@@ -12,6 +12,7 @@
 [ext_resource type="PackedScene" uid="uid://bs3fndem6lq72" path="res://scenes/world/red_flower.tscn" id="10_bytlt"]
 [ext_resource type="PackedScene" uid="uid://dn6mkbqn5m3hq" path="res://scenes/world/purple_flower.tscn" id="11_bw5vd"]
 [ext_resource type="PackedScene" uid="uid://ba3xfy2hbjo78" path="res://scenes/world/blue_flower.tscn" id="12_rcymj"]
+[ext_resource type="Script" path="res://src/World/Objects/GameLevel.cs" id="13_gamelevel"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ey7of"]
 texture = ExtResource("1_ey7of")
@@ -937,6 +938,8 @@ sources/1 = SubResource("TileSetAtlasSource_ey7of")
 [node name="Fields1" type="Node2D" unique_id=471014084]
 z_index = -10
 y_sort_enabled = true
+script = ExtResource("13_gamelevel")
+CameraBoundsSourcePath = NodePath("field1")
 
 [node name="field1" type="TileMapLayer" parent="." unique_id=2135139217]
 z_index = -10

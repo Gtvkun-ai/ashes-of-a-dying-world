@@ -43,18 +43,15 @@ namespace AshesofaDyingWorld.UI.Menus
 
         public override void _Ready()
         {
-            GD.Print("[GameMenuButton] Ready called");
             
             if (MenuButton != null)
             {
                 MenuButton.Pressed += ToggleMenuGrid;
-                GD.Print("[GameMenuButton] MenuButton connected");
             }
             
             if (MenuGridPanel != null)
             {
                 MenuGridPanel.Hide();
-                GD.Print("[GameMenuButton] MenuGridPanel hidden");
             }
             
             // CharacterDetailUI đã được gán sẵn trong tscn (CharacterPanel có script CharacterDetailUI)
@@ -90,7 +87,6 @@ namespace AshesofaDyingWorld.UI.Menus
             if (AchievementsButton != null)
                 AchievementsButton.Pressed += () => OpenPanel(AchievementsPanel, "Achievements");
             
-            GD.Print("[GameMenuButton] All buttons connected");
         }
 
         private void OpenInventoryTab()
@@ -105,7 +101,6 @@ namespace AshesofaDyingWorld.UI.Menus
             if (MenuGridPanel != null)
             {
                 MenuGridPanel.Visible = _isGridOpen;
-                GD.Print($"[GameMenuButton] Grid {(_isGridOpen ? "opened" : "closed")}");
             }
         }
 
@@ -132,7 +127,6 @@ namespace AshesofaDyingWorld.UI.Menus
                 MenuGridPanel.Hide();
             
             _isGridOpen = false;
-            GD.Print($"[GameMenuButton] Opened {panelName}");
         }
 
         private void CloseCurrentPanel()

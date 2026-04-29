@@ -31,7 +31,6 @@ namespace AshesofaDyingWorld.Core.Managers
 
             if (_playerStats.CurrentLevel < newItem.MinLevel)
             {
-                GD.Print("Level not high enough!");
                 return false;
             }
 
@@ -51,7 +50,6 @@ namespace AshesofaDyingWorld.Core.Managers
             }
 
             _equippedItems[newItem.SlotType] = newItem;
-            GD.Print($"Equipped: {newItem.ItemName} into {newItem.SlotType}");
 
             _playerStats.RecalculateStats();
             EmitSignal(SignalName.EquipmentChanged, (int)newItem.SlotType, newItem);
@@ -74,7 +72,6 @@ namespace AshesofaDyingWorld.Core.Managers
             var removedItem = _equippedItems[slot];
             _equippedItems.Remove(slot);
 
-            GD.Print($"Unequipped: {removedItem.ItemName}");
             _playerStats.RecalculateStats();
             EmitSignal(SignalName.EquipmentChanged, (int)slot, default(Variant));
 
