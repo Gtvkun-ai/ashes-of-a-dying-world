@@ -95,13 +95,6 @@ namespace AshesofaDyingWorld.UI.Menus
 
         private void OpenInventoryTab()
         {
-            if (CharacterPanel is CharacterDetailUI characterUI)
-            {
-                OpenPanel(CharacterPanel, "Inventory");
-                characterUI.OpenEquipmentTab();
-                return;
-            }
-
             OpenPanel(InventoryPanel, "Inventory");
         }
 

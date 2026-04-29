@@ -29,7 +29,7 @@ size = Vector2(16, 37)
 [node name="WoodSword" type="AnimatedSprite2D" unique_id=120632023]
 position = Vector2(-12, 3)
 sprite_frames = SubResource("SpriteFrames_hjc2g")
-animation = &"sword_down"
+animation = &"sword_up"
 
 [node name="Hitbox" type="Area2D" parent="." unique_id=120632024]
 collision_layer = 8
