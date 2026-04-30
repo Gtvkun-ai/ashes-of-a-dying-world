@@ -1,0 +1,52 @@
+[gd_scene load_steps=7 format=3 uid="uid://didkkxo61jbss"]
+
+[ext_resource type="PackedScene" uid="uid://duqdt7585p3xh" path="res://assets/sprites/char/Hyou/Hyou_body.tscn" id="1_6i4ff"]
+[ext_resource type="Script" uid="uid://j27ppclyk1pk" path="res://src/Entities/NPC/NpcCharacter.cs" id="2_npc"]
+[ext_resource type="Script" uid="uid://cqcbhn0crt0fx" path="res://src/Core/Data/PlayerStats.cs" id="3_stats"]
+[ext_resource type="Resource" uid="uid://cpdjbs8w3cyi8" path="res://assets/resources/data/characters/Hyou.tres" id="4_config"]
+[ext_resource type="Script" uid="uid://bmhf2l4kgx1rl" path="res://src/Core/Data/EquipmentManager.cs" id="5_equip"]
+[ext_resource type="Script" uid="uid://dwbeyl76glva6" path="res://src/Entities/NPC/HyouAI.cs" id="6_ai"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_sxeu7"]
+size = Vector2(11, 6)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ytw1f"]
+size = Vector2(18, 27)
+
+[node name="Hyou" type="CharacterBody2D" unique_id=881301954 groups=["Player"]]
+scale = Vector2(2, 2)
+script = ExtResource("2_npc")
+UsePlayerInput = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=626250723]
+position = Vector2(0, 14)
+scale = Vector2(0.9241728, 0.6761824)
+shape = SubResource("RectangleShape2D_sxeu7")
+
+[node name="Hurtbox" type="Area2D" parent="." unique_id=1699755985]
+collision_layer = 16
+collision_mask = 8
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox" unique_id=226924603]
+position = Vector2(0, 2.5)
+shape = SubResource("RectangleShape2D_ytw1f")
+
+[node name="WeaponSprite" type="AnimatedSprite2D" parent="." unique_id=1315873885]
+visible = false
+position = Vector2(0, -16)
+
+[node name="Body" parent="." unique_id=958096685 instance=ExtResource("1_6i4ff")]
+animation = &"Idle"
+
+[node name="PlayerStats" type="Node" parent="." unique_id=1536723479 node_paths=PackedStringArray("EquipmentMgr")]
+script = ExtResource("3_stats")
+ConfigData = ExtResource("4_config")
+EquipmentMgr = NodePath("../EquipmentManager")
+AutoRegisterWithPlayerManager = false
+
+[node name="EquipmentManager" type="Node" parent="." node_paths=PackedStringArray("_playerStats")]
+script = ExtResource("5_equip")
+_playerStats = NodePath("../PlayerStats")
+
+[node name="HyouAI" type="Node" parent="."]
+script = ExtResource("6_ai")

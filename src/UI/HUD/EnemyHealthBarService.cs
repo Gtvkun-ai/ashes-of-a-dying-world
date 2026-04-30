@@ -184,7 +184,7 @@ namespace AshesofaDyingWorld.UI.HUD
                 Vector2 rel = (worldPos - camera.GlobalPosition) * camera.Zoom;
                 Vector2 screenCenter = viewportSize / 2f;
                 // Tính vị trí trên màn hình để đặt widget, cộng thêm offset tùy chỉnh
-                Vector2 screenPos = screenCenter + rel + ScreenOffset;
+                Vector2 screenPos = trackedEnemy.EnemyNode.GetGlobalTransformWithCanvas().Origin + ScreenOffset;
 
                 Vector2 widgetSize = trackedEnemy.Widget.GetCombinedMinimumSize() * WidgetScale;
                 trackedEnemy.Widget.Position = screenPos - new Vector2(widgetSize.X / 2f, widgetSize.Y);

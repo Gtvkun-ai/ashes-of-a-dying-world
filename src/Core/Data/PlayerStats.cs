@@ -11,6 +11,7 @@ namespace AshesofaDyingWorld.Entities.Player
 		[Signal] public delegate void StatsChangedEventHandler();
 		[Export] public CharacterConfig ConfigData;
 		[Export] public EquipmentManager EquipmentMgr; 
+		[Export] public bool AutoRegisterWithPlayerManager { get; set; } = true;
 
 		public int CurrentLevel { get; private set; } = 1;
 
@@ -73,6 +74,11 @@ namespace AshesofaDyingWorld.Entities.Player
 
 		private void RegisterWithPlayerManager()
 		{
+			if (!AutoRegisterWithPlayerManager)
+			{
+				return;
+			}
+
 			PlayerManager.Instance?.RegisterMember(this);
 		}
 

@@ -18,6 +18,8 @@ public partial class Slime1 : CharacterBody2D
 	[Export] public float AttackKnockbackForce = 400f;  // Lực base quái đẩy lùi player
 	[Export] public float AttackDashSpeed = 80f;         // Tốc độ lao/bật trong animation at_*
 	public int CurrentHP { get; private set; }
+	public bool IsAttacking => _isAttacking;
+	public Vector2 AttackDirection => DirectionFromCurrent();
 
 	private AnimatedSprite2D _animatedSprite;
 	private Area2D _hurtbox;
@@ -32,6 +34,7 @@ public partial class Slime1 : CharacterBody2D
 
 	public override void _Ready()
 	{
+		AddToGroup("Enemies");
 		_animatedSprite = GetNode<AnimatedSprite2D>("AnimatedSprite2D");
 		_startPosition = GlobalPosition;
 		InitStats();
@@ -235,6 +238,7 @@ public partial class Slime1 : CharacterBody2D
 		if (amount <= 0 || CurrentHP <= 0) return;
 
 		CurrentHP = Mathf.Max(0, CurrentHP - amount);
+		DamageNumberService.GetOrCreate(GetTree())?.ShowDamage(this, amount);
 
 		if (CurrentHP <= 0)
 		{

@@ -18,8 +18,12 @@ public partial class Player : CharacterBody2D
 [Export] public int StopFrameIndex { get; set; } = 0;
 [Export] public float AttackLungeSpeed { get; set; } = 60f;
 [Export] public float KnockbackAnimLockTime { get; set; } = 0.15f;
+[Export] public bool UsePlayerInput { get; set; } = true;
 
 private bool _isExhausted = false;
+private Vector2 _moveInputDirection = Vector2.Zero;
+private bool _wantsRun = false;
+private bool _commandBlocking = false;
 
 private AnimatedSprite2D _body;
 private AnimatedSprite2D _weaponSprite;
@@ -114,18 +118,17 @@ SetHitboxActive(false);
 
 public override void _PhysicsProcess(double delta)
 {
-	// Cập nhật trạng thái block (giữ X hoặc action "block")
-	_isBlocking = Input.IsKeyPressed(Key.X) || Input.IsActionPressed("block");
-	UpdateSkillTimers((float)delta);
+UpdateControlCommands();
+UpdateSkillTimers((float)delta);
 
-if (Input.IsActionJustPressed(SkillSlot1Action))
+if (UsePlayerInput && Input.IsActionJustPressed(SkillSlot1Action))
 {
 TryActivateSkillSlot(0);
 }
 
-if (Input.IsActionJustPressed("attack"))
+if (UsePlayerInput && Input.IsActionJustPressed("attack"))
 {
-QueueAttack();
+RequestAttack();
 }
 
 // Đếm ngược thời gian khóa animation khi bị knockback (trượt lùi)
@@ -187,18 +190,9 @@ _wasMoving = Velocity.LengthSquared() > 1f;
 return;
 }
 
-Vector2 inputDir = Input.GetVector("ui_left", "ui_right", "ui_up", "ui_down");
+Vector2 inputDir = _moveInputDirection;
 bool hasInput = inputDir != Vector2.Zero;
-if (hasInput)
-{
-inputDir = inputDir.Normalized();
-}
-
-bool wantsToRun = Input.IsKeyPressed(Key.Shift);
-if (InputMap.HasAction("run"))
-{
-wantsToRun = wantsToRun || Input.IsActionPressed("run");
-}
+bool wantsToRun = _wantsRun;
 
 float staminaCostThisFrame = RunStaminaCost * (float)delta;
 
@@ -320,6 +314,65 @@ _wasMoving = moving;
 	}
 }
 
+private void UpdateControlCommands()
+{
+if (!UsePlayerInput)
+{
+_isBlocking = _commandBlocking;
+return;
+}
+
+SetBlocking(Input.IsKeyPressed(Key.X) || Input.IsActionPressed("block"));
+
+Vector2 inputDir = Input.GetVector("ui_left", "ui_right", "ui_up", "ui_down");
+bool wantsToRun = Input.IsKeyPressed(Key.Shift);
+if (InputMap.HasAction("run"))
+{
+wantsToRun = wantsToRun || Input.IsActionPressed("run");
+}
+
+SetMoveInput(inputDir, wantsToRun);
+}
+
+public void SetMoveInput(Vector2 direction, bool wantsRun = false)
+{
+_moveInputDirection = direction == Vector2.Zero ? Vector2.Zero : direction.Normalized();
+_wantsRun = wantsRun;
+}
+
+public void StopMoveInput()
+{
+SetMoveInput(Vector2.Zero);
+}
+
+public void SetBlocking(bool value)
+{
+_commandBlocking = value;
+_isBlocking = value;
+}
+
+public void RequestAttack()
+{
+QueueAttack();
+}
+
+public void FaceToward(Vector2 worldPosition)
+{
+Vector2 toTarget = worldPosition - GlobalPosition;
+if (toTarget.LengthSquared() <= 0.001f)
+{
+return;
+}
+
+string direction = ResolveCardinalDirection(toTarget.Normalized());
+_lastDirection = direction;
+_lastMoveAnim = $"go_{direction}";
+}
+
+public bool IsBlocking => _isBlocking;
+public bool IsPerformingAttack => _isAttacking;
+public Vector2 FacingDirection => GetAttackDirectionVector();
+
 // Resolve body để đảm bảo nó luôn tồn tại và có thể được truy cập, ngay cả khi 
 private void ResolveBodySprite()
 {
@@ -375,6 +428,16 @@ return _lastDirection;
 }
 
 return (vDir != "" && hDir != "") ? $"{vDir}_{hDir}" : $"{vDir}{hDir}";
+}
+
+private string ResolveCardinalDirection(Vector2 dir)
+{
+if (Mathf.Abs(dir.X) > Mathf.Abs(dir.Y))
+{
+return dir.X > 0f ? "right" : "left";
+}
+
+return dir.Y > 0f ? "down" : "up";
 }
 
 public override void _ExitTree()

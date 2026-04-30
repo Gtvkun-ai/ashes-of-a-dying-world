@@ -10,7 +10,39 @@ private void OnHurtboxBodyEntered(Node2D body)
 
 private void OnHurtboxAreaEntered(Area2D area)
 {
-// TODO: Gọi TakeDamage khi trúng Hitbox_Enemy
+	if (_stats == null || area == null)
+	{
+		return;
+	}
+
+	// Melee hitbox từ nhân vật khác (Player -> WeaponSprite -> Hitbox)
+	var weaponSprite = area.GetParent() as Node2D;
+	if (weaponSprite == null)
+	{
+		return;
+	}
+
+	var attacker = weaponSprite.GetParent() as Player;
+	if (attacker == null || attacker == this)
+	{
+		return;
+	}
+
+	if (!attacker.IsAttackHitboxActive())
+	{
+		return;
+	}
+
+	float rawDamage = 1f;
+	var attackerStats = attacker.GetStatsNode();
+	if (attackerStats != null)
+	{
+		rawDamage = Mathf.Max(1f, attackerStats.AttackDamage);
+	}
+
+	// Vector từ người bị đánh -> kẻ tấn công (dùng cho check block phía trước)
+	Vector2 attackerDirection = (attacker.GlobalPosition - GlobalPosition).Normalized();
+	ReceiveMeleeHit(rawDamage, attackerDirection);
 }
 
 // Gọi từ enemy / môi trường để đẩy lùi player nhưng giữ nguyên animation hiện tại

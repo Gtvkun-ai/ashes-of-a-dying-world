@@ -38,4 +38,5 @@ monitoring = false
 
 [node name="HitboxShape" type="CollisionShape2D" parent="Hitbox" unique_id=120632025]
 position = Vector2(0, 3.5)
+scale = Vector2(1, 1.4799997)
 shape = SubResource("RectangleShape2D_hjc2g")

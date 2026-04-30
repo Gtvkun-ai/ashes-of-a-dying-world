@@ -12,7 +12,8 @@
 [ext_resource type="PackedScene" uid="uid://bs3fndem6lq72" path="res://scenes/world/red_flower.tscn" id="10_bytlt"]
 [ext_resource type="PackedScene" uid="uid://dn6mkbqn5m3hq" path="res://scenes/world/purple_flower.tscn" id="11_bw5vd"]
 [ext_resource type="PackedScene" uid="uid://ba3xfy2hbjo78" path="res://scenes/world/blue_flower.tscn" id="12_rcymj"]
-[ext_resource type="Script" path="res://src/World/Objects/GameLevel.cs" id="13_gamelevel"]
+[ext_resource type="Script" uid="uid://demfslc5100m3" path="res://src/World/Objects/GameLevel.cs" id="13_gamelevel"]
+[ext_resource type="PackedScene" uid="uid://didkkxo61jbss" path="res://assets/resources/data/characters/Hyou.tscn" id="14_6n8e1"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ey7of"]
 texture = ExtResource("1_ey7of")
@@ -2202,3 +2203,6 @@ position = Vector2(1167, 362)
 
 [node name="blue_flower27" parent="blue_flower" unique_id=1383794055 instance=ExtResource("12_rcymj")]
 position = Vector2(1141.0001, 382)
+
+[node name="Hyou" parent="." unique_id=881301954 instance=ExtResource("14_6n8e1")]
+position = Vector2(1717, 929)
