@@ -14,6 +14,7 @@
 [ext_resource type="PackedScene" uid="uid://ba3xfy2hbjo78" path="res://scenes/world/blue_flower.tscn" id="12_rcymj"]
 [ext_resource type="Script" uid="uid://demfslc5100m3" path="res://src/World/Objects/GameLevel.cs" id="13_gamelevel"]
 [ext_resource type="PackedScene" uid="uid://didkkxo61jbss" path="res://assets/resources/data/characters/Hyou.tscn" id="14_6n8e1"]
+[ext_resource type="PackedScene" uid="uid://bw0xlnjpp75sv" path="res://scenes/world/apple_tree.tscn" id="15_3drur"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ey7of"]
 texture = ExtResource("1_ey7of")
@@ -940,7 +941,6 @@ sources/1 = SubResource("TileSetAtlasSource_ey7of")
 z_index = -10
 y_sort_enabled = true
 script = ExtResource("13_gamelevel")
-CameraBoundsSourcePath = NodePath("field1")
 
 [node name="field1" type="TileMapLayer" parent="." unique_id=2135139217]
 z_index = -10
@@ -2206,3 +2206,9 @@ position = Vector2(1141.0001, 382)
 
 [node name="Hyou" parent="." unique_id=881301954 instance=ExtResource("14_6n8e1")]
 position = Vector2(1717, 929)
+
+[node name="apple tree" type="Node2D" parent="." unique_id=1905064916]
+y_sort_enabled = true
+
+[node name="apple tree" parent="apple tree" unique_id=516426036 instance=ExtResource("15_3drur")]
+position = Vector2(157, 575)
