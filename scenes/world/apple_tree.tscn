@@ -24,10 +24,10 @@ size = Vector2(405.88245, 216.66666)
 scale = Vector2(0.17, 0.17)
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=540762600]
-position = Vector2(-23.52941, -41.176476)
+position = Vector2(-5.882353, -40.941177)
 sprite_frames = SubResource("SpriteFrames_1sxuh")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1113817706]
-position = Vector2(-14.705885, 217.64688)
-scale = Vector2(0.99999964, 0.99999964)
+position = Vector2(2.9411745, 217.88214)
+scale = Vector2(0.9999996, 0.9999996)
 shape = SubResource("RectangleShape2D_lah34")
