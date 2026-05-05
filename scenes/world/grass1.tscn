@@ -1,0 +1,25 @@
+[gd_scene format=3 uid="uid://bry35o5o8jdxs"]
+
+[ext_resource type="Texture2D" uid="uid://cnojtoxn5085n" path="res://assets/sprites/environment item/grass1.png" id="1_kul82"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_axrad"]
+atlas = ExtResource("1_kul82")
+region = Rect2(512, 341, 512, 341)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_muiet"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_axrad")
+}],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}]
+
+[node name="Node2D" type="Node2D" unique_id=155084079]
+scale = Vector2(0.1, 0.1)
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=794164765]
+position = Vector2(0, 250)
+sprite_frames = SubResource("SpriteFrames_muiet")
