@@ -25,6 +25,8 @@ SceneManager="*res://src/Core/Managers/SceneManager.cs"
 SaveManager="*res://src/Core/Managers/SaveManager.cs"
 Dialogic="*res://addons/dialogic/Core/DialogicGameHandler.gd"
 PlayerManager="*res://src/Core/Managers/PlayerManager.cs"
+AudioManager="*res://src/Core/Managers/AudioManager.cs"
+SettingsManager="*res://src/Core/Managers/SettingsManager.cs"
 
 [dialogic]
 

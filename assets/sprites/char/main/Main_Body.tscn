@@ -981,4 +981,4 @@ animations = [{
 
 [node name="Body" type="AnimatedSprite2D" unique_id=1467656115]
 sprite_frames = SubResource("SpriteFrames_3405f")
-animation = &"block_woodSword_down"
+animation = &"go_down_left"

@@ -1,5 +1,6 @@
 using Godot;
 using AshesofaDyingWorld.Core.Data;
+using AshesofaDyingWorld.UI.HUD;
 
 public partial class Player
 {
@@ -33,16 +34,80 @@ private void OnHurtboxAreaEntered(Area2D area)
 		return;
 	}
 
-	float rawDamage = 1f;
-	var attackerStats = attacker.GetStatsNode();
-	if (attackerStats != null)
+	if (!attacker.TryRegisterAttackHit(this))
 	{
-		rawDamage = Mathf.Max(1f, attackerStats.AttackDamage);
+		return;
 	}
 
 	// Vector từ người bị đánh -> kẻ tấn công (dùng cho check block phía trước)
 	Vector2 attackerDirection = (attacker.GlobalPosition - GlobalPosition).Normalized();
-	ReceiveMeleeHit(rawDamage, attackerDirection);
+	ReceiveMeleeHit(attacker.GetMeleeAttackDamage(), attackerDirection);
+}
+
+public bool TryRegisterAttackHit(Node target)
+{
+	if (!_isAttacking || _hitbox == null || target == null)
+	{
+		return false;
+	}
+
+	if (_attackHitTargets.Contains(target))
+	{
+		return false;
+	}
+
+	_attackHitTargets.Add(target);
+	return true;
+}
+
+private void ApplyCurrentHitboxOverlaps()
+{
+	if (!IsAttackHitboxActive())
+	{
+		return;
+	}
+
+	_hitbox.ForceUpdateTransform();
+
+	foreach (Area2D area in _hitbox.GetOverlappingAreas())
+	{
+		ApplyHitboxOverlap(area);
+	}
+}
+
+private void ApplyHitboxOverlap(Area2D area)
+{
+	if (area == null)
+	{
+		return;
+	}
+
+	if (area.GetParent() is Slime1 slime)
+	{
+		slime.ReceivePlayerAttack(this);
+		return;
+	}
+
+	if (area.GetParent() is Player target && target != this)
+	{
+		if (!TryRegisterAttackHit(target))
+		{
+			return;
+		}
+
+		Vector2 attackerDirection = (GlobalPosition - target.GlobalPosition).Normalized();
+		target.ReceiveMeleeHit(GetMeleeAttackDamage(), attackerDirection);
+	}
+}
+
+private float GetMeleeAttackDamage()
+{
+	if (_stats == null)
+	{
+		return 1f;
+	}
+
+	return Mathf.Max(1f, _stats.AttackDamage);
 }
 
 // Gọi từ enemy / môi trường để đẩy lùi player nhưng giữ nguyên animation hiện tại
@@ -60,7 +125,7 @@ _knockbackAnimTimer = Mathf.Max(_knockbackAnimTimer, lockTime);
 
 // Gọi từ enemy khi chuẩn bị gây sát thương tay đôi (melee)
 // Trả về lượng sát thương thực sự áp vào HP sau khi tính block/stamina
-public float ReceiveMeleeHit(float rawDamage, Vector2 attackerDirection)
+public virtual float ReceiveMeleeHit(float rawDamage, Vector2 attackerDirection)
 {
 if (_stats == null || rawDamage <= 0f)
 {
@@ -127,6 +192,7 @@ hpDamage = Mathf.Max(0f, damageThrough);
 if (hpDamage > 0f)
 {
 _stats.ChangeHP(-hpDamage);
+DamageNumberService.GetOrCreate(GetTree())?.ShowDamage(this, hpDamage);
 }
 return hpDamage;
 }

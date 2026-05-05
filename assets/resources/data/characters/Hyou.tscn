@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://didkkxo61jbss"]
+[gd_scene format=3 uid="uid://didkkxo61jbss"]
 
 [ext_resource type="PackedScene" uid="uid://duqdt7585p3xh" path="res://assets/sprites/char/Hyou/Hyou_body.tscn" id="1_6i4ff"]
 [ext_resource type="Script" uid="uid://j27ppclyk1pk" path="res://src/Entities/NPC/NpcCharacter.cs" id="2_npc"]
@@ -15,6 +15,8 @@ size = Vector2(18, 27)
 
 [node name="Hyou" type="CharacterBody2D" unique_id=881301954 groups=["Player"]]
 scale = Vector2(2, 2)
+collision_layer = 1
+collision_mask = 9
 script = ExtResource("2_npc")
 UsePlayerInput = false
 
@@ -44,9 +46,9 @@ ConfigData = ExtResource("4_config")
 EquipmentMgr = NodePath("../EquipmentManager")
 AutoRegisterWithPlayerManager = false
 
-[node name="EquipmentManager" type="Node" parent="." node_paths=PackedStringArray("_playerStats")]
+[node name="EquipmentManager" type="Node" parent="." unique_id=1075680233 node_paths=PackedStringArray("_playerStats")]
 script = ExtResource("5_equip")
 _playerStats = NodePath("../PlayerStats")
 
-[node name="HyouAI" type="Node" parent="."]
+[node name="HyouAI" type="Node" parent="." unique_id=1411975786]
 script = ExtResource("6_ai")

@@ -6,6 +6,11 @@ using System.Collections.Generic;
 
 public partial class Player : CharacterBody2D
 {
+[ExportGroup("Footstep Audio")]
+[Export] public float FootstepWalkInterval { get; set; } = 0.4f;
+[Export] public float FootstepRunInterval { get; set; } = 0.2f;
+[Export] public float FootstepMinSpeed { get; set; } = 12f;
+
 [Export] public float Speed { get; set; } = 100f;
 [Export] public float RunSpeed { get; set; } = 200f;
 [Export] public float RunStaminaCost { get; set; } = 20f;
@@ -47,6 +52,7 @@ private string _activeWeaponAttackAnim = "";
 private bool _isCompletingAttackStep = false;
 private bool _isWaitingSecondHit = false;
 private float _secondHitWaitTimer = 0f;
+private readonly HashSet<Node> _attackHitTargets = new();
 private PlayerStats _stats;
 private EquipmentManager _equipMgr;
 private InventoryManager _inventory;
@@ -59,6 +65,13 @@ private SkillData _activeTimedSkill;
 private float _activeTimedSkillRemaining = 0f;
 private float _activeMoveSpeedMultiplier = 1f;
 private int _activeDexterityBonus = 0;
+private AudioCueData _normalFootstepCue01;
+private AudioCueData _normalFootstepCue02;
+private string _lastFootstepAnim = "";
+private int _lastFootstepPhase = -1;
+
+private const string NormalFootstepCue01Path = "res://assets/resources/data/audio/footsteps/normal_step_01.tres";
+private const string NormalFootstepCue02Path = "res://assets/resources/data/audio/footsteps/normal_step_02.tres";
 
 private const string SkillSlot1Action = "skill_1";
 
@@ -113,6 +126,8 @@ if (_weaponSprite != null)
 _weaponBaseSpeedScale = _weaponSprite.SpeedScale;
 }
 
+LoadFootstepCue();
+
 SetHitboxActive(false);
 }
 
@@ -155,6 +170,11 @@ else if (_secondHitWaitTimer <= 0f)
 {
 FinishAttack();
 }
+}
+
+if (IsAttackHitboxActive())
+{
+ApplyCurrentHitboxOverlaps();
 }
 
 Velocity = Velocity.MoveToward(Vector2.Zero, Deceleration * (float)delta);
@@ -306,12 +326,13 @@ else
 
 MoveAndSlide();
 _wasMoving = moving;
+UpdateFootstepAudio((float)delta, moving, canRun);
 
-	// Hồi Stamina: chỉ khi không chạy và không đánh
-	if (_stats != null && !_isAttacking && !canRun && _stats.CurrentStamina < _stats.MaxStamina)
-	{
-		_stats.ChangeStamina(_stats.StaminaRegenRate * (float)delta);
-	}
+// Hồi Stamina: chỉ khi không chạy và không đánh
+if (_stats != null && !_isAttacking && !canRun && _stats.CurrentStamina < _stats.MaxStamina)
+{
+	_stats.ChangeStamina(_stats.StaminaRegenRate * (float)delta);
+}
 }
 
 private void UpdateControlCommands()
@@ -373,76 +394,169 @@ public bool IsBlocking => _isBlocking;
 public bool IsPerformingAttack => _isAttacking;
 public Vector2 FacingDirection => GetAttackDirectionVector();
 
+private void LoadFootstepCue()
+{
+_normalFootstepCue01 = GD.Load<AudioCueData>(NormalFootstepCue01Path);
+if (_normalFootstepCue01 == null)
+{
+GD.PrintErr($"[Player] Failed to load footstep cue: {NormalFootstepCue01Path}");
+}
+
+_normalFootstepCue02 = GD.Load<AudioCueData>(NormalFootstepCue02Path);
+if (_normalFootstepCue02 == null)
+{
+GD.PrintErr($"[Player] Failed to load footstep cue: {NormalFootstepCue02Path}");
+}
+}
+
+private void UpdateFootstepAudio(float delta, bool moving, bool isRunning)
+{
+	if (moving && Velocity.Length() >= FootstepMinSpeed)
+	{
+		return;
+	}
+
+	ResetFootstepCycle();
+}
+
+private void TryPlayFootstepForCurrentFrame()
+{
+	if (_body == null || AudioManager.Instance == null || _isAttacking)
+	{
+		return;
+	}
+
+	string anim = _body.Animation.ToString();
+	if (string.IsNullOrEmpty(anim) || (!anim.StartsWith("go_") && !anim.StartsWith("run_")))
+	{
+		ResetFootstepCycle();
+		return;
+	}
+
+	if (!_body.IsPlaying() || Velocity.Length() < FootstepMinSpeed)
+	{
+		ResetFootstepCycle();
+		return;
+	}
+
+	bool isRunAnim = anim.StartsWith("run_");
+	int phase = GetFootstepPhase(_body.Frame, isRunAnim);
+	if (phase < 0)
+	{
+		return;
+	}
+
+	if (_lastFootstepAnim != anim)
+	{
+		_lastFootstepAnim = anim;
+		_lastFootstepPhase = -1;
+	}
+
+	if (phase == _lastFootstepPhase)
+	{
+		return;
+	}
+
+	AudioCueData cue = phase == 0 ? _normalFootstepCue01 : _normalFootstepCue02;
+	if (cue?.Stream == null)
+	{
+		return;
+	}
+
+	AudioManager.Instance.PlaySfx(cue);
+	_lastFootstepPhase = phase;
+}
+
+private int GetFootstepPhase(int frame, bool isRunAnim)
+{
+	if (isRunAnim)
+	{
+		if (frame >= 0 && frame <= 2) return 0;
+		if (frame >= 3 && frame <= 5) return 1;
+		return -1;
+	}
+
+	if (frame >= 0 && frame <= 1) return 0;
+	if (frame >= 2 && frame <= 3) return 1;
+	return -1;
+}
+
+private void ResetFootstepCycle()
+{
+	_lastFootstepAnim = "";
+	_lastFootstepPhase = -1;
+}
+
 // Resolve body để đảm bảo nó luôn tồn tại và có thể được truy cập, ngay cả khi 
 private void ResolveBodySprite()
 {
-string bodyPathText = BodyPath.ToString(); // Dùng để lưu giá trị gốc của BodyPath trước khi có thể thay đổi nó nếu cần thiết
-if (string.IsNullOrEmpty(bodyPathText))
-{
-bodyPathText = "Body";
-}
+	string bodyPathText = BodyPath.ToString(); // Dùng để lưu giá trị gốc của BodyPath trước khi có thể thay đổi nó nếu cần thiết
+	if (string.IsNullOrEmpty(bodyPathText))
+	{
+		bodyPathText = "Body";
+	}
 
-_body = GetNodeOrNull<AnimatedSprite2D>(bodyPathText);
-if (_body != null)
-{
-if (BodyPath.ToString() != bodyPathText)
-{
-BodyPath = new NodePath(bodyPathText);
-}
-return;
-}
+	_body = GetNodeOrNull<AnimatedSprite2D>(bodyPathText);
+	if (_body != null)
+	{
+		if (BodyPath.ToString() != bodyPathText)
+		{
+			BodyPath = new NodePath(bodyPathText);
+		}
+		return;
+	}
 
-PackedScene bodyScene = _stats?.ConfigData?.BodyScene;
-if (bodyScene == null)
-{
-GD.PrintErr("[Player] Body scene is missing in CharacterConfig.");
-return;
-}
+	PackedScene bodyScene = _stats?.ConfigData?.BodyScene;
+	if (bodyScene == null)
+	{
+		GD.PrintErr("[Player] Body scene is missing in CharacterConfig.");
+		return;
+	}
 
-var bodyInstance = bodyScene.Instantiate<AnimatedSprite2D>();
-if (bodyInstance == null)
-{
-GD.PrintErr("[Player] BodyScene root must be AnimatedSprite2D.");
-return;
-}
+	var bodyInstance = bodyScene.Instantiate<AnimatedSprite2D>();
+	if (bodyInstance == null)
+	{
+		GD.PrintErr("[Player] BodyScene root must be AnimatedSprite2D.");
+		return;
+	}
 
-bodyInstance.Name = "Body";
-AddChild(bodyInstance);
-_body = bodyInstance;
-BodyPath = new NodePath("Body");
+	bodyInstance.Name = "Body";
+	AddChild(bodyInstance);
+	_body = bodyInstance;
+	BodyPath = new NodePath("Body");
 }
 
 private string ResolveDirection(Vector2 dir)
 {
-string vDir = "";
-if (dir.Y > 0.2f) vDir = "down";
-else if (dir.Y < -0.2f) vDir = "up";
+	string vDir = "";
+	if (dir.Y > 0.2f) vDir = "down";
+	else if (dir.Y < -0.2f) vDir = "up";
 
-string hDir = "";
-if (dir.X > 0.2f) hDir = "right";
-else if (dir.X < -0.2f) hDir = "left";
+	string hDir = "";
+	if (dir.X > 0.2f) hDir = "right";
+	else if (dir.X < -0.2f) hDir = "left";
 
-if (vDir == "" && hDir == "")
-{
-return _lastDirection;
-}
+	if (vDir == "" && hDir == "")
+	{
+		return _lastDirection;
+	}
 
-return (vDir != "" && hDir != "") ? $"{vDir}_{hDir}" : $"{vDir}{hDir}";
+	return (vDir != "" && hDir != "") ? $"{vDir}_{hDir}" : $"{vDir}{hDir}";
 }
 
 private string ResolveCardinalDirection(Vector2 dir)
 {
-if (Mathf.Abs(dir.X) > Mathf.Abs(dir.Y))
-{
-return dir.X > 0f ? "right" : "left";
-}
+	if (Mathf.Abs(dir.X) > Mathf.Abs(dir.Y))
+	{
+		return dir.X > 0f ? "right" : "left";
+	}
 
-return dir.Y > 0f ? "down" : "up";
+	return dir.Y > 0f ? "down" : "up";
 }
 
 public override void _ExitTree()
 {
-EndActiveTimedSkill();
+	EndActiveTimedSkill();
 }
 
 public void ResetTransientStateAfterLoad()

@@ -58,6 +58,7 @@ namespace AshesofaDyingWorld.UI.Menus
             // Không cần tạo thêm ở đây
             
             HideAllPanels();
+            RegisterPanelVisibilityHandlers();
             ConnectFeatureButtons();
         }
 
@@ -148,6 +149,34 @@ namespace AshesofaDyingWorld.UI.Menus
             MapPanel?.Hide();
             PartyPanel?.Hide();
             AchievementsPanel?.Hide();
+        }
+
+        private void RegisterPanelVisibilityHandlers()
+        {
+            RegisterPanelVisibility(CharacterPanel);
+            RegisterPanelVisibility(InventoryPanel);
+            RegisterPanelVisibility(SkillsPanel);
+            RegisterPanelVisibility(QuestsPanel);
+            RegisterPanelVisibility(SettingsPanel);
+            RegisterPanelVisibility(MapPanel);
+            RegisterPanelVisibility(PartyPanel);
+            RegisterPanelVisibility(AchievementsPanel);
+        }
+
+        private void RegisterPanelVisibility(Control panel)
+        {
+            if (panel == null)
+            {
+                return;
+            }
+
+            panel.VisibilityChanged += () =>
+            {
+                if (!panel.Visible && _currentOpenPanel == panel)
+                {
+                    _currentOpenPanel = null;
+                }
+            };
         }
 
         public void ResetUiStateAfterLoad()

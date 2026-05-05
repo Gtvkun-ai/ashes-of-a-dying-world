@@ -83,6 +83,11 @@ namespace AshesofaDyingWorld.Entities.NPC
 				return;
 			}
 
+			if (!player.TryRegisterAttackHit(this))
+			{
+				return;
+			}
+
 			float damage = 1f;
 			var playerStats = player.GetStatsNode();
 			if (playerStats != null)
@@ -104,6 +109,33 @@ namespace AshesofaDyingWorld.Entities.NPC
 			{
 				QueueFree();
 			}
+		}
+
+		public override float ReceiveMeleeHit(float rawDamage, Vector2 attackerDirection)
+		{
+			float hpDamage = base.ReceiveMeleeHit(rawDamage, attackerDirection);
+			if (hpDamage <= 0f)
+			{
+				return hpDamage;
+			}
+
+			_npcStats ??= GetStatsNode(); // Cố gắng lấy lại stats nếu chưa có
+			if (_npcStats == null)
+			{
+				return hpDamage;
+			}
+
+			if (KnockbackForce > 0f && attackerDirection != Vector2.Zero) // Áp dụng knockback nếu có lực và hướng hợp lệ
+			{
+				Velocity += -attackerDirection.Normalized() * KnockbackForce; // Knockback ngược hướng tấn công
+			}
+
+			if (_npcStats.CurrentHP <= 0f)
+			{
+				Die();
+			}
+
+			return hpDamage;
 		}
 	}
 }

@@ -46,6 +46,7 @@ _activeAttackStep = attackStep;
 _comboHitCount = attackStep;
 _isWaitingSecondHit = false;
 _secondHitWaitTimer = 0f;
+_attackHitTargets.Clear();
 float attackSpeedMult = 1f;
 if (_stats != null)
 {
@@ -236,11 +237,17 @@ return Vector2.Zero;
 
 private void OnBodyFrameChanged()
 {
+TryPlayFootstepForCurrentFrame();
+
 if (!_isAttacking || _body == null) return;
 if (_body.Animation != _activeAttackAnim) return;
 
 bool isHitFrame = _body.Frame >= _attackHitStartFrame && _body.Frame <= _attackHitEndFrame;
 SetHitboxActive(isHitFrame);
+if (isHitFrame)
+{
+ApplyCurrentHitboxOverlaps();
+}
 if (_body.Frame < _attackEndFrame) return;
 
 _body.Stop();
@@ -311,6 +318,7 @@ _weaponAttackEndFrame = 0;
 _activeWeaponAttackAnim = "";
 _isWaitingSecondHit = false;
 _secondHitWaitTimer = 0f;
+_attackHitTargets.Clear();
 
 if (_weaponSprite != null)
 {
