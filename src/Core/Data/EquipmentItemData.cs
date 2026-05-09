@@ -3,12 +3,23 @@ using System;
 using Godot.Collections;
 namespace AshesofaDyingWorld.Core.Data
 {
+    public enum InventoryItemCategory
+    {
+        Consumable,
+        Material,
+        Equipment,
+        Quest,
+        Other
+    }
+
     public partial class EquipmentItemData : Resource
     {
         [ExportGroup("General Info")] 
         [Export] public string ID {get; set;}
         [Export] public string ItemName {get; set;}
         [Export] public Texture2D Icon {get; set;}
+        [Export] public InventoryItemCategory InventoryCategory { get; set; } = InventoryItemCategory.Equipment;
+        [Export(PropertyHint.MultilineText)] public string Description { get; set; } = "";
         [Export] public EquipmentSlot SlotType {get; set;} // Loại trang bị
 
         [ExportGroup("Requirements")]

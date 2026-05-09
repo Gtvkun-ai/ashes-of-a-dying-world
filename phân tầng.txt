@@ -15,52 +15,52 @@ Root:
 `src/`
 - `Core/`
   - `Data/`
-    - `CharacterConfig.cs`
-    - `RaceData.cs`
-    - `PlayerStats.cs`
-    - `SkillData.cs`
-    - `EquipmentItemData.cs`
-    - `EquipmentManager.cs`
-    - `RPGTypes.cs`
+	- `CharacterConfig.cs`
+	- `RaceData.cs`
+	- `PlayerStats.cs`
+	- `SkillData.cs`
+	- `EquipmentItemData.cs`
+	- `EquipmentManager.cs`
+	- `RPGTypes.cs`
   - `Managers/`
-    - `SceneManager.cs`
-    - `SaveManager.cs`
-    - `PlayerManager.cs`
-    - `InventoryManager.cs`
+	- `SceneManager.cs`
+	- `SaveManager.cs`
+	- `PlayerManager.cs`
+	- `InventoryManager.cs`
   - `Save/`
-    - `SaveGameData.cs`
+	- `SaveGameData.cs`
 - `Entities/`
   - `Player/`
-    - `Player.cs`
-    - `Player.Combat.cs`
-    - `Player.Damage.cs`
-    - `Player.Equipment.cs`
-    - `Player.Skills.cs`
-    - `Player_anim.tscn`
+	- `Player.cs`
+	- `Player.Combat.cs`
+	- `Player.Damage.cs`
+	- `Player.Equipment.cs`
+	- `Player.Skills.cs`
+	- `Player_anim.tscn`
   - `NPC/`
-    - `NpcCharacter.cs`
-    - `HyouAI.cs`
+	- `NpcCharacter.cs`
+	- `HyouAI.cs`
 - `Scenes/`
   - `ScreenMain.cs`
 - `UI/`
   - `HUD/`
-    - `PartyHUDManager.cs`
-    - `CharacterUnitHUD.cs`
-    - `CharacterDetailUI.cs`
-    - `InventoryPanel.cs`
-    - `GameMenuButton.cs`
-    - `EnemyHealthBarService.cs`
-    - `DamageNumberService.cs`
-    - `StatHexagonChart.cs`
+	- `PartyHUDManager.cs`
+	- `CharacterUnitHUD.cs`
+	- `CharacterDetailUI.cs`
+	- `InventoryPanel.cs`
+	- `GameMenuButton.cs`
+	- `EnemyHealthBarService.cs`
+	- `DamageNumberService.cs`
+	- `StatHexagonChart.cs`
   - `Menus/`
-    - `Start.cs`
-    - `End.cs`
+	- `Start.cs`
+	- `End.cs`
 - `World/`
   - `Objects/`
-    - `GameLevel.cs`
-    - `SpawnPoint.cs`
+	- `GameLevel.cs`
+	- `SpawnPoint.cs`
   - `Transitions/`
-    - `SceneTrigger.cs`
+	- `SceneTrigger.cs`
 
 `scenes/`
 - `main/`
@@ -71,11 +71,11 @@ Root:
   - `GameMenuButton.tscn`
 - `world/`
   - `WhisperingFields/`
-    - `Field1.tscn`
-    - `Slime1.cs`
-    - `Findzone.cs`
-    - `Attackzone.cs`
-    - `slime_1.tscn`
+	- `Field1.tscn`
+	- `Slime1.cs`
+	- `Findzone.cs`
+	- `Attackzone.cs`
+	- `slime_1.tscn`
 
 `assets/`
 - `resources/data/characters/`
@@ -107,11 +107,11 @@ Tang 2 - Data model / Domain data
   - `src/Core/Save/SaveGameData.cs`
 - Vai tro:
   - Dinh nghia du lieu cot loi:
-    - stat
-    - race
-    - skill
-    - equipment
-    - save data
+	- stat
+	- race
+	- skill
+	- equipment
+	- save data
 - Day la tang mo ta "game co gi".
 
 Tang 3 - Manager / He thong nen
@@ -119,10 +119,10 @@ Tang 3 - Manager / He thong nen
   - `src/Core/Managers/`
 - Vai tro:
   - Dieu phoi luong game:
-    - `SceneManager`: doi scene, spawn, camera, HUD world
-    - `SaveManager`: save/load
-    - `PlayerManager`: party, active character
-    - `InventoryManager`: tui do
+	- `SceneManager`: doi scene, spawn, camera, HUD world
+	- `SaveManager`: save/load
+	- `PlayerManager`: party, active character
+	- `InventoryManager`: tui do
 - Day la tang he thong, dung o giua data va gameplay.
 
 Tang 4 - Gameplay actor / Entity
@@ -131,9 +131,9 @@ Tang 4 - Gameplay actor / Entity
   - `scenes/world/WhisperingFields/Slime1.cs`
 - Vai tro:
   - Chua logic cua nhan vat va quai:
-    - player
-    - npc companion
-    - slime
+	- player
+	- npc companion
+	- slime
 - Day la tang "vat the song" trong game.
 
 Tang 5 - World / Map interaction
@@ -150,13 +150,13 @@ Tang 6 - Presentation / UI
   - `scenes/ui/`
 - Vai tro:
   - Hien thi thong tin va tuong tac menu:
-    - HUD party
-    - HUD tung nhan vat
-    - detail panel
-    - inventory panel
-    - menu button
-    - damage number
-    - enemy HP bar
+	- HUD party
+	- HUD tung nhan vat
+	- detail panel
+	- inventory panel
+	- menu button
+	- damage number
+	- enemy HP bar
 
 Tang 7 - Entry scene / Dieu huong ban dau
 - Vi tri:
