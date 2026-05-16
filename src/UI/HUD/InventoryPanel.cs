@@ -11,13 +11,16 @@ namespace AshesofaDyingWorld.UI.Menus
 	{
 		private const int DefaultSlotCount = 40;
 		private const int GridColumns = 8;
-		private const float RightPanelHeight = 360f;
+		private const float InventoryPanelHeight = 345f;
 
 		private enum InventoryCategory
 		{
-			Items,
-			Tools,
-			Quests
+			All,
+			Consumables,
+			Materials,
+			Equipment,
+			Quest,
+			Others
 		}
 
 		private sealed class InventoryEntry
@@ -29,11 +32,10 @@ namespace AshesofaDyingWorld.UI.Menus
 
 		[Export] public NodePath InventoryManagerPath { get; set; }
 
-		private readonly Color _accentColor = new Color("#38bdf8");
-		private readonly Color _subTextColor = new Color("#94a3b8");
-		private readonly Color _themeBorderColor = new Color("#38bdf8");
-		private readonly Color _btnNormalColor = new Color("#1e293b");
-		private readonly Color _btnHoverColor = new Color("#334155");
+		private readonly Color _accentColor = new Color("#f0c75d");
+		private readonly Color _subTextColor = new Color("#b7aa8e");
+		private readonly Color _btnNormalColor = new Color("#221d16");
+		private readonly Color _btnHoverColor = new Color("#342b20");
 		private readonly Color _slotFillColor = new Color("#242019");
 		private readonly Color _slotBorderColor = new Color("#4f4332");
 		private readonly Color _slotSelectedColor = new Color("#c8a24a");
@@ -52,12 +54,14 @@ namespace AshesofaDyingWorld.UI.Menus
 
 		private InventoryManager _inventoryManager;
 		private Player _player;
-		private NinePatchRect _panelGlow;
-		private NinePatchRect _panelFrame;
-		private Button _itemsButton;
-		private Button _toolsButton;
-		private Button _questsButton;
+		private Button _allButton;
+		private Button _consumablesButton;
+		private Button _materialsButton;
+		private Button _equipmentButton;
+		private Button _questButton;
+		private Button _othersButton;
 		private Label _titleLabel;
+		private Label _capacityLabel;
 		private GridContainer _grid;
 		private Label _detailNameLabel;
 		private Label _detailCategoryLabel;
@@ -67,8 +71,11 @@ namespace AshesofaDyingWorld.UI.Menus
 		private Label _quantityLabel;
 		private Button _useButton;
 		private Button _dropButton;
+		private Texture2D _bagIcon;
+		private Texture2D _coinIcon;
+		private readonly Dictionary<InventoryCategory, Texture2D> _categoryIcons = new();
 
-		private InventoryCategory _currentCategory = InventoryCategory.Items;
+		private InventoryCategory _currentCategory = InventoryCategory.All;
 		private readonly List<InventoryEntry> _visibleEntries = new();
 		private string _selectedItemId;
 
@@ -84,10 +91,9 @@ namespace AshesofaDyingWorld.UI.Menus
 			ApplyPanelSize();
 			AddThemeStyleboxOverride("panel", new StyleBoxEmpty());
 
-			SetupPanelFrame();
 			BuildUI();
 			FindInventoryManager();
-			ShowCategory(InventoryCategory.Items);
+			ShowCategory(InventoryCategory.All);
 		}
 
 		public override void _ExitTree()
@@ -100,10 +106,10 @@ namespace AshesofaDyingWorld.UI.Menus
 
 		private void ApplyPanelSize()
 		{
-			AnchorLeft = 0.1f;
-			AnchorTop = 0.1f;
-			AnchorRight = 0.9f;
-			AnchorBottom = 0.9f;
+			AnchorLeft = 0.13f;
+			AnchorTop = 0.08f;
+			AnchorRight = 0.87f;
+			AnchorBottom = 0.92f;
 
 			OffsetLeft = 0;
 			OffsetTop = 0;
@@ -111,140 +117,129 @@ namespace AshesofaDyingWorld.UI.Menus
 			OffsetBottom = 0;
 		}
 
-		private void SetupPanelFrame()
-		{
-			var frameTexture = GD.Load<Texture2D>("res://assets/sprites/button/khungPanel.png");
-			if (frameTexture == null)
-			{
-				return;
-			}
-
-			_panelGlow = new NinePatchRect();
-			_panelGlow.Texture = frameTexture;
-			_panelGlow.SetAnchorsPreset(LayoutPreset.FullRect);
-			_panelGlow.ZIndex = -1;
-			_panelGlow.PatchMarginLeft = 40;
-			_panelGlow.PatchMarginTop = 40;
-			_panelGlow.PatchMarginRight = 40;
-			_panelGlow.PatchMarginBottom = 40;
-			_panelGlow.DrawCenter = false;
-			_panelGlow.Modulate = new Color(_themeBorderColor.R, _themeBorderColor.G, _themeBorderColor.B, 0.8f);
-			_panelGlow.Scale = new Vector2(1.005f, 1.005f);
-			_panelGlow.Position = new Vector2(-2, -2);
-
-			var glowShader = new Shader();
-			glowShader.Code = @"
-shader_type canvas_item;
-render_mode blend_add, unshaded;
-
-void fragment() {
-    vec4 tex = texture(TEXTURE, UV);
-    COLOR = tex;
-}
-";
-			var glowMaterial = new ShaderMaterial();
-			glowMaterial.Shader = glowShader;
-			_panelGlow.Material = glowMaterial;
-			AddChild(_panelGlow);
-
-			_panelFrame = new NinePatchRect();
-			_panelFrame.Texture = frameTexture;
-			_panelFrame.SetAnchorsPreset(LayoutPreset.FullRect);
-			_panelFrame.ZIndex = 0;
-			_panelFrame.PatchMarginLeft = 40;
-			_panelFrame.PatchMarginTop = 40;
-			_panelFrame.PatchMarginRight = 40;
-			_panelFrame.PatchMarginBottom = 40;
-			_panelFrame.DrawCenter = false;
-			AddChild(_panelFrame);
-		}
-
 		private void BuildUI()
 		{
-			var root = new MarginContainer();
-			root.SetAnchorsPreset(LayoutPreset.FullRect);
-			root.AddThemeConstantOverride("margin_left", 34);
-			root.AddThemeConstantOverride("margin_top", 34);
-			root.AddThemeConstantOverride("margin_right", 56);
-			root.AddThemeConstantOverride("margin_bottom", 42);
-			AddChild(root);
+			var window = new PanelContainer();
+			window.SetAnchorsPreset(LayoutPreset.FullRect);
+			window.AddThemeStyleboxOverride("panel", CreateWindowStyle());
+			AddChild(window);
 
-			var main = new HBoxContainer();
-			main.AddThemeConstantOverride("separation", 12);
+			var root = new MarginContainer();
+			root.AddThemeConstantOverride("margin_left", 12);
+			root.AddThemeConstantOverride("margin_top", 10);
+			root.AddThemeConstantOverride("margin_right", 12);
+			root.AddThemeConstantOverride("margin_bottom", 10);
+			window.AddChild(root);
+
+			var main = new VBoxContainer();
+			main.AddThemeConstantOverride("separation", 7);
 			main.SizeFlagsHorizontal = SizeFlags.ExpandFill;
 			main.SizeFlagsVertical = SizeFlags.ExpandFill;
 			root.AddChild(main);
 
-			var leftMenu = new VBoxContainer();
-			leftMenu.CustomMinimumSize = new Vector2(150, 0);
-			leftMenu.AddThemeConstantOverride("separation", 8);
-			leftMenu.SizeFlagsVertical = SizeFlags.ExpandFill;
-			main.AddChild(leftMenu);
+			var headerPanel = new PanelContainer();
+			headerPanel.CustomMinimumSize = new Vector2(0, 42);
+			headerPanel.AddThemeStyleboxOverride("panel", CreateHeaderStyle());
+			main.AddChild(headerPanel);
 
-			var menuTitle = new Label();
-			menuTitle.Text = "TÚI ĐỒ";
-			menuTitle.HorizontalAlignment = HorizontalAlignment.Center;
-			menuTitle.AddThemeFontSizeOverride("font_size", 18);
-			menuTitle.AddThemeColorOverride("font_color", _accentColor);
-			leftMenu.AddChild(menuTitle);
+			var header = new HBoxContainer();
+			header.AddThemeConstantOverride("separation", 10);
+			headerPanel.AddChild(header);
 
-			_itemsButton = CreateCategoryButton("VẬT PHẨM", InventoryCategory.Items);
-			_toolsButton = CreateCategoryButton("CÔNG CỤ", InventoryCategory.Tools);
-			_questsButton = CreateCategoryButton("NHIỆM VỤ", InventoryCategory.Quests);
+			var chest = new PanelContainer();
+			chest.CustomMinimumSize = new Vector2(30, 30);
+			chest.AddThemeStyleboxOverride("panel", CreateIconBadgeStyle());
+			header.AddChild(chest);
 
-			leftMenu.AddChild(_itemsButton);
-			leftMenu.AddChild(_toolsButton);
-			leftMenu.AddChild(_questsButton);
-
-			var contentWrap = new VBoxContainer();
-			contentWrap.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			contentWrap.SizeFlagsVertical = SizeFlags.ExpandFill;
-			contentWrap.AddThemeConstantOverride("separation", 10);
-			main.AddChild(contentWrap);
+			var chestIcon = new TextureRect();
+			chestIcon.Texture = _bagIcon ??= CreateBagIcon();
+			chestIcon.CustomMinimumSize = new Vector2(20, 20);
+			chestIcon.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
+			chestIcon.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
+			chest.AddChild(chestIcon);
 
 			_titleLabel = new Label();
-			_titleLabel.Text = "KHO ĐỒ";
-			_titleLabel.AddThemeFontSizeOverride("font_size", 30);
-			_titleLabel.AddThemeColorOverride("font_color", Colors.White);
-			contentWrap.AddChild(_titleLabel);
+			_titleLabel.Text = "INVENTORY";
+			_titleLabel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			_titleLabel.VerticalAlignment = VerticalAlignment.Center;
+			_titleLabel.AddThemeFontSizeOverride("font_size", 19);
+			_titleLabel.AddThemeColorOverride("font_color", new Color("#f4ead8"));
+			header.AddChild(_titleLabel);
 
-			var rightAreaWrap = new MarginContainer();
-			rightAreaWrap.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			rightAreaWrap.SizeFlagsVertical = SizeFlags.ShrinkBegin;
-			contentWrap.AddChild(rightAreaWrap);
+			var coinRow = new HBoxContainer();
+			coinRow.AddThemeConstantOverride("separation", 4);
+			header.AddChild(coinRow);
 
-			var rightArea = new HBoxContainer();
-			rightArea.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			rightArea.SizeFlagsVertical = SizeFlags.ShrinkBegin;
-			rightArea.CustomMinimumSize = new Vector2(0, RightPanelHeight);
-			rightArea.AddThemeConstantOverride("separation", 10);
-			rightAreaWrap.AddChild(rightArea);
+			var coinIcon = new TextureRect();
+			coinIcon.Texture = _coinIcon ??= CreateCoinIcon();
+			coinIcon.CustomMinimumSize = new Vector2(16, 16);
+			coinIcon.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
+			coinIcon.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
+			coinRow.AddChild(coinIcon);
+
+			var coinLabel = CreateDetailLabel(16, new Color("#f6d77b"));
+			coinLabel.Text = "12,345";
+			coinLabel.VerticalAlignment = VerticalAlignment.Center;
+			coinRow.AddChild(coinLabel);
+
+			header.AddChild(CreateCloseButton());
+
+			var tabs = new HBoxContainer();
+			tabs.CustomMinimumSize = new Vector2(0, 31);
+			tabs.AddThemeConstantOverride("separation", 5);
+			main.AddChild(tabs);
+
+			_allButton = CreateCategoryButton("All", InventoryCategory.All);
+			_consumablesButton = CreateCategoryButton("Consumables", InventoryCategory.Consumables);
+			_materialsButton = CreateCategoryButton("Materials", InventoryCategory.Materials);
+			_equipmentButton = CreateCategoryButton("Equipment", InventoryCategory.Equipment);
+			_questButton = CreateCategoryButton("Quest", InventoryCategory.Quest);
+			_othersButton = CreateCategoryButton("Others", InventoryCategory.Others);
+
+			tabs.AddChild(_allButton);
+			tabs.AddChild(_consumablesButton);
+			tabs.AddChild(_materialsButton);
+			tabs.AddChild(_equipmentButton);
+			tabs.AddChild(_questButton);
+			tabs.AddChild(_othersButton);
+
+			var body = new HBoxContainer();
+			body.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			body.SizeFlagsVertical = SizeFlags.ExpandFill;
+			body.CustomMinimumSize = new Vector2(0, InventoryPanelHeight);
+			body.AddThemeConstantOverride("separation", 7);
+			main.AddChild(body);
 
 			var gridPanel = new PanelContainer();
 			gridPanel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			gridPanel.SizeFlagsVertical = SizeFlags.ShrinkBegin;
-			gridPanel.CustomMinimumSize = new Vector2(0, RightPanelHeight);
+			gridPanel.SizeFlagsVertical = SizeFlags.ExpandFill;
+			gridPanel.CustomMinimumSize = new Vector2(485, InventoryPanelHeight);
 			gridPanel.AddThemeStyleboxOverride("panel", CreateInventoryAreaStyle());
-			rightArea.AddChild(gridPanel);
+			body.AddChild(gridPanel);
 
-			var gridWrap = new MarginContainer();
-			gridWrap.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			gridWrap.SizeFlagsVertical = SizeFlags.ExpandFill;
-			gridWrap.AddThemeConstantOverride("margin_left", 12);
-			gridWrap.AddThemeConstantOverride("margin_top", 12);
-			gridWrap.AddThemeConstantOverride("margin_right", 12);
-			gridWrap.AddThemeConstantOverride("margin_bottom", 12);
-			gridPanel.AddChild(gridWrap);
+			var gridColumn = new VBoxContainer();
+			gridColumn.AddThemeConstantOverride("separation", 8);
+			gridColumn.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			gridColumn.SizeFlagsVertical = SizeFlags.ExpandFill;
+			gridPanel.AddChild(gridColumn);
+
+			var gridMargin = new MarginContainer();
+			gridMargin.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			gridMargin.SizeFlagsVertical = SizeFlags.ExpandFill;
+			gridMargin.AddThemeConstantOverride("margin_left", 8);
+			gridMargin.AddThemeConstantOverride("margin_top", 8);
+			gridMargin.AddThemeConstantOverride("margin_right", 8);
+			gridColumn.AddChild(gridMargin);
 
 			var gridCenter = new CenterContainer();
 			gridCenter.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			gridCenter.SizeFlagsVertical = SizeFlags.ShrinkCenter;
-			gridWrap.AddChild(gridCenter);
+			gridCenter.SizeFlagsVertical = SizeFlags.ExpandFill;
+			gridMargin.AddChild(gridCenter);
 
 			_grid = new GridContainer();
 			_grid.Columns = GridColumns;
-			_grid.AddThemeConstantOverride("h_separation", 6);
-			_grid.AddThemeConstantOverride("v_separation", 6);
+			_grid.AddThemeConstantOverride("h_separation", 5);
+			_grid.AddThemeConstantOverride("v_separation", 5);
 			_grid.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
 			_grid.SizeFlagsVertical = SizeFlags.ShrinkCenter;
 			gridCenter.AddChild(_grid);
@@ -255,16 +250,32 @@ void fragment() {
 				CreateInventorySlot(i);
 			}
 
-			rightArea.AddChild(BuildDetailPanel());
+			var footer = new HBoxContainer();
+			footer.CustomMinimumSize = new Vector2(0, 40);
+			footer.AddThemeConstantOverride("separation", 8);
+			gridColumn.AddChild(footer);
 
-			AddExitButton();
+			_capacityLabel = CreateDetailLabel(14, new Color("#d7c7a4"));
+			_capacityLabel.Text = "[] 0/60";
+			_capacityLabel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			_capacityLabel.VerticalAlignment = VerticalAlignment.Center;
+			footer.AddChild(_capacityLabel);
+
+			var addButton = CreateSmallActionButton("+");
+			addButton.Disabled = true;
+			footer.AddChild(addButton);
+
+			footer.AddChild(CreateFooterButton("Sort  ="));
+
+			body.AddChild(BuildDetailPanel());
+
 		}
 
 		private Control BuildDetailPanel()
 		{
 			var detailPanel = new PanelContainer();
-			detailPanel.CustomMinimumSize = new Vector2(170, RightPanelHeight);
-			detailPanel.SizeFlagsVertical = SizeFlags.ShrinkBegin;
+			detailPanel.CustomMinimumSize = new Vector2(170, InventoryPanelHeight);
+			detailPanel.SizeFlagsVertical = SizeFlags.ExpandFill;
 			detailPanel.AddThemeStyleboxOverride("panel", CreateDetailPanelStyle());
 
 			var detailMargin = new MarginContainer();
@@ -368,25 +379,62 @@ void fragment() {
 		{
 			var button = new Button();
 			button.Text = text;
-			button.CustomMinimumSize = new Vector2(128, 38);
+			button.Icon = GetCategoryIcon(category);
+			button.ExpandIcon = false;
+			button.IconAlignment = HorizontalAlignment.Left;
+			button.CustomMinimumSize = new Vector2(GetCategoryButtonWidth(category), 28);
 			button.FocusMode = FocusModeEnum.None;
 			button.Pressed += () => ShowCategory(category);
+			return button;
+		}
+
+		private float GetCategoryButtonWidth(InventoryCategory category)
+		{
+			return category switch
+			{
+				InventoryCategory.All => 58f,
+				InventoryCategory.Consumables => 112f,
+				InventoryCategory.Equipment => 92f,
+				_ => 78f
+			};
+		}
+
+		private Button CreateCloseButton()
+		{
+			var button = new Button();
+			button.Text = "X";
+			button.CustomMinimumSize = new Vector2(30, 30);
+			button.FocusMode = FocusModeEnum.None;
+			button.Pressed += Hide;
+
+			var normal = CreateActionStyle(new Color("#6e2d24"));
+			normal.SetCornerRadiusAll(3);
+			var hover = CreateActionStyle(new Color("#8a3b31"));
+			hover.SetCornerRadiusAll(3);
+			var pressed = CreateActionStyle(new Color("#4c1e19"));
+			pressed.SetCornerRadiusAll(3);
+
+			button.AddThemeStyleboxOverride("normal", normal);
+			button.AddThemeStyleboxOverride("hover", hover);
+			button.AddThemeStyleboxOverride("pressed", pressed);
+			button.AddThemeColorOverride("font_color", new Color("#ffe6dc"));
+			button.AddThemeColorOverride("font_hover_color", Colors.White);
 			return button;
 		}
 
 		private void CreateInventorySlot(int slotIndex)
 		{
 			var slot = new PanelContainer();
-			slot.CustomMinimumSize = new Vector2(50, 50);
+			slot.CustomMinimumSize = new Vector2(51, 51);
 			slot.AddThemeStyleboxOverride("panel", CreateSlotStyle(false));
 
 			var inner = new Control();
-			inner.CustomMinimumSize = new Vector2(50, 50);
+			inner.CustomMinimumSize = new Vector2(51, 51);
 			slot.AddChild(inner);
 
 			var icon = new TextureRect();
-			icon.CustomMinimumSize = new Vector2(24, 24);
-			icon.Position = new Vector2(13, 7);
+			icon.CustomMinimumSize = new Vector2(33, 33);
+			icon.Position = new Vector2(9, 6);
 			icon.ExpandMode = TextureRect.ExpandModeEnum.FitHeightProportional;
 			icon.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
 			icon.Visible = false;
@@ -403,8 +451,8 @@ void fragment() {
 
 			var count = new Label();
 			count.Text = "";
-			count.Position = new Vector2(26, 34);
-			count.Size = new Vector2(18, 12);
+			count.Position = new Vector2(22, 35);
+			count.Size = new Vector2(24, 12);
 			count.HorizontalAlignment = HorizontalAlignment.Right;
 			count.AddThemeFontSizeOverride("font_size", 10);
 			count.AddThemeColorOverride("font_color", Colors.White);
@@ -414,7 +462,7 @@ void fragment() {
 			hint.Text = "";
 			hint.Visible = false;
 			hint.Position = new Vector2(1, 17);
-			hint.Size = new Vector2(48, 14);
+			hint.Size = new Vector2(49, 14);
 			hint.HorizontalAlignment = HorizontalAlignment.Center;
 			hint.VerticalAlignment = VerticalAlignment.Center;
 			hint.AddThemeFontSizeOverride("font_size", 7);
@@ -444,27 +492,6 @@ void fragment() {
 			_slotHints.Add(hint);
 			_slotButtons.Add(hoverButton);
 			_grid.AddChild(slot);
-		}
-
-		private void AddExitButton()
-		{
-			var exitTexture = GD.Load<Texture2D>("res://assets/resources/data/icon/Exit.tres");
-
-			var exitButton = new TextureButton();
-			exitButton.TextureNormal = exitTexture;
-			exitButton.CustomMinimumSize = new Vector2(50, 50);
-			exitButton.StretchMode = TextureButton.StretchModeEnum.KeepAspectCentered;
-			exitButton.IgnoreTextureSize = true;
-			exitButton.SetAnchorsPreset(LayoutPreset.TopRight);
-			exitButton.Position = new Vector2(-80, 30);
-			exitButton.Pressed += Hide;
-
-			var hoverStyle = new StyleBoxFlat();
-			hoverStyle.BgColor = new Color(1f, 1f, 1f, 0.2f);
-			hoverStyle.SetCornerRadiusAll(25);
-			exitButton.AddThemeStyleboxOverride("hover", hoverStyle);
-
-			AddChild(exitButton);
 		}
 
 		private void FindInventoryManager()
@@ -567,9 +594,12 @@ void fragment() {
 
 		private void UpdateCategoryButtonStyle()
 		{
-			SetCategoryButtonSelected(_itemsButton, _currentCategory == InventoryCategory.Items);
-			SetCategoryButtonSelected(_toolsButton, _currentCategory == InventoryCategory.Tools);
-			SetCategoryButtonSelected(_questsButton, _currentCategory == InventoryCategory.Quests);
+			SetCategoryButtonSelected(_allButton, _currentCategory == InventoryCategory.All);
+			SetCategoryButtonSelected(_consumablesButton, _currentCategory == InventoryCategory.Consumables);
+			SetCategoryButtonSelected(_materialsButton, _currentCategory == InventoryCategory.Materials);
+			SetCategoryButtonSelected(_equipmentButton, _currentCategory == InventoryCategory.Equipment);
+			SetCategoryButtonSelected(_questButton, _currentCategory == InventoryCategory.Quest);
+			SetCategoryButtonSelected(_othersButton, _currentCategory == InventoryCategory.Others);
 		}
 
 		private void SetCategoryButtonSelected(Button button, bool selected)
@@ -580,14 +610,14 @@ void fragment() {
 			}
 
 			var normal = new StyleBoxFlat();
-			normal.BgColor = selected ? new Color("#0f172a") : _btnNormalColor;
-			normal.BorderColor = selected ? _accentColor : new Color("#64748b");
+			normal.BgColor = selected ? new Color("#3a2f21") : _btnNormalColor;
+			normal.BorderColor = selected ? _accentColor : new Color("#4b4030");
 			normal.SetBorderWidthAll(selected ? 2 : 0);
-			normal.SetCornerRadiusAll(5);
-			normal.ContentMarginLeft = 15;
-			normal.ContentMarginRight = 15;
-			normal.ContentMarginTop = 8;
-			normal.ContentMarginBottom = 8;
+			normal.SetCornerRadiusAll(4);
+			normal.ContentMarginLeft = 10;
+			normal.ContentMarginRight = 10;
+			normal.ContentMarginTop = 7;
+			normal.ContentMarginBottom = 7;
 
 			var hover = (StyleBoxFlat)normal.Duplicate();
 			hover.BgColor = _btnHoverColor;
@@ -609,13 +639,13 @@ void fragment() {
 			EnsureValidSelection();
 			FillItemSlots();
 			RefreshDetailPanel();
-			_titleLabel.Text = _currentCategory switch
+			_titleLabel.Text = "INVENTORY";
+			if (_capacityLabel != null)
 			{
-				InventoryCategory.Items => "KHO ĐỒ",
-				InventoryCategory.Tools => "CÔNG CỤ",
-				InventoryCategory.Quests => "NHIỆM VỤ",
-				_ => "KHO ĐỒ"
-			};
+				int usedSlots = _inventoryManager?.Items?.Count ?? 0;
+				int maxSlots = _inventoryManager?.MaxSlots ?? DefaultSlotCount;
+				_capacityLabel.Text = $"[] {usedSlots}/{Mathf.Max(DefaultSlotCount, maxSlots)}";
+			}
 		}
 
 		private void BuildVisibleEntries()
@@ -672,9 +702,12 @@ void fragment() {
 
 			return _currentCategory switch
 			{
-				InventoryCategory.Items => item.InventoryCategory == InventoryItemCategory.Equipment || item.InventoryCategory == InventoryItemCategory.Consumable || item.InventoryCategory == InventoryItemCategory.Material || item.InventoryCategory == InventoryItemCategory.Other,
-				InventoryCategory.Tools => item.InventoryCategory == InventoryItemCategory.Material || item.InventoryCategory == InventoryItemCategory.Other,
-				InventoryCategory.Quests => item.InventoryCategory == InventoryItemCategory.Quest,
+				InventoryCategory.All => true,
+				InventoryCategory.Consumables => item.InventoryCategory == InventoryItemCategory.Consumable,
+				InventoryCategory.Materials => item.InventoryCategory == InventoryItemCategory.Material,
+				InventoryCategory.Equipment => item.InventoryCategory == InventoryItemCategory.Equipment,
+				InventoryCategory.Quest => item.InventoryCategory == InventoryItemCategory.Quest,
+				InventoryCategory.Others => item.InventoryCategory == InventoryItemCategory.Other,
 				_ => true
 			};
 		}
@@ -920,6 +953,253 @@ void fragment() {
 			return button;
 		}
 
+		private Button CreateFooterButton(string text)
+		{
+			var button = new Button();
+			button.Text = text;
+			button.CustomMinimumSize = new Vector2(76, 32);
+			button.FocusMode = FocusModeEnum.None;
+			button.AddThemeStyleboxOverride("normal", CreateActionStyle(_smallButtonColor));
+			button.AddThemeStyleboxOverride("hover", CreateActionStyle(_smallButtonColor.Lightened(0.08f)));
+			button.AddThemeStyleboxOverride("pressed", CreateActionStyle(_smallButtonColor.Darkened(0.08f)));
+			button.AddThemeColorOverride("font_color", new Color("#ead9b8"));
+			return button;
+		}
+
+		private StyleBoxFlat CreateIconBadgeStyle()
+		{
+			var style = new StyleBoxFlat();
+			style.BgColor = new Color("#342719");
+			style.BorderColor = new Color("#7c623e");
+			style.SetBorderWidthAll(2);
+			style.SetCornerRadiusAll(4);
+			return style;
+		}
+
+		private Texture2D GetCategoryIcon(InventoryCategory category)
+		{
+			if (_categoryIcons.TryGetValue(category, out Texture2D icon))
+			{
+				return icon;
+			}
+
+			icon = category switch
+			{
+				InventoryCategory.All => CreateAllIcon(),
+				InventoryCategory.Consumables => CreateConsumablesIcon(),
+				InventoryCategory.Materials => CreateMaterialsIcon(),
+				InventoryCategory.Equipment => CreateEquipmentIcon(),
+				InventoryCategory.Quest => CreateQuestIcon(),
+				InventoryCategory.Others => CreateOthersIcon(),
+				_ => CreateOthersIcon()
+			};
+			_categoryIcons[category] = icon;
+			return icon;
+		}
+
+		private Texture2D CreateAllIcon()
+		{
+			return CreatePixelIcon(image =>
+			{
+				FillRect(image, 3, 3, 4, 4, new Color("#f3d46a"));
+				FillRect(image, 9, 3, 4, 4, new Color("#f3d46a"));
+				FillRect(image, 3, 9, 4, 4, new Color("#f3d46a"));
+				FillRect(image, 9, 9, 4, 4, new Color("#f3d46a"));
+				FillRect(image, 4, 4, 2, 2, new Color("#fff1a3"));
+				FillRect(image, 10, 4, 2, 2, new Color("#fff1a3"));
+			});
+		}
+
+		private Texture2D CreateConsumablesIcon()
+		{
+			return CreatePixelIcon(image =>
+			{
+				FillRect(image, 6, 2, 4, 3, new Color("#d8d1bd"));
+				FillRect(image, 5, 5, 6, 2, new Color("#7c4b35"));
+				FillRect(image, 4, 7, 8, 7, new Color("#9b252a"));
+				FillRect(image, 5, 8, 6, 5, new Color("#e24b4c"));
+				FillRect(image, 6, 9, 2, 2, new Color("#ffd1c1"));
+				FillRect(image, 3, 12, 10, 2, new Color("#5b1c22"));
+			});
+		}
+
+		private Texture2D CreateBagIcon()
+		{
+			return CreatePixelIcon(image =>
+			{
+				FillRect(image, 5, 7, 10, 8, new Color("#6f4728"));
+				FillRect(image, 6, 8, 8, 6, new Color("#9a6735"));
+				FillRect(image, 7, 4, 6, 2, new Color("#80542f"));
+				FillRect(image, 6, 5, 2, 3, new Color("#3d2b1c"));
+				FillRect(image, 12, 5, 2, 3, new Color("#3d2b1c"));
+				FillRect(image, 8, 10, 4, 2, new Color("#d5ad62"));
+			}, 20, 18);
+		}
+
+		private Texture2D CreateCoinIcon()
+		{
+			return CreatePixelIcon(image =>
+			{
+				FillCircle(image, 8, 8, 7, new Color("#9d6320"));
+				FillCircle(image, 8, 8, 5, new Color("#f4c94f"));
+				FillCircle(image, 7, 7, 2, new Color("#ffe98b"));
+				SetPixelSafe(image, 10, 11, new Color("#c88324"));
+			}, 16, 16);
+		}
+
+		private Texture2D CreateMaterialsIcon()
+		{
+			return CreatePixelIcon(image =>
+			{
+				DrawLine(image, 4, 13, 13, 4, new Color("#2d7d32"));
+				FillCircle(image, 8, 8, 5, new Color("#2f9a3a"));
+				FillCircle(image, 10, 6, 4, new Color("#5fca55"));
+				SetPixelSafe(image, 5, 12, new Color("#8ee36e"));
+				SetPixelSafe(image, 11, 5, new Color("#b7ef8c"));
+			});
+		}
+
+		private Texture2D CreateEquipmentIcon()
+		{
+			return CreatePixelIcon(image =>
+			{
+				DrawLine(image, 4, 13, 12, 5, new Color("#d8dde0"));
+				DrawLine(image, 5, 13, 13, 5, new Color("#8d9aa0"));
+				FillRect(image, 11, 3, 3, 3, new Color("#eef4f2"));
+				FillRect(image, 3, 12, 5, 2, new Color("#8a4d2a"));
+				FillRect(image, 5, 10, 2, 6, new Color("#c98a42"));
+			});
+		}
+
+		private Texture2D CreateQuestIcon()
+		{
+			return CreatePixelIcon(image =>
+			{
+				FillRect(image, 4, 4, 9, 10, new Color("#b9834f"));
+				FillRect(image, 5, 5, 7, 8, new Color("#e0bd82"));
+				FillRect(image, 3, 4, 11, 2, new Color("#8b5130"));
+				FillRect(image, 3, 12, 11, 2, new Color("#8b5130"));
+				DrawLine(image, 6, 8, 11, 8, new Color("#6f5034"));
+				DrawLine(image, 6, 10, 10, 10, new Color("#6f5034"));
+			});
+		}
+
+		private Texture2D CreateOthersIcon()
+		{
+			return CreatePixelIcon(image =>
+			{
+				FillCircle(image, 5, 8, 2, new Color("#d8c39b"));
+				FillCircle(image, 9, 8, 2, new Color("#d8c39b"));
+				FillCircle(image, 13, 8, 2, new Color("#d8c39b"));
+			});
+		}
+
+		private Texture2D CreatePixelIcon(System.Action<Image> draw, int width = 16, int height = 16)
+		{
+			var image = Image.CreateEmpty(width, height, false, Image.Format.Rgba8);
+			image.Fill(new Color(0f, 0f, 0f, 0f));
+			draw(image);
+			return ImageTexture.CreateFromImage(image);
+		}
+
+		private void FillRect(Image image, int x, int y, int width, int height, Color color)
+		{
+			for (int py = y; py < y + height; py++)
+			{
+				for (int px = x; px < x + width; px++)
+				{
+					SetPixelSafe(image, px, py, color);
+				}
+			}
+		}
+
+		private void FillCircle(Image image, int centerX, int centerY, int radius, Color color)
+		{
+			int radiusSquared = radius * radius;
+			for (int y = centerY - radius; y <= centerY + radius; y++)
+			{
+				for (int x = centerX - radius; x <= centerX + radius; x++)
+				{
+					int dx = x - centerX;
+					int dy = y - centerY;
+					if (dx * dx + dy * dy <= radiusSquared)
+					{
+						SetPixelSafe(image, x, y, color);
+					}
+				}
+			}
+		}
+
+		private void DrawLine(Image image, int x0, int y0, int x1, int y1, Color color)
+		{
+			int dx = Mathf.Abs(x1 - x0);
+			int sx = x0 < x1 ? 1 : -1;
+			int dy = -Mathf.Abs(y1 - y0);
+			int sy = y0 < y1 ? 1 : -1;
+			int err = dx + dy;
+
+			while (true)
+			{
+				SetPixelSafe(image, x0, y0, color);
+				if (x0 == x1 && y0 == y1)
+				{
+					break;
+				}
+
+				int e2 = 2 * err;
+				if (e2 >= dy)
+				{
+					err += dy;
+					x0 += sx;
+				}
+				if (e2 <= dx)
+				{
+					err += dx;
+					y0 += sy;
+				}
+			}
+		}
+
+		private void SetPixelSafe(Image image, int x, int y, Color color)
+		{
+			if (x < 0 || y < 0 || x >= image.GetWidth() || y >= image.GetHeight())
+			{
+				return;
+			}
+
+			image.SetPixel(x, y, color);
+		}
+
+		private StyleBoxFlat CreateWindowStyle()
+		{
+			var style = new StyleBoxFlat();
+			style.BgColor = new Color("#201b14");
+			style.BorderColor = new Color("#6f5a3b");
+			style.SetBorderWidthAll(3);
+			style.SetCornerRadiusAll(4);
+			style.ShadowColor = new Color(0f, 0f, 0f, 0.45f);
+			style.ShadowSize = 6;
+			style.ContentMarginLeft = 0;
+			style.ContentMarginTop = 0;
+			style.ContentMarginRight = 0;
+			style.ContentMarginBottom = 0;
+			return style;
+		}
+
+		private StyleBoxFlat CreateHeaderStyle()
+		{
+			var style = new StyleBoxFlat();
+			style.BgColor = new Color("#1c1711");
+			style.BorderColor = new Color("#3e3324");
+			style.SetBorderWidthAll(1);
+			style.SetCornerRadiusAll(2);
+			style.ContentMarginLeft = 7;
+			style.ContentMarginTop = 5;
+			style.ContentMarginRight = 7;
+			style.ContentMarginBottom = 5;
+			return style;
+		}
+
 		private StyleBoxFlat CreateSlotStyle(bool selected)
 		{
 			var style = new StyleBoxFlat();
@@ -936,7 +1216,7 @@ void fragment() {
 			style.BgColor = _inventoryAreaFillColor;
 			style.BorderColor = _inventoryAreaBorderColor;
 			style.SetBorderWidthAll(2);
-			style.SetCornerRadiusAll(8);
+			style.SetCornerRadiusAll(3);
 			style.ShadowColor = new Color(0f, 0f, 0f, 0.28f);
 			style.ShadowSize = 6;
 			style.ContentMarginLeft = 10;
@@ -952,7 +1232,7 @@ void fragment() {
 			style.BgColor = _detailPanelColor;
 			style.BorderColor = _inventoryAreaBorderColor;
 			style.SetBorderWidthAll(2);
-			style.SetCornerRadiusAll(8);
+			style.SetCornerRadiusAll(3);
 			return style;
 		}
 
@@ -962,7 +1242,7 @@ void fragment() {
 			style.BgColor = _detailInnerColor;
 			style.BorderColor = _slotBorderColor;
 			style.SetBorderWidthAll(2);
-			style.SetCornerRadiusAll(6);
+			style.SetCornerRadiusAll(3);
 			return style;
 		}
 
