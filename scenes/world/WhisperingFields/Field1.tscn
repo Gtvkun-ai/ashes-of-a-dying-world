@@ -2009,7 +2009,7 @@ position = Vector2(-102, -6)
 position = Vector2(462, 116)
 
 [node name="red_flower2" parent="red_flower" unique_id=2080116596 instance=ExtResource("10_bytlt")]
-position = Vector2(370, 602)
+position = Vector2(398, 617)
 
 [node name="red_flower3" parent="red_flower" unique_id=1771007583 instance=ExtResource("10_bytlt")]
 position = Vector2(1123, 520)
