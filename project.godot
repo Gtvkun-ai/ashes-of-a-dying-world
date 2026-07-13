@@ -35,6 +35,11 @@ directories/dtl_directory={
 layout/style_directory={}
 glossary/default_case_sensitive=true
 
+[display]
+
+window/size/viewport_width=1600
+window/size/viewport_height=900
+
 [dotnet]
 
 project/assembly_name="Ashes of a Dying World"

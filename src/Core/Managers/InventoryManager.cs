@@ -17,7 +17,9 @@ namespace AshesofaDyingWorld.Core.Managers
 
         private readonly List<EquipmentItemData> _items = new();
 
-        [Export] public int MaxSlots { get; set; } = 20;
+        // Đồng bộ với InventoryPanel: grid mặc định 8 cột x 5 hàng = 40 ô.
+        // Nếu scene ghi đè giá trị này trong Inspector thì giá trị của scene vẫn được ưu tiên.
+        [Export] public int MaxSlots { get; set; } = 40;
 
         public IReadOnlyList<EquipmentItemData> Items => _items;
 

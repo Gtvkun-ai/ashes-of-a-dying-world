@@ -642,7 +642,7 @@ void fragment() {
 			inventoryVBox.SizeFlagsVertical = SizeFlags.ExpandFill;
 			inventoryVBox.AddThemeConstantOverride("separation", 8);
 			mainHBox.AddChild(inventoryVBox);
-			// Grid 4 cột, số hàng tùy theo MaxSlots của InventoryManager (mặc định 20 ô => 5 hàng)
+			// Grid 4 cột, số hàng tùy theo MaxSlots của InventoryManager (mặc định 40 ô => 10 hàng)
 			_inventoryGrid = new GridContainer();
 			_inventoryGrid.Columns = 4;
 			_inventoryGrid.AddThemeConstantOverride("h_separation", 6);
@@ -652,12 +652,12 @@ void fragment() {
 			inventoryVBox.AddChild(_inventoryGrid);
 
 			// Tạo số ô inventory dựa trên MaxSlots của InventoryManager (nếu tìm được),
-			// nếu không thì mặc định 20 ô để khớp với cấu hình túi đồ.
+			// nếu không thì mặc định 40 ô để khớp grid inventory chính.
 			var inventory = ResolveInventoryManager();
-			int slotCount = inventory != null ? inventory.MaxSlots : 20;
+			int slotCount = inventory != null ? inventory.MaxSlots : 40;
 			if (slotCount < 1)
 			{
-				slotCount = 20;
+				slotCount = 40;
 			}
 
 			for (int i = 0; i < slotCount; i++)
