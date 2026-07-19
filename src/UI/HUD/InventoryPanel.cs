@@ -21,11 +21,23 @@ namespace AshesofaDyingWorld.UI.Menus
         private const int GridColumns = 8;
 
         // Kích thước chốt cho viewport 1600 x 900.
-        // Cửa sổ đủ lớn để đọc, nhưng không còn phủ gần kín cả màn hình.
-        private const float PanelWidth = 1220f;
-        private const float PanelHeight = 680f;
-        private const float SlotSize = 68f;
-        private const float DetailPanelWidth = 350f;
+        // Bản V3 thu gọn lại gần tỉ lệ mockup người dùng chọn: đủ lớn để đọc,
+        // nhưng vẫn thấy được thế giới game quanh cửa sổ kho đồ.
+        private const float PanelWidth = 1120f;
+        private const float PanelHeight = 640f;
+        private const float SlotSize = 64f;
+        private const float DetailPanelWidth = 330f;
+        private const int OuterFramePatchMargin = 18;
+
+        // ---------------------------------------------------------------------
+        // Asset hook: người dùng chỉ cần đặt PNG đúng tên vào thư mục này.
+        // Nếu file chưa tồn tại, UI vẫn chạy bằng icon/style fallback trong code.
+        // ---------------------------------------------------------------------
+        private const string InventoryAssetRoot = "res://assets/sprites/UI_HUD/Inventory";
+        private const string OuterFramePath = InventoryAssetRoot + "/frame_9slice.png";
+        private const string GrainTexturePath = InventoryAssetRoot + "/grain.png";
+        private const string BagIconPath = InventoryAssetRoot + "/icon_bag.png";
+        private const string CoinIconPath = InventoryAssetRoot + "/icon_coin.png";
 
         private enum InventoryCategory
         {
@@ -52,25 +64,44 @@ namespace AshesofaDyingWorld.UI.Menus
             public int FirstIndex { get; init; }
         }
 
+        private sealed class ButtonChromeVisual
+        {
+            public ColorRect TopSheen { get; init; }
+            public ColorRect InnerDepth { get; init; }
+            public ColorRect AccentLine { get; init; }
+            public Color Accent { get; init; }
+            public float SheenAlpha { get; init; }
+            public float AccentAlpha { get; init; }
+            public bool Hovered { get; set; }
+            public bool Pressed { get; set; }
+        }
+
         [Export] public NodePath InventoryManagerPath { get; set; }
 
         // ---------------------------------------------------------------------
         // Design tokens: gom màu vào một chỗ để sau này chuyển sang Theme.tres dễ hơn.
         // ---------------------------------------------------------------------
-        private readonly Color _windowColor = new("#15110d");
-        private readonly Color _surfaceColor = new("#211a14");
-        private readonly Color _raisedSurfaceColor = new("#2b221a");
-        private readonly Color _deepSurfaceColor = new("#17130f");
-        private readonly Color _slotSurfaceColor = new("#191510");
-        private readonly Color _borderColor = new("#594631");
-        private readonly Color _strongBorderColor = new("#85653f");
-        private readonly Color _accentColor = new("#d8ad49");
-        private readonly Color _mainTextColor = new("#f3ead9");
-        private readonly Color _mutedTextColor = new("#b8aa91");
-        private readonly Color _categoryColor = new("#7eb35d");
-        private readonly Color _equipColor = new("#5e823f");
-        private readonly Color _dropColor = new("#a6544c");
-        private readonly Color _dangerColor = new("#6f332d");
+        // Palette nâu ấm, hơi cũ. Có phân tầng rõ nhưng không fantasy dát vàng.
+        private readonly Color _windowColor = new("#20140e");
+        private readonly Color _headerColor = new("#2a1a12");
+        private readonly Color _surfaceColor = new("#382318");
+        private readonly Color _raisedSurfaceColor = new("#442a1c");
+        private readonly Color _deepSurfaceColor = new("#1b120d");
+        private readonly Color _slotSurfaceColor = new("#241710");
+        private readonly Color _borderColor = new("#68482f");
+        private readonly Color _strongBorderColor = new("#8d6542");
+        private readonly Color _accentColor = new("#d0a45c");
+        private readonly Color _mainTextColor = new("#f1e5d2");
+        private readonly Color _mutedTextColor = new("#c0aa8e");
+        private readonly Color _categoryColor = new("#79a85c");
+        private readonly Color _equipColor = new("#657d4d");
+        private readonly Color _dropColor = new("#8f5548");
+        private readonly Color _dangerColor = new("#6b342d");
+
+        // Hai màu này chỉ dùng cho phần "chrome" mỏng bên trong button.
+        // Chúng tạo cảm giác mặt gỗ được mài và có độ dày, thay vì biến UI thành bảng điều khiển công nghiệp.
+        private readonly Color _buttonTopSheenColor = new("#f2d29a");
+        private readonly Color _buttonDepthShadowColor = new("#100906");
 
         private InventoryManager _inventoryManager;
         private Player _player;
@@ -97,6 +128,8 @@ namespace AshesofaDyingWorld.UI.Menus
 
         private Texture2D _bagIcon;
         private Texture2D _coinIcon;
+        private Texture2D _outerFrameTexture;
+        private Texture2D _grainTexture;
         private readonly Dictionary<InventoryCategory, Texture2D> _categoryIcons = new();
 
         private InventoryCategory _currentCategory = InventoryCategory.All;
@@ -109,6 +142,7 @@ namespace AshesofaDyingWorld.UI.Menus
         private readonly List<Label> _slotFallbackLabels = new();
         private readonly List<Label> _slotCounts = new();
         private readonly List<Button> _slotButtons = new();
+        private readonly Dictionary<Button, ButtonChromeVisual> _buttonChromeVisuals = new();
 
         public override void _Ready()
         {
@@ -151,27 +185,67 @@ namespace AshesofaDyingWorld.UI.Menus
 
         private void BuildUI()
         {
+            // Dùng nhiều layer thay vì bake toàn bộ UI vào một ảnh lớn:
+            // nền code -> grain gỗ -> nội dung bán trong suốt -> frame 9-slice.
+            var layers = new Control();
+            layers.SetAnchorsPreset(LayoutPreset.FullRect);
+            layers.ClipContents = true;
+            AddChild(layers);
+
             var window = new PanelContainer();
             window.SetAnchorsPreset(LayoutPreset.FullRect);
             window.AddThemeStyleboxOverride("panel", CreateWindowStyle());
-            AddChild(window);
+            layers.AddChild(window);
+
+            // Grain nằm dưới các panel con. Panel con cố ý hơi trong để lớp gỗ này còn nhìn thấy.
+            _grainTexture ??= TryLoadTexture(GrainTexturePath);
+            if (_grainTexture != null)
+            {
+            var grain = new TextureRect();
+            grain.SetAnchorsPreset(LayoutPreset.FullRect);
+            grain.Size = new Vector2(PanelWidth, PanelHeight);
+            grain.Texture = _grainTexture;
+            grain.StretchMode = TextureRect.StretchModeEnum.Tile;
+            grain.TextureRepeat = CanvasItem.TextureRepeatEnum.Enabled;
+            grain.Modulate = new Color(1f, 1f, 1f, 0.24f);
+            grain.MouseFilter = MouseFilterEnum.Ignore;
+            layers.AddChild(grain);
+            }
 
             var outerMargin = new MarginContainer();
-            outerMargin.AddThemeConstantOverride("margin_left", 14);
-            outerMargin.AddThemeConstantOverride("margin_top", 12);
-            outerMargin.AddThemeConstantOverride("margin_right", 14);
-            outerMargin.AddThemeConstantOverride("margin_bottom", 12);
-            window.AddChild(outerMargin);
+            outerMargin.SetAnchorsPreset(LayoutPreset.FullRect);
+            outerMargin.AddThemeConstantOverride("margin_left", 22);
+            outerMargin.AddThemeConstantOverride("margin_top", 22);
+            outerMargin.AddThemeConstantOverride("margin_right", 22);
+            outerMargin.AddThemeConstantOverride("margin_bottom", 20);
+            layers.AddChild(outerMargin);
 
             var root = new VBoxContainer();
             root.SizeFlagsHorizontal = SizeFlags.ExpandFill;
             root.SizeFlagsVertical = SizeFlags.ExpandFill;
-            root.AddThemeConstantOverride("separation", 6);
+            root.AddThemeConstantOverride("separation", 5);
             outerMargin.AddChild(root);
 
             root.AddChild(BuildHeader());
             root.AddChild(BuildCategoryTabs());
             root.AddChild(BuildBody());
+
+            // Source frame rất lớn; patch margin thấp để nó chỉ là viền trang trí mỏng.
+            _outerFrameTexture ??= TryLoadTexture(OuterFramePath);
+            if (_outerFrameTexture != null)
+            {
+                var frame = new NinePatchRect();
+                frame.SetAnchorsPreset(LayoutPreset.FullRect);
+                frame.Texture = _outerFrameTexture;
+                frame.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
+                frame.DrawCenter = false;
+                frame.PatchMarginLeft = OuterFramePatchMargin;
+                frame.PatchMarginTop = OuterFramePatchMargin;
+                frame.PatchMarginRight = OuterFramePatchMargin;
+                frame.PatchMarginBottom = OuterFramePatchMargin;
+                frame.MouseFilter = MouseFilterEnum.Ignore;
+                layers.AddChild(frame);
+            }
         }
 
         private Control BuildHeader()
@@ -193,8 +267,9 @@ namespace AshesofaDyingWorld.UI.Menus
 
             // Icon nhỏ, không thêm badge lồng quanh icon để tránh cảm giác "box trong box".
             var bagIcon = new TextureRect();
-            bagIcon.Texture = _bagIcon ??= CreateBagIcon();
-            bagIcon.CustomMinimumSize = new Vector2(28, 28);
+            bagIcon.Texture = _bagIcon ??= TryLoadTexture(BagIconPath) ?? CreateBagIcon();
+            bagIcon.CustomMinimumSize = new Vector2(24, 24);
+            bagIcon.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
             bagIcon.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
             bagIcon.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
             header.AddChild(bagIcon);
@@ -210,8 +285,9 @@ namespace AshesofaDyingWorld.UI.Menus
             header.AddChild(coinRow);
 
             var coinIcon = new TextureRect();
-            coinIcon.Texture = _coinIcon ??= CreateCoinIcon();
-            coinIcon.CustomMinimumSize = new Vector2(18, 18);
+            coinIcon.Texture = _coinIcon ??= TryLoadTexture(CoinIconPath) ?? CreateCoinIcon();
+            coinIcon.CustomMinimumSize = new Vector2(16, 16);
+            coinIcon.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
             coinIcon.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
             coinIcon.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
             coinRow.AddChild(coinIcon);
@@ -389,9 +465,10 @@ namespace AshesofaDyingWorld.UI.Menus
             previewFrame.AddChild(previewCenter);
 
             _detailIcon = new TextureRect();
-            _detailIcon.CustomMinimumSize = new Vector2(108, 108);
-            _detailIcon.ExpandMode = TextureRect.ExpandModeEnum.FitWidthProportional;
+            _detailIcon.CustomMinimumSize = new Vector2(104, 104);
+            _detailIcon.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
             _detailIcon.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
+            _detailIcon.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
             previewCenter.AddChild(_detailIcon);
 
             _detailNameLabel = CreateLabel("Select Item", 21, _mainTextColor);
@@ -476,8 +553,11 @@ namespace AshesofaDyingWorld.UI.Menus
             var button = new Button();
             button.Text = text;
             button.Icon = GetCategoryIcon(category);
-            button.ExpandIcon = false;
+            button.ExpandIcon = true;
             button.IconAlignment = HorizontalAlignment.Left;
+            button.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
+            button.AddThemeConstantOverride("icon_max_width", 20);
+            button.AddThemeConstantOverride("icon_spacing", 6);
 
             // Không ExpandFill: mỗi tab chỉ rộng theo nội dung, tránh cảm giác thanh navbar web.
             button.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
@@ -485,6 +565,10 @@ namespace AshesofaDyingWorld.UI.Menus
             button.FocusMode = FocusModeEnum.None;
             button.MouseDefaultCursorShape = CursorShape.PointingHand;
             button.Pressed += () => ShowCategory(category);
+
+            // Một lớp sáng rất mỏng ở mép trên và một nét màu ở đáy khiến tab có vật liệu,
+            // nhưng vẫn giữ được vẻ mộc và gọn của khung kho đồ hiện tại.
+            AddButtonChrome(button, _accentColor, strongAccent: false);
             return button;
         }
 
@@ -510,12 +594,17 @@ namespace AshesofaDyingWorld.UI.Menus
             button.MouseDefaultCursorShape = CursorShape.PointingHand;
             button.Pressed += Hide;
 
-            button.AddThemeStyleboxOverride("normal", CreateButtonStyle(_dangerColor, _strongBorderColor, 2));
-            button.AddThemeStyleboxOverride("hover", CreateButtonStyle(_dangerColor.Lightened(0.08f), _accentColor, 2));
-            button.AddThemeStyleboxOverride("pressed", CreateButtonStyle(_dangerColor.Darkened(0.08f), _strongBorderColor, 2));
+            button.AddThemeStyleboxOverride("normal", CreateButtonStyle(_dangerColor, _strongBorderColor, 1));
+            button.AddThemeStyleboxOverride("hover", CreateButtonStyle(_dangerColor.Lightened(0.08f), _accentColor.Darkened(0.08f), 1));
+            button.AddThemeStyleboxOverride("pressed", CreateButtonStyle(_dangerColor.Darkened(0.10f), _strongBorderColor, 1, pressed: true));
+            button.AddThemeStyleboxOverride("hover_pressed", CreateButtonStyle(_dangerColor.Darkened(0.08f), _accentColor.Darkened(0.1f), 1, pressed: true));
             button.AddThemeColorOverride("font_color", _mainTextColor);
             button.AddThemeColorOverride("font_hover_color", Colors.White);
+            button.AddThemeColorOverride("font_pressed_color", _mainTextColor.Darkened(0.05f));
+            button.AddThemeColorOverride("font_shadow_color", new Color(0f, 0f, 0f, 0.52f));
+            button.AddThemeConstantOverride("shadow_offset_y", 1);
             button.AddThemeFontSizeOverride("font_size", 16);
+            AddButtonChrome(button, _dropColor, strongAccent: true);
             return button;
         }
 
@@ -534,6 +623,7 @@ namespace AshesofaDyingWorld.UI.Menus
             icon.Size = new Vector2(54, 54);
             icon.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
             icon.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
+            icon.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
             icon.Visible = false;
             inner.AddChild(icon);
 
@@ -692,22 +782,35 @@ namespace AshesofaDyingWorld.UI.Menus
                 return;
             }
 
-            // Active tab dùng nền ấm nhẹ + gạch chân vàng, không đóng nguyên khung như nút form.
+            // Active tab theo kiểu inset/pressed của mockup: có khung mảnh quanh toàn tab,
+            // không phải một thanh navbar web chỉ có underline.
             button.AddThemeStyleboxOverride("normal", CreateTabStyle(
-                selected ? _raisedSurfaceColor : new Color(0f, 0f, 0f, 0f),
-                selected ? _accentColor : new Color(0f, 0f, 0f, 0f),
-                selected ? 2 : 0));
+                selected ? _raisedSurfaceColor.Lightened(0.018f) : _deepSurfaceColor.Lightened(0.025f),
+                selected ? _accentColor.Darkened(0.22f) : _borderColor.Darkened(0.16f),
+                1,
+                selected: selected));
             button.AddThemeStyleboxOverride("hover", CreateTabStyle(
-                _raisedSurfaceColor.Lightened(0.03f),
-                _strongBorderColor,
-                1));
+                _raisedSurfaceColor.Lightened(0.075f),
+                selected ? _accentColor.Darkened(0.08f) : _strongBorderColor,
+                1,
+                selected: selected));
             button.AddThemeStyleboxOverride("pressed", CreateTabStyle(
+                _deepSurfaceColor.Darkened(0.025f),
+                _accentColor.Darkened(0.04f),
+                1,
+                pressed: true,
+                selected: selected));
+            button.AddThemeStyleboxOverride("hover_pressed", CreateTabStyle(
                 _deepSurfaceColor,
                 _accentColor,
-                2));
-            button.AddThemeColorOverride("font_color", selected ? _accentColor : _mutedTextColor);
+                1,
+                pressed: true,
+                selected: selected));
+            button.AddThemeColorOverride("font_color", selected ? _mainTextColor : _mutedTextColor);
             button.AddThemeColorOverride("font_hover_color", _mainTextColor);
-            button.AddThemeColorOverride("font_pressed_color", _accentColor);
+            button.AddThemeColorOverride("font_pressed_color", _accentColor.Lightened(0.08f));
+            button.AddThemeColorOverride("font_shadow_color", new Color(0f, 0f, 0f, 0.42f));
+            button.AddThemeConstantOverride("shadow_offset_y", 1);
             button.AddThemeFontSizeOverride("font_size", 14);
         }
 
@@ -851,6 +954,8 @@ namespace AshesofaDyingWorld.UI.Menus
                 _primaryActionButton.Text = "Use";
                 _primaryActionButton.Disabled = true;
                 _dropButton.Disabled = true;
+                RefreshButtonChrome(_primaryActionButton);
+                RefreshButtonChrome(_dropButton);
                 return;
             }
 
@@ -875,6 +980,9 @@ namespace AshesofaDyingWorld.UI.Menus
 
             // Quest item thường không được thả. Sau này có thể thay bằng field CanDrop trong ItemData.
             _dropButton.Disabled = item.InventoryCategory == InventoryItemCategory.Quest;
+
+            RefreshButtonChrome(_primaryActionButton);
+            RefreshButtonChrome(_dropButton);
         }
 
         private void ClearSlots()
@@ -1047,14 +1155,21 @@ namespace AshesofaDyingWorld.UI.Menus
             button.CustomMinimumSize = new Vector2(0, 44);
             button.FocusMode = FocusModeEnum.None;
             button.MouseDefaultCursorShape = CursorShape.PointingHand;
-            button.AddThemeStyleboxOverride("normal", CreateButtonStyle(color, color.Lightened(0.12f), 1));
-            button.AddThemeStyleboxOverride("hover", CreateButtonStyle(color.Lightened(0.08f), color.Lightened(0.24f), 1));
-            button.AddThemeStyleboxOverride("pressed", CreateButtonStyle(color.Darkened(0.08f), color, 1));
-            button.AddThemeStyleboxOverride("disabled", CreateButtonStyle(color.Darkened(0.38f), _borderColor, 1));
-            button.AddThemeColorOverride("font_color", Colors.White);
+            // Bình thường vẫn là gỗ nâu. Màu chức năng chỉ đi vào viền, chữ và một nét mỏng ở đáy.
+            // Như vậy nút có chiều sâu mà không nhảy sang thẩm mỹ mobile fantasy bóng nhựa.
+            button.AddThemeStyleboxOverride("normal", CreateButtonStyle(_deepSurfaceColor.Lightened(0.045f), color.Darkened(0.24f), 1));
+            button.AddThemeStyleboxOverride("hover", CreateButtonStyle(_raisedSurfaceColor.Lightened(0.055f), color.Lightened(0.08f), 1));
+            button.AddThemeStyleboxOverride("pressed", CreateButtonStyle(_deepSurfaceColor.Darkened(0.055f), color.Darkened(0.02f), 1, pressed: true));
+            button.AddThemeStyleboxOverride("hover_pressed", CreateButtonStyle(_deepSurfaceColor.Darkened(0.03f), color.Lightened(0.02f), 1, pressed: true));
+            button.AddThemeStyleboxOverride("disabled", CreateButtonStyle(_deepSurfaceColor, _borderColor.Darkened(0.2f), 1, disabled: true));
+            button.AddThemeColorOverride("font_color", color.Lightened(0.3f));
             button.AddThemeColorOverride("font_hover_color", Colors.White);
+            button.AddThemeColorOverride("font_pressed_color", color.Lightened(0.18f));
             button.AddThemeColorOverride("font_disabled_color", new Color(1f, 1f, 1f, 0.38f));
+            button.AddThemeColorOverride("font_shadow_color", new Color(0f, 0f, 0f, 0.58f));
+            button.AddThemeConstantOverride("shadow_offset_y", 1);
             button.AddThemeFontSizeOverride("font_size", 15);
+            AddButtonChrome(button, color, strongAccent: true);
             return button;
         }
 
@@ -1071,25 +1186,35 @@ namespace AshesofaDyingWorld.UI.Menus
             button.FocusMode = FocusModeEnum.None;
             button.MouseDefaultCursorShape = CursorShape.PointingHand;
 
-            button.AddThemeStyleboxOverride("normal", CreateButtonStyle(_raisedSurfaceColor, _dropColor.Darkened(0.08f), 1));
-            button.AddThemeStyleboxOverride("hover", CreateButtonStyle(_dropColor, _dropColor.Lightened(0.18f), 1));
-            button.AddThemeStyleboxOverride("pressed", CreateButtonStyle(_dropColor.Darkened(0.1f), _dropColor, 1));
-            button.AddThemeStyleboxOverride("disabled", CreateButtonStyle(_deepSurfaceColor, _borderColor, 1));
-            button.AddThemeColorOverride("font_color", new Color("#efc0bb"));
+            button.AddThemeStyleboxOverride("normal", CreateButtonStyle(_deepSurfaceColor.Lightened(0.045f), _dropColor.Darkened(0.26f), 1));
+            button.AddThemeStyleboxOverride("hover", CreateButtonStyle(_raisedSurfaceColor.Lightened(0.05f), _dropColor.Lightened(0.06f), 1));
+            button.AddThemeStyleboxOverride("pressed", CreateButtonStyle(_deepSurfaceColor.Darkened(0.055f), _dropColor.Darkened(0.02f), 1, pressed: true));
+            button.AddThemeStyleboxOverride("hover_pressed", CreateButtonStyle(_deepSurfaceColor.Darkened(0.03f), _dropColor.Lightened(0.02f), 1, pressed: true));
+            button.AddThemeStyleboxOverride("disabled", CreateButtonStyle(_deepSurfaceColor, _borderColor.Darkened(0.2f), 1, disabled: true));
+            button.AddThemeColorOverride("font_color", new Color("#dca99d"));
             button.AddThemeColorOverride("font_hover_color", Colors.White);
+            button.AddThemeColorOverride("font_pressed_color", new Color("#c98e82"));
             button.AddThemeColorOverride("font_disabled_color", new Color(1f, 1f, 1f, 0.32f));
+            button.AddThemeColorOverride("font_shadow_color", new Color(0f, 0f, 0f, 0.58f));
+            button.AddThemeConstantOverride("shadow_offset_y", 1);
             button.AddThemeFontSizeOverride("font_size", 15);
+            AddButtonChrome(button, _dropColor, strongAccent: true);
             return button;
         }
 
         private void ApplySecondaryButtonStyle(Button button)
         {
-            button.AddThemeStyleboxOverride("normal", CreateButtonStyle(_raisedSurfaceColor, _borderColor, 1));
-            button.AddThemeStyleboxOverride("hover", CreateButtonStyle(_raisedSurfaceColor.Lightened(0.06f), _strongBorderColor, 1));
-            button.AddThemeStyleboxOverride("pressed", CreateButtonStyle(_deepSurfaceColor, _accentColor, 1));
+            button.AddThemeStyleboxOverride("normal", CreateButtonStyle(_deepSurfaceColor.Lightened(0.04f), _borderColor.Darkened(0.08f), 1));
+            button.AddThemeStyleboxOverride("hover", CreateButtonStyle(_raisedSurfaceColor.Lightened(0.045f), _strongBorderColor, 1));
+            button.AddThemeStyleboxOverride("pressed", CreateButtonStyle(_deepSurfaceColor.Darkened(0.05f), _accentColor.Darkened(0.12f), 1, pressed: true));
+            button.AddThemeStyleboxOverride("hover_pressed", CreateButtonStyle(_deepSurfaceColor.Darkened(0.025f), _accentColor.Darkened(0.04f), 1, pressed: true));
             button.AddThemeColorOverride("font_color", _mainTextColor);
             button.AddThemeColorOverride("font_hover_color", Colors.White);
+            button.AddThemeColorOverride("font_pressed_color", _accentColor.Lightened(0.08f));
+            button.AddThemeColorOverride("font_shadow_color", new Color(0f, 0f, 0f, 0.48f));
+            button.AddThemeConstantOverride("shadow_offset_y", 1);
             button.AddThemeFontSizeOverride("font_size", 14);
+            AddButtonChrome(button, _accentColor, strongAccent: false);
         }
 
         private ColorRect CreateDivider()
@@ -1114,18 +1239,18 @@ namespace AshesofaDyingWorld.UI.Menus
         {
             var style = new StyleBoxFlat();
             style.BgColor = _windowColor;
-            style.BorderColor = _strongBorderColor;
-            style.SetBorderWidthAll(2);
+            style.BorderColor = new Color(_strongBorderColor.R, _strongBorderColor.G, _strongBorderColor.B, 0.42f);
+            style.SetBorderWidthAll(1);
             style.SetCornerRadiusAll(4);
-            style.ShadowColor = new Color(0f, 0f, 0f, 0.46f);
-            style.ShadowSize = 7;
+            style.ShadowColor = new Color(0f, 0f, 0f, 0.56f);
+            style.ShadowSize = 10;
             return style;
         }
 
         private StyleBoxFlat CreateHeaderStyle()
         {
             var style = new StyleBoxFlat();
-            style.BgColor = _deepSurfaceColor;
+            style.BgColor = WithAlpha(_headerColor, 0.86f);
             style.BorderColor = _borderColor;
             style.BorderWidthBottom = 1;
             style.SetCornerRadiusAll(2);
@@ -1135,7 +1260,7 @@ namespace AshesofaDyingWorld.UI.Menus
         private StyleBoxFlat CreateTabsBarStyle()
         {
             var style = new StyleBoxFlat();
-            style.BgColor = _surfaceColor.Darkened(0.035f);
+            style.BgColor = WithAlpha(_surfaceColor.Darkened(0.035f), 0.76f);
             style.BorderColor = _borderColor;
             style.BorderWidthBottom = 1;
             style.SetCornerRadiusAll(2);
@@ -1145,8 +1270,8 @@ namespace AshesofaDyingWorld.UI.Menus
         private StyleBoxFlat CreateSectionStyle()
         {
             var style = new StyleBoxFlat();
-            style.BgColor = _surfaceColor;
-            style.BorderColor = _borderColor;
+            style.BgColor = WithAlpha(_surfaceColor, 0.72f);
+            style.BorderColor = new Color(_borderColor.R, _borderColor.G, _borderColor.B, 0.86f);
             style.SetBorderWidthAll(1);
             style.SetCornerRadiusAll(2);
             return style;
@@ -1155,8 +1280,8 @@ namespace AshesofaDyingWorld.UI.Menus
         private StyleBoxFlat CreateDetailSectionStyle()
         {
             var style = new StyleBoxFlat();
-            style.BgColor = _raisedSurfaceColor.Darkened(0.055f);
-            style.BorderColor = _strongBorderColor.Darkened(0.1f);
+            style.BgColor = WithAlpha(_raisedSurfaceColor.Darkened(0.055f), 0.74f);
+            style.BorderColor = new Color(_strongBorderColor.R, _strongBorderColor.G, _strongBorderColor.B, 0.9f).Darkened(0.1f);
             style.SetBorderWidthAll(1);
             style.SetCornerRadiusAll(2);
             return style;
@@ -1165,22 +1290,33 @@ namespace AshesofaDyingWorld.UI.Menus
         private StyleBoxFlat CreatePreviewStyle()
         {
             var style = new StyleBoxFlat();
-            style.BgColor = _deepSurfaceColor;
-            style.BorderColor = _strongBorderColor.Darkened(0.18f);
+            style.BgColor = WithAlpha(_deepSurfaceColor, 0.82f);
+            style.BorderColor = new Color(_strongBorderColor.R, _strongBorderColor.G, _strongBorderColor.B, 0.86f).Darkened(0.18f);
             style.SetBorderWidthAll(1);
             style.SetCornerRadiusAll(2);
             return style;
         }
 
+        private Color WithAlpha(Color color, float alpha)
+        {
+            return new Color(color.R, color.G, color.B, alpha);
+        }
+
         private StyleBoxFlat CreateSlotStyle(bool selected)
         {
             var style = new StyleBoxFlat();
-            style.BgColor = selected ? _raisedSurfaceColor.Lightened(0.035f) : _slotSurfaceColor;
-            style.BorderColor = selected ? _accentColor : _borderColor.Darkened(0.08f);
+            style.BgColor = selected ? _raisedSurfaceColor.Lightened(0.02f) : _slotSurfaceColor;
+            style.BorderColor = selected ? _accentColor : _borderColor.Darkened(0.05f);
             style.SetBorderWidthAll(selected ? 2 : 1);
-            style.SetCornerRadiusAll(3);
+            style.SetCornerRadiusAll(2);
 
-            // Một chút "độ nổi" bằng content margin, không cần texture hay bevel giả.
+            // Glow chỉ để đọc selection, không biến kiếm gỗ thành thánh kiếm.
+            if (selected)
+            {
+                style.ShadowColor = new Color(_accentColor.R, _accentColor.G, _accentColor.B, 0.24f);
+                style.ShadowSize = 4;
+            }
+
             style.ContentMarginLeft = 2;
             style.ContentMarginTop = 2;
             style.ContentMarginRight = 2;
@@ -1188,32 +1324,198 @@ namespace AshesofaDyingWorld.UI.Menus
             return style;
         }
 
-        private StyleBoxFlat CreateTabStyle(Color background, Color bottomBorder, int bottomBorderWidth)
-        {
-            var style = new StyleBoxFlat();
-            style.BgColor = background;
-            style.BorderColor = bottomBorder;
-            style.BorderWidthBottom = bottomBorderWidth;
-            style.SetCornerRadiusAll(2);
-            style.ContentMarginLeft = 12;
-            style.ContentMarginRight = 12;
-            style.ContentMarginTop = 6;
-            style.ContentMarginBottom = 6;
-            return style;
-        }
-
-        private StyleBoxFlat CreateButtonStyle(Color background, Color border, int borderWidth)
+        private StyleBoxFlat CreateTabStyle(
+            Color background,
+            Color border,
+            int borderWidth,
+            bool pressed = false,
+            bool selected = false)
         {
             var style = new StyleBoxFlat();
             style.BgColor = background;
             style.BorderColor = border;
-            style.SetBorderWidthAll(borderWidth);
+
+            // Mép dưới dày hơn một pixel khi tab đang nổi. Khi bấm thì đảo lại,
+            // tạo cảm giác tab thật sự lún xuống thay vì chỉ đổi màu nền.
+            style.BorderWidthLeft = borderWidth;
+            style.BorderWidthRight = borderWidth;
+            style.BorderWidthTop = pressed ? borderWidth + 1 : borderWidth;
+            style.BorderWidthBottom = pressed ? borderWidth : borderWidth + 1;
             style.SetCornerRadiusAll(3);
-            style.ContentMarginLeft = 10;
-            style.ContentMarginRight = 10;
-            style.ContentMarginTop = 6;
-            style.ContentMarginBottom = 6;
+
+            style.ContentMarginLeft = 12;
+            style.ContentMarginRight = 12;
+            style.ContentMarginTop = pressed ? 7 : 5;
+            style.ContentMarginBottom = pressed ? 5 : 7;
+
+            if (!pressed && borderWidth > 0)
+            {
+                style.ShadowColor = new Color(0f, 0f, 0f, selected ? 0.32f : 0.22f);
+                style.ShadowSize = selected ? 3 : 2;
+                style.ShadowOffset = new Vector2(0, 2);
+            }
+
             return style;
+        }
+
+        private StyleBoxFlat CreateButtonStyle(
+            Color background,
+            Color border,
+            int borderWidth,
+            bool pressed = false,
+            bool disabled = false)
+        {
+            var style = new StyleBoxFlat();
+            style.BgColor = background;
+            style.BorderColor = border;
+
+            // Bevel rất nhẹ: mép đáy dày hơn lúc bình thường, mép trên dày hơn khi nhấn.
+            // Không cần asset button riêng mà vẫn đọc được trạng thái vật lý của nút.
+            style.BorderWidthLeft = borderWidth;
+            style.BorderWidthRight = borderWidth;
+            style.BorderWidthTop = pressed ? borderWidth + 1 : borderWidth;
+            style.BorderWidthBottom = pressed ? borderWidth : borderWidth + 1;
+            style.SetCornerRadiusAll(4);
+
+            style.ContentMarginLeft = 12;
+            style.ContentMarginRight = 12;
+            style.ContentMarginTop = pressed ? 8 : 6;
+            style.ContentMarginBottom = pressed ? 5 : 7;
+
+            if (!pressed && !disabled)
+            {
+                style.ShadowColor = new Color(_buttonDepthShadowColor.R, _buttonDepthShadowColor.G, _buttonDepthShadowColor.B, 0.52f);
+                style.ShadowSize = 3;
+                style.ShadowOffset = new Vector2(0, 2);
+            }
+            else if (pressed)
+            {
+                style.ShadowColor = new Color(0f, 0f, 0f, 0.28f);
+                style.ShadowSize = 1;
+                style.ShadowOffset = new Vector2(0, 1);
+            }
+
+            return style;
+        }
+
+        /// <summary>
+        /// Thêm lớp hoàn thiện rất mỏng cho button: ánh sáng trên bề mặt, bóng trong ở đáy
+        /// và một nét accent. Đây là chi tiết làm button bớt phẳng, không phải trang sức fantasy.
+        /// </summary>
+        private void AddButtonChrome(Button button, Color accent, bool strongAccent)
+        {
+            button.ClipContents = true;
+
+            float sheenAlpha = strongAccent ? 0.12f : 0.075f;
+            float accentAlpha = strongAccent ? 0.46f : 0.22f;
+
+            var topSheen = new ColorRect();
+            topSheen.MouseFilter = MouseFilterEnum.Ignore;
+            topSheen.AnchorLeft = 0f;
+            topSheen.AnchorTop = 0f;
+            topSheen.AnchorRight = 1f;
+            topSheen.AnchorBottom = 0f;
+            topSheen.OffsetLeft = 4;
+            topSheen.OffsetTop = 2;
+            topSheen.OffsetRight = -4;
+            topSheen.OffsetBottom = 3;
+            button.AddChild(topSheen);
+
+            var innerDepth = new ColorRect();
+            innerDepth.MouseFilter = MouseFilterEnum.Ignore;
+            innerDepth.AnchorLeft = 0f;
+            innerDepth.AnchorTop = 1f;
+            innerDepth.AnchorRight = 1f;
+            innerDepth.AnchorBottom = 1f;
+            innerDepth.OffsetLeft = 4;
+            innerDepth.OffsetTop = -4;
+            innerDepth.OffsetRight = -4;
+            innerDepth.OffsetBottom = -3;
+            button.AddChild(innerDepth);
+
+            var accentLine = new ColorRect();
+            accentLine.MouseFilter = MouseFilterEnum.Ignore;
+            accentLine.AnchorLeft = 0f;
+            accentLine.AnchorTop = 1f;
+            accentLine.AnchorRight = 1f;
+            accentLine.AnchorBottom = 1f;
+            accentLine.OffsetLeft = 5;
+            accentLine.OffsetTop = -2;
+            accentLine.OffsetRight = -5;
+            accentLine.OffsetBottom = -1;
+            button.AddChild(accentLine);
+
+            var visual = new ButtonChromeVisual
+            {
+                TopSheen = topSheen,
+                InnerDepth = innerDepth,
+                AccentLine = accentLine,
+                Accent = accent,
+                SheenAlpha = sheenAlpha,
+                AccentAlpha = accentAlpha
+            };
+            _buttonChromeVisuals[button] = visual;
+
+            button.MouseEntered += () =>
+            {
+                visual.Hovered = true;
+                RefreshButtonChrome(button);
+            };
+            button.MouseExited += () =>
+            {
+                visual.Hovered = false;
+                RefreshButtonChrome(button);
+            };
+            button.ButtonDown += () =>
+            {
+                visual.Pressed = true;
+                RefreshButtonChrome(button);
+            };
+            button.ButtonUp += () =>
+            {
+                visual.Pressed = false;
+                RefreshButtonChrome(button);
+            };
+
+            RefreshButtonChrome(button);
+        }
+
+        private void RefreshButtonChrome(Button button)
+        {
+            if (button == null || !_buttonChromeVisuals.TryGetValue(button, out ButtonChromeVisual visual))
+            {
+                return;
+            }
+
+            if (button.Disabled)
+            {
+                visual.TopSheen.Color = WithAlpha(_buttonTopSheenColor, visual.SheenAlpha * 0.28f);
+                visual.InnerDepth.Color = WithAlpha(_buttonDepthShadowColor, 0.24f);
+                visual.AccentLine.Color = WithAlpha(visual.Accent, visual.AccentAlpha * 0.18f);
+                visual.TopSheen.OffsetTop = 2;
+                visual.TopSheen.OffsetBottom = 3;
+                return;
+            }
+
+            if (visual.Pressed)
+            {
+                visual.TopSheen.Color = WithAlpha(_buttonDepthShadowColor, 0.18f);
+                visual.InnerDepth.Color = WithAlpha(_buttonDepthShadowColor, 0.34f);
+                visual.AccentLine.Color = WithAlpha(visual.Accent, visual.AccentAlpha * 0.55f);
+                visual.TopSheen.OffsetTop = 3;
+                visual.TopSheen.OffsetBottom = 4;
+                return;
+            }
+
+            visual.TopSheen.Color = WithAlpha(
+                _buttonTopSheenColor,
+                visual.Hovered ? visual.SheenAlpha * 1.55f : visual.SheenAlpha);
+            visual.InnerDepth.Color = WithAlpha(_buttonDepthShadowColor, visual.Hovered ? 0.38f : 0.46f);
+            visual.AccentLine.Color = WithAlpha(
+                visual.Accent,
+                visual.Hovered ? Mathf.Min(0.7f, visual.AccentAlpha * 1.35f) : visual.AccentAlpha);
+            visual.TopSheen.OffsetTop = 2;
+            visual.TopSheen.OffsetBottom = 3;
         }
 
         private StyleBoxFlat CreateTransparentButtonStyle()
@@ -1226,20 +1528,20 @@ namespace AshesofaDyingWorld.UI.Menus
         private StyleBoxFlat CreateSlotHoverStyle()
         {
             var style = new StyleBoxFlat();
-            style.BgColor = new Color(_raisedSurfaceColor.R, _raisedSurfaceColor.G, _raisedSurfaceColor.B, 0.72f);
-            style.BorderColor = _strongBorderColor;
+            style.BgColor = new Color(_raisedSurfaceColor.R, _raisedSurfaceColor.G, _raisedSurfaceColor.B, 0.8f);
+            style.BorderColor = _strongBorderColor.Lightened(0.08f);
             style.SetBorderWidthAll(1);
-            style.SetCornerRadiusAll(3);
+            style.SetCornerRadiusAll(2);
             return style;
         }
 
         private StyleBoxFlat CreateSlotPressedStyle()
         {
             var style = new StyleBoxFlat();
-            style.BgColor = _deepSurfaceColor;
-            style.BorderColor = _accentColor;
+            style.BgColor = _deepSurfaceColor.Darkened(0.04f);
+            style.BorderColor = _accentColor.Darkened(0.08f);
             style.SetBorderWidthAll(2);
-            style.SetCornerRadiusAll(3);
+            style.SetCornerRadiusAll(2);
             return style;
         }
 
@@ -1254,7 +1556,19 @@ namespace AshesofaDyingWorld.UI.Menus
                 return icon;
             }
 
-            icon = category switch
+            string assetName = category switch
+            {
+                InventoryCategory.All => "category_all.png",
+                InventoryCategory.Consumables => "category_consumables.png",
+                InventoryCategory.Materials => "category_materials.png",
+                InventoryCategory.Equipment => "category_equipment.png",
+                InventoryCategory.Quest => "category_quest.png",
+                _ => "category_more.png"
+            };
+
+            // PNG thật được ưu tiên. Procedural icon chỉ là fallback để project không vỡ
+            // trong lúc người dùng chưa bổ sung asset cuối cùng.
+            icon = TryLoadTexture($"{InventoryAssetRoot}/{assetName}") ?? category switch
             {
                 InventoryCategory.All => CreateAllIcon(),
                 InventoryCategory.Consumables => CreateConsumablesIcon(),
@@ -1353,6 +1667,19 @@ namespace AshesofaDyingWorld.UI.Menus
                 FillCircle(image, 8, 8, 5, new Color("#e9bb3f"));
                 FillCircle(image, 7, 7, 2, new Color("#f8d975"));
             }, 16, 16);
+        }
+
+        /// <summary>
+        /// Load asset tùy chọn. Không log lỗi nếu file chưa có vì người dùng sẽ tự bổ sung PNG sau.
+        /// </summary>
+        private Texture2D TryLoadTexture(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path) || !ResourceLoader.Exists(path))
+            {
+                return null;
+            }
+
+            return GD.Load<Texture2D>(path);
         }
 
         private Texture2D CreatePixelIcon(System.Action<Image> draw, int width = 16, int height = 16)
