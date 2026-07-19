@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="AudioCueData" format=3 uid="uid://ba8y40iw5tiia"]
 
 [ext_resource type="AudioStream" uid="uid://be8wbp0g1v1qc" path="res://assets/music/sound_effect/foot_step/normal_step_01.mp3" id="1_mbcod"]
-[ext_resource type="Script" uid="uid://3v0318pn6b7p" path="res://src/Core/Data/AudioCueData.cs" id="1_rd0ph"]
+[ext_resource type="Script" uid="uid://3v0318pn6b7p" path="res://src/Audio/AudioCueData.cs" id="1_rd0ph"]
 
 [resource]
 script = ExtResource("1_rd0ph")

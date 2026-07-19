@@ -64,18 +64,6 @@ namespace AshesofaDyingWorld.UI.Menus
             public int FirstIndex { get; init; }
         }
 
-        private sealed class ButtonChromeVisual
-        {
-            public ColorRect TopSheen { get; init; }
-            public ColorRect InnerDepth { get; init; }
-            public ColorRect AccentLine { get; init; }
-            public Color Accent { get; init; }
-            public float SheenAlpha { get; init; }
-            public float AccentAlpha { get; init; }
-            public bool Hovered { get; set; }
-            public bool Pressed { get; set; }
-        }
-
         [Export] public NodePath InventoryManagerPath { get; set; }
 
         // ---------------------------------------------------------------------
@@ -97,11 +85,6 @@ namespace AshesofaDyingWorld.UI.Menus
         private readonly Color _equipColor = new("#657d4d");
         private readonly Color _dropColor = new("#8f5548");
         private readonly Color _dangerColor = new("#6b342d");
-
-        // Hai màu này chỉ dùng cho phần "chrome" mỏng bên trong button.
-        // Chúng tạo cảm giác mặt gỗ được mài và có độ dày, thay vì biến UI thành bảng điều khiển công nghiệp.
-        private readonly Color _buttonTopSheenColor = new("#f2d29a");
-        private readonly Color _buttonDepthShadowColor = new("#100906");
 
         private InventoryManager _inventoryManager;
         private Player _player;
@@ -142,7 +125,6 @@ namespace AshesofaDyingWorld.UI.Menus
         private readonly List<Label> _slotFallbackLabels = new();
         private readonly List<Label> _slotCounts = new();
         private readonly List<Button> _slotButtons = new();
-        private readonly Dictionary<Button, ButtonChromeVisual> _buttonChromeVisuals = new();
 
         public override void _Ready()
         {
@@ -565,10 +547,6 @@ namespace AshesofaDyingWorld.UI.Menus
             button.FocusMode = FocusModeEnum.None;
             button.MouseDefaultCursorShape = CursorShape.PointingHand;
             button.Pressed += () => ShowCategory(category);
-
-            // Một lớp sáng rất mỏng ở mép trên và một nét màu ở đáy khiến tab có vật liệu,
-            // nhưng vẫn giữ được vẻ mộc và gọn của khung kho đồ hiện tại.
-            AddButtonChrome(button, _accentColor, strongAccent: false);
             return button;
         }
 
@@ -594,17 +572,12 @@ namespace AshesofaDyingWorld.UI.Menus
             button.MouseDefaultCursorShape = CursorShape.PointingHand;
             button.Pressed += Hide;
 
-            button.AddThemeStyleboxOverride("normal", CreateButtonStyle(_dangerColor, _strongBorderColor, 1));
-            button.AddThemeStyleboxOverride("hover", CreateButtonStyle(_dangerColor.Lightened(0.08f), _accentColor.Darkened(0.08f), 1));
-            button.AddThemeStyleboxOverride("pressed", CreateButtonStyle(_dangerColor.Darkened(0.10f), _strongBorderColor, 1, pressed: true));
-            button.AddThemeStyleboxOverride("hover_pressed", CreateButtonStyle(_dangerColor.Darkened(0.08f), _accentColor.Darkened(0.1f), 1, pressed: true));
+            button.AddThemeStyleboxOverride("normal", CreateButtonStyle(_dangerColor, _strongBorderColor, 2));
+            button.AddThemeStyleboxOverride("hover", CreateButtonStyle(_dangerColor.Lightened(0.08f), _accentColor, 2));
+            button.AddThemeStyleboxOverride("pressed", CreateButtonStyle(_dangerColor.Darkened(0.08f), _strongBorderColor, 2));
             button.AddThemeColorOverride("font_color", _mainTextColor);
             button.AddThemeColorOverride("font_hover_color", Colors.White);
-            button.AddThemeColorOverride("font_pressed_color", _mainTextColor.Darkened(0.05f));
-            button.AddThemeColorOverride("font_shadow_color", new Color(0f, 0f, 0f, 0.52f));
-            button.AddThemeConstantOverride("shadow_offset_y", 1);
             button.AddThemeFontSizeOverride("font_size", 16);
-            AddButtonChrome(button, _dropColor, strongAccent: true);
             return button;
         }
 
@@ -785,32 +758,20 @@ namespace AshesofaDyingWorld.UI.Menus
             // Active tab theo kiểu inset/pressed của mockup: có khung mảnh quanh toàn tab,
             // không phải một thanh navbar web chỉ có underline.
             button.AddThemeStyleboxOverride("normal", CreateTabStyle(
-                selected ? _raisedSurfaceColor.Lightened(0.018f) : _deepSurfaceColor.Lightened(0.025f),
-                selected ? _accentColor.Darkened(0.22f) : _borderColor.Darkened(0.16f),
-                1,
-                selected: selected));
+                selected ? _raisedSurfaceColor.Lightened(0.025f) : new Color(0f, 0f, 0f, 0f),
+                selected ? _accentColor.Darkened(0.16f) : new Color(0f, 0f, 0f, 0f),
+                selected ? 1 : 0));
             button.AddThemeStyleboxOverride("hover", CreateTabStyle(
-                _raisedSurfaceColor.Lightened(0.075f),
-                selected ? _accentColor.Darkened(0.08f) : _strongBorderColor,
-                1,
-                selected: selected));
+                _raisedSurfaceColor.Lightened(0.07f),
+                _strongBorderColor,
+                1));
             button.AddThemeStyleboxOverride("pressed", CreateTabStyle(
-                _deepSurfaceColor.Darkened(0.025f),
-                _accentColor.Darkened(0.04f),
-                1,
-                pressed: true,
-                selected: selected));
-            button.AddThemeStyleboxOverride("hover_pressed", CreateTabStyle(
                 _deepSurfaceColor,
                 _accentColor,
-                1,
-                pressed: true,
-                selected: selected));
+                1));
             button.AddThemeColorOverride("font_color", selected ? _mainTextColor : _mutedTextColor);
             button.AddThemeColorOverride("font_hover_color", _mainTextColor);
             button.AddThemeColorOverride("font_pressed_color", _accentColor.Lightened(0.08f));
-            button.AddThemeColorOverride("font_shadow_color", new Color(0f, 0f, 0f, 0.42f));
-            button.AddThemeConstantOverride("shadow_offset_y", 1);
             button.AddThemeFontSizeOverride("font_size", 14);
         }
 
@@ -954,8 +915,6 @@ namespace AshesofaDyingWorld.UI.Menus
                 _primaryActionButton.Text = "Use";
                 _primaryActionButton.Disabled = true;
                 _dropButton.Disabled = true;
-                RefreshButtonChrome(_primaryActionButton);
-                RefreshButtonChrome(_dropButton);
                 return;
             }
 
@@ -980,9 +939,6 @@ namespace AshesofaDyingWorld.UI.Menus
 
             // Quest item thường không được thả. Sau này có thể thay bằng field CanDrop trong ItemData.
             _dropButton.Disabled = item.InventoryCategory == InventoryItemCategory.Quest;
-
-            RefreshButtonChrome(_primaryActionButton);
-            RefreshButtonChrome(_dropButton);
         }
 
         private void ClearSlots()
@@ -1155,21 +1111,16 @@ namespace AshesofaDyingWorld.UI.Menus
             button.CustomMinimumSize = new Vector2(0, 44);
             button.FocusMode = FocusModeEnum.None;
             button.MouseDefaultCursorShape = CursorShape.PointingHand;
-            // Bình thường vẫn là gỗ nâu. Màu chức năng chỉ đi vào viền, chữ và một nét mỏng ở đáy.
-            // Như vậy nút có chiều sâu mà không nhảy sang thẩm mỹ mobile fantasy bóng nhựa.
-            button.AddThemeStyleboxOverride("normal", CreateButtonStyle(_deepSurfaceColor.Lightened(0.045f), color.Darkened(0.24f), 1));
-            button.AddThemeStyleboxOverride("hover", CreateButtonStyle(_raisedSurfaceColor.Lightened(0.055f), color.Lightened(0.08f), 1));
-            button.AddThemeStyleboxOverride("pressed", CreateButtonStyle(_deepSurfaceColor.Darkened(0.055f), color.Darkened(0.02f), 1, pressed: true));
-            button.AddThemeStyleboxOverride("hover_pressed", CreateButtonStyle(_deepSurfaceColor.Darkened(0.03f), color.Lightened(0.02f), 1, pressed: true));
-            button.AddThemeStyleboxOverride("disabled", CreateButtonStyle(_deepSurfaceColor, _borderColor.Darkened(0.2f), 1, disabled: true));
+            // Nút không tô xanh cả mảng khi đứng yên. Màu chức năng nằm ở chữ/viền,
+            // hover mới sáng lên. Cách này gần mockup hơn và bớt cảm giác UI mobile.
+            button.AddThemeStyleboxOverride("normal", CreateButtonStyle(_deepSurfaceColor.Lightened(0.035f), color.Darkened(0.2f), 1));
+            button.AddThemeStyleboxOverride("hover", CreateButtonStyle(_raisedSurfaceColor.Lightened(0.04f), color.Lightened(0.12f), 1));
+            button.AddThemeStyleboxOverride("pressed", CreateButtonStyle(_deepSurfaceColor.Darkened(0.04f), color, 2));
+            button.AddThemeStyleboxOverride("disabled", CreateButtonStyle(_deepSurfaceColor, _borderColor.Darkened(0.2f), 1));
             button.AddThemeColorOverride("font_color", color.Lightened(0.3f));
             button.AddThemeColorOverride("font_hover_color", Colors.White);
-            button.AddThemeColorOverride("font_pressed_color", color.Lightened(0.18f));
             button.AddThemeColorOverride("font_disabled_color", new Color(1f, 1f, 1f, 0.38f));
-            button.AddThemeColorOverride("font_shadow_color", new Color(0f, 0f, 0f, 0.58f));
-            button.AddThemeConstantOverride("shadow_offset_y", 1);
             button.AddThemeFontSizeOverride("font_size", 15);
-            AddButtonChrome(button, color, strongAccent: true);
             return button;
         }
 
@@ -1186,35 +1137,25 @@ namespace AshesofaDyingWorld.UI.Menus
             button.FocusMode = FocusModeEnum.None;
             button.MouseDefaultCursorShape = CursorShape.PointingHand;
 
-            button.AddThemeStyleboxOverride("normal", CreateButtonStyle(_deepSurfaceColor.Lightened(0.045f), _dropColor.Darkened(0.26f), 1));
-            button.AddThemeStyleboxOverride("hover", CreateButtonStyle(_raisedSurfaceColor.Lightened(0.05f), _dropColor.Lightened(0.06f), 1));
-            button.AddThemeStyleboxOverride("pressed", CreateButtonStyle(_deepSurfaceColor.Darkened(0.055f), _dropColor.Darkened(0.02f), 1, pressed: true));
-            button.AddThemeStyleboxOverride("hover_pressed", CreateButtonStyle(_deepSurfaceColor.Darkened(0.03f), _dropColor.Lightened(0.02f), 1, pressed: true));
-            button.AddThemeStyleboxOverride("disabled", CreateButtonStyle(_deepSurfaceColor, _borderColor.Darkened(0.2f), 1, disabled: true));
+            button.AddThemeStyleboxOverride("normal", CreateButtonStyle(_deepSurfaceColor.Lightened(0.035f), _dropColor.Darkened(0.22f), 1));
+            button.AddThemeStyleboxOverride("hover", CreateButtonStyle(_raisedSurfaceColor.Lightened(0.035f), _dropColor.Lightened(0.08f), 1));
+            button.AddThemeStyleboxOverride("pressed", CreateButtonStyle(_deepSurfaceColor.Darkened(0.04f), _dropColor, 2));
+            button.AddThemeStyleboxOverride("disabled", CreateButtonStyle(_deepSurfaceColor, _borderColor.Darkened(0.2f), 1));
             button.AddThemeColorOverride("font_color", new Color("#dca99d"));
             button.AddThemeColorOverride("font_hover_color", Colors.White);
-            button.AddThemeColorOverride("font_pressed_color", new Color("#c98e82"));
             button.AddThemeColorOverride("font_disabled_color", new Color(1f, 1f, 1f, 0.32f));
-            button.AddThemeColorOverride("font_shadow_color", new Color(0f, 0f, 0f, 0.58f));
-            button.AddThemeConstantOverride("shadow_offset_y", 1);
             button.AddThemeFontSizeOverride("font_size", 15);
-            AddButtonChrome(button, _dropColor, strongAccent: true);
             return button;
         }
 
         private void ApplySecondaryButtonStyle(Button button)
         {
-            button.AddThemeStyleboxOverride("normal", CreateButtonStyle(_deepSurfaceColor.Lightened(0.04f), _borderColor.Darkened(0.08f), 1));
-            button.AddThemeStyleboxOverride("hover", CreateButtonStyle(_raisedSurfaceColor.Lightened(0.045f), _strongBorderColor, 1));
-            button.AddThemeStyleboxOverride("pressed", CreateButtonStyle(_deepSurfaceColor.Darkened(0.05f), _accentColor.Darkened(0.12f), 1, pressed: true));
-            button.AddThemeStyleboxOverride("hover_pressed", CreateButtonStyle(_deepSurfaceColor.Darkened(0.025f), _accentColor.Darkened(0.04f), 1, pressed: true));
+            button.AddThemeStyleboxOverride("normal", CreateButtonStyle(_deepSurfaceColor.Lightened(0.04f), _borderColor, 1));
+            button.AddThemeStyleboxOverride("hover", CreateButtonStyle(_raisedSurfaceColor.Lightened(0.04f), _strongBorderColor, 1));
+            button.AddThemeStyleboxOverride("pressed", CreateButtonStyle(_deepSurfaceColor.Darkened(0.04f), _accentColor.Darkened(0.1f), 2));
             button.AddThemeColorOverride("font_color", _mainTextColor);
             button.AddThemeColorOverride("font_hover_color", Colors.White);
-            button.AddThemeColorOverride("font_pressed_color", _accentColor.Lightened(0.08f));
-            button.AddThemeColorOverride("font_shadow_color", new Color(0f, 0f, 0f, 0.48f));
-            button.AddThemeConstantOverride("shadow_offset_y", 1);
             button.AddThemeFontSizeOverride("font_size", 14);
-            AddButtonChrome(button, _accentColor, strongAccent: false);
         }
 
         private ColorRect CreateDivider()
@@ -1324,198 +1265,32 @@ namespace AshesofaDyingWorld.UI.Menus
             return style;
         }
 
-        private StyleBoxFlat CreateTabStyle(
-            Color background,
-            Color border,
-            int borderWidth,
-            bool pressed = false,
-            bool selected = false)
+        private StyleBoxFlat CreateTabStyle(Color background, Color border, int borderWidth)
         {
             var style = new StyleBoxFlat();
             style.BgColor = background;
             style.BorderColor = border;
+            style.SetBorderWidthAll(borderWidth);
+            style.SetCornerRadiusAll(2);
+            style.ContentMarginLeft = 12;
+            style.ContentMarginRight = 12;
+            style.ContentMarginTop = 6;
+            style.ContentMarginBottom = 6;
+            return style;
+        }
 
-            // Mép dưới dày hơn một pixel khi tab đang nổi. Khi bấm thì đảo lại,
-            // tạo cảm giác tab thật sự lún xuống thay vì chỉ đổi màu nền.
-            style.BorderWidthLeft = borderWidth;
-            style.BorderWidthRight = borderWidth;
-            style.BorderWidthTop = pressed ? borderWidth + 1 : borderWidth;
-            style.BorderWidthBottom = pressed ? borderWidth : borderWidth + 1;
+        private StyleBoxFlat CreateButtonStyle(Color background, Color border, int borderWidth)
+        {
+            var style = new StyleBoxFlat();
+            style.BgColor = background;
+            style.BorderColor = border;
+            style.SetBorderWidthAll(borderWidth);
             style.SetCornerRadiusAll(3);
-
-            style.ContentMarginLeft = 12;
-            style.ContentMarginRight = 12;
-            style.ContentMarginTop = pressed ? 7 : 5;
-            style.ContentMarginBottom = pressed ? 5 : 7;
-
-            if (!pressed && borderWidth > 0)
-            {
-                style.ShadowColor = new Color(0f, 0f, 0f, selected ? 0.32f : 0.22f);
-                style.ShadowSize = selected ? 3 : 2;
-                style.ShadowOffset = new Vector2(0, 2);
-            }
-
+            style.ContentMarginLeft = 10;
+            style.ContentMarginRight = 10;
+            style.ContentMarginTop = 6;
+            style.ContentMarginBottom = 6;
             return style;
-        }
-
-        private StyleBoxFlat CreateButtonStyle(
-            Color background,
-            Color border,
-            int borderWidth,
-            bool pressed = false,
-            bool disabled = false)
-        {
-            var style = new StyleBoxFlat();
-            style.BgColor = background;
-            style.BorderColor = border;
-
-            // Bevel rất nhẹ: mép đáy dày hơn lúc bình thường, mép trên dày hơn khi nhấn.
-            // Không cần asset button riêng mà vẫn đọc được trạng thái vật lý của nút.
-            style.BorderWidthLeft = borderWidth;
-            style.BorderWidthRight = borderWidth;
-            style.BorderWidthTop = pressed ? borderWidth + 1 : borderWidth;
-            style.BorderWidthBottom = pressed ? borderWidth : borderWidth + 1;
-            style.SetCornerRadiusAll(4);
-
-            style.ContentMarginLeft = 12;
-            style.ContentMarginRight = 12;
-            style.ContentMarginTop = pressed ? 8 : 6;
-            style.ContentMarginBottom = pressed ? 5 : 7;
-
-            if (!pressed && !disabled)
-            {
-                style.ShadowColor = new Color(_buttonDepthShadowColor.R, _buttonDepthShadowColor.G, _buttonDepthShadowColor.B, 0.52f);
-                style.ShadowSize = 3;
-                style.ShadowOffset = new Vector2(0, 2);
-            }
-            else if (pressed)
-            {
-                style.ShadowColor = new Color(0f, 0f, 0f, 0.28f);
-                style.ShadowSize = 1;
-                style.ShadowOffset = new Vector2(0, 1);
-            }
-
-            return style;
-        }
-
-        /// <summary>
-        /// Thêm lớp hoàn thiện rất mỏng cho button: ánh sáng trên bề mặt, bóng trong ở đáy
-        /// và một nét accent. Đây là chi tiết làm button bớt phẳng, không phải trang sức fantasy.
-        /// </summary>
-        private void AddButtonChrome(Button button, Color accent, bool strongAccent)
-        {
-            button.ClipContents = true;
-
-            float sheenAlpha = strongAccent ? 0.12f : 0.075f;
-            float accentAlpha = strongAccent ? 0.46f : 0.22f;
-
-            var topSheen = new ColorRect();
-            topSheen.MouseFilter = MouseFilterEnum.Ignore;
-            topSheen.AnchorLeft = 0f;
-            topSheen.AnchorTop = 0f;
-            topSheen.AnchorRight = 1f;
-            topSheen.AnchorBottom = 0f;
-            topSheen.OffsetLeft = 4;
-            topSheen.OffsetTop = 2;
-            topSheen.OffsetRight = -4;
-            topSheen.OffsetBottom = 3;
-            button.AddChild(topSheen);
-
-            var innerDepth = new ColorRect();
-            innerDepth.MouseFilter = MouseFilterEnum.Ignore;
-            innerDepth.AnchorLeft = 0f;
-            innerDepth.AnchorTop = 1f;
-            innerDepth.AnchorRight = 1f;
-            innerDepth.AnchorBottom = 1f;
-            innerDepth.OffsetLeft = 4;
-            innerDepth.OffsetTop = -4;
-            innerDepth.OffsetRight = -4;
-            innerDepth.OffsetBottom = -3;
-            button.AddChild(innerDepth);
-
-            var accentLine = new ColorRect();
-            accentLine.MouseFilter = MouseFilterEnum.Ignore;
-            accentLine.AnchorLeft = 0f;
-            accentLine.AnchorTop = 1f;
-            accentLine.AnchorRight = 1f;
-            accentLine.AnchorBottom = 1f;
-            accentLine.OffsetLeft = 5;
-            accentLine.OffsetTop = -2;
-            accentLine.OffsetRight = -5;
-            accentLine.OffsetBottom = -1;
-            button.AddChild(accentLine);
-
-            var visual = new ButtonChromeVisual
-            {
-                TopSheen = topSheen,
-                InnerDepth = innerDepth,
-                AccentLine = accentLine,
-                Accent = accent,
-                SheenAlpha = sheenAlpha,
-                AccentAlpha = accentAlpha
-            };
-            _buttonChromeVisuals[button] = visual;
-
-            button.MouseEntered += () =>
-            {
-                visual.Hovered = true;
-                RefreshButtonChrome(button);
-            };
-            button.MouseExited += () =>
-            {
-                visual.Hovered = false;
-                RefreshButtonChrome(button);
-            };
-            button.ButtonDown += () =>
-            {
-                visual.Pressed = true;
-                RefreshButtonChrome(button);
-            };
-            button.ButtonUp += () =>
-            {
-                visual.Pressed = false;
-                RefreshButtonChrome(button);
-            };
-
-            RefreshButtonChrome(button);
-        }
-
-        private void RefreshButtonChrome(Button button)
-        {
-            if (button == null || !_buttonChromeVisuals.TryGetValue(button, out ButtonChromeVisual visual))
-            {
-                return;
-            }
-
-            if (button.Disabled)
-            {
-                visual.TopSheen.Color = WithAlpha(_buttonTopSheenColor, visual.SheenAlpha * 0.28f);
-                visual.InnerDepth.Color = WithAlpha(_buttonDepthShadowColor, 0.24f);
-                visual.AccentLine.Color = WithAlpha(visual.Accent, visual.AccentAlpha * 0.18f);
-                visual.TopSheen.OffsetTop = 2;
-                visual.TopSheen.OffsetBottom = 3;
-                return;
-            }
-
-            if (visual.Pressed)
-            {
-                visual.TopSheen.Color = WithAlpha(_buttonDepthShadowColor, 0.18f);
-                visual.InnerDepth.Color = WithAlpha(_buttonDepthShadowColor, 0.34f);
-                visual.AccentLine.Color = WithAlpha(visual.Accent, visual.AccentAlpha * 0.55f);
-                visual.TopSheen.OffsetTop = 3;
-                visual.TopSheen.OffsetBottom = 4;
-                return;
-            }
-
-            visual.TopSheen.Color = WithAlpha(
-                _buttonTopSheenColor,
-                visual.Hovered ? visual.SheenAlpha * 1.55f : visual.SheenAlpha);
-            visual.InnerDepth.Color = WithAlpha(_buttonDepthShadowColor, visual.Hovered ? 0.38f : 0.46f);
-            visual.AccentLine.Color = WithAlpha(
-                visual.Accent,
-                visual.Hovered ? Mathf.Min(0.7f, visual.AccentAlpha * 1.35f) : visual.AccentAlpha);
-            visual.TopSheen.OffsetTop = 2;
-            visual.TopSheen.OffsetBottom = 3;
         }
 
         private StyleBoxFlat CreateTransparentButtonStyle()

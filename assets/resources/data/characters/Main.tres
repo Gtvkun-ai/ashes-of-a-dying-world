@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="CharacterConfig" load_steps=6 format=3 uid="uid://btue7yvcpa6pm"]
 
-[ext_resource type="Script" uid="uid://cfybswbojyqyb" path="res://src/Core/Data/CharacterConfig.cs" id="1_68kib"]
+[ext_resource type="Script" uid="uid://cfybswbojyqyb" path="res://src/Characters/Data/CharacterConfig.cs" id="1_68kib"]
 [ext_resource type="VideoStream" uid="uid://c5x3g3e4c4j2b" path="res://assets/sprites/char/main/Mainavt.ogv" id="1_asl43"]
 [ext_resource type="PackedScene" uid="uid://b3eivxlgndgut" path="res://assets/sprites/char/main/Main_Body.tscn" id="2_0brhl"]
 [ext_resource type="Texture2D" uid="uid://1pbexhcw6hrb" path="res://assets/sprites/char/main/MainIco.png" id="2_no3tc"]

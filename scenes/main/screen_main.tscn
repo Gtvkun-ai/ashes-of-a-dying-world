@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://caqnp10danp0c"]
 
-[ext_resource type="Script" uid="uid://dmkiugm0xl2mi" path="res://src/Scenes/ScreenMain.cs" id="1_4tkux"]
+[ext_resource type="Script" uid="uid://dmkiugm0xl2mi" path="res://src/App/ScreenMain.cs" id="1_4tkux"]
 [ext_resource type="Texture2D" uid="uid://by2s11nqd7j07" path="res://assets/sprites/setting item/loginForm.png" id="4_4tkux"]
 [ext_resource type="Texture2D" uid="uid://wuosknutle7h" path="res://assets/sprites/setting item/loginBtn.png" id="5_dsk4t"]
 [ext_resource type="Texture2D" uid="uid://betfpi3n0j56r" path="res://assets/sprites/setting item/exitBtn.png" id="6_dsk4t"]
