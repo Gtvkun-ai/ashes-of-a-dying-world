@@ -77,6 +77,7 @@ namespace AshesofaDyingWorld.Combat.Actors
         private CombatHitbox _combatHitbox;
         private Vector2 _moveCommand;
         private bool _runCommand;
+        private bool _preserveFacingWhileMoving;
         private bool _blockCommand;
         private bool _isExhausted;
         private Vector2 _locomotionVelocity;
@@ -182,15 +183,20 @@ namespace AshesofaDyingWorld.Combat.Actors
             OnCombatExitTree();
         }
 
-        public void SetMoveInput(Vector2 direction, bool wantsRun = false)
+        /// <summary>
+        /// Đặt hướng di chuyển. preserveFacing = true dùng cho strafe/backpedal trong combat:
+        /// nhân vật vẫn nhìn mục tiêu dù đang lùi hoặc đi ngang.
+        /// </summary>
+        public void SetMoveInput(Vector2 direction, bool wantsRun = false, bool preserveFacing = false)
         {
             _moveCommand = direction == Vector2.Zero ? Vector2.Zero : direction.Normalized();
             _runCommand = wantsRun;
+            _preserveFacingWhileMoving = preserveFacing && _moveCommand != Vector2.Zero;
         }
 
         public void StopMoveInput()
         {
-            SetMoveInput(Vector2.Zero, false);
+            SetMoveInput(Vector2.Zero, false, false);
         }
 
         public void SetBlocking(bool value)
@@ -216,7 +222,14 @@ namespace AshesofaDyingWorld.Combat.Actors
 
         public void FaceToward(Vector2 worldPosition)
         {
-            Vector2 direction = worldPosition - GlobalPosition;
+            // Dùng CombatCenter thay vì root GlobalPosition. Hurtbox của nhiều actor có offset,
+            // nếu trừ từ root thì một vector "up" ngắn có thể bị offset kéo thành "down".
+            Vector2 direction = worldPosition - CombatCenter;
+            FaceDirection(direction);
+        }
+
+        public void FaceDirection(Vector2 direction)
+        {
             if (direction.LengthSquared() <= 0.001f)
             {
                 return;
@@ -344,6 +357,7 @@ namespace AshesofaDyingWorld.Combat.Actors
             _combatHitbox?.DisableHitbox();
             _moveCommand = Vector2.Zero;
             _runCommand = false;
+            _preserveFacingWhileMoving = false;
             _blockCommand = false;
             _isExhausted = false;
             _locomotionVelocity = Vector2.Zero;
@@ -532,7 +546,10 @@ namespace AshesofaDyingWorld.Combat.Actors
                 moveSpeed *= Abilities?.MoveSpeedMultiplier ?? 1f;
                 moveSpeed *= GetRuntimeMoveSpeedMultiplier();
                 targetVelocity = _moveCommand * moveSpeed;
-                _facingCardinal = ResolveCardinalDirection(_moveCommand);
+                if (!_preserveFacingWhileMoving)
+                {
+                    _facingCardinal = ResolveCardinalDirection(_moveCommand);
+                }
             }
 
             float step = (targetVelocity == Vector2.Zero ? Deceleration : Acceleration) * delta;
@@ -574,8 +591,12 @@ namespace AshesofaDyingWorld.Combat.Actors
             bool moving = _locomotionVelocity.LengthSquared() > 1f;
             if (moving)
             {
-                string direction = ResolveEightDirection(_locomotionVelocity.Normalized());
-                bool running = _runCommand && !_isExhausted;
+                // Khi backpedal/strafe, giữ animation theo hướng mặt thay vì hướng vận tốc.
+                // Nhờ vậy Hyou lùi khỏi slime mà không quay lưng rồi vẫn gây damage.
+                string direction = _preserveFacingWhileMoving
+                    ? _facingCardinal
+                    : ResolveEightDirection(_locomotionVelocity.Normalized());
+                bool running = _runCommand && !_isExhausted && !_preserveFacingWhileMoving;
                 string animation = $"{(running ? "run" : "go")}_{direction}";
                 _lastMoveAnimation = animation;
                 if (_body.SpriteFrames.HasAnimation(animation)

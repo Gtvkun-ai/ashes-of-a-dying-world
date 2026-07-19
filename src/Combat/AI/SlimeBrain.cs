@@ -131,7 +131,7 @@ namespace AshesofaDyingWorld.Combat.AI
                 AxisSwitchBias);
 
             _approachFacing = approach.Facing;
-            _character.FaceToward(_character.CombatCenter + _approachFacing);
+            _character.FaceDirection(_approachFacing);
             _character.SetBlocking(false);
 
             float separationExit = Mathf.Max(
@@ -161,7 +161,7 @@ namespace AshesofaDyingWorld.Combat.AI
                     move += towardSlot.Normalized() * 0.45f;
                 }
 
-                _character.SetMoveInput(move.Normalized(), false);
+                _character.SetMoveInput(move.Normalized(), false, true);
                 return;
             }
 
@@ -181,7 +181,7 @@ namespace AshesofaDyingWorld.Combat.AI
             Vector2 moveDirection = toSlot.LengthSquared() > 1f
                 ? toSlot.Normalized()
                 : (approach.TooFar ? _approachFacing : -_approachFacing);
-            _character.SetMoveInput(moveDirection, false);
+            _character.SetMoveInput(moveDirection, false, true);
         }
 
         private void RunReturnOrWander()

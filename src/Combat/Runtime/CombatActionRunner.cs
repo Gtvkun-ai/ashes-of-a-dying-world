@@ -30,6 +30,8 @@ namespace AshesofaDyingWorld.Combat.Runtime
         private float _bufferRemaining;
         private bool _usingFrameAnimation;
         private bool _hitboxOpened;
+        private Vector2 _actionFacing = Vector2.Down;
+        private string _actionFacingCardinal = "down";
         private FallbackPhase _fallbackPhase;
         private float _fallbackRemaining;
 
@@ -51,7 +53,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
                     return Vector2.Zero;
                 }
 
-                return _owner.FacingDirection
+                return _actionFacing
                     * _currentAction.LungeSpeed
                     * Mathf.Max(0f, _owner.ActionLungeMultiplier);
             }
@@ -161,7 +163,20 @@ namespace AshesofaDyingWorld.Combat.Runtime
             _hitboxOpened = false;
             _hitbox.DisableHitbox();
 
-            string animationName = action.ResolveAnimation(_owner.FacingCardinal);
+            // Khóa hướng ngay lúc action được nhận. Animation, lunge và hitbox phải dùng
+            // cùng một hướng suốt đòn, không thể mỗi thứ nhìn một phía như ba phòng ban.
+            _actionFacing = _owner.FacingDirection;
+            if (_actionFacing.LengthSquared() <= 0.001f)
+            {
+                _actionFacing = Vector2.Down;
+            }
+            else
+            {
+                _actionFacing = _actionFacing.Normalized();
+            }
+            _actionFacingCardinal = _owner.FacingCardinal;
+
+            string animationName = action.ResolveAnimation(_actionFacingCardinal);
             _usingFrameAnimation = _body?.SpriteFrames != null
                 && !string.IsNullOrWhiteSpace(animationName)
                 && _body.SpriteFrames.HasAnimation(animationName);
@@ -196,7 +211,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
             if (!_hitboxOpened && frame >= _currentAction.ActiveStartFrame)
             {
                 _state.EnterAttackActive();
-                _hitbox.EnableHitbox(_currentAction, _owner.FacingDirection);
+                _hitbox.EnableHitbox(_currentAction, _actionFacing);
                 _hitboxOpened = true;
             }
 
@@ -226,7 +241,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
                     _fallbackPhase = FallbackPhase.Active;
                     _fallbackRemaining = Mathf.Max(0.01f, _currentAction.ActiveSeconds);
                     _state.EnterAttackActive();
-                    _hitbox.EnableHitbox(_currentAction, _owner.FacingDirection);
+                    _hitbox.EnableHitbox(_currentAction, _actionFacing);
                     _hitboxOpened = true;
                     break;
                 case FallbackPhase.Active:
@@ -274,6 +289,8 @@ namespace AshesofaDyingWorld.Combat.Runtime
             _bufferRemaining = 0f;
             _hitboxOpened = false;
             _usingFrameAnimation = false;
+            _actionFacing = Vector2.Down;
+            _actionFacingCardinal = "down";
             _fallbackPhase = FallbackPhase.None;
             _fallbackRemaining = 0f;
 

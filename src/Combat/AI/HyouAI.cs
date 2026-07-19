@@ -12,10 +12,10 @@ namespace AshesofaDyingWorld.Entities.NPC
     /// Brain đồng đội theo state. AI chỉ phát intent cho CombatCharacter.
     ///
     /// Điểm khác biệt của bản này:
-    /// - follow formation có vùng cấm cứng quanh Player;
-    /// - tiếp cận combat theo làn ngang/dọc, không dùng khoảng cách tròn đơn thuần;
-    /// - quá gần mục tiêu phải lùi ra đủ xa theo hysteresis rồi mới được đánh lại;
-    /// - cooldown chỉ bắt đầu khi CombatActionRunner thật sự nhận đòn đánh.
+    /// - follow bằng orbit slot ngẫu nhiên quanh Player, không đóng đinh vào gót chân chéo;
+    /// - combat tách hướng nhìn khỏi hướng di chuyển để backpedal/strafe đúng nghĩa;
+    /// - khóa hướng action, hitbox không được gây damage phía sau;
+    /// - quá gần mục tiêu phải lùi ra đủ xa theo hysteresis rồi mới được đánh lại.
     /// </summary>
     public partial class HyouAI : Node
     {
@@ -37,21 +37,24 @@ namespace AshesofaDyingWorld.Entities.NPC
         [Export] public float EnemySearchRadius { get; set; } = 180f;
         [Export] public float EnemyRefreshInterval { get; set; } = 0.2f;
 
-        [ExportGroup("Follow Formation")]
-        [Export] public float FollowDistance { get; set; } = 58f;
-        [Export] public float FormationBackOffset { get; set; } = 46f;
-        [Export] public float FormationSideOffset { get; set; } = 24f;
-        [Export] public float FormationArriveRadius { get; set; } = 6f;
-        [Export] public float FormationResumeRadius { get; set; } = 14f;
-        [Export] public float LeaderSeparationEnterRadius { get; set; } = 32f;
-        [Export] public float LeaderSeparationExitRadius { get; set; } = 42f;
-        [Export] public float LeaderSeparationWeight { get; set; } = 2.4f;
+        [ExportGroup("Follow Orbit")]
+        [Export] public float FollowRunDistance { get; set; } = 92f;
+        [Export] public float FollowOrbitMinRadius { get; set; } = 46f;
+        [Export] public float FollowOrbitMaxRadius { get; set; } = 72f;
+        [Export] public float FollowOrbitRetargetMinSeconds { get; set; } = 3.5f;
+        [Export] public float FollowOrbitRetargetMaxSeconds { get; set; } = 7.0f;
+        [Export] public float FollowOrbitArriveRadius { get; set; } = 7f;
+        [Export] public float FollowOrbitResumeRadius { get; set; } = 16f;
+        [Export] public float LeaderSeparationEnterRadius { get; set; } = 30f;
+        [Export] public float LeaderSeparationExitRadius { get; set; } = 40f;
+        [Export] public float LeaderSeparationWeight { get; set; } = 2.8f;
 
         [ExportGroup("Combat Positioning")]
-        [Export] public float AttackRange { get; set; } = 41f;
-        [Export] public float PreferredAttackDistance { get; set; } = 35f;
-        [Export] public float MinimumAttackDistance { get; set; } = 27f;
-        [Export] public float TargetSeparationExitMargin { get; set; } = 8f;
+        [Export] public float AttackRange { get; set; } = 43f;
+        [Export] public float PreferredAttackDistance { get; set; } = 37f;
+        [Export] public float MinimumAttackDistance { get; set; } = 29f;
+        [Export] public float RetreatEnterDistance { get; set; } = 31f;
+        [Export] public float RetreatExitDistance { get; set; } = 38f;
         [Export] public float AttackLaneTolerance { get; set; } = 10f;
         [Export] public float AxisSwitchBias { get; set; } = 1.35f;
         [Export] public float RepositionRange { get; set; } = 32f;
@@ -78,7 +81,10 @@ namespace AshesofaDyingWorld.Entities.NPC
         private bool _movingToFormation;
         private bool _escapingLeaderOverlap;
         private bool _escapingTargetOverlap;
+        private bool _hasFollowOrbitSlot;
         private int _formationSideSign = 1;
+        private float _followOrbitRetargetRemaining;
+        private Vector2 _followOrbitOffset;
         private Vector2 _approachFacing = Vector2.Down;
 
         public override void _Ready()
@@ -97,6 +103,7 @@ namespace AshesofaDyingWorld.Entities.NPC
 
             float dt = (float)delta;
             _attackCooldownRemaining = Mathf.Max(0f, _attackCooldownRemaining - dt);
+            _followOrbitRetargetRemaining -= dt;
             _refreshRemaining -= dt;
 
             if (_refreshRemaining <= 0f)
@@ -139,8 +146,9 @@ namespace AshesofaDyingWorld.Entities.NPC
                 return;
             }
 
-            _formationSideSign = (_character.GetInstanceId() & 1UL) == 0UL ? 1 : -1;
+            _formationSideSign = _rng.RandiRange(0, 1) == 0 ? -1 : 1;
             _leader = ResolveLeader();
+            ChooseFollowOrbitSlot(false);
             RefreshAllyCollisionExceptions();
             AutoEquipStarterWeapon();
             _initialized = true;
@@ -167,39 +175,47 @@ namespace AshesofaDyingWorld.Entities.NPC
                 AxisSwitchBias);
 
             _approachFacing = approach.Facing;
-            _character.FaceToward(_character.CombatCenter + _approachFacing);
+            _character.FaceDirection(_approachFacing);
             _character.SetBlocking(false);
 
-            float separationExit = Mathf.Max(
-                MinimumAttackDistance + 1f,
-                MinimumAttackDistance + TargetSeparationExitMargin);
+            float retreatEnter = Mathf.Max(MinimumAttackDistance, RetreatEnterDistance);
+            float retreatExit = Mathf.Max(retreatEnter + 2f, RetreatExitDistance);
+            bool insideRetreatBand = approach.DirectDistance < retreatEnter
+                || approach.ForwardDistance < retreatEnter;
 
-            if (!_escapingTargetOverlap && approach.TooClose)
+            if (!_escapingTargetOverlap && insideRetreatBand)
             {
                 _escapingTargetOverlap = true;
             }
-            else if (_escapingTargetOverlap && approach.DirectDistance >= separationExit)
+            else if (_escapingTargetOverlap
+                && approach.DirectDistance >= retreatExit
+                && approach.ForwardDistance >= retreatExit * 0.85f)
             {
                 _escapingTargetOverlap = false;
             }
 
-            // Hysteresis bắt buộc: khi đã lọt sát slime, Hyou phải thoát hẳn ra ngoài
-            // separationExit. Không được vừa nhích qua ngưỡng một pixel đã lao vào đánh lại.
             if (_escapingTargetOverlap)
             {
                 _state = CompanionState.Reposition;
-                Vector2 away = CombatSteering.SafeAwayDirection(
+
+                // Backpedal thật: vận tốc đi ngược hướng mặt, còn sprite vẫn nhìn slime.
+                // Thêm một ít actual-away để thoát ổn khi hai tâm gần như chồng nhau.
+                Vector2 backward = -_approachFacing;
+                Vector2 actualAway = CombatSteering.SafeAwayDirection(
                     _character.CombatCenter,
                     _target.CombatCenter,
-                    -_approachFacing);
-                Vector2 towardSlot = approach.DesiredPosition - _character.CombatCenter;
-                Vector2 move = away * 1.75f;
-                if (towardSlot.LengthSquared() > 0.001f)
+                    backward);
+                Vector2 move = backward * 1.65f + actualAway * 0.75f;
+
+                // Nếu đang lệch làn, trộn correction ngang nhẹ; không chạy vòng ra sau target.
+                Vector2 toSlot = approach.DesiredPosition - _character.CombatCenter;
+                Vector2 lateral = toSlot - _approachFacing * toSlot.Dot(_approachFacing);
+                if (lateral.LengthSquared() > 1f)
                 {
-                    move += towardSlot.Normalized() * 0.55f;
+                    move += lateral.Normalized() * 0.35f;
                 }
 
-                _character.SetMoveInput(move.Normalized(), false);
+                _character.SetMoveInput(move.Normalized(), false, true);
                 return;
             }
 
@@ -207,6 +223,7 @@ namespace AshesofaDyingWorld.Entities.NPC
             {
                 _state = CompanionState.Attack;
                 _character.StopMoveInput();
+                _character.FaceDirection(_approachFacing);
                 if (_attackCooldownRemaining <= 0f && _character.RequestAttack())
                 {
                     _attackCooldownRemaining = AttackCooldown;
@@ -218,13 +235,14 @@ namespace AshesofaDyingWorld.Entities.NPC
                 ? CompanionState.Reposition
                 : CompanionState.Chase;
 
-            Vector2 toSlot = approach.DesiredPosition - _character.CombatCenter;
-            Vector2 moveDirection = toSlot.LengthSquared() > 1f
-                ? toSlot.Normalized()
+            Vector2 toDesiredSlot = approach.DesiredPosition - _character.CombatCenter;
+            Vector2 moveDirection = toDesiredSlot.LengthSquared() > 1f
+                ? toDesiredSlot.Normalized()
                 : (approach.TooFar ? _approachFacing : -_approachFacing);
 
             bool wantsRun = approach.DirectDistance > AttackRange * 2f;
-            _character.SetMoveInput(moveDirection, wantsRun);
+            // Cả lúc tiến, strafe và lùi đều giữ mắt vào mục tiêu.
+            _character.SetMoveInput(moveDirection, wantsRun, true);
         }
 
         private void RunGuard()
@@ -254,12 +272,14 @@ namespace AshesofaDyingWorld.Entities.NPC
         {
             _state = CompanionState.Reposition;
             _character.SetBlocking(false);
+            Vector2 threatPosition = _guardThreat?.CombatCenter ?? _character.CombatCenter + _approachFacing;
+            _character.FaceToward(threatPosition);
             Vector2 fallback = -(_guardThreat?.FacingDirection ?? _approachFacing);
             Vector2 away = CombatSteering.SafeAwayDirection(
                 _character.CombatCenter,
-                _guardThreat.CombatCenter,
+                threatPosition,
                 fallback);
-            _character.SetMoveInput(away, false);
+            _character.SetMoveInput(away, false, true);
         }
 
         private void RunFollow()
@@ -269,6 +289,7 @@ namespace AshesofaDyingWorld.Entities.NPC
             if (_leader == null || !IsNodeUsable(_leader))
             {
                 _leader = ResolveLeader();
+                _hasFollowOrbitSlot = false;
             }
 
             if (_leader == null)
@@ -277,15 +298,14 @@ namespace AshesofaDyingWorld.Entities.NPC
                 return;
             }
 
-            Vector2 leaderFacing = _leader.FacingDirection;
-            if (leaderFacing.LengthSquared() <= 0.001f)
+            if (!_hasFollowOrbitSlot)
             {
-                leaderFacing = Vector2.Down;
+                ChooseFollowOrbitSlot(false);
             }
 
             float leaderDistance = _character.GlobalPosition.DistanceTo(_leader.GlobalPosition);
             float separationEnter = Mathf.Max(1f, LeaderSeparationEnterRadius);
-            float separationExit = Mathf.Max(separationEnter + 1f, LeaderSeparationExitRadius);
+            float separationExit = Mathf.Max(separationEnter + 2f, LeaderSeparationExitRadius);
 
             if (!_escapingLeaderOverlap && leaderDistance < separationEnter)
             {
@@ -302,27 +322,36 @@ namespace AshesofaDyingWorld.Entities.NPC
                 Vector2 away = CombatSteering.SafeAwayDirection(
                     _character.GlobalPosition,
                     _leader.GlobalPosition,
-                    -leaderFacing);
+                    -_leader.FacingDirection);
                 _character.SetMoveInput(away, false);
                 return;
             }
 
-            Vector2 side = new Vector2(-leaderFacing.Y, leaderFacing.X) * _formationSideSign;
-            Vector2 formationTarget = _leader.GlobalPosition
-                - leaderFacing * Mathf.Max(separationExit, FormationBackOffset)
-                + side * FormationSideOffset;
+            Vector2 orbitTarget = _leader.GlobalPosition + _followOrbitOffset;
+            Vector2 toOrbit = orbitTarget - _character.GlobalPosition;
+            float orbitDistance = toOrbit.Length();
 
-            Vector2 toFormation = formationTarget - _character.GlobalPosition;
-            float formationDistance = toFormation.Length();
+            bool leaderMostlyIdle = _leader.Velocity.LengthSquared() < 36f;
+            if (_followOrbitRetargetRemaining <= 0f
+                && leaderMostlyIdle
+                && orbitDistance <= FollowOrbitResumeRadius)
+            {
+                // Chỉ đổi chỗ khi đã gần slot cũ và Player không chạy. Như vậy vị trí là
+                // ngẫu nhiên quanh Player nhưng không hóa thành vệ tinh tăng động.
+                ChooseFollowOrbitSlot(true);
+                orbitTarget = _leader.GlobalPosition + _followOrbitOffset;
+                toOrbit = orbitTarget - _character.GlobalPosition;
+                orbitDistance = toOrbit.Length();
+            }
 
             if (_movingToFormation)
             {
-                if (formationDistance <= FormationArriveRadius)
+                if (orbitDistance <= FollowOrbitArriveRadius)
                 {
                     _movingToFormation = false;
                 }
             }
-            else if (formationDistance >= FormationResumeRadius)
+            else if (orbitDistance >= FollowOrbitResumeRadius)
             {
                 _movingToFormation = true;
             }
@@ -333,12 +362,10 @@ namespace AshesofaDyingWorld.Entities.NPC
                 return;
             }
 
-            Vector2 desiredDirection = toFormation.LengthSquared() > 0.001f
-                ? toFormation.Normalized()
+            Vector2 desiredDirection = toOrbit.LengthSquared() > 0.001f
+                ? toOrbit.Normalized()
                 : Vector2.Zero;
 
-            // Nếu leader vừa quay hướng làm formation slot nhảy sang phía bên kia,
-            // bẻ đường sang tiếp tuyến để Hyou đi vòng thay vì cắt qua tâm Player.
             desiredDirection = CombatSteering.SteerAroundCircle(
                 desiredDirection,
                 _character.GlobalPosition,
@@ -351,10 +378,43 @@ namespace AshesofaDyingWorld.Entities.NPC
                 _leader.GlobalPosition,
                 separationExit,
                 LeaderSeparationWeight,
-                -leaderFacing);
+                -_leader.FacingDirection);
 
-            bool wantsRun = formationDistance > FollowDistance;
+            bool wantsRun = orbitDistance > FollowRunDistance;
             _character.SetMoveInput(desiredDirection, wantsRun);
+        }
+
+        private void ChooseFollowOrbitSlot(bool preferCurrentSide)
+        {
+            if (_leader == null || _character == null)
+            {
+                return;
+            }
+
+            float minRadius = Mathf.Max(LeaderSeparationExitRadius + 4f, FollowOrbitMinRadius);
+            float maxRadius = Mathf.Max(minRadius + 4f, FollowOrbitMaxRadius);
+            float angle;
+
+            Vector2 currentRelative = _character.GlobalPosition - _leader.GlobalPosition;
+            if (preferCurrentSide && currentRelative.LengthSquared() > 4f)
+            {
+                // Giữ cùng bán cầu rồi jitter khá rộng. Tránh cảnh slot mới nhảy qua đúng
+                // phía đối diện khiến Hyou lại cắt ngang người chơi.
+                angle = currentRelative.Angle() + _rng.RandfRange(-1.15f, 1.15f);
+            }
+            else
+            {
+                angle = _rng.RandfRange(0f, Mathf.Tau);
+            }
+
+            float radius = _rng.RandfRange(minRadius, maxRadius);
+            _followOrbitOffset = Vector2.Right.Rotated(angle) * radius;
+            _followOrbitRetargetRemaining = _rng.RandfRange(
+                Mathf.Max(0.5f, FollowOrbitRetargetMinSeconds),
+                Mathf.Max(FollowOrbitRetargetMinSeconds + 0.5f, FollowOrbitRetargetMaxSeconds));
+            _formationSideSign = _rng.RandiRange(0, 1) == 0 ? -1 : 1;
+            _hasFollowOrbitSlot = true;
+            _movingToFormation = true;
         }
 
         private void RefreshTarget()
@@ -368,6 +428,7 @@ namespace AshesofaDyingWorld.Entities.NPC
             CombatCharacter next = FindNearestHostile(EnemySearchRadius);
             if (next != _target)
             {
+                bool returnedToFollow = _target != null && next == null;
                 _target = next;
                 _escapingTargetOverlap = false;
                 _approachFacing = _target == null
@@ -376,6 +437,11 @@ namespace AshesofaDyingWorld.Entities.NPC
                         _target.CombatCenter - _character.CombatCenter,
                         _character.FacingDirection,
                         AxisSwitchBias);
+
+                if (returnedToFollow)
+                {
+                    ChooseFollowOrbitSlot(true);
+                }
             }
         }
 
@@ -495,8 +561,8 @@ namespace AshesofaDyingWorld.Entities.NPC
                     continue;
                 }
 
-                // Đồng minh không khóa cứng thân nhau. Formation + separation chịu trách nhiệm
-                // giữ khoảng cách, tránh cảnh Player bị Hyou chặn cửa trong không gian hẹp.
+                // Đồng minh không khóa cứng thân nhau để Hyou không chặn Player ở cửa hẹp.
+                // Orbit slot + vùng separation chịu trách nhiệm giữ khoảng cách mềm.
                 _character.AddCollisionExceptionWith(ally);
                 ally.AddCollisionExceptionWith(_character);
             }

@@ -22,6 +22,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
         private CombatActionData _action;
         private HitProfileData _profile;
         private readonly HashSet<ulong> _hitTargets = new();
+        private Vector2 _attackFacing = Vector2.Down;
         private bool _active;
 
         public bool IsActive => _active;
@@ -56,9 +57,16 @@ namespace AshesofaDyingWorld.Combat.Runtime
             _hitTargets.Clear();
 
             Vector2 safeFacing = facing == Vector2.Zero ? Vector2.Down : facing.Normalized();
+            _attackFacing = safeFacing;
             float angle = safeFacing.Angle() - Mathf.Pi * 0.5f;
             Rotation = angle;
-            Position = safeFacing * _profile.Reach + _profile.LocalOffset.Rotated(angle);
+
+            // Hitbox phải xuất phát từ CombatCenter thật, không phải root actor. Hyou có
+            // hurtbox lệch xuống dưới nên cách cũ khiến hình đánh và sprite không cùng tâm.
+            Vector2 localCombatCenter = _combatOwner.ToLocal(_combatOwner.CombatCenter);
+            Position = localCombatCenter
+                + safeFacing * _profile.Reach
+                + _profile.LocalOffset.Rotated(angle);
             _shape.Size = new Vector2(
                 Mathf.Max(1f, _profile.HitboxSize.X),
                 Mathf.Max(1f, _profile.HitboxSize.Y));
@@ -73,6 +81,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
             _active = false;
             _action = null;
             _profile = null;
+            _attackFacing = Vector2.Down;
             _hitTargets.Clear();
             SetPhysicsProcess(false);
         }
@@ -129,6 +138,15 @@ namespace AshesofaDyingWorld.Combat.Runtime
 
             CombatCharacter target = FindCombatCharacter(area);
             if (target == null || target == _combatOwner)
+            {
+                return;
+            }
+
+            // Chặn tuyệt đối hit phía sau. Khi hai body đứng quá sát, rectangle hitbox
+            // có thể chạm hurtbox ở phía đối diện dù animation đang chém hướng khác.
+            Vector2 toTarget = target.CombatCenter - _combatOwner.CombatCenter;
+            if (toTarget.LengthSquared() > 0.001f
+                && _attackFacing.Dot(toTarget.Normalized()) <= 0.05f)
             {
                 return;
             }

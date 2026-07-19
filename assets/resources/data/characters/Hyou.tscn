@@ -6,6 +6,10 @@
 [ext_resource type="Resource" uid="uid://cpdjbs8w3cyi8" path="res://assets/resources/data/characters/Hyou.tres" id="4_config"]
 [ext_resource type="Script" uid="uid://bmhf2l4kgx1rl" path="res://src/Inventory/Runtime/EquipmentManager.cs" id="5_equip"]
 [ext_resource type="Script" uid="uid://dwbeyl76glva6" path="res://src/Combat/AI/HyouAI.cs" id="6_ai"]
+[ext_resource type="Script" path="res://src/Combat/Decision/Runtime/CombatDecisionAgent.cs" id="7_decision"]
+[ext_resource type="Resource" path="res://assets/resources/data/combat/decision/classes/cryomancer.tres" id="8_class"]
+[ext_resource type="Resource" path="res://assets/resources/data/combat/decision/doctrines/hyou_safe_control.tres" id="9_doctrine"]
+[ext_resource type="Resource" path="res://assets/resources/data/combat/decision/personalities/hyou_calm_protective.tres" id="10_personality"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_sxeu7"]
 size = Vector2(11, 6)
@@ -58,14 +62,45 @@ _playerStats = NodePath("../PlayerStats")
 
 [node name="HyouAI" type="Node" parent="." unique_id=1411975786]
 script = ExtResource("6_ai")
-FollowDistance = 58.0
-FormationBackOffset = 46.0
-FormationSideOffset = 24.0
-LeaderSeparationEnterRadius = 32.0
-LeaderSeparationExitRadius = 42.0
-AttackRange = 41.0
-PreferredAttackDistance = 35.0
-MinimumAttackDistance = 27.0
-TargetSeparationExitMargin = 8.0
+FollowRunDistance = 92.0
+FollowOrbitMinRadius = 46.0
+FollowOrbitMaxRadius = 72.0
+FollowOrbitRetargetMinSeconds = 3.5
+FollowOrbitRetargetMaxSeconds = 7.0
+FollowOrbitArriveRadius = 7.0
+FollowOrbitResumeRadius = 16.0
+LeaderSeparationEnterRadius = 30.0
+LeaderSeparationExitRadius = 40.0
+LeaderSeparationWeight = 2.8
+AttackRange = 43.0
+PreferredAttackDistance = 37.0
+MinimumAttackDistance = 29.0
+RetreatEnterDistance = 31.0
+RetreatExitDistance = 38.0
 AttackLaneTolerance = 10.0
-RepositionRange = 32.0
+RepositionRange = 34.0
+
+[node name="LoSRay" type="RayCast2D" parent="."]
+enabled = true
+target_position = Vector2(0, -140)
+collision_mask = 1
+collide_with_areas = false
+collide_with_bodies = true
+exclude_parent = true
+
+[node name="CombatDecisionAgent" type="Node" parent="."]
+script = ExtResource("7_decision")
+UseDecisionCore = false
+ShadowMode = true
+CharacterPath = NodePath("..")
+LineOfSightRayPath = NodePath("../LoSRay")
+DecisionIntervalSeconds = 0.15
+EnemySearchRadius = 220.0
+ThreatDangerRange = 78.0
+LeaderDangerRadius = 86.0
+ClassProfile = ExtResource("8_class")
+DoctrineProfile = ExtResource("9_doctrine")
+PersonalityProfile = ExtResource("10_personality")
+DebugLogging = true
+TraceHistoryCapacity = 24
+
