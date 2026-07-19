@@ -293,6 +293,7 @@ size = Vector2(23, 14)
 
 
 [node name="Slime1" type="CharacterBody2D" unique_id=657747274 groups=["Combatant", "Enemy"]]
+motion_mode = 1
 y_sort_enabled = true
 collision_layer = 2
 collision_mask = 9
@@ -309,6 +310,7 @@ MinStaminaToRun = 0.0
 Acceleration = 500.0
 Deceleration = 700.0
 ExternalForceDecay = 600.0
+ActionLungeMultiplier = 0.12
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=1941029776]
 position = Vector2(0, 5)
@@ -348,3 +350,8 @@ GuardRegenRate = 0.0
 
 [node name="SlimeBrain" type="Node" parent="."]
 script = ExtResource("3_brain")
+AttackRange = 37.0
+PreferredAttackDistance = 31.0
+MinimumAttackDistance = 24.0
+TargetSeparationExitMargin = 7.0
+AttackLaneTolerance = 11.0

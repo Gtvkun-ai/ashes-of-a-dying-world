@@ -5,8 +5,9 @@ using AshesofaDyingWorld.Combat.Runtime;
 namespace AshesofaDyingWorld.Combat.AI
 {
     /// <summary>
-    /// AI quái tách khỏi actor: wander, aggro, leash, chase và attack bằng intent chung.
-    /// Dùng cùng quy tắc cardinal attack lane với companion để không đứng chém hụt ở góc chéo.
+    /// AI slime tách khỏi actor: wander, aggro, leash, chase và attack bằng intent chung.
+    /// Slime dùng cùng cardinal lane và hysteresis khoảng cách với companion, nếu không
+    /// chính slime sẽ lao vào Hyou rồi cả hai dính thành một cục dù Hyou đã biết lùi.
     /// </summary>
     public partial class SlimeBrain : Node
     {
@@ -26,11 +27,12 @@ namespace AshesofaDyingWorld.Combat.AI
         [Export] public float TargetRefreshInterval { get; set; } = 0.2f;
 
         [ExportGroup("Combat Positioning")]
-        [Export] public float AttackRange { get; set; } = 30f;
-        [Export] public float PreferredAttackDistance { get; set; } = 21f;
-        [Export] public float MinimumAttackDistance { get; set; } = 7f;
-        [Export] public float AttackLaneTolerance { get; set; } = 15f;
-        [Export] public float AxisSwitchBias { get; set; } = 1.25f;
+        [Export] public float AttackRange { get; set; } = 37f;
+        [Export] public float PreferredAttackDistance { get; set; } = 31f;
+        [Export] public float MinimumAttackDistance { get; set; } = 24f;
+        [Export] public float TargetSeparationExitMargin { get; set; } = 7f;
+        [Export] public float AttackLaneTolerance { get; set; } = 11f;
+        [Export] public float AxisSwitchBias { get; set; } = 1.3f;
         [Export] public float AttackCooldown { get; set; } = 0.65f;
 
         [ExportGroup("Wander")]
@@ -49,6 +51,7 @@ namespace AshesofaDyingWorld.Combat.AI
         private float _attackCooldownRemaining;
         private float _targetRefreshRemaining;
         private float _wanderRetargetRemaining;
+        private bool _escapingTargetOverlap;
 
         public override void _Ready()
         {
@@ -83,7 +86,9 @@ namespace AshesofaDyingWorld.Combat.AI
                     RunCombat();
                     return;
                 }
+
                 _target = null;
+                _escapingTargetOverlap = false;
             }
 
             RunReturnOrWander();
@@ -129,6 +134,37 @@ namespace AshesofaDyingWorld.Combat.AI
             _character.FaceToward(_character.CombatCenter + _approachFacing);
             _character.SetBlocking(false);
 
+            float separationExit = Mathf.Max(
+                MinimumAttackDistance + 1f,
+                MinimumAttackDistance + TargetSeparationExitMargin);
+
+            if (!_escapingTargetOverlap && approach.TooClose)
+            {
+                _escapingTargetOverlap = true;
+            }
+            else if (_escapingTargetOverlap && approach.DirectDistance >= separationExit)
+            {
+                _escapingTargetOverlap = false;
+            }
+
+            if (_escapingTargetOverlap)
+            {
+                _state = EnemyState.Reposition;
+                Vector2 away = CombatSteering.SafeAwayDirection(
+                    _character.CombatCenter,
+                    _target.CombatCenter,
+                    -_approachFacing);
+                Vector2 towardSlot = approach.DesiredPosition - _character.CombatCenter;
+                Vector2 move = away * 1.6f;
+                if (towardSlot.LengthSquared() > 0.001f)
+                {
+                    move += towardSlot.Normalized() * 0.45f;
+                }
+
+                _character.SetMoveInput(move.Normalized(), false);
+                return;
+            }
+
             if (approach.CanAttack)
             {
                 _state = EnemyState.Attack;
@@ -140,18 +176,17 @@ namespace AshesofaDyingWorld.Combat.AI
                 return;
             }
 
-            _state = approach.TooClose ? EnemyState.Reposition : EnemyState.Chase;
-            Vector2 move = approach.DesiredPosition - _character.CombatCenter;
-            if (move.LengthSquared() <= 1f)
-            {
-                move = approach.TooClose ? -_approachFacing : _approachFacing;
-            }
-
-            _character.SetMoveInput(move.Normalized(), false);
+            _state = EnemyState.Chase;
+            Vector2 toSlot = approach.DesiredPosition - _character.CombatCenter;
+            Vector2 moveDirection = toSlot.LengthSquared() > 1f
+                ? toSlot.Normalized()
+                : (approach.TooFar ? _approachFacing : -_approachFacing);
+            _character.SetMoveInput(moveDirection, false);
         }
 
         private void RunReturnOrWander()
         {
+            _escapingTargetOverlap = false;
             float distanceFromSpawn = _character.GlobalPosition.DistanceTo(_spawnPosition);
             if (distanceFromSpawn > WanderRadius * 1.15f)
             {
@@ -182,7 +217,7 @@ namespace AshesofaDyingWorld.Combat.AI
         private void RefreshTarget()
         {
             if (_target != null && IsUsable(_target) && _target.IsAlive
-                && _character.GlobalPosition.DistanceTo(_target.GlobalPosition) <= AggroRadius * 1.2f)
+                && _character.CombatCenter.DistanceTo(_target.CombatCenter) <= AggroRadius * 1.2f)
             {
                 return;
             }
@@ -201,7 +236,7 @@ namespace AshesofaDyingWorld.Combat.AI
                     continue;
                 }
 
-                float distanceSquared = _character.GlobalPosition.DistanceSquaredTo(candidate.GlobalPosition);
+                float distanceSquared = _character.CombatCenter.DistanceSquaredTo(candidate.CombatCenter);
                 if (distanceSquared < nearestDistanceSquared)
                 {
                     nearest = candidate;
@@ -212,6 +247,7 @@ namespace AshesofaDyingWorld.Combat.AI
             if (nearest != _target)
             {
                 _target = nearest;
+                _escapingTargetOverlap = false;
                 _approachFacing = _target == null
                     ? _character.FacingDirection
                     : CombatSteering.ResolveStableCardinalFacing(

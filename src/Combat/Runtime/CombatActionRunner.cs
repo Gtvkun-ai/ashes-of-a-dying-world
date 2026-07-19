@@ -51,7 +51,9 @@ namespace AshesofaDyingWorld.Combat.Runtime
                     return Vector2.Zero;
                 }
 
-                return _owner.FacingDirection * _currentAction.LungeSpeed;
+                return _owner.FacingDirection
+                    * _currentAction.LungeSpeed
+                    * Mathf.Max(0f, _owner.ActionLungeMultiplier);
             }
         }
 

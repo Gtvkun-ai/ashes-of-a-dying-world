@@ -39,6 +39,7 @@ namespace AshesofaDyingWorld.Combat.Actors
         [Export] public float Acceleration { get; set; } = 1200f;
         [Export] public float Deceleration { get; set; } = 1600f;
         [Export] public float ExternalForceDecay { get; set; } = 900f;
+        [Export] public float ActionLungeMultiplier { get; set; } = 1f;
         [Export] public int StopFrameIndex { get; set; } = 0;
 
         [ExportGroup("Footstep Audio")]
