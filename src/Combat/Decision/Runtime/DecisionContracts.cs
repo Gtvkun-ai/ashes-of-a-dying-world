@@ -22,6 +22,17 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             float targetDistance);
     }
 
+    public interface ICombatActionScheduler
+    {
+        CombatIntent CurrentIntent { get; }
+        float CurrentScore { get; }
+        float CommitmentRemaining { get; }
+
+        void Tick(float deltaSeconds);
+        SchedulerDecision Resolve(DecisionTrace trace, in CombatSnapshot snapshot);
+        void Reset();
+    }
+
     public interface ITacticalEvaluator
     {
         DecisionTrace Evaluate(

@@ -490,6 +490,42 @@ region = Rect2(336, 64, 48, 64)
 atlas = ExtResource("5_ap81g")
 region = Rect2(384, 64, 48, 64)
 
+[sub_resource type="AtlasTexture" id="AtlasTexture_5ycdf"]
+atlas = ExtResource("5_ap81g")
+region = Rect2(0, 192, 48, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_tbsou"]
+atlas = ExtResource("5_ap81g")
+region = Rect2(48, 192, 48, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ib7wp"]
+atlas = ExtResource("5_ap81g")
+region = Rect2(96, 192, 48, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ofi7v"]
+atlas = ExtResource("5_ap81g")
+region = Rect2(144, 192, 48, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_fyelt"]
+atlas = ExtResource("5_ap81g")
+region = Rect2(192, 192, 48, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_1wqj3"]
+atlas = ExtResource("5_ap81g")
+region = Rect2(240, 192, 48, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_cq6ft"]
+atlas = ExtResource("5_ap81g")
+region = Rect2(288, 192, 48, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_j8nyn"]
+atlas = ExtResource("5_ap81g")
+region = Rect2(336, 192, 48, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_meg45"]
+atlas = ExtResource("5_ap81g")
+region = Rect2(384, 192, 48, 64)
+
 [sub_resource type="SpriteFrames" id="SpriteFrames_h88hi"]
 animations = [{
 "frames": [{
@@ -979,10 +1015,40 @@ animations = [{
 "loop": true,
 "name": &"sword_right",
 "speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_5ycdf")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_tbsou")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ib7wp")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ofi7v")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_fyelt")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_1wqj3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_cq6ft")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_j8nyn")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_meg45")
+}],
+"loop": true,
+"name": &"sword_up",
+"speed": 5.0
 }]
 
 [node name="Body" type="AnimatedSprite2D" unique_id=958096685]
 sprite_frames = SubResource("SpriteFrames_h88hi")
-animation = &"run_up_left"
-frame = 5
-frame_progress = 0.46518373
+animation = &"run_up_right"

@@ -18,20 +18,44 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             return 1f - Linear(value);
         }
 
+        /// <summary>
+        /// Band có plateau thật bên trong [min, max] và falloff mềm ở hai mép.
+        /// Bản cũ trả 0 ngay tại min/max, khiến 138 px gần như bị xem là ngoài band 105-140.
+        /// </summary>
         public static float SmoothBand(float value, float min, float max, float edge)
         {
             float safeMin = Mathf.Min(min, max);
             float safeMax = Mathf.Max(min, max);
             float safeEdge = Mathf.Max(0.001f, edge);
-            float enter = Mathf.SmoothStep(
-                0f,
-                1f,
-                Mathf.Clamp((value - safeMin) / safeEdge, 0f, 1f));
-            float exit = 1f - Mathf.SmoothStep(
-                0f,
-                1f,
-                Mathf.Clamp((value - safeMax + safeEdge) / safeEdge, 0f, 1f));
-            return Mathf.Clamp(enter * exit, 0f, 1f);
+
+            if (value < safeMin)
+            {
+                return SmoothRamp(value, safeMin - safeEdge, safeMin);
+            }
+
+            if (value <= safeMax)
+            {
+                return 1f;
+            }
+
+            return 1f - SmoothRamp(value, safeMax, safeMax + safeEdge);
+        }
+
+        /// <summary>
+        /// Ramp mềm từ 0 ở start tới 1 ở end, dùng cho approach/retreat pressure.
+        /// </summary>
+        public static float SmoothRamp(float value, float start, float end)
+        {
+            float safeStart = Mathf.Min(start, end);
+            float safeEnd = Mathf.Max(start, end);
+            float width = Mathf.Max(0.001f, safeEnd - safeStart);
+            float t = Mathf.Clamp((value - safeStart) / width, 0f, 1f);
+            return Mathf.SmoothStep(0f, 1f, t);
+        }
+
+        public static float InverseSmoothRamp(float value, float start, float end)
+        {
+            return 1f - SmoothRamp(value, start, end);
         }
 
         public static float Logistic(float value, float midpoint = 0.5f, float steepness = 10f)

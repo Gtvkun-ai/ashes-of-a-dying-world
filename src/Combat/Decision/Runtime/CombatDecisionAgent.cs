@@ -2,12 +2,13 @@ using Godot;
 using AshesofaDyingWorld.Combat.Actors;
 using AshesofaDyingWorld.Combat.Decision.Model;
 using AshesofaDyingWorld.Combat.Decision.Profiles;
+using AshesofaDyingWorld.Combat.Decision.Scheduling;
 
 namespace AshesofaDyingWorld.Combat.Decision.Runtime
 {
     /// <summary>
-    /// Xương sống Decision Core gắn lên actor.
-    /// Bản foundation chỉ chạy shadow trace, cố ý chưa phát lệnh movement/action để rollout an toàn.
+    /// Decision agent gắn lên actor: Perception -> Evaluator -> Scheduler -> Trace.
+    /// Patch này vẫn chỉ chạy shadow mode, chưa phát lệnh movement/action để rollout an toàn.
     /// </summary>
     public partial class CombatDecisionAgent : Node
     {
@@ -25,10 +26,16 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
 
         [ExportGroup("Perception")]
         [Export] public float DecisionIntervalSeconds { get; set; } = 0.15f;
-        [Export] public float EnemySearchRadius { get; set; } = 220f;
+        [Export] public float EnemySearchRadius { get; set; } = 240f;
         [Export] public float ThreatDangerRange { get; set; } = 78f;
         [Export] public float LeaderDangerRadius { get; set; } = 86f;
         [Export(PropertyHint.Range, "-1,1,0.01")] public float ThreatFacingDot { get; set; } = 0.3f;
+
+        [ExportGroup("Scheduler")]
+        [Export(PropertyHint.Range, "0,1,0.01")] public float SwitchScoreMargin { get; set; } = 0.14f;
+        [Export(PropertyHint.Range, "0,1,0.01")] public float EmergencyScoreMargin { get; set; } = 0.08f;
+        [Export] public float MinimumSwitchCooldownSeconds { get; set; } = 0.12f;
+        [Export(PropertyHint.Range, "0,1,0.01")] public float EmergencyThreatThreshold { get; set; } = 0.38f;
 
         [ExportGroup("Profiles")]
         [Export] public CombatClassProfile ClassProfile { get; set; }
@@ -37,10 +44,12 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
 
         [ExportGroup("Debug")]
         [Export] public bool DebugLogging { get; set; } = false;
+        [Export] public bool DebugFactorLogging { get; set; } = false;
         [Export] public float DebugLogIntervalSeconds { get; set; } = 1f;
         [Export] public int TraceHistoryCapacity { get; set; } = 24;
 
         public DecisionTrace LastTrace { get; private set; }
+        public SchedulerDecision LastScheduledDecision { get; private set; }
         public CombatBlackboard Blackboard => _blackboard;
         public bool IsInitialized => _initialized;
 
@@ -49,6 +58,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
         private CombatCharacter _leader;
         private ICombatPerception _perception;
         private ITacticalEvaluator _evaluator;
+        private ICombatActionScheduler _scheduler;
         private float _decisionRemaining;
         private float _debugLogRemaining;
         private float _elapsedSeconds;
@@ -81,6 +91,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             _decisionRemaining -= dt;
             _debugLogRemaining -= dt;
             _blackboard.Tick(dt);
+            _scheduler.Tick(dt);
 
             // Chỉ chạy khi đang shadow hoặc đã bật cờ rollout. Hai cờ cùng false nghĩa là tắt hẳn.
             if (!ShadowMode && !UseDecisionCore)
@@ -111,30 +122,48 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 DoctrineProfile,
                 PersonalityProfile,
                 emotion);
+            LastScheduledDecision = _scheduler.Resolve(LastTrace, snapshot);
 
+            // Chỉ scheduler được ghi CurrentIntent. Evaluator không còn tự giành quyền sở hữu continuity.
+            _blackboard.CurrentIntent = LastScheduledDecision.CommittedIntent;
+            _blackboard.IntentLockRemaining = LastScheduledDecision.CommitmentRemaining;
+            _blackboard.CurrentAnchor = LastScheduledDecision.CommittedIntent.DesiredAnchor;
             _blackboard.PushTrace(LastTrace, TraceHistoryCapacity);
-            EmitSignal(SignalName.DecisionEvaluated, LastTrace?.Summary ?? string.Empty);
+
+            string signalSummary = LastScheduledDecision.ToCompactString() + " " + (LastTrace?.Summary ?? string.Empty);
+            EmitSignal(SignalName.DecisionEvaluated, signalSummary);
 
             if (DebugLogging && _debugLogRemaining <= 0f && LastTrace != null)
             {
                 _debugLogRemaining = Mathf.Max(0.1f, DebugLogIntervalSeconds);
                 string classId = ClassProfile?.ClassId ?? "unassigned";
-                GD.Print($"[DecisionShadow:{_self.CombatantId}] class={classId} {LastTrace.ToCompactString()}");
+                GD.Print(
+                    $"[DecisionShadow:{_self.CombatantId}] class={classId} state={snapshot.SelfState} "
+                    + $"mp={snapshot.Mana} stamina={snapshot.Stamina} guard={snapshot.Guard} "
+                    + LastScheduledDecision.ToCompactString() + " "
+                    + LastTrace.ToCompactString());
+
+                if (DebugFactorLogging)
+                {
+                    GD.Print($"[DecisionFactors:{_self.CombatantId}]\n{LastTrace.ToDetailedString()}");
+                }
             }
 
             if (UseDecisionCore && !ShadowMode && !_executionWarningPrinted)
             {
                 _executionWarningPrinted = true;
                 GD.PushWarning(
-                    $"[CombatDecisionAgent:{_self.CombatantId}] Foundation chưa có Scheduler/Movement executor; "
-                    + "agent chỉ đánh giá và không phát lệnh mechanics để tránh giành quyền HyouAI giữa chừng.");
+                    $"[CombatDecisionAgent:{_self.CombatantId}] Evaluator + Scheduler đã chạy, "
+                    + "nhưng Movement/Action executor chưa được trao quyền; agent vẫn không gọi mechanics.");
             }
         }
 
         public void ResetDecisionRuntime()
         {
             LastTrace = null;
+            LastScheduledDecision = default;
             _blackboard.Reset();
+            _scheduler?.Reset();
             _decisionRemaining = 0f;
             _debugLogRemaining = 0f;
             _elapsedSeconds = 0f;
@@ -143,7 +172,16 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
 
         public string GetLastTraceSummary()
         {
-            return LastTrace?.ToCompactString(5) ?? "Decision trace chưa có dữ liệu.";
+            return LastTrace == null
+                ? "Decision trace chưa có dữ liệu."
+                : LastScheduledDecision.ToCompactString() + " " + LastTrace.ToCompactString(5, 4);
+        }
+
+        public string GetLastDetailedTrace()
+        {
+            return LastTrace == null
+                ? "Decision trace chưa có dữ liệu."
+                : LastScheduledDecision.ToCompactString() + "\n" + LastTrace.ToDetailedString();
         }
 
         private void Initialize()
@@ -169,6 +207,11 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 EnemySearchRadius,
                 LeaderDangerRadius);
             _evaluator = new TacticalEvaluator();
+            _scheduler = new CombatActionScheduler(
+                SwitchScoreMargin,
+                EmergencyScoreMargin,
+                MinimumSwitchCooldownSeconds,
+                EmergencyThreatThreshold);
             _leader = ResolveLeader();
             _decisionRemaining = 0f;
             _debugLogRemaining = 0f;

@@ -255,7 +255,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
         {
             if (skill.ManaCost > 0)
             {
-                _owner.Stats.ChangeMP(-skill.ManaCost);
+                _owner.Stats.ConsumeMana(skill.ManaCost);
             }
 
             if (skill.StaminaCost > 0)

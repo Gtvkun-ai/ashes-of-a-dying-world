@@ -6,7 +6,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
 {
     /// <summary>
     /// Bộ nhớ ngắn hạn của một combatant. Không save xuống ổ đĩa.
-    /// Blackboard giữ continuity, còn scheduler ở phase sau mới có quyền khóa/interrupt intent.
+    /// Blackboard giữ continuity; scheduler là lớp duy nhất được quyền khóa/interrupt CurrentIntent.
     /// </summary>
     public sealed class CombatBlackboard
     {

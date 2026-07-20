@@ -24,6 +24,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
         public bool CanMove => Current == CombatStateId.Locomotion || Current == CombatStateId.Blocking;
         public bool CanStartAttack => Current == CombatStateId.Locomotion;
         public bool CanStartBlock => Current == CombatStateId.Locomotion || Current == CombatStateId.Blocking;
+        public bool CanRegenerateMana => Current == CombatStateId.Locomotion || Current == CombatStateId.Blocking;
         public bool CanRegenerateStamina => Current == CombatStateId.Locomotion;
         public bool CanRegenerateGuard => Current != CombatStateId.Blocking && !IsAttackState && Current != CombatStateId.Dead;
         public bool CanRegeneratePoise => Current == CombatStateId.Locomotion || Current == CombatStateId.Blocking;

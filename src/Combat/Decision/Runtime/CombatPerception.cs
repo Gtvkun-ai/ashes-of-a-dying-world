@@ -8,7 +8,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
 {
     /// <summary>
     /// Cổng duy nhất đọc thế giới cho Decision Core.
-    /// Foundation chỉ đo những gì repo hiện chứng minh được; các sensor chưa có sẽ để false thay vì bịa dữ liệu.
+    /// Những sensor chưa tồn tại vẫn để false thay vì bịa dữ liệu, nhưng resource pool
+    /// được chụp đầy đủ để phân biệt "không có mana" và "đã cạn mana".
     /// </summary>
     public sealed class CombatPerception : ICombatPerception
     {
@@ -48,7 +49,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 ? toTarget / targetDistance
                 : Vector2.Zero;
 
-            bool hasLineOfSight = hasTarget && EvaluateLineOfSight(self, target);
+            bool hasLineOfSight = hasTarget && EvaluateLineOfSight(target);
             bool targetFacingSelf = hasTarget
                 && directionToTarget != Vector2.Zero
                 && target.FacingDirection.Dot(-directionToTarget) >= 0.35f;
@@ -82,14 +83,30 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 : 0f;
             bool leaderThreatened = hasLeader && IsActorThreatened(leader, _leaderDangerRadius);
 
+            var health = new CombatResourceSnapshot(self.Stats?.CurrentHP ?? 0f, self.Stats?.MaxHP ?? 0f);
+            var mana = new CombatResourceSnapshot(self.Stats?.CurrentMP ?? 0f, self.Stats?.MaxMP ?? 0f);
+            var stamina = new CombatResourceSnapshot(self.Stats?.CurrentStamina ?? 0f, self.Stats?.MaxStamina ?? 0f);
+            var guard = new CombatResourceSnapshot(self.Stats?.CurrentGuard ?? 0f, self.Stats?.MaxGuard ?? 0f);
+            var poise = new CombatResourceSnapshot(self.Stats?.CurrentPoise ?? 0f, self.Stats?.MaxPoise ?? 0f);
+
+            CombatStateMachine stateMachine = self.StateMachine;
+            bool canMove = stateMachine?.CanMove ?? false;
+            bool canBlock = (stateMachine?.CanStartBlock ?? false)
+                && guard.HasPool
+                && guard.Current > 0.001f;
+            bool canStartAction = stateMachine?.CanStartAttack ?? false;
+
             return new CombatSnapshot(
                 self.GetInstanceId(),
-                self.StateMachine?.Current ?? CombatStateId.Locomotion,
-                Ratio(self.Stats?.CurrentHP ?? 0f, self.Stats?.MaxHP ?? 0f),
-                Ratio(self.Stats?.CurrentMP ?? 0f, self.Stats?.MaxMP ?? 0f),
-                Ratio(self.Stats?.CurrentStamina ?? 0f, self.Stats?.MaxStamina ?? 0f),
-                Ratio(self.Stats?.CurrentGuard ?? 0f, self.Stats?.MaxGuard ?? 0f),
-                Ratio(self.Stats?.CurrentPoise ?? 0f, self.Stats?.MaxPoise ?? 0f),
+                stateMachine?.Current ?? CombatStateId.Locomotion,
+                health,
+                mana,
+                stamina,
+                guard,
+                poise,
+                canMove,
+                canBlock,
+                canStartAction,
                 hasTarget ? target.GetInstanceId() : null,
                 targetPosition,
                 targetDistance,
@@ -101,6 +118,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 targetState,
                 threat.EtaSeconds,
                 threat.Severity,
+                threat.Blockable,
+                threat.Dodgeable,
                 hasLeader ? leader.GetInstanceId() : null,
                 leaderPosition,
                 distanceToLeader,
@@ -126,6 +145,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 }
             }
 
+            // Hysteresis mục tiêu: giữ target hiện tại xa hơn search radius một chút,
+            // tránh flip giữa hai quái chỉ vì chênh vài pixel.
             if (blackboard.CurrentTargetId.HasValue)
             {
                 CombatCharacter remembered = FindCombatantById(blackboard.CurrentTargetId.Value);
@@ -222,7 +243,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             return false;
         }
 
-        private bool EvaluateLineOfSight(CombatCharacter self, CombatCharacter target)
+        private bool EvaluateLineOfSight(CombatCharacter target)
         {
             if (_lineOfSightRay == null || !GodotObject.IsInstanceValid(_lineOfSightRay))
             {
@@ -253,13 +274,6 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 && candidate.IsAlive
                 && FactionRules.CanDamage(self.Faction, candidate.Faction)
                 && self.CombatCenter.DistanceSquaredTo(candidate.CombatCenter) <= radius * radius;
-        }
-
-        private static float Ratio(float current, float maximum)
-        {
-            return maximum <= 0.001f
-                ? 0f
-                : Mathf.Clamp(current / maximum, 0f, 1f);
         }
 
         private static bool IsUsable(Node node)

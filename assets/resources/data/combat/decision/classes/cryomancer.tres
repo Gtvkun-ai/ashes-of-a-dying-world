@@ -5,7 +5,17 @@
 [resource]
 script = ExtResource("1_class")
 ClassId = "cryomancer"
+PanicRange = 52.0
+UnsafeRange = 82.0
 PreferredMinRange = 105.0
 PreferredMaxRange = 140.0
+ReacquireRange = 180.0
+RangeSoftEdge = 24.0
 UsesMana = true
 UsesStamina = true
+CanRecoverManaPassively = true
+CanRecoverStaminaPassively = true
+LowManaRatio = 0.22
+CriticalManaRatio = 0.10
+LowStaminaRatio = 0.18
+CriticalStaminaRatio = 0.07

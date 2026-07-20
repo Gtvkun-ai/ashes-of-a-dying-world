@@ -32,9 +32,11 @@ namespace AshesofaDyingWorld.Entities.Player
         [Export] public float ManualAttackSpeed { get; set; } = 1f;
 
         [ExportGroup("Regeneration")]
+        [Export] public float ManaRegenRate { get; set; } = 4f;
         [Export] public float StaminaRegenRate { get; set; } = 10f;
         [Export] public float GuardRegenRate { get; set; } = 16f;
         [Export] public float PoiseRegenRate { get; set; } = 12f;
+        [Export] public float ManaRegenDelay { get; set; } = 1.2f;
         [Export] public float StaminaRegenDelay { get; set; } = 0.45f;
         [Export] public float GuardRegenDelay { get; set; } = 0.8f;
         [Export] public float PoiseRegenDelay { get; set; } = 1.1f;
@@ -63,6 +65,7 @@ namespace AshesofaDyingWorld.Entities.Player
         private readonly Dictionary<string, Dictionary<AttributeType, int>> _temporaryAttributeBonuses = new();
         private bool _resourcesInitialized;
         private bool _defeatSignalSent;
+        private float _manaRegenDelayRemaining;
         private float _staminaRegenDelayRemaining;
         private float _guardRegenDelayRemaining;
         private float _poiseRegenDelayRemaining;
@@ -85,6 +88,30 @@ namespace AshesofaDyingWorld.Entities.Player
         public override void _ExitTree()
         {
             PlayerManager.Instance?.UnregisterMember(this);
+        }
+
+
+        /// <summary>
+        /// Trừ mana theo cùng contract với stamina và đồng thời khởi động regen delay.
+        /// Trước đây AbilityRunner gọi ChangeMP(-cost), khiến mana không có policy hồi nhất quán.
+        /// </summary>
+        public bool ConsumeMana(float amount)
+        {
+            amount = Mathf.Max(0f, amount);
+            if (amount <= 0f)
+            {
+                return true;
+            }
+
+            _manaRegenDelayRemaining = ManaRegenDelay;
+            if (MaxMP <= 0f || CurrentMP + 0.001f < amount)
+            {
+                return false;
+            }
+
+            CurrentMP = Mathf.Max(0f, CurrentMP - amount);
+            EmitSignal(SignalName.StatsChanged);
+            return true;
         }
 
         public bool ConsumeStamina(float amount)
@@ -171,6 +198,11 @@ namespace AshesofaDyingWorld.Entities.Player
 
         public void ChangeMP(float amount)
         {
+            if (amount < 0f)
+            {
+                _manaRegenDelayRemaining = ManaRegenDelay;
+            }
+
             CurrentMP = Mathf.Clamp(CurrentMP + amount, 0f, MaxMP);
             EmitSignal(SignalName.StatsChanged);
         }
@@ -198,14 +230,35 @@ namespace AshesofaDyingWorld.Entities.Player
             EmitSignal(SignalName.StatsChanged);
         }
 
+        // Overload cũ được giữ để code ngoài repo không gãy trong một lần rollout.
         public void UpdateRegeneration(float delta, bool allowStamina, bool allowGuard, bool allowPoise)
         {
+            UpdateRegeneration(delta, allowStamina, allowGuard, allowPoise, allowMana: false);
+        }
+
+        public void UpdateRegeneration(
+            float delta,
+            bool allowStamina,
+            bool allowGuard,
+            bool allowPoise,
+            bool allowMana)
+        {
             float dt = Mathf.Max(0f, delta);
+            _manaRegenDelayRemaining = Mathf.Max(0f, _manaRegenDelayRemaining - dt);
             _staminaRegenDelayRemaining = Mathf.Max(0f, _staminaRegenDelayRemaining - dt);
             _guardRegenDelayRemaining = Mathf.Max(0f, _guardRegenDelayRemaining - dt);
             _poiseRegenDelayRemaining = Mathf.Max(0f, _poiseRegenDelayRemaining - dt);
 
             bool changed = false;
+            if (allowMana
+                && MaxMP > 0f
+                && _manaRegenDelayRemaining <= 0f
+                && CurrentMP < MaxMP)
+            {
+                CurrentMP = Mathf.Min(MaxMP, CurrentMP + ManaRegenRate * dt);
+                changed = true;
+            }
+
             if (allowStamina && _staminaRegenDelayRemaining <= 0f && CurrentStamina < MaxStamina)
             {
                 CurrentStamina = Mathf.Min(MaxStamina, CurrentStamina + StaminaRegenRate * dt);

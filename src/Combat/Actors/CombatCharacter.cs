@@ -151,7 +151,8 @@ namespace AshesofaDyingWorld.Combat.Actors
                 dt,
                 StateMachine.CanRegenerateStamina && !_runCommand,
                 StateMachine.CanRegenerateGuard,
-                StateMachine.CanRegeneratePoise);
+                StateMachine.CanRegeneratePoise,
+                StateMachine.CanRegenerateMana);
 
             MoveAndSlide();
             _wasMoving = _locomotionVelocity.LengthSquared() > 1f;
