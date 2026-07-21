@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="WeaponMovesetData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/Combat/Data/WeaponMovesetData.cs" id="1"]
+[ext_resource type="Resource" path="res://assets/resources/data/combat/actions/hyou_ice_bolt.tres" id="2"]
+
+[resource]
+script = ExtResource("1")
+MovesetId = "hyou_cryomancer"
+LightCombo = Array[Resource]([ExtResource("2")])
+GuardAnimationTemplate = "block_woodSword_{dir}"
+GuardDamageReduction = 0.25
+GuardArcDegrees = 130.0
+GuardMoveSpeedMultiplier = 0.45
+GuardStaminaPerDamage = 0.5
+GuardRecoveryDelay = 0.8

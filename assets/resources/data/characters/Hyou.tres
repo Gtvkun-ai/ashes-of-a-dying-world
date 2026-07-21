@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="CharacterConfig" format=3 uid="uid://cpdjbs8w3cyi8"]
+[gd_resource type="Resource" script_class="CharacterConfig" load_steps=8 format=3 uid="uid://cpdjbs8w3cyi8"]
 
 [ext_resource type="VideoStream" uid="uid://c6crxtafxvhjc" path="res://assets/sprites/char/Hyou/Hyou_avt.ogv" id="1_dor51"]
 [ext_resource type="Script" uid="uid://cfybswbojyqyb" path="res://src/Characters/Data/CharacterConfig.cs" id="1_dt2gn"]
@@ -6,6 +6,7 @@
 [ext_resource type="Resource" uid="uid://onq8eelbwsx8" path="res://assets/resources/data/races/spiritIce.tres" id="2_pl1xm"]
 [ext_resource type="Texture2D" uid="uid://c07m8ww25wmoy" path="res://assets/sprites/char/Hyou/HyouIco.png" id="3_3vsim"]
 [ext_resource type="PackedScene" uid="uid://duqdt7585p3xh" path="res://assets/sprites/char/Hyou/Hyou_body.tscn" id="3_tmsvj"]
+[ext_resource type="Resource" path="res://assets/resources/data/combat/skills/hyou_ice_bolt.tres" id="4_ice_bolt"]
 
 [resource]
 script = ExtResource("1_dt2gn")
@@ -15,8 +16,8 @@ Icon = ExtResource("3_3vsim")
 Avatar = ExtResource("1_dor51")
 BodyScene = ExtResource("3_tmsvj")
 CharacterRace = ExtResource("2_pl1xm")
-ActiveSkills = null
-ComboSequence = null
+ActiveSkills = Array[Resource]([ExtResource("4_ice_bolt")])
+ComboSequence = Array[Resource]([ExtResource("4_ice_bolt")])
 ThemeColor = Color(0.22, 0.74, 0.97, 1)
 BackgroundImage = ExtResource("2_3vsim")
 metadata/_custom_type_script = "uid://cfybswbojyqyb"

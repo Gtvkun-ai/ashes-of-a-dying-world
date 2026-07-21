@@ -27,7 +27,11 @@ namespace AshesofaDyingWorld.Combat.Data
         [ExportGroup("Costs and Motion")]
         [Export] public float StaminaCost { get; set; } = 12f;
         [Export] public float LungeSpeed { get; set; } = 45f;
+
+        [ExportGroup("Delivery")]
+        [Export] public CombatDeliveryMode DeliveryMode { get; set; } = CombatDeliveryMode.MeleeHitbox;
         [Export] public HitProfileData HitProfile { get; set; }
+        [Export] public ProjectileSpecData ProjectileSpec { get; set; }
 
         public string ResolveAnimation(string direction)
         {

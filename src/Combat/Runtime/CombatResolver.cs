@@ -37,7 +37,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
                 ? rawDamage
                 : rawDamage * (1f - armor / (armor + ArmorCurveConstant));
 
-            bool wasBlocked = target.IsBlockingAttackFrom(attacker.GlobalPosition);
+            bool wasBlocked = target.IsBlockingAttackFrom(request.HitOrigin);
             bool guardBroken = false;
             float guardDamage = 0f;
             float hpDamage = mitigatedDamage;

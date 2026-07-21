@@ -67,10 +67,13 @@ def main() -> int:
         fail("Thiếu file: " + ", ".join(missing))
 
     agent = (ROOT / "src/Combat/Decision/Runtime/CombatDecisionAgent.cs").read_text(encoding="utf-8")
+    phase3_live = (ROOT / "src/Combat/Decision/Execution/CombatIntentExecutor.cs").is_file()
     forbidden = [".SetMoveInput(", ".SetBlocking(", ".RequestAttack(", ".TryUseSkill(", ".TryActivate("]
     for token in forbidden:
         if token in agent:
-            fail(f"CombatDecisionAgent shadow đang gọi mechanics: {token}")
+            fail(f"CombatDecisionAgent gọi mechanics trực tiếp thay vì qua executor: {token}")
+    if phase3_live and "_executor.Execute(" not in agent:
+        fail("Phase 3 live thiếu executor bridge trong CombatDecisionAgent.")
 
     check_contains(
         "src/Combat/Decision/Runtime/TacticalEvaluator.cs",
@@ -103,12 +106,12 @@ def main() -> int:
         "src/Combat/Runtime/CombatAbilityRunner.cs",
         "ConsumeMana(skill.ManaCost)",
     )
-    check_contains(
-        "assets/resources/data/characters/Hyou.tscn",
-        "UseDecisionCore = false",
-        "ShadowMode = true",
-        "SwitchScoreMargin = 0.14",
-    )
+    scene_expectations = ["SwitchScoreMargin = 0.14"]
+    if phase3_live:
+        scene_expectations += ["UseDecisionCore = true", "ShadowMode = false", "Enabled = false", "NavAgent"]
+    else:
+        scene_expectations += ["UseDecisionCore = false", "ShadowMode = true"]
+    check_contains("assets/resources/data/characters/Hyou.tscn", *scene_expectations)
 
     # Regression checks cho đúng lỗi đã thấy trong log.
     if abs(smooth_band(105.0, 105.0, 140.0, 24.0) - 1.0) > 1e-6:
@@ -132,7 +135,8 @@ def main() -> int:
 
     print("[OK] Evaluator đã sửa resource/panic/range/approach/leader protection.")
     print("[OK] Scheduler có commitment, switch margin và emergency override.")
-    print("[OK] Mana policy đã nối vào mechanics nhưng Decision Agent vẫn shadow-safe.")
+    print("[OK] Mana policy đã nối vào mechanics.")
+    print("[OK] Decision Agent " + ("đã live qua executor bridge." if phase3_live else "vẫn shadow-safe."))
     print("[NOTE] Vẫn phải mở project Godot thật để compile và chạy arena test.")
     return 0
 

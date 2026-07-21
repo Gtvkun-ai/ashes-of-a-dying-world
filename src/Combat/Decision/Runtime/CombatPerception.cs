@@ -1,5 +1,6 @@
 using Godot;
 using AshesofaDyingWorld.Combat.Actors;
+using AshesofaDyingWorld.Combat.Data;
 using AshesofaDyingWorld.Combat.Decision.Model;
 using AshesofaDyingWorld.Combat.Model;
 using AshesofaDyingWorld.Combat.Runtime;
@@ -57,6 +58,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 ? target.StateMachine.Current
                 : null;
             bool targetInRecovery = targetState == CombatStateId.AttackRecovery;
+            bool targetIsCasting = hasTarget
+                && target.Actions?.CurrentAction?.DeliveryMode == CombatDeliveryMode.Projectile;
 
             ThreatAssessment threat = hasTarget
                 ? _threatPredictor.EvaluateThreats(self, target, targetDistance)
@@ -98,6 +101,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
 
             return new CombatSnapshot(
                 self.GetInstanceId(),
+                self.CombatCenter,
                 stateMachine?.Current ?? CombatStateId.Locomotion,
                 health,
                 mana,
@@ -114,7 +118,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 hasLineOfSight,
                 targetFacingSelf,
                 targetInRecovery,
-                false,
+                targetIsCasting,
                 targetState,
                 threat.EtaSeconds,
                 threat.Severity,

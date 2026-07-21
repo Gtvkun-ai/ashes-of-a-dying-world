@@ -1,6 +1,7 @@
 using Godot;
 using AshesofaDyingWorld.Combat.Data;
 using AshesofaDyingWorld.Combat.Model;
+using AshesofaDyingWorld.Combat.Projectiles;
 using AshesofaDyingWorld.Combat.Runtime;
 using AshesofaDyingWorld.Core.Data;
 using AshesofaDyingWorld.Core.Managers;
@@ -77,6 +78,8 @@ namespace AshesofaDyingWorld.Combat.Actors
         private CombatHitbox _combatHitbox;
         private Vector2 _moveCommand;
         private bool _runCommand;
+        private bool _isActuallyRunning;
+        private float _moveSpeedScale = 1f;
         private bool _preserveFacingWhileMoving;
         private bool _blockCommand;
         private bool _isExhausted;
@@ -109,6 +112,7 @@ namespace AshesofaDyingWorld.Combat.Actors
             _combatHitbox.Initialize(this);
 
             Actions = new CombatActionRunner(this, _body, _combatHitbox, StateMachine);
+            Actions.ActionReleased += OnActionReleased;
             Abilities = new CombatAbilityRunner(this);
 
             if (_body != null)
@@ -149,7 +153,7 @@ namespace AshesofaDyingWorld.Combat.Actors
 
             Stats?.UpdateRegeneration(
                 dt,
-                StateMachine.CanRegenerateStamina && !_runCommand,
+                StateMachine.CanRegenerateStamina && !_isActuallyRunning,
                 StateMachine.CanRegenerateGuard,
                 StateMachine.CanRegeneratePoise,
                 StateMachine.CanRegenerateMana);
@@ -180,6 +184,11 @@ namespace AshesofaDyingWorld.Combat.Actors
                 StateMachine.StateChanged -= OnCombatStateChanged;
             }
 
+            if (Actions != null)
+            {
+                Actions.ActionReleased -= OnActionReleased;
+            }
+
             Abilities?.Clear();
             OnCombatExitTree();
         }
@@ -187,11 +196,21 @@ namespace AshesofaDyingWorld.Combat.Actors
         /// <summary>
         /// Đặt hướng di chuyển. preserveFacing = true dùng cho strafe/backpedal trong combat:
         /// nhân vật vẫn nhìn mục tiêu dù đang lùi hoặc đi ngang.
+        ///
+        /// speedScale cho phép motor giảm tốc mượt khi tới formation anchor. Trước đây mọi lệnh
+        /// chỉ có 0 hoặc 100% tốc độ, nên companion liên tục vượt điểm dừng rồi quay lại.
         /// </summary>
-        public void SetMoveInput(Vector2 direction, bool wantsRun = false, bool preserveFacing = false)
+        public void SetMoveInput(
+            Vector2 direction,
+            bool wantsRun = false,
+            bool preserveFacing = false,
+            float speedScale = 1f)
         {
             _moveCommand = direction == Vector2.Zero ? Vector2.Zero : direction.Normalized();
-            _runCommand = wantsRun;
+            _runCommand = wantsRun && _moveCommand != Vector2.Zero;
+            _moveSpeedScale = _moveCommand == Vector2.Zero
+                ? 1f
+                : Mathf.Clamp(speedScale, 0.08f, 1f);
             _preserveFacingWhileMoving = preserveFacing && _moveCommand != Vector2.Zero;
         }
 
@@ -269,20 +288,39 @@ namespace AshesofaDyingWorld.Combat.Actors
 
         public HitResult TryResolveHit(CombatCharacter target, CombatActionData action, HitProfileData profile)
         {
+            Vector2 direction = target == null
+                ? FacingDirection
+                : (target.CombatCenter - CombatCenter).Normalized();
+            return TryResolveHit(target, action, profile, CombatCenter, direction);
+        }
+
+        /// <summary>
+        /// Overload cho projectile: block arc và knockback phải dựa trên điểm va chạm/hướng bay,
+        /// không phải vị trí caster đã chạy sang chỗ khác sau khi bắn.
+        /// </summary>
+        public HitResult TryResolveHit(
+            CombatCharacter target,
+            CombatActionData action,
+            HitProfileData profile,
+            Vector2 hitOrigin,
+            Vector2 attackDirection)
+        {
             if (target == null || profile == null)
             {
                 return HitResult.Rejected(HitRejectionReason.InvalidRequest);
             }
 
-            Vector2 direction = (target.CombatCenter - CombatCenter).Normalized();
+            Vector2 safeDirection = attackDirection.LengthSquared() <= 0.001f
+                ? (target.CombatCenter - hitOrigin).Normalized()
+                : attackDirection.Normalized();
             return target.ReceiveHit(new HitRequest
             {
                 Attacker = this,
                 Target = target,
                 Action = action,
                 Profile = profile,
-                HitOrigin = CombatCenter,
-                AttackDirection = direction
+                HitOrigin = hitOrigin,
+                AttackDirection = safeDirection
             });
         }
 
@@ -358,6 +396,8 @@ namespace AshesofaDyingWorld.Combat.Actors
             _combatHitbox?.DisableHitbox();
             _moveCommand = Vector2.Zero;
             _runCommand = false;
+            _isActuallyRunning = false;
+            _moveSpeedScale = 1f;
             _preserveFacingWhileMoving = false;
             _blockCommand = false;
             _isExhausted = false;
@@ -404,6 +444,19 @@ namespace AshesofaDyingWorld.Combat.Actors
         protected virtual float GetRuntimeMoveSpeedMultiplier()
         {
             return 1f;
+        }
+
+
+        private void OnActionReleased(CombatActionData action, Vector2 direction)
+        {
+            if (action == null
+                || action.DeliveryMode != CombatDeliveryMode.Projectile
+                || action.ProjectileSpec == null)
+            {
+                return;
+            }
+
+            CombatProjectileSpawner.Spawn(this, action, action.ProjectileSpec, direction);
         }
 
         private void ResolveCoreNodes()
@@ -534,6 +587,7 @@ namespace AshesofaDyingWorld.Combat.Actors
                 float cost = RunStaminaCost * delta;
                 canRun = Stats == null || Stats.ConsumeStamina(cost);
             }
+            _isActuallyRunning = canRun;
 
             Vector2 targetVelocity = Vector2.Zero;
             if (StateMachine.CanMove && hasInput)
@@ -546,6 +600,7 @@ namespace AshesofaDyingWorld.Combat.Actors
 
                 moveSpeed *= Abilities?.MoveSpeedMultiplier ?? 1f;
                 moveSpeed *= GetRuntimeMoveSpeedMultiplier();
+                moveSpeed *= _moveSpeedScale;
                 targetVelocity = _moveCommand * moveSpeed;
                 if (!_preserveFacingWhileMoving)
                 {
@@ -597,7 +652,7 @@ namespace AshesofaDyingWorld.Combat.Actors
                 string direction = _preserveFacingWhileMoving
                     ? _facingCardinal
                     : ResolveEightDirection(_locomotionVelocity.Normalized());
-                bool running = _runCommand && !_isExhausted && !_preserveFacingWhileMoving;
+                bool running = _isActuallyRunning && !_preserveFacingWhileMoving;
                 string animation = $"{(running ? "run" : "go")}_{direction}";
                 _lastMoveAnimation = animation;
                 if (_body.SpriteFrames.HasAnimation(animation)

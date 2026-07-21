@@ -10,6 +10,8 @@
 [ext_resource type="Resource" path="res://assets/resources/data/combat/decision/classes/cryomancer.tres" id="8_class"]
 [ext_resource type="Resource" path="res://assets/resources/data/combat/decision/doctrines/hyou_safe_control.tres" id="9_doctrine"]
 [ext_resource type="Resource" path="res://assets/resources/data/combat/decision/personalities/hyou_calm_protective.tres" id="10_personality"]
+[ext_resource type="Script" path="res://src/Combat/Visuals/HyouCastVisual.cs" id="11_cast_visual"]
+[ext_resource type="Resource" path="res://assets/resources/data/combat/movesets/hyou_cryomancer.tres" id="12_moveset"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_sxeu7"]
 size = Vector2(11, 6)
@@ -27,6 +29,7 @@ CombatantId = "companion_hyou"
 Faction = 2
 RemoveFromWorldOnDeath = true
 ActionLungeMultiplier = 0.2
+DefaultMoveset = ExtResource("12_moveset")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=626250723]
 position = Vector2(0, 14)
@@ -50,6 +53,30 @@ position = Vector2(0, -16)
 [node name="Body" parent="." unique_id=958096685 instance=ExtResource("1_6i4ff")]
 animation = &"Idle"
 
+[node name="HyouCastVisual" type="Node2D" parent="."]
+visible = false
+script = ExtResource("11_cast_visual")
+AnimationSpeed = 5.0
+ForceUpAnimation = true
+
+[node name="BackIce" type="AnimatedSprite2D" parent="HyouCastVisual"]
+z_index = -6
+
+[node name="BackIceBolt" type="AnimatedSprite2D" parent="HyouCastVisual"]
+z_index = -4
+
+[node name="IceBehind" type="AnimatedSprite2D" parent="HyouCastVisual"]
+z_index = -2
+
+[node name="IceUp" type="AnimatedSprite2D" parent="HyouCastVisual"]
+z_index = 2
+
+[node name="UpIce" type="AnimatedSprite2D" parent="HyouCastVisual"]
+z_index = 4
+
+[node name="UpIceBolt" type="AnimatedSprite2D" parent="HyouCastVisual"]
+z_index = 6
+
 [node name="PlayerStats" type="Node" parent="." unique_id=1536723479 node_paths=PackedStringArray("EquipmentMgr")]
 script = ExtResource("3_stats")
 ConfigData = ExtResource("4_config")
@@ -62,6 +89,8 @@ _playerStats = NodePath("../PlayerStats")
 
 [node name="HyouAI" type="Node" parent="." unique_id=1411975786]
 script = ExtResource("6_ai")
+Enabled = false
+EnemySearchRadius = 240.0
 FollowRunDistance = 92.0
 FollowOrbitMinRadius = 46.0
 FollowOrbitMaxRadius = 72.0
@@ -72,13 +101,21 @@ FollowOrbitResumeRadius = 16.0
 LeaderSeparationEnterRadius = 30.0
 LeaderSeparationExitRadius = 40.0
 LeaderSeparationWeight = 2.8
-AttackRange = 43.0
-PreferredAttackDistance = 37.0
-MinimumAttackDistance = 29.0
-RetreatEnterDistance = 31.0
-RetreatExitDistance = 38.0
-AttackLaneTolerance = 10.0
-RepositionRange = 34.0
+AttackRange = 142.0
+PreferredAttackDistance = 118.0
+MinimumAttackDistance = 82.0
+RetreatEnterDistance = 58.0
+RetreatExitDistance = 76.0
+AttackLaneTolerance = 18.0
+RepositionRange = 100.0
+
+
+[node name="NavAgent" type="NavigationAgent2D" parent="."]
+path_desired_distance = 6.0
+target_desired_distance = 8.0
+path_max_distance = 28.0
+radius = 12.0
+avoidance_enabled = false
 
 [node name="LoSRay" type="RayCast2D" parent="."]
 enabled = true
@@ -90,11 +127,12 @@ exclude_parent = true
 
 [node name="CombatDecisionAgent" type="Node" parent="."]
 script = ExtResource("7_decision")
-UseDecisionCore = false
-ShadowMode = true
+UseDecisionCore = true
+ShadowMode = false
 CharacterPath = NodePath("..")
 LineOfSightRayPath = NodePath("../LoSRay")
-DecisionIntervalSeconds = 0.15
+NavigationAgentPath = NodePath("../NavAgent")
+DecisionIntervalSeconds = 0.12
 EnemySearchRadius = 240.0
 ThreatDangerRange = 78.0
 LeaderDangerRadius = 86.0
@@ -102,10 +140,13 @@ SwitchScoreMargin = 0.14
 EmergencyScoreMargin = 0.08
 MinimumSwitchCooldownSeconds = 0.12
 EmergencyThreatThreshold = 0.38
+ObstacleCollisionMask = 1
+MovementProbeDistance = 34.0
+MovementArrivalDistance = 6.0
+NavigationThreshold = 1000.0
 ClassProfile = ExtResource("8_class")
 DoctrineProfile = ExtResource("9_doctrine")
 PersonalityProfile = ExtResource("10_personality")
 DebugLogging = true
 DebugFactorLogging = false
 TraceHistoryCapacity = 24
-

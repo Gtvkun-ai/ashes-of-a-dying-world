@@ -63,6 +63,14 @@ namespace AshesofaDyingWorld.Combat.Runtime
 
         public bool TryActivate(SkillData skill)
         {
+            return TryActivate(skill, Vector2.Zero);
+        }
+
+        /// <summary>
+        /// Overload cho AI/ranged skill truyền hướng ngắm chính xác. Player cũ vẫn dùng API một tham số.
+        /// </summary>
+        public bool TryActivate(SkillData skill, Vector2 aimDirection)
+        {
             if (skill == null || _owner == null || !_owner.IsAlive || _owner.Stats == null)
             {
                 return false;
@@ -89,7 +97,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
 
             bool executed = skill.ExecutionType switch
             {
-                SkillExecutionType.CombatAction => ExecuteCombatAction(skill),
+                SkillExecutionType.CombatAction => ExecuteCombatAction(skill, aimDirection),
                 SkillExecutionType.Heal => ExecuteHeal(skill),
                 SkillExecutionType.RestoreResources => ExecuteResourceRestore(skill),
                 _ => ExecuteTimedBuff(skill)
@@ -152,7 +160,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
             _cooldowns.Clear();
         }
 
-        private bool ExecuteCombatAction(SkillData skill)
+        private bool ExecuteCombatAction(SkillData skill, Vector2 aimDirection)
         {
             if (skill.CombatAction == null || _owner.Actions == null)
             {
@@ -164,7 +172,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
                 _owner.ReleaseBlock();
             }
 
-            return _owner.Actions.TryStartAbilityAction(skill.CombatAction);
+            return _owner.Actions.TryStartAbilityAction(skill.CombatAction, aimDirection);
         }
 
         private bool ExecuteHeal(SkillData skill)

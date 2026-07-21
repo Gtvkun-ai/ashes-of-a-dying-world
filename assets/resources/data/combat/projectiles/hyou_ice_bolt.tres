@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="ProjectileSpecData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/Combat/Data/ProjectileSpecData.cs" id="1_spec"]
+
+[resource]
+script = ExtResource("1_spec")
+ProjectileId = "hyou_ice_bolt"
+Speed = 260.0
+Lifetime = 1.6
+Radius = 7.0
+SpawnOffset = 18.0
+PierceTargets = false
+MaxTargetHits = 1
+HurtboxCollisionMask = 16
+WorldCollisionMask = 1
+StopOnWorldCollision = true
+CoreColor = Color(0.78, 0.97, 1, 1)
+GlowColor = Color(0.16, 0.72, 1, 0.72)
+VisualLength = 22.0
+VisualWidth = 4.5

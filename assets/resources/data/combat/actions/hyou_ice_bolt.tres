@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="CombatActionData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://src/Combat/Data/CombatActionData.cs" id="1_action"]
+[ext_resource type="Resource" path="res://assets/resources/data/combat/hit_profiles/hyou_ice_bolt.tres" id="2_hit"]
+[ext_resource type="Resource" path="res://assets/resources/data/combat/projectiles/hyou_ice_bolt.tres" id="3_projectile"]
+
+[resource]
+script = ExtResource("1_action")
+ActionId = "hyou_ice_bolt"
+Tags = 9
+AnimationTemplate = "ice_bolt_{dir}"
+StartFrame = 0
+ActiveStartFrame = 3
+ActiveEndFrame = 3
+EndFrame = 7
+PlaybackSpeedMultiplier = 1.0
+StartupSeconds = 0.24
+ActiveSeconds = 0.08
+RecoverySeconds = 0.30
+InputBufferSeconds = 0.10
+StaminaCost = 0.0
+LungeSpeed = 0.0
+DeliveryMode = 1
+HitProfile = ExtResource("2_hit")
+ProjectileSpec = ExtResource("3_projectile")

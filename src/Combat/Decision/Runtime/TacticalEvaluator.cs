@@ -107,6 +107,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             AddCastCandidate(
                 candidates,
                 snapshot,
+                blackboard,
                 safeClass,
                 safeDoctrine,
                 primarySkill,
@@ -168,7 +169,12 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 "range_in_band");
             bool feasible = snapshot.CanMove && !insidePanic;
             float stability = GetStabilityBonus(blackboard, CombatIntentType.HoldRange);
-            float score = Mathf.Clamp(inBand * (0.72f + 0.28f * safety) + stability, 0f, 1f);
+            // HoldRange là nhịp chờ/căn vị trí, không phải hành động chính. Nếu cho nó đạt 1.0
+            // trong preferred band thì mage sẽ đứng rất đúng chỗ rồi... tuyệt đối không bắn.
+            float score = Mathf.Clamp(
+                0.24f + inBand * (0.26f + 0.16f * safety) + stability,
+                0f,
+                0.72f);
             candidates.Add(BuildCandidate(
                 intent,
                 feasible,
@@ -376,6 +382,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
         private static void AddCastCandidate(
             ICollection<CandidateTrace> candidates,
             in CombatSnapshot snapshot,
+            CombatBlackboard blackboard,
             CombatClassProfile classProfile,
             CombatDoctrineProfile doctrine,
             SkillData primarySkill,
@@ -387,6 +394,10 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             bool insideUnsafe)
         {
             bool hasSkill = primarySkill != null;
+            StringName skillKey = new StringName(primarySkill?.SkillId ?? string.Empty);
+            float runtimeCooldown = GetCooldownRemaining(blackboard?.ActionCooldowns, skillKey);
+            float failedCooldown = GetCooldownRemaining(blackboard?.FailedActionCooldowns, skillKey);
+            bool offCooldown = runtimeCooldown <= 0.001f && failedCooldown <= 0.001f;
             float staminaCost = hasSkill
                 ? Mathf.Max(0f, primarySkill.StaminaCost)
                     + Mathf.Max(0f, primarySkill.CombatAction?.StaminaCost ?? 0f)
@@ -397,6 +408,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 && snapshot.HasLineOfSight
                 && enoughMana
                 && enoughStamina
+                && offCooldown
                 && snapshot.CanStartAction
                 && !insideUnsafe;
             string castFailure = ResolveCastFailure(
@@ -404,6 +416,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 snapshot.HasLineOfSight,
                 enoughMana,
                 enoughStamina,
+                offCooldown,
                 snapshot.CanStartAction,
                 insideUnsafe);
             CombatIntent intent = MakeIntent(
@@ -451,6 +464,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                     ["los"] = snapshot.HasLineOfSight ? 1f : 0f,
                     ["mana_ready"] = manaReadiness,
                     ["stamina_ready"] = staminaReadiness,
+                    ["cooldown_ready"] = offCooldown ? 1f : 0f,
+                    ["runtime_cooldown"] = runtimeCooldown,
                     ["safety"] = safety,
                     ["target_exposure"] = targetExposure
                 }));
@@ -659,6 +674,15 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 : Mathf.Clamp((threshold - ratio) / threshold, 0f, 1f);
         }
 
+        private static float GetCooldownRemaining(
+            IReadOnlyDictionary<StringName, float> cooldowns,
+            StringName key)
+        {
+            return cooldowns != null && cooldowns.TryGetValue(key, out float remaining)
+                ? Mathf.Max(0f, remaining)
+                : 0f;
+        }
+
         private static int CompareCandidates(CandidateTrace left, CandidateTrace right)
         {
             if (left.Feasible != right.Feasible)
@@ -687,6 +711,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             bool hasLineOfSight,
             bool enoughMana,
             bool enoughStamina,
+            bool offCooldown,
             bool canStartAction,
             bool insideUnsafe)
         {
@@ -709,6 +734,10 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             if (!enoughStamina)
             {
                 return "stamina_unavailable";
+            }
+            if (!offCooldown)
+            {
+                return "action_runtime_cooldown";
             }
             if (!canStartAction)
             {

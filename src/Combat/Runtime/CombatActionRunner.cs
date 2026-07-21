@@ -1,4 +1,5 @@
 using Godot;
+using System;
 using AshesofaDyingWorld.Combat.Actors;
 using AshesofaDyingWorld.Combat.Data;
 using AshesofaDyingWorld.Combat.Model;
@@ -6,8 +7,8 @@ using AshesofaDyingWorld.Combat.Model;
 namespace AshesofaDyingWorld.Combat.Runtime
 {
     /// <summary>
-    /// Chạy action từ Resource: stamina, frame window, combo buffer, hitbox và recovery.
-    /// Player không còn chứa các nhánh attackStep == 1/2.
+    /// Chạy action từ Resource: stamina, frame window, combo buffer, delivery và recovery.
+    /// Melee mở CombatHitbox; projectile chỉ phát release event để world spawner tạo đạn.
     /// </summary>
     public sealed class CombatActionRunner
     {
@@ -29,15 +30,20 @@ namespace AshesofaDyingWorld.Combat.Runtime
         private int _comboIndex = -1;
         private float _bufferRemaining;
         private bool _usingFrameAnimation;
-        private bool _hitboxOpened;
+        private bool _deliveryOpened;
         private Vector2 _actionFacing = Vector2.Down;
         private string _actionFacingCardinal = "down";
         private FallbackPhase _fallbackPhase;
         private float _fallbackRemaining;
 
+        public event Action<CombatActionData, Vector2> ActionStarted;
+        public event Action<CombatActionData, Vector2> ActionReleased;
+        public event Action<CombatActionData, bool> ActionFinished;
+
         public CombatActionData CurrentAction => _currentAction;
         public bool IsRunning => _currentAction != null;
         public bool IsHitboxActive => _hitbox?.IsActive == true;
+        public Vector2 ActionFacing => _actionFacing;
 
         public Vector2 MovementVelocity
         {
@@ -87,12 +93,24 @@ namespace AshesofaDyingWorld.Combat.Runtime
 
         public bool TryStartAbilityAction(CombatActionData action)
         {
+            return TryStartAbilityAction(action, Vector2.Zero);
+        }
+
+        /// <summary>
+        /// Ability ranged có thể truyền aimDirection liên tục, trong khi animation vẫn dùng
+        /// cardinal direction của actor. Nhờ vậy bolt không bị khóa vào bốn đường thẳng ngu ngơ.
+        /// </summary>
+        public bool TryStartAbilityAction(CombatActionData action, Vector2 aimDirection)
+        {
             if (action == null || _currentAction != null)
             {
                 return false;
             }
 
-            return TryStartResolvedAction(action, -1, false);
+            Vector2? forcedFacing = aimDirection.LengthSquared() > 0.001f
+                ? aimDirection.Normalized()
+                : null;
+            return TryStartResolvedAction(action, -1, false, forcedFacing);
         }
 
         public void Update(float delta)
@@ -129,10 +147,14 @@ namespace AshesofaDyingWorld.Combat.Runtime
         {
             WeaponMovesetData moveset = _owner.ActiveMoveset;
             CombatActionData action = moveset?.GetLightAction(comboIndex);
-            return TryStartResolvedAction(action, comboIndex, allowChain);
+            return TryStartResolvedAction(action, comboIndex, allowChain, null);
         }
 
-        private bool TryStartResolvedAction(CombatActionData action, int comboIndex, bool allowChain)
+        private bool TryStartResolvedAction(
+            CombatActionData action,
+            int comboIndex,
+            bool allowChain,
+            Vector2? forcedFacing)
         {
             if (action == null)
             {
@@ -160,12 +182,12 @@ namespace AshesofaDyingWorld.Combat.Runtime
             _currentAction = action;
             _comboIndex = comboIndex;
             _bufferRemaining = 0f;
-            _hitboxOpened = false;
+            _deliveryOpened = false;
             _hitbox.DisableHitbox();
 
-            // Khóa hướng ngay lúc action được nhận. Animation, lunge và hitbox phải dùng
-            // cùng một hướng suốt đòn, không thể mỗi thứ nhìn một phía như ba phòng ban.
-            _actionFacing = _owner.FacingDirection;
+            // Khóa hướng ngay lúc action được nhận. Animation dùng cardinal, còn projectile
+            // giữ vector aim chính xác để không bỏ lỡ mục tiêu chéo góc.
+            _actionFacing = forcedFacing ?? _owner.FacingDirection;
             if (_actionFacing.LengthSquared() <= 0.001f)
             {
                 _actionFacing = Vector2.Down;
@@ -175,6 +197,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
                 _actionFacing = _actionFacing.Normalized();
             }
             _actionFacingCardinal = _owner.FacingCardinal;
+            ActionStarted?.Invoke(_currentAction, _actionFacing);
 
             string animationName = action.ResolveAnimation(_actionFacingCardinal);
             _usingFrameAnimation = _body?.SpriteFrames != null
@@ -208,17 +231,14 @@ namespace AshesofaDyingWorld.Combat.Runtime
             }
 
             int frame = _body.Frame;
-            if (!_hitboxOpened && frame >= _currentAction.ActiveStartFrame)
+            if (!_deliveryOpened && frame >= _currentAction.ActiveStartFrame)
             {
-                _state.EnterAttackActive();
-                _hitbox.EnableHitbox(_currentAction, _actionFacing);
-                _hitboxOpened = true;
+                BeginActiveWindow();
             }
 
-            if (_hitboxOpened && frame > _currentAction.ActiveEndFrame)
+            if (_deliveryOpened && frame > _currentAction.ActiveEndFrame)
             {
-                _hitbox.DisableHitbox();
-                _state.EnterAttackRecovery();
+                EndActiveWindow();
             }
 
             if (frame >= _currentAction.EndFrame)
@@ -240,20 +260,49 @@ namespace AshesofaDyingWorld.Combat.Runtime
                 case FallbackPhase.Startup:
                     _fallbackPhase = FallbackPhase.Active;
                     _fallbackRemaining = Mathf.Max(0.01f, _currentAction.ActiveSeconds);
-                    _state.EnterAttackActive();
-                    _hitbox.EnableHitbox(_currentAction, _actionFacing);
-                    _hitboxOpened = true;
+                    BeginActiveWindow();
                     break;
                 case FallbackPhase.Active:
                     _fallbackPhase = FallbackPhase.Recovery;
                     _fallbackRemaining = Mathf.Max(0.01f, _currentAction.RecoverySeconds);
-                    _hitbox.DisableHitbox();
-                    _state.EnterAttackRecovery();
+                    EndActiveWindow();
                     break;
                 case FallbackPhase.Recovery:
                     CompleteAction();
                     break;
             }
+        }
+
+        private void BeginActiveWindow()
+        {
+            if (_currentAction == null || _deliveryOpened)
+            {
+                return;
+            }
+
+            _state.EnterAttackActive();
+            if (_currentAction.DeliveryMode == CombatDeliveryMode.MeleeHitbox)
+            {
+                _hitbox.EnableHitbox(_currentAction, _actionFacing);
+            }
+            else
+            {
+                _hitbox.DisableHitbox();
+            }
+
+            _deliveryOpened = true;
+            ActionReleased?.Invoke(_currentAction, _actionFacing);
+        }
+
+        private void EndActiveWindow()
+        {
+            if (_currentAction == null)
+            {
+                return;
+            }
+
+            _hitbox.DisableHitbox();
+            _state.EnterAttackRecovery();
         }
 
         private void CompleteAction()
@@ -268,7 +317,9 @@ namespace AshesofaDyingWorld.Combat.Runtime
             if (canChain)
             {
                 _hitbox.DisableHitbox();
+                CombatActionData completedAction = _currentAction;
                 _currentAction = null;
+                ActionFinished?.Invoke(completedAction, true);
                 if (!TryStartAction(nextIndex, true))
                 {
                     // Combo đã được buffer nhưng không đủ stamina hoặc state vừa bị cưỡng bức.
@@ -283,11 +334,12 @@ namespace AshesofaDyingWorld.Combat.Runtime
 
         private void FinishAction(bool completed)
         {
+            CombatActionData finishedAction = _currentAction;
             _hitbox?.DisableHitbox();
             _currentAction = null;
             _comboIndex = -1;
             _bufferRemaining = 0f;
-            _hitboxOpened = false;
+            _deliveryOpened = false;
             _usingFrameAnimation = false;
             _actionFacing = Vector2.Down;
             _actionFacingCardinal = "down";
@@ -304,6 +356,10 @@ namespace AshesofaDyingWorld.Combat.Runtime
             }
 
             _state.FinishAttack();
+            if (finishedAction != null)
+            {
+                ActionFinished?.Invoke(finishedAction, completed);
+            }
         }
     }
 }

@@ -1,0 +1,58 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/actors/player/player.tscn" id="1_player"]
+[ext_resource type="PackedScene" path="res://assets/resources/data/characters/Hyou.tscn" id="2_hyou"]
+[ext_resource type="PackedScene" path="res://scenes/world/WhisperingFields/slime_1.tscn" id="3_slime"]
+
+[node name="HyouIceBoltTest" type="Node2D"]
+
+[node name="Backdrop" type="Polygon2D" parent="."]
+z_index = -100
+polygon = PackedVector2Array(-900, -600, 900, -600, 900, 600, -900, 600)
+color = Color(0.075, 0.105, 0.14, 1)
+
+[node name="PreferredBand" type="Polygon2D" parent="."]
+z_index = -90
+polygon = PackedVector2Array(-64, -65, 86, -65, 86, 65, -64, 65)
+color = Color(0.09, 0.22, 0.29, 0.42)
+
+[node name="Player" parent="." instance=ExtResource("1_player")]
+position = Vector2(-122, 80)
+
+[node name="Hyou" parent="." instance=ExtResource("2_hyou")]
+position = Vector2(-64, 0)
+
+[node name="TargetSlime" parent="." instance=ExtResource("3_slime")]
+process_mode = 4
+position = Vector2(70, 0)
+
+[node name="Guide" type="Line2D" parent="."]
+z_index = -80
+points = PackedVector2Array(-64, 0, 70, 0)
+width = 2.0
+default_color = Color(0.35, 0.82, 1, 0.55)
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="Panel" type="ColorRect" parent="UI"]
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 625.0
+offset_bottom = 112.0
+color = Color(0.025, 0.035, 0.05, 0.9)
+mouse_filter = 2
+
+[node name="Title" type="Label" parent="UI/Panel"]
+offset_left = 16.0
+offset_top = 10.0
+offset_right = 590.0
+offset_bottom = 34.0
+theme_override_font_sizes/font_size = 18
+text = "HYOU ICE BOLT TEST"
+
+[node name="Instructions" type="Label" parent="UI/Panel"]
+offset_left = 16.0
+offset_top = 39.0
+offset_right = 590.0
+offset_bottom = 86.0
+text = "Hyou cách slime khoảng 134 px, nằm đúng preferred band 105–140 px.\nChạy scene này trực tiếp: log phải có target=enemy_slime và CastPrimary(hyou_ice_bolt)."

@@ -57,9 +57,22 @@ namespace AshesofaDyingWorld.Combat.Decision.Scheduling
                 return Commit(proposed, proposedScore, interrupted, 0f, "hard_state_interrupt");
             }
 
-            if (!_hasCurrent || _currentIntent.IsNone)
+            if (!_hasCurrent)
             {
                 return Commit(proposed, proposedScore, proposed, proposedScore, "initial_commit");
+            }
+
+            // Idle cũng là một trạng thái hợp lệ. Trước đây Current=None bị xem như chưa từng commit,
+            // nên log báo initial_commit lặp vô hạn dù Hyou chỉ đang theo Player.
+            if (_currentIntent.IsNone && proposed.IsNone)
+            {
+                _currentScore = proposedScore;
+                return BuildDecision(proposed, proposedScore, false, "same_idle");
+            }
+
+            if (_currentIntent.IsNone)
+            {
+                return Commit(proposed, proposedScore, proposed, proposedScore, "idle_exit");
             }
 
             if (CurrentTargetInvalid(snapshot))

@@ -48,6 +48,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Model
     public readonly struct CombatSnapshot
     {
         public ulong SelfId { get; }
+        public Vector2 SelfPosition { get; }
         public CombatStateId SelfState { get; }
         public CombatResourceSnapshot Health { get; }
         public CombatResourceSnapshot Mana { get; }
@@ -97,6 +98,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Model
 
         public CombatSnapshot(
             ulong selfId,
+            Vector2 selfPosition,
             CombatStateId selfState,
             CombatResourceSnapshot health,
             CombatResourceSnapshot mana,
@@ -130,6 +132,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Model
             float timeSeconds)
         {
             SelfId = selfId;
+            SelfPosition = selfPosition;
             SelfState = selfState;
             Health = health;
             Mana = mana;

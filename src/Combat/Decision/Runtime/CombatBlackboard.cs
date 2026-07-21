@@ -23,6 +23,9 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
         public float RecentBlockedHitsWindow { get; set; }
         public float RecentCastInterruptsWindow { get; set; }
 
+        // Runtime cooldown là dữ liệu chiến thuật, tách khỏi cooldown thật trong AbilityRunner.
+        // Evaluator dùng nó để không tiếp tục chọn một spell đang hồi chiêu rồi đứng như tượng.
+        public Dictionary<StringName, float> ActionCooldowns { get; } = new();
         public Dictionary<StringName, float> FailedActionCooldowns { get; } = new();
         public Queue<DecisionTrace> RecentTraces { get; } = new();
 
@@ -36,24 +39,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             RecentBlockedHitsWindow = Mathf.Max(0f, RecentBlockedHitsWindow - dt);
             RecentCastInterruptsWindow = Mathf.Max(0f, RecentCastInterruptsWindow - dt);
 
-            if (FailedActionCooldowns.Count == 0)
-            {
-                return;
-            }
-
-            var keys = new List<StringName>(FailedActionCooldowns.Keys);
-            foreach (StringName key in keys)
-            {
-                float remaining = FailedActionCooldowns[key] - dt;
-                if (remaining <= 0f)
-                {
-                    FailedActionCooldowns.Remove(key);
-                }
-                else
-                {
-                    FailedActionCooldowns[key] = remaining;
-                }
-            }
+            TickCooldownDictionary(ActionCooldowns, dt);
+            TickCooldownDictionary(FailedActionCooldowns, dt);
         }
 
         public void PushTrace(DecisionTrace trace, int capacity)
@@ -85,8 +72,31 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             RecentDamageWindow = 0f;
             RecentBlockedHitsWindow = 0f;
             RecentCastInterruptsWindow = 0f;
+            ActionCooldowns.Clear();
             FailedActionCooldowns.Clear();
             RecentTraces.Clear();
+        }
+
+        private static void TickCooldownDictionary(Dictionary<StringName, float> cooldowns, float dt)
+        {
+            if (cooldowns.Count == 0)
+            {
+                return;
+            }
+
+            var keys = new List<StringName>(cooldowns.Keys);
+            foreach (StringName key in keys)
+            {
+                float remaining = cooldowns[key] - dt;
+                if (remaining <= 0f)
+                {
+                    cooldowns.Remove(key);
+                }
+                else
+                {
+                    cooldowns[key] = remaining;
+                }
+            }
         }
     }
 }

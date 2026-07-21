@@ -2,8 +2,10 @@ using Godot;
 using System.Collections.Generic;
 using AshesofaDyingWorld.Combat.Actors;
 using AshesofaDyingWorld.Combat.AI;
+using AshesofaDyingWorld.Combat.Data;
 using AshesofaDyingWorld.Combat.Model;
 using AshesofaDyingWorld.Combat.Runtime;
+using AshesofaDyingWorld.Combat.Visuals;
 using AshesofaDyingWorld.Core.Data;
 
 namespace AshesofaDyingWorld.Entities.NPC
@@ -28,12 +30,13 @@ namespace AshesofaDyingWorld.Entities.NPC
             Reposition
         }
 
-        private const string StarterWeaponPath = "res://assets/resources/data/weapons/sword/WoodSword.tres";
+        private const string CryomancerMovesetPath = "res://assets/resources/data/combat/movesets/hyou_cryomancer.tres";
 
         [ExportGroup("General")]
         [Export] public bool Enabled { get; set; } = true;
         [Export] public NodePath CharacterPath { get; set; } = new NodePath("..");
         [Export] public NodePath LeaderPath { get; set; } = new NodePath("");
+        [Export] public NodePath CastVisualPath { get; set; } = new NodePath("../HyouCastVisual");
         [Export] public float EnemySearchRadius { get; set; } = 180f;
         [Export] public float EnemyRefreshInterval { get; set; } = 0.2f;
 
@@ -73,6 +76,7 @@ namespace AshesofaDyingWorld.Entities.NPC
         private global::Player _leader;
         private CombatCharacter _target;
         private CombatCharacter _guardThreat;
+        private HyouCastVisual _castVisual;
         private CompanionState _state = CompanionState.Follow;
         private float _attackCooldownRemaining;
         private float _refreshRemaining;
@@ -147,10 +151,11 @@ namespace AshesofaDyingWorld.Entities.NPC
             }
 
             _formationSideSign = _rng.RandiRange(0, 1) == 0 ? -1 : 1;
+            _castVisual = ResolveCastVisual();
             _leader = ResolveLeader();
             ChooseFollowOrbitSlot(false);
             RefreshAllyCollisionExceptions();
-            AutoEquipStarterWeapon();
+            InstallDefaultMageMoveset();
             _initialized = true;
         }
 
@@ -568,12 +573,25 @@ namespace AshesofaDyingWorld.Entities.NPC
             }
         }
 
-        private void AutoEquipStarterWeapon()
+        private HyouCastVisual ResolveCastVisual()
         {
-            EquipmentItemData weapon = GD.Load<EquipmentItemData>(StarterWeaponPath);
-            if (weapon != null && _character.Equipment?.GetEquippedItem(EquipmentSlot.MainHand) == null)
+            string path = CastVisualPath.ToString();
+            return string.IsNullOrWhiteSpace(path)
+                ? null
+                : GetNodeOrNull<HyouCastVisual>(CastVisualPath);
+        }
+
+        private void InstallDefaultMageMoveset()
+        {
+            if (_character.DefaultMoveset != null)
             {
-                _character.Equipment.EquipItem(weapon);
+                return;
+            }
+
+            WeaponMovesetData moveset = GD.Load<WeaponMovesetData>(CryomancerMovesetPath);
+            if (moveset != null)
+            {
+                _character.DefaultMoveset = moveset;
             }
         }
 
@@ -586,6 +604,7 @@ namespace AshesofaDyingWorld.Entities.NPC
 
             _character.StopMoveInput();
             _character.SetBlocking(false);
+            _castVisual?.StopCast();
         }
 
         private static bool IsNodeUsable(Node node)

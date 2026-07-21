@@ -68,6 +68,8 @@ def main() -> int:
     )
 
     agent_text = (ROOT / "src/Combat/Decision/Runtime/CombatDecisionAgent.cs").read_text(encoding="utf-8")
+    phase3_live = (ROOT / "src/Combat/Decision/Execution/CombatIntentExecutor.cs").is_file()
+    # Agent không được gọi mechanics rải rác. Phase 3 chỉ được đi qua đúng executor bridge.
     forbidden_execution_calls = [
         ".SetMoveInput(",
         ".SetBlocking(",
@@ -76,23 +78,30 @@ def main() -> int:
     ]
     for token in forbidden_execution_calls:
         if token in agent_text:
-            fail(f"Foundation shadow mode không được thực thi mechanics: tìm thấy {token}")
+            fail(f"CombatDecisionAgent gọi mechanics trực tiếp, phá ranh giới executor: {token}")
+    if phase3_live and "_executor.Execute(" not in agent_text:
+        fail("Phase 3 có executor nhưng agent chưa đi qua executor bridge.")
 
-    require_contains(
-        "assets/resources/data/characters/Hyou.tscn",
+    scene_tokens = [
         "CombatDecisionAgent",
         "LoSRay",
-        "UseDecisionCore = false",
-        "ShadowMode = true",
         "cryomancer.tres",
         "hyou_safe_control.tres",
         "hyou_calm_protective.tres",
         "DebugLogging = true",
-    )
+    ]
+    if phase3_live:
+        scene_tokens += ["UseDecisionCore = true", "ShadowMode = false", "Enabled = false", "NavAgent"]
+    else:
+        scene_tokens += ["UseDecisionCore = false", "ShadowMode = true"]
+    require_contains("assets/resources/data/characters/Hyou.tscn", *scene_tokens)
 
     print("[OK] Combat Decision Foundation đầy đủ.")
-    print("[OK] Hyou chạy shadow mode; HyouAI cũ vẫn giữ quyền điều khiển.")
-    print("[OK] Agent foundation không gọi movement/block/attack/ability mechanics.")
+    if phase3_live:
+        print("[OK] Foundation đã được nâng lên live rollout qua executor bridge duy nhất.")
+    else:
+        print("[OK] Hyou chạy shadow mode; HyouAI cũ vẫn giữ quyền điều khiển.")
+    print("[OK] Agent không gọi mechanics trực tiếp ngoài execution layer.")
     return 0
 
 

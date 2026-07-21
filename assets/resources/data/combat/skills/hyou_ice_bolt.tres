@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/Combat/Abilities/SkillData.cs" id="1_skill"]
+[ext_resource type="Resource" path="res://assets/resources/data/combat/actions/hyou_ice_bolt.tres" id="2_action"]
+
+[resource]
+script = ExtResource("1_skill")
+SkillId = "hyou_ice_bolt"
+SkillName = "Ice Bolt"
+Description = "Hyou kết tinh hàn khí rồi bắn một mũi băng theo hướng mục tiêu."
+ExecutionType = 1
+CombatAction = ExtResource("2_action")
+CanUseWhileBlocking = false
+Cooldown = 0.85
+DamageMultiplier = 1.0
+ManaCost = 8
+StaminaCost = 0
+AnimationName = "ice_bolt"
