@@ -5,13 +5,24 @@ using AshesofaDyingWorld.Combat.Data;
 namespace AshesofaDyingWorld.Combat.Visuals
 {
     /// <summary>
-    /// Presentation riêng của Hyou. Visual nghe ActionRunner thay vì để AI tự gọi,
-    /// nên legacy brain hay Decision Core đều dùng cùng một nhịp cast.
+    /// Presentation riêng cho Ice Bolt của Hyou.
+    ///
+    /// Sáu sheet phép dùng chung timeline 11x4 với body cast. Trong tám frame cast:
+    /// - cột 0-1: chuẩn bị, VFX cố ý trong suốt;
+    /// - cột 2-5: vòng phép và lõi băng hiện ra;
+    /// - cột 6-7: kết thúc/release, VFX lại trong suốt.
+    ///
+    /// Vì vậy tuyệt đối không cắt sheet thành "bốn frame từ cột 0". Làm thế chỉ
+    /// phát hai frame rỗng rồi hai frame đầu của phép, một cách khá sáng tạo để
+    /// biến vòng phép thành thứ người chơi phải tưởng tượng.
     /// </summary>
     public partial class HyouCastVisual : Node2D
     {
+        private const string RuntimeBuild = "v6-projectile-resource-soft-pursuit";
+        [ExportGroup("Binding")]
         [Export] public NodePath CharacterPath { get; set; } = new NodePath("..");
         [Export] public NodePath OwnerWeaponPath { get; set; } = new NodePath("../WeaponSprite");
+        [Export] public string CastActionId { get; set; } = "hyou_ice_bolt";
 
         [ExportGroup("Magic Sheets")]
         [Export] public string BackIceSheetPath { get; set; } = "res://assets/sprites/char/Hyou/11x4 scale 0.1 hyou ice bolt/scaled_0_1/x10 hyou bh ice .png";
@@ -21,24 +32,31 @@ namespace AshesofaDyingWorld.Combat.Visuals
         [Export] public string UpIceSheetPath { get; set; } = "res://assets/sprites/char/Hyou/11x4 scale 0.1 hyou ice bolt/scaled_0_1/x10 hyou up ice.png";
         [Export] public string UpIceBoltSheetPath { get; set; } = "res://assets/sprites/char/Hyou/11x4 scale 0.1 hyou ice bolt/scaled_0_1/x10 hyou up ice bolt.png";
 
-        [ExportGroup("Grid")]
+        [ExportGroup("Sheet Grid")]
         [Export] public int Columns { get; set; } = 11;
         [Export] public int Rows { get; set; } = 4;
         [Export] public int FrameWidth { get; set; } = 48;
         [Export] public int FrameHeight { get; set; } = 64;
-        [Export] public int UsedFrames { get; set; } = 8;
-        [Export] public float AnimationSpeed { get; set; } = 5f;
+        [Export] public int TimelineStartColumn { get; set; } = 0;
+        [Export] public int TimelineFrames { get; set; } = 8;
+
+        [ExportGroup("Cast Timing")]
+        [Export(PropertyHint.Range, "0.1,10.0,0.05")]
+        public float CastDurationSeconds { get; set; } = 2f;
 
         [ExportGroup("Direction Rows")]
-        [Export] public bool ForceUpAnimation { get; set; } = false;
         [Export] public int DownRow { get; set; } = 0;
         [Export] public int RightRow { get; set; } = 1;
         [Export] public int LeftRow { get; set; } = 2;
         [Export] public int UpRow { get; set; } = 3;
 
+        [ExportGroup("Diagnostics")]
+        [Export] public bool DebugLogging { get; set; } = true;
+
         private AnimatedSprite2D[] _layers = System.Array.Empty<AnimatedSprite2D>();
         private AnimatedSprite2D _ownerWeapon;
         private CombatCharacter _character;
+        private CombatActionData _playingAction;
         private float _remaining;
         private bool _weaponWasVisible;
         private bool _bound;
@@ -48,17 +66,25 @@ namespace AshesofaDyingWorld.Combat.Visuals
             _ownerWeapon = GetNodeOrNull<AnimatedSprite2D>(OwnerWeaponPath);
             _layers = new[]
             {
-                EnsureLayer("BackIce", BackIceSheetPath, -6, UpRow),
-                EnsureLayer("BackIceBolt", BackIceBoltSheetPath, -4, UpRow),
-                EnsureLayer("IceBehind", IceBehindSheetPath, -2, UpRow),
-                EnsureLayer("IceUp", IceUpSheetPath, 2, DownRow),
-                EnsureLayer("UpIce", UpIceSheetPath, 4, DownRow),
-                EnsureLayer("UpIceBolt", UpIceBoltSheetPath, 6, DownRow),
+                // Ba lớp nằm sau body. Chúng chỉ có pixel ở row up (row 3).
+                EnsureLayer("BackIce", BackIceSheetPath, -6),
+                EnsureLayer("BackIceBolt", BackIceBoltSheetPath, -4),
+                EnsureLayer("IceBehind", IceBehindSheetPath, -2),
+
+                // Ba lớp nằm trước body. IceUp là lõi băng, UpIceBolt là vòng phép.
+                EnsureLayer("IceUp", IceUpSheetPath, 2),
+                EnsureLayer("UpIce", UpIceSheetPath, 4),
+                EnsureLayer("UpIceBolt", UpIceBoltSheetPath, 6),
             };
 
             Visible = false;
             SetProcess(true);
-            CallDeferred(nameof(BindActionRunner));
+            TryBindActionRunner();
+
+            if (DebugLogging)
+            {
+                GD.Print($"[HyouCastVisual] READY build={RuntimeBuild} timeline={TimelineFrames} frames duration={CastDurationSeconds:0.00}s node={GetPath()}");
+            }
         }
 
         public override void _ExitTree()
@@ -68,12 +94,20 @@ namespace AshesofaDyingWorld.Combat.Visuals
 
         public override void _Process(double delta)
         {
-            CombatActionData currentAction = _character?.Actions?.CurrentAction;
-            if (currentAction != null && currentAction.DeliveryMode == CombatDeliveryMode.Projectile)
+            if (!_bound)
             {
-                if (!Visible)
+                // Child _Ready chạy trước parent _Ready. Parent tạo ActionRunner sau đó,
+                // nên bind lại ở process đầu tiên thay vì đệ quy CallDeferred vô hạn.
+                TryBindActionRunner();
+            }
+
+            CombatActionData currentAction = _character?.Actions?.CurrentAction;
+            if (MatchesCastAction(currentAction))
+            {
+                // Fallback nếu signal ActionStarted bị lỡ vì thứ tự khởi tạo scene.
+                if (!Visible || _playingAction != currentAction)
                 {
-                    PlayCast(_character.Actions.ActionFacing);
+                    PlayCast(currentAction, ResolveCharacterFacing());
                 }
                 return;
             }
@@ -86,13 +120,21 @@ namespace AshesofaDyingWorld.Combat.Visuals
             _remaining -= Mathf.Max(0f, (float)delta);
             if (_remaining <= 0f)
             {
-                StopCast();
+                StopCast("duration_elapsed");
             }
         }
 
-        public void PlayCast(Vector2 facing)
+        public void PlayCast(CombatActionData action, Vector2 facing)
         {
-            string animation = $"ice_bolt_{(ForceUpAnimation ? "up" : ResolveDirection(facing))}";
+            if (!MatchesCastAction(action))
+            {
+                return;
+            }
+
+            string direction = ResolveDirection(facing);
+            string animation = $"ice_bolt_{direction}";
+
+            Visible = true;
             foreach (AnimatedSprite2D layer in _layers)
             {
                 PlayLayer(layer, animation);
@@ -104,14 +146,26 @@ namespace AshesofaDyingWorld.Combat.Visuals
                 _ownerWeapon.Visible = false;
             }
 
-            Visible = true;
-            _remaining = Mathf.Max(0.05f, UsedFrames / Mathf.Max(0.1f, AnimationSpeed));
-            SetProcess(true);
+            _playingAction = action;
+            _remaining = Mathf.Max(0.1f, CastDurationSeconds);
+
+            if (DebugLogging)
+            {
+                GD.Print($"[HyouCastVisual] CAST START build={RuntimeBuild} action={action.ActionId} dir={direction} animation={animation} duration={_remaining:0.00}s");
+            }
         }
 
-        public void StopCast()
+        public void StopCast(string reason = "action_finished")
         {
+            if (!Visible && _playingAction == null)
+            {
+                return;
+            }
+
             Visible = false;
+            _playingAction = null;
+            _remaining = 0f;
+
             foreach (AnimatedSprite2D layer in _layers)
             {
                 StopLayer(layer);
@@ -121,30 +175,39 @@ namespace AshesofaDyingWorld.Combat.Visuals
             {
                 _ownerWeapon.Visible = _weaponWasVisible;
             }
+
+            if (DebugLogging)
+            {
+                GD.Print($"[HyouCastVisual] CAST STOP reason={reason}");
+            }
         }
 
-        private void BindActionRunner()
+        private bool TryBindActionRunner()
         {
             if (_bound || !IsInsideTree())
             {
-                return;
+                return _bound;
             }
 
             string path = CharacterPath.ToString();
             _character = string.IsNullOrWhiteSpace(path)
                 ? GetParentOrNull<CombatCharacter>()
                 : GetNodeOrNull<CombatCharacter>(CharacterPath);
+
             if (_character?.Actions == null)
             {
-                // Child _Ready chạy trước parent _Ready trong Godot. Hoãn thêm một nhịp,
-                // thay vì giả vờ Actions đã tồn tại rồi nhận null như một nghi thức truyền thống.
-                CallDeferred(nameof(BindActionRunner));
-                return;
+                return false;
             }
 
             _character.Actions.ActionStarted += OnActionStarted;
             _character.Actions.ActionFinished += OnActionFinished;
             _bound = true;
+
+            if (DebugLogging)
+            {
+                GD.Print($"[HyouCastVisual] BOUND character={_character.CombatantId}");
+            }
+            return true;
         }
 
         private void UnbindActionRunner()
@@ -159,25 +222,38 @@ namespace AshesofaDyingWorld.Combat.Visuals
             _bound = false;
         }
 
-        private void OnActionStarted(CombatActionData action, Vector2 facing)
+        private void OnActionStarted(CombatActionData action, Vector2 aimFacing)
         {
-            if (action == null || action.DeliveryMode != CombatDeliveryMode.Projectile)
+            if (!MatchesCastAction(action))
             {
                 return;
             }
 
-            PlayCast(facing);
+            // Body animation dùng FacingCardinal của character, không dùng vector aim chéo.
+            // Visual phải bám cùng hướng body để các row của sáu sheet chồng khít nhau.
+            PlayCast(action, ResolveCharacterFacing(aimFacing));
         }
 
         private void OnActionFinished(CombatActionData action, bool completed)
         {
-            if (action != null && action.DeliveryMode == CombatDeliveryMode.Projectile)
+            if (MatchesCastAction(action))
             {
-                StopCast();
+                StopCast(completed ? "action_completed" : "action_cancelled");
             }
         }
 
-        private AnimatedSprite2D EnsureLayer(string layerName, string sheetPath, int zIndex, int castRow)
+        private bool MatchesCastAction(CombatActionData action)
+        {
+            if (action == null || action.DeliveryMode != CombatDeliveryMode.Projectile)
+            {
+                return false;
+            }
+
+            return string.IsNullOrWhiteSpace(CastActionId)
+                || string.Equals(action.ActionId, CastActionId, System.StringComparison.OrdinalIgnoreCase);
+        }
+
+        private AnimatedSprite2D EnsureLayer(string layerName, string sheetPath, int zIndex)
         {
             var layer = GetNodeOrNull<AnimatedSprite2D>(layerName);
             if (layer == null)
@@ -187,20 +263,35 @@ namespace AshesofaDyingWorld.Combat.Visuals
             }
 
             layer.Centered = true;
+            layer.Position = Vector2.Zero;
             layer.ZIndex = zIndex;
             layer.Visible = true;
-            layer.SpriteFrames = BuildFrames(sheetPath, castRow);
+            layer.SpriteFrames = BuildFrames(sheetPath);
             return layer;
         }
 
-        private SpriteFrames BuildFrames(string sheetPath, int castRow)
+        private SpriteFrames BuildFrames(string sheetPath)
         {
             var frames = new SpriteFrames();
             Texture2D sheet = GD.Load<Texture2D>(sheetPath);
-            AddDirection(frames, sheet, "down", castRow);
-            AddDirection(frames, sheet, "right", castRow);
-            AddDirection(frames, sheet, "left", castRow);
-            AddDirection(frames, sheet, "up", castRow);
+            if (sheet == null)
+            {
+                GD.PushError($"[HyouCastVisual] Không load được magic sheet: {sheetPath}");
+            }
+            else
+            {
+                int expectedWidth = Columns * FrameWidth;
+                int expectedHeight = Rows * FrameHeight;
+                if (sheet.GetWidth() < expectedWidth || sheet.GetHeight() < expectedHeight)
+                {
+                    GD.PushError($"[HyouCastVisual] Sheet sai kích thước: {sheetPath} actual={sheet.GetWidth()}x{sheet.GetHeight()} expected>={expectedWidth}x{expectedHeight}");
+                }
+            }
+
+            AddDirection(frames, sheet, "down", DownRow);
+            AddDirection(frames, sheet, "right", RightRow);
+            AddDirection(frames, sheet, "left", LeftRow);
+            AddDirection(frames, sheet, "up", UpRow);
             return frames;
         }
 
@@ -209,7 +300,14 @@ namespace AshesofaDyingWorld.Combat.Visuals
             string animation = $"ice_bolt_{direction}";
             frames.AddAnimation(animation);
             frames.SetAnimationLoop(animation, false);
-            frames.SetAnimationSpeed(animation, AnimationSpeed);
+
+            int frameCount = Mathf.Clamp(TimelineFrames, 1, Columns);
+            // Frame 0 hiện ngay tại t=0. Muốn frame 7 xuất hiện đúng t=2 giây thì
+            // tốc độ phải là (8 - 1) / 2 = 3.5 FPS, trùng với body 5 FPS * 0.7.
+            float animationSpeed = frameCount <= 1
+                ? 1f
+                : (frameCount - 1) / Mathf.Max(0.1f, CastDurationSeconds);
+            frames.SetAnimationSpeed(animation, animationSpeed);
 
             if (sheet == null)
             {
@@ -217,9 +315,11 @@ namespace AshesofaDyingWorld.Combat.Visuals
             }
 
             int safeRow = Mathf.Clamp(row, 0, Mathf.Max(0, Rows - 1));
-            int frameCount = Mathf.Clamp(UsedFrames, 1, Columns);
-            for (int column = 0; column < frameCount; column++)
+            int maxStart = Mathf.Max(0, Columns - frameCount);
+            int startColumn = Mathf.Clamp(TimelineStartColumn, 0, maxStart);
+            for (int frame = 0; frame < frameCount; frame++)
             {
+                int column = startColumn + frame;
                 var atlas = new AtlasTexture
                 {
                     Atlas = sheet,
@@ -236,6 +336,7 @@ namespace AshesofaDyingWorld.Combat.Visuals
                 return;
             }
 
+            layer.Visible = true;
             layer.Animation = animation;
             layer.Frame = 0;
             layer.Play();
@@ -250,6 +351,22 @@ namespace AshesofaDyingWorld.Combat.Visuals
 
             layer.Stop();
             layer.Frame = 0;
+        }
+
+        private Vector2 ResolveCharacterFacing(Vector2 fallback = default)
+        {
+            if (_character != null)
+            {
+                return _character.FacingCardinal switch
+                {
+                    "right" => Vector2.Right,
+                    "left" => Vector2.Left,
+                    "up" => Vector2.Up,
+                    _ => Vector2.Down,
+                };
+            }
+
+            return fallback.LengthSquared() > 0.001f ? fallback : Vector2.Down;
         }
 
         private static string ResolveDirection(Vector2 facing)

@@ -1,5 +1,6 @@
 using Godot;
 using AshesofaDyingWorld.Combat.Model;
+using Godot.Collections;
 
 namespace AshesofaDyingWorld.Combat.Data
 {
@@ -17,6 +18,7 @@ namespace AshesofaDyingWorld.Combat.Data
         [Export] public int ActiveEndFrame { get; set; } = 2;
         [Export] public int EndFrame { get; set; } = 3;
         [Export] public float PlaybackSpeedMultiplier { get; set; } = 1f;
+        [Export] public bool ScalePlaybackWithAttackSpeed { get; set; } = true;
 
         [ExportGroup("Timing Fallback")]
         [Export] public float StartupSeconds { get; set; } = 0.12f;
@@ -32,6 +34,11 @@ namespace AshesofaDyingWorld.Combat.Data
         [Export] public CombatDeliveryMode DeliveryMode { get; set; } = CombatDeliveryMode.MeleeHitbox;
         [Export] public HitProfileData HitProfile { get; set; }
         [Export] public ProjectileSpecData ProjectileSpec { get; set; }
+
+        [ExportGroup("Action Events")]
+        [Export] public Array<CombatActionEventData> Events { get; set; } = new();
+
+        public bool HasAuthoredEvents => Events != null && Events.Count > 0;
 
         public string ResolveAnimation(string direction)
         {

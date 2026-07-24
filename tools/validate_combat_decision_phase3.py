@@ -97,13 +97,15 @@ def main() -> int:
     require(
         "src/Combat/Runtime/CombatActionRunner.cs",
         "ActionReleased",
+        "ActionEventTriggered",
         "TryStartAbilityAction(CombatActionData action, Vector2 aimDirection)",
         "CombatDeliveryMode.MeleeHitbox",
     )
     require(
         "src/Combat/Actors/CombatCharacter.cs",
         "Actions.ActionReleased += OnActionReleased",
-        "CombatProjectileSpawner.Spawn",
+        "Actions.ActionEventTriggered += OnActionEventTriggered",
+        "CombatActionEventDispatcher.Dispatch",
     )
     require(
         "src/Combat/Decision/Runtime/CombatDecisionAgent.cs",
@@ -131,6 +133,7 @@ def main() -> int:
     require(
         "assets/resources/data/combat/actions/hyou_ice_bolt.tres",
         "DeliveryMode = 1",
+        "Events = Array[Resource]",
         "ProjectileSpec = ExtResource",
         "HitProfile = ExtResource",
         'ActionId = "hyou_ice_bolt"',

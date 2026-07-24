@@ -113,6 +113,7 @@ namespace AshesofaDyingWorld.Combat.Actors
 
             Actions = new CombatActionRunner(this, _body, _combatHitbox, StateMachine);
             Actions.ActionReleased += OnActionReleased;
+            Actions.ActionEventTriggered += OnActionEventTriggered;
             Abilities = new CombatAbilityRunner(this);
 
             if (_body != null)
@@ -187,6 +188,7 @@ namespace AshesofaDyingWorld.Combat.Actors
             if (Actions != null)
             {
                 Actions.ActionReleased -= OnActionReleased;
+                Actions.ActionEventTriggered -= OnActionEventTriggered;
             }
 
             Abilities?.Clear();
@@ -447,16 +449,19 @@ namespace AshesofaDyingWorld.Combat.Actors
         }
 
 
+        private void OnActionEventTriggered(
+            CombatActionData action,
+            CombatActionEventData actionEvent,
+            Vector2 direction)
+        {
+            CombatActionEventDispatcher.Dispatch(this, action, actionEvent, direction);
+        }
+
         private void OnActionReleased(CombatActionData action, Vector2 direction)
         {
-            if (action == null
-                || action.DeliveryMode != CombatDeliveryMode.Projectile
-                || action.ProjectileSpec == null)
-            {
-                return;
-            }
-
-            CombatProjectileSpawner.Spawn(this, action, action.ProjectileSpec, direction);
+            // Resource cũ chưa có Events vẫn chạy được. Action mới có event sẽ không đi qua
+            // legacy bridge, tránh spawn hai projectile từ một lần release.
+            CombatActionEventDispatcher.DispatchLegacyDelivery(this, action, direction);
         }
 
         private void ResolveCoreNodes()

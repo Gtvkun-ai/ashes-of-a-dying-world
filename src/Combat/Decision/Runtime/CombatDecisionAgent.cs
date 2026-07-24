@@ -15,6 +15,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
     /// </summary>
     public partial class CombatDecisionAgent : Node
     {
+        private const string RuntimeBuild = "v8-action-events-debug-spine";
+
         [Signal] public delegate void DecisionEvaluatedEventHandler(string summary);
 
         [ExportGroup("Rollout Safety")]
@@ -63,6 +65,9 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
         public MovementCommand LastMovementCommand { get; private set; }
         public CombatRoleAssignment? LastRoleAssignment { get; private set; }
         public CombatBlackboard Blackboard => _blackboard;
+        public CombatCharacter ControlledCharacter => _self;
+        public CombatSnapshot LastSnapshot => _lastSnapshot;
+        public bool HasSnapshot => _hasSnapshot;
         public bool IsInitialized => _initialized;
 
         private readonly CombatBlackboard _blackboard = new();
@@ -151,6 +156,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
 
                 // Chỉ scheduler được ghi CurrentIntent. Evaluator không còn tự giành quyền continuity.
                 CombatIntent committed = LastScheduledDecision.CommittedIntent;
+                _blackboard.RecordCommittedIntent(committed, LastScheduledDecision.DidSwitch);
                 _blackboard.CurrentIntent = committed;
                 _blackboard.IntentLockRemaining = LastScheduledDecision.CommitmentRemaining;
                 _blackboard.CurrentAnchor = committed.DesiredAnchor;
@@ -285,6 +291,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 return;
             }
 
+            AddToGroup("CombatDecisionAgent");
             RayCast2D lineOfSightRay = ResolveOptionalNode<RayCast2D>(LineOfSightRayPath);
             NavigationAgent2D navigationAgent = ResolveOptionalNode<NavigationAgent2D>(NavigationAgentPath);
             var threatPredictor = new ThreatPredictor(ThreatDangerRange, ThreatFacingDot);
@@ -317,6 +324,12 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             _decisionRemaining = 0f;
             _debugLogRemaining = 0f;
             _initialized = true;
+            if (DebugLogging)
+            {
+                GD.Print(
+                    $"[CombatDecisionAgent] READY build={RuntimeBuild} actor={_self.CombatantId} "
+                    + $"melee={ClassProfile?.AllowsMeleeFallback ?? false} run_evade=true");
+            }
         }
 
         private CombatCharacter ResolveCharacter()

@@ -64,13 +64,34 @@ namespace AshesofaDyingWorld.Combat.Decision.Execution
                 return false;
             }
 
-            _self.FaceToward(snapshot.TargetPosition);
-
             if (intent.IsNone)
             {
                 _self.SetBlocking(false);
                 return false;
             }
+
+            // Bộ kỹ năng hiện có chưa có dash riêng. PanicEvade dùng chính run locomotion:
+            // ngắt cast/đòn đang chuẩn bị, quay theo hướng thoát và chạy thật bằng stamina.
+            if (intent.Type == CombatIntentType.PanicEvade)
+            {
+                if (!blackboard.TryBeginPanicEvade(_classProfile?.PanicEvadeCooldownSeconds ?? 1.25f))
+                {
+                    return false;
+                }
+
+                _self.SetBlocking(false);
+                if (_self.IsPerformingAttack)
+                {
+                    _self.Actions?.Cancel();
+                    blackboard.RecentCastInterruptsWindow = Mathf.Max(
+                        blackboard.RecentCastInterruptsWindow,
+                        1.2f);
+                }
+
+                return movement.HasMovement;
+            }
+
+            _self.FaceToward(snapshot.TargetPosition);
 
             if (intent.Type == CombatIntentType.Guard)
             {
@@ -80,6 +101,23 @@ namespace AshesofaDyingWorld.Combat.Decision.Execution
             }
 
             _self.SetBlocking(false);
+
+            // MeleePrimary dùng moveset đang cầm. Với Hyou, default moveset v7 là combo kiếm 2 nhát.
+            // RequestAttack khi action đang chạy chỉ ghi input buffer, vì vậy combo vẫn đi qua
+            // CombatActionRunner chứ executor không tự nhảy frame hay spawn hitbox ngoài luồng.
+            if (intent.Type == CombatIntentType.MeleePrimary)
+            {
+                _self.StopMoveInput();
+                bool wasRunning = _self.IsPerformingAttack;
+                bool accepted = _self.RequestAttack();
+                if (accepted && !wasRunning)
+                {
+                    blackboard.RecordActionExecution(new StringName("melee_primary"), 3.2f);
+                    GD.Print($"[CombatRhythm] actor={_self.CombatantId} action=melee_primary mode=sword");
+                }
+                return accepted;
+            }
+
             if (_self.IsPerformingAttack)
             {
                 return true;
@@ -110,6 +148,9 @@ namespace AshesofaDyingWorld.Combat.Decision.Execution
                 {
                     blackboard.ActionCooldowns[skillKey] = Mathf.Max(0f, skill.Cooldown);
                     blackboard.FailedActionCooldowns.Remove(skillKey);
+                    blackboard.RecordActionExecution(
+                        skillKey,
+                        _classProfile?.RepositionAfterActionSeconds ?? 3.8f);
                 }
                 else
                 {
@@ -118,7 +159,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Execution
                 return activated;
             }
 
-            // Approach/backpedal/strafe chỉ thay đổi policy. Motor sẽ áp lệnh liên tục mỗi frame.
+            // Approach/backpedal/strafe/reposition chỉ thay đổi policy. Motor áp lệnh mỗi frame.
             return movement.HasMovement;
         }
 
@@ -155,7 +196,10 @@ namespace AshesofaDyingWorld.Combat.Decision.Execution
 
             if (tacticalMovement.HasMovement)
             {
-                _self.FaceToward(tacticalMovement.FacePosition);
+                if (tacticalMovement.PreserveFacing)
+                {
+                    _self.FaceToward(tacticalMovement.FacePosition);
+                }
                 _self.SetMoveInput(
                     tacticalMovement.Direction,
                     tacticalMovement.WantsRun,

@@ -11,6 +11,7 @@ namespace AshesofaDyingWorld.Combat.AI
     /// </summary>
     public partial class SlimeBrain : Node
     {
+        private const string RuntimeBuild = "v6-soft-pursuit";
         private enum EnemyState
         {
             Wander,
@@ -25,6 +26,15 @@ namespace AshesofaDyingWorld.Combat.AI
         [Export] public float AggroRadius { get; set; } = 105f;
         [Export] public float LeashRadius { get; set; } = 170f;
         [Export] public float TargetRefreshInterval { get; set; } = 0.2f;
+
+        [ExportGroup("Threat / Targeting")]
+        [Export] public float ProvokedTargetMemorySeconds { get; set; } = 4.5f;
+        [Export] public float TargetSwitchAdvantage { get; set; } = 18f;
+        [Export] public float RetaliationLeashMultiplier { get; set; } = 1.15f;
+        [Export] public bool UseCombatSpawnLeash { get; set; } = false;
+        [Export] public float TargetForgetRadius { get; set; } = 360f;
+        [Export] public float ProvokedForgetRadius { get; set; } = 520f;
+        [Export] public bool DebugTargeting { get; set; } = true;
 
         [ExportGroup("Combat Positioning")]
         [Export] public float AttackRange { get; set; } = 37f;
@@ -51,6 +61,7 @@ namespace AshesofaDyingWorld.Combat.AI
         private float _attackCooldownRemaining;
         private float _targetRefreshRemaining;
         private float _wanderRetargetRemaining;
+        private float _provokedTargetRemaining;
         private bool _escapingTargetOverlap;
 
         public override void _Ready()
@@ -71,6 +82,7 @@ namespace AshesofaDyingWorld.Combat.AI
             _attackCooldownRemaining = Mathf.Max(0f, _attackCooldownRemaining - dt);
             _targetRefreshRemaining -= dt;
             _wanderRetargetRemaining -= dt;
+            _provokedTargetRemaining = Mathf.Max(0f, _provokedTargetRemaining - dt);
 
             if (_targetRefreshRemaining <= 0f)
             {
@@ -80,15 +92,26 @@ namespace AshesofaDyingWorld.Combat.AI
 
             if (_target != null && IsUsable(_target) && _target.IsAlive)
             {
-                float fromSpawn = _target.GlobalPosition.DistanceTo(_spawnPosition);
-                if (fromSpawn <= LeashRadius)
+                bool isProvoked = _provokedTargetRemaining > 0f;
+                float targetDistance = _character.CombatCenter.DistanceTo(_target.CombatCenter);
+                float forgetRadius = isProvoked
+                    ? Mathf.Max(TargetForgetRadius, ProvokedForgetRadius)
+                    : Mathf.Max(AggroRadius, TargetForgetRadius);
+
+                bool blockedByOptionalSpawnLeash = UseCombatSpawnLeash
+                    && !isProvoked
+                    && _target.GlobalPosition.DistanceTo(_spawnPosition) > LeashRadius;
+
+                if (!blockedByOptionalSpawnLeash && targetDistance <= forgetRadius)
                 {
                     RunCombat();
                     return;
                 }
 
-                _target = null;
-                _escapingTargetOverlap = false;
+                SetTarget(
+                    null,
+                    blockedByOptionalSpawnLeash ? "combat_leash_exceeded" : "target_too_far");
+                _provokedTargetRemaining = 0f;
             }
 
             RunReturnOrWander();
@@ -109,6 +132,13 @@ namespace AshesofaDyingWorld.Combat.AI
 
             _spawnPosition = _character.GlobalPosition;
             ChooseWanderTarget();
+            if (DebugTargeting)
+            {
+                GD.Print(
+                    $"[SlimeBrain] READY build={RuntimeBuild} slime={_character.CombatantId} "
+                    + $"combat_spawn_leash={UseCombatSpawnLeash} forget={TargetForgetRadius:0.0} "
+                    + $"provoked_forget={ProvokedForgetRadius:0.0}");
+            }
         }
 
         private void RunCombat()
@@ -214,10 +244,36 @@ namespace AshesofaDyingWorld.Combat.AI
             }
         }
 
+        /// <summary>
+        /// Khi slime bị đánh, kẻ gây sát thương phải trở thành mục tiêu ngay cả khi đứng ngoài
+        /// AggroRadius thường. Đây là phản ứng trả đũa, không phải mở rộng tầm nhìn toàn cục.
+        /// Nhờ vậy Hyou có thể đứng ở cự ly pháp sư nhưng không được bắn miễn phí.
+        /// </summary>
+        public void NotifyProvoked(CombatCharacter attacker, float hpDamage = 0f)
+        {
+            if (_character == null
+                || !IsUsable(attacker)
+                || !attacker.IsAlive
+                || attacker == _character
+                || !FactionRules.CanDamage(_character.Faction, attacker.Faction))
+            {
+                return;
+            }
+
+            // Không dùng spawn leash để từ chối kẻ vừa gây damage. Nếu projectile đã
+            // chạm slime thì attacker là mối đe dọa thật, bất kể slime sinh ra ở đâu.
+            _provokedTargetRemaining = Mathf.Max(0.1f, ProvokedTargetMemorySeconds);
+            SetTarget(attacker, hpDamage > 0f ? "damaged" : "provoked");
+        }
+
         private void RefreshTarget()
         {
-            if (_target != null && IsUsable(_target) && _target.IsAlive
-                && _character.CombatCenter.DistanceTo(_target.CombatCenter) <= AggroRadius * 1.2f)
+            // Mục tiêu vừa gây sát thương có quyền ưu tiên ngắn hạn. Không để refresh định kỳ
+            // lập tức kéo slime trở lại Player trong khi Hyou vừa bắn trúng nó.
+            if (_provokedTargetRemaining > 0f
+                && IsValidHostile(_target)
+                && _character.CombatCenter.DistanceTo(_target.CombatCenter)
+                    <= Mathf.Max(TargetForgetRadius, ProvokedForgetRadius))
             {
                 return;
             }
@@ -226,12 +282,7 @@ namespace AshesofaDyingWorld.Combat.AI
             float nearestDistanceSquared = AggroRadius * AggroRadius;
             foreach (Node node in GetTree().GetNodesInGroup("Combatant"))
             {
-                if (node is not CombatCharacter candidate || candidate == _character || !candidate.IsAlive)
-                {
-                    continue;
-                }
-
-                if (!FactionRules.CanDamage(_character.Faction, candidate.Faction))
+                if (node is not CombatCharacter candidate || !IsValidHostile(candidate))
                 {
                     continue;
                 }
@@ -244,16 +295,69 @@ namespace AshesofaDyingWorld.Combat.AI
                 }
             }
 
-            if (nearest != _target)
+            if (!IsValidHostile(_target))
             {
-                _target = nearest;
-                _escapingTargetOverlap = false;
-                _approachFacing = _target == null
-                    ? _character.FacingDirection
-                    : CombatSteering.ResolveStableCardinalFacing(
-                        _target.CombatCenter - _character.CombatCenter,
-                        _character.FacingDirection,
-                        AxisSwitchBias);
+                SetTarget(nearest, nearest == null ? "no_hostile" : "acquired");
+                return;
+            }
+
+            float currentDistance = _character.CombatCenter.DistanceTo(_target.CombatCenter);
+            float retentionRadius = Mathf.Max(AggroRadius * 1.2f, TargetForgetRadius);
+            if (nearest == null)
+            {
+                if (currentDistance > retentionRadius)
+                {
+                    SetTarget(null, "lost_range");
+                }
+                return;
+            }
+
+            if (nearest == _target)
+            {
+                return;
+            }
+
+            float nearestDistance = Mathf.Sqrt(nearestDistanceSquared);
+            bool currentOutsideRetention = currentDistance > retentionRadius;
+            bool challengerClearlyCloser = nearestDistance + Mathf.Max(0f, TargetSwitchAdvantage) < currentDistance;
+            if (currentOutsideRetention || challengerClearlyCloser)
+            {
+                SetTarget(nearest, currentOutsideRetention ? "replacement" : "closer_hostile");
+            }
+        }
+
+        private bool IsValidHostile(CombatCharacter candidate)
+        {
+            return candidate != null
+                && IsUsable(candidate)
+                && candidate != _character
+                && candidate.IsAlive
+                && FactionRules.CanDamage(_character.Faction, candidate.Faction);
+        }
+
+        private void SetTarget(CombatCharacter target, string reason)
+        {
+            if (_target == target)
+            {
+                return;
+            }
+
+            _target = target;
+            _escapingTargetOverlap = false;
+            _approachFacing = _target == null
+                ? _character.FacingDirection
+                : CombatSteering.ResolveStableCardinalFacing(
+                    _target.CombatCenter - _character.CombatCenter,
+                    _character.FacingDirection,
+                    AxisSwitchBias);
+
+            if (DebugTargeting)
+            {
+                string targetId = _target?.CombatantId ?? "none";
+                float distance = _target == null
+                    ? 0f
+                    : _character.CombatCenter.DistanceTo(_target.CombatCenter);
+                GD.Print($"[SlimeBrain] TARGET slime={_character.CombatantId} target={targetId} reason={reason} distance={distance:0.0}");
             }
         }
 

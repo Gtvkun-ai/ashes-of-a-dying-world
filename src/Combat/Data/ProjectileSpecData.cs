@@ -14,8 +14,9 @@ namespace AshesofaDyingWorld.Combat.Data
     }
 
     /// <summary>
-    /// Dữ liệu projectile thuần Resource. Không nhét tên riêng IceBolt vào runtime,
-    /// để spell khác chỉ cần thêm .tres thay vì sinh thêm một lớp C# mới.
+    /// Dữ liệu projectile thuần Resource. Runtime chỉ đọc presentation từ data.
+    /// Core là hình viên đạn đang bay; launch sheet là lớp animation nhả đạn ngắn
+    /// ở thời điểm projectile vừa rời người cast.
     /// </summary>
     [GlobalClass]
     public partial class ProjectileSpecData : Resource
@@ -40,9 +41,6 @@ namespace AshesofaDyingWorld.Combat.Data
         [Export] public HitProfileData HitProfileOverride { get; set; }
 
         [ExportGroup("Presentation")]
-        [Export] public Color CoreColor { get; set; } = new Color(0.72f, 0.96f, 1f, 1f);
-        [Export] public Color GlowColor { get; set; } = new Color(0.18f, 0.72f, 1f, 0.65f);
-        [Export] public float VisualLength { get; set; } = 18f;
-        [Export] public float VisualWidth { get; set; } = 4f;
+        [Export] public ProjectileVisualProfileData VisualProfile { get; set; }
     }
 }

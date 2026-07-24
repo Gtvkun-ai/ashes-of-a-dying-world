@@ -1,5 +1,6 @@
 using Godot;
 using AshesofaDyingWorld.Combat.Actors;
+using AshesofaDyingWorld.Combat.AI;
 using AshesofaDyingWorld.Combat.Model;
 using AshesofaDyingWorld.UI.HUD;
 
@@ -12,12 +13,25 @@ public partial class Slime1 : CombatCharacter
     public float MaxHP => Stats?.MaxHP ?? 1f;
     public int Level => Stats?.CurrentLevel ?? 1;
 
+    private SlimeBrain _brain;
+
     protected override void OnCombatReady()
     {
         Faction = CombatFaction.Enemy;
         AddToGroup("Enemy");
         RemoveFromWorldOnDeath = true;
+        _brain = GetNodeOrNull<SlimeBrain>("SlimeBrain");
         CallDeferred(nameof(RegisterHealthBar));
+    }
+
+    protected override void OnHitReceived(HitRequest request, HitResult result)
+    {
+        // Gửi attacker thật cho brain thay vì đoán theo khoảng cách. Projectile của Hyou có thể
+        // bay từ ngoài AggroRadius, nhưng slime vẫn phải biết chính xác ai vừa đánh mình.
+        if (result?.Applied == true && request?.Attacker != null)
+        {
+            _brain?.NotifyProvoked(request.Attacker, result.HpDamage);
+        }
     }
 
     protected override void OnDefeated(CombatCharacter attacker)

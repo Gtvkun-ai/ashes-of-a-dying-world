@@ -14,7 +14,8 @@ namespace AshesofaDyingWorld.Combat.Projectiles
             CombatCharacter attacker,
             CombatActionData action,
             ProjectileSpecData spec,
-            Vector2 direction)
+            Vector2 direction,
+            NodePath originSocketPath = default)
         {
             if (attacker == null || action == null || spec == null || !attacker.IsInsideTree())
             {
@@ -35,12 +36,28 @@ namespace AshesofaDyingWorld.Combat.Projectiles
                 return null;
             }
 
+            Vector2 origin = ResolveOrigin(attacker, originSocketPath);
             var projectile = new CombatProjectile2D();
             projectile.Initialize(attacker, action, spec, safeDirection);
             worldParent.AddChild(projectile);
-            projectile.GlobalPosition = attacker.CombatCenter
+            projectile.GlobalPosition = origin
                 + safeDirection * Mathf.Max(0f, spec.SpawnOffset);
             return projectile;
+        }
+
+        private static Vector2 ResolveOrigin(CombatCharacter attacker, NodePath originSocketPath)
+        {
+            string socketPath = originSocketPath.ToString();
+            if (!string.IsNullOrWhiteSpace(socketPath))
+            {
+                Node2D socket = attacker.GetNodeOrNull<Node2D>(originSocketPath);
+                if (socket != null)
+                {
+                    return socket.GlobalPosition;
+                }
+            }
+
+            return attacker.CombatCenter;
         }
     }
 }

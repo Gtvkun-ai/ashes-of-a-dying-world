@@ -604,7 +604,12 @@ namespace AshesofaDyingWorld.Entities.NPC
 
             _character.StopMoveInput();
             _character.SetBlocking(false);
-            _castVisual?.StopCast();
+
+            // Không được dừng HyouCastVisual tại đây.
+            // ReleaseCommands có thể chạy mỗi physics frame khi legacy HyouAI bị tắt
+            // để Decision Core nắm quyền. VFX cast thuộc quyền sở hữu của ActionRunner:
+            // ActionStarted mở hiệu ứng, ActionFinished mới đóng hiệu ứng. Nếu AI cũ gọi
+            // StopCast ở đây, vòng phép vừa bật sẽ bị dập ngay trong cùng một frame.
         }
 
         private static bool IsNodeUsable(Node node)

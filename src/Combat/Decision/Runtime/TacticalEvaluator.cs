@@ -33,7 +33,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 out float reacquireRange,
                 out float rangeEdge);
 
-            var candidates = new List<CandidateTrace>(9);
+            var candidates = new List<CandidateTrace>(12);
             if (!snapshot.HasTarget)
             {
                 CombatIntent idle = CombatIntent.None(new StringName("no_target"));
@@ -56,7 +56,21 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             float targetExposure = snapshot.TargetInRecovery ? 1f : 0.55f;
             bool insidePanic = distance <= panicRange;
             bool insideUnsafe = distance < unsafeRange;
+            bool immediateDodgeWindow = snapshot.ThreatDodgeable
+                && snapshot.ThreatEtaSeconds > 0f
+                && snapshot.ThreatEtaSeconds <= 0.36f;
 
+            AddPanicEvadeCandidate(
+                candidates,
+                snapshot,
+                blackboard,
+                safeClass,
+                safeDoctrine,
+                safePersonality,
+                preferredMin,
+                preferredMax,
+                insidePanic,
+                immediateDodgeWindow);
             AddHoldRangeCandidate(
                 candidates,
                 snapshot,
@@ -102,6 +116,16 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 safePersonality,
                 preferredMin,
                 preferredMax);
+            AddMeleeCandidate(
+                candidates,
+                snapshot,
+                blackboard,
+                safeClass,
+                safeDoctrine,
+                safePersonality,
+                preferredMin,
+                preferredMax,
+                immediateDodgeWindow);
 
             SkillData primarySkill = safeClass.GetPrimarySkill();
             AddCastCandidate(
@@ -117,6 +141,15 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 safety,
                 targetExposure,
                 insideUnsafe);
+            AddRepositionCandidate(
+                candidates,
+                snapshot,
+                blackboard,
+                primarySkill,
+                safeDoctrine,
+                preferredMin,
+                preferredMax,
+                insidePanic);
             AddRecoverCandidate(
                 candidates,
                 snapshot,
@@ -146,6 +179,207 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
 
             string summary = $"Đề xuất {chosen}; range={distance:0.0}, LOS={snapshot.HasLineOfSight}, threat={snapshot.ThreatSeverity:0.00}.";
             return BuildTrace(snapshot, chosen, candidates, summary);
+        }
+
+        private static void AddPanicEvadeCandidate(
+            ICollection<CandidateTrace> candidates,
+            in CombatSnapshot snapshot,
+            CombatBlackboard blackboard,
+            CombatClassProfile classProfile,
+            CombatDoctrineProfile doctrine,
+            CombatPersonalityProfile personality,
+            float preferredMin,
+            float preferredMax,
+            bool insidePanic,
+            bool immediateDodgeWindow)
+        {
+            CombatIntent intent = MakeIntent(
+                CombatIntentType.PanicEvade,
+                snapshot,
+                string.Empty,
+                snapshot.SelfPosition + snapshot.SafeRetreatVector * 64f,
+                preferredMin,
+                preferredMax,
+                0.34f,
+                immediateDodgeWindow ? "incoming_attack_run_evade" : "panic_run_evade");
+
+            bool enoughStamina = !snapshot.Stamina.HasPool
+                || snapshot.Stamina.Current >= Mathf.Max(1f, classProfile.PanicEvadeMinStamina);
+            bool cooldownReady = blackboard.PanicEvadeActive
+                || blackboard.PanicEvadeCooldownRemaining <= 0.001f;
+            bool tacticalNeed = immediateDodgeWindow
+                || (insidePanic && snapshot.ThreatSeverity >= 0.34f);
+            bool canInterruptOwnAction = snapshot.SelfState == AshesofaDyingWorld.Combat.Model.CombatStateId.AttackStartup
+                || snapshot.SelfState == AshesofaDyingWorld.Combat.Model.CombatStateId.AttackRecovery;
+            bool feasible = (snapshot.CanMove || canInterruptOwnAction)
+                && snapshot.HasSafeRetreatVector
+                && enoughStamina
+                && cooldownReady
+                && tacticalNeed;
+
+            float urgency = immediateDodgeWindow
+                ? ResponseCurve.InverseSmoothRamp(snapshot.ThreatEtaSeconds, 0.05f, 0.36f)
+                : snapshot.ThreatSeverity;
+            float temperament = Mathf.Clamp(
+                0.46f * doctrine.RetreatReadiness
+                + 0.34f * personality.SelfPreservation
+                + 0.20f * personality.Discipline,
+                0f,
+                1f);
+            float score = Mathf.Clamp(
+                0.82f + 0.12f * urgency + 0.06f * temperament,
+                0f,
+                1f);
+
+            candidates.Add(BuildCandidate(
+                intent,
+                feasible,
+                score,
+                ResolvePanicEvadeFailure(snapshot, enoughStamina, cooldownReady, tacticalNeed),
+                TacticalActionTag.Escape
+                    | TacticalActionTag.Defensive
+                    | TacticalActionTag.Mobility
+                    | TacticalActionTag.StaminaHeavy,
+                new Dictionary<string, float>
+                {
+                    ["threat"] = snapshot.ThreatSeverity,
+                    ["eta"] = snapshot.ThreatEtaSeconds,
+                    ["dodgeable"] = snapshot.ThreatDodgeable ? 1f : 0f,
+                    ["stamina_ready"] = enoughStamina ? 1f : 0f,
+                    ["cooldown_ready"] = cooldownReady ? 1f : 0f
+                }));
+        }
+
+        private static void AddMeleeCandidate(
+            ICollection<CandidateTrace> candidates,
+            in CombatSnapshot snapshot,
+            CombatBlackboard blackboard,
+            CombatClassProfile classProfile,
+            CombatDoctrineProfile doctrine,
+            CombatPersonalityProfile personality,
+            float preferredMin,
+            float preferredMax,
+            bool immediateDodgeWindow)
+        {
+            StringName actionKey = new StringName("melee_primary");
+            bool rangeReady = snapshot.TargetDistance <= Mathf.Max(1f, classProfile.MeleeRange);
+            bool staminaReady = !snapshot.Stamina.HasPool
+                || snapshot.StaminaRatio >= classProfile.MeleeStaminaReserveRatio;
+            bool canUse = classProfile.CanUseMeleeFallback(
+                snapshot.TargetDistance,
+                snapshot.StaminaRatio);
+            bool safeEnough = !immediateDodgeWindow
+                && (snapshot.TargetInRecovery || snapshot.ThreatSeverity <= 0.42f);
+            bool feasible = canUse
+                && rangeReady
+                && staminaReady
+                && safeEnough
+                && snapshot.CanStartAction;
+
+            float closeFit = ResponseCurve.SmoothBand(
+                snapshot.TargetDistance,
+                18f,
+                Mathf.Max(20f, classProfile.MeleeRange),
+                12f);
+            float exposure = snapshot.TargetInRecovery ? 1f : 0.48f;
+            float lowManaBias = snapshot.Mana.HasPool
+                ? ResponseCurve.InverseLinear(snapshot.ManaRatio)
+                : 0f;
+            float discipline = Mathf.Clamp(
+                0.50f * personality.Discipline
+                + 0.30f * doctrine.Aggression
+                + 0.20f * personality.Confidence,
+                0f,
+                1f);
+            float rhythm = blackboard.GetActionRhythmMultiplier(actionKey);
+            float score = Mathf.Clamp(
+                (0.38f + 0.34f * closeFit + 0.20f * exposure + 0.08f * lowManaBias)
+                * (0.82f + 0.18f * discipline)
+                * rhythm,
+                0f,
+                snapshot.TargetInRecovery ? 0.94f : 0.78f);
+
+            candidates.Add(BuildCandidate(
+                MakeIntent(
+                    CombatIntentType.MeleePrimary,
+                    snapshot,
+                    actionKey.ToString(),
+                    snapshot.TargetPosition,
+                    0f,
+                    classProfile.MeleeRange,
+                    0.42f,
+                    snapshot.TargetInRecovery ? "sword_punish_recovery" : "sword_close_fallback"),
+                feasible,
+                score,
+                ResolveMeleeFailure(classProfile, snapshot, rangeReady, staminaReady, safeEnough),
+                TacticalActionTag.Damage
+                    | TacticalActionTag.LowCommitment
+                    | TacticalActionTag.StaminaHeavy,
+                new Dictionary<string, float>
+                {
+                    ["range_fit"] = closeFit,
+                    ["target_exposure"] = exposure,
+                    ["low_mana_bias"] = lowManaBias,
+                    ["rhythm"] = rhythm,
+                    ["safe"] = safeEnough ? 1f : 0f
+                }));
+        }
+
+        private static void AddRepositionCandidate(
+            ICollection<CandidateTrace> candidates,
+            in CombatSnapshot snapshot,
+            CombatBlackboard blackboard,
+            SkillData primarySkill,
+            CombatDoctrineProfile doctrine,
+            float preferredMin,
+            float preferredMax,
+            bool insidePanic)
+        {
+            StringName skillKey = new StringName(primarySkill?.SkillId ?? string.Empty);
+            bool afterPrimaryAction = primarySkill != null && blackboard.IsFreshAction(skillKey);
+            bool currentlyRepositioning = blackboard.CurrentIntent.HasValue
+                && blackboard.CurrentIntent.Value.Type == CombatIntentType.Reposition;
+            bool feasible = (afterPrimaryAction || currentlyRepositioning)
+                && snapshot.CanMove
+                && !insidePanic
+                && !snapshot.ThreatDodgeable;
+            float repetitionPressure = afterPrimaryAction
+                ? 1f - blackboard.GetActionRhythmMultiplier(skillKey)
+                : 0.22f;
+            float facingPressure = snapshot.TargetFacingSelf ? 1f : 0.35f;
+            float recentPenalty = blackboard.GetRecentIntentMultiplier(CombatIntentType.Reposition);
+            float score = Mathf.Clamp(
+                (0.52f
+                    + (currentlyRepositioning ? 0.08f : 0f)
+                    + 0.26f * repetitionPressure
+                    + 0.08f * facingPressure
+                    + 0.08f * doctrine.MobilityPreference)
+                * recentPenalty,
+                0f,
+                0.86f);
+
+            candidates.Add(BuildCandidate(
+                MakeIntent(
+                    CombatIntentType.Reposition,
+                    snapshot,
+                    string.Empty,
+                    snapshot.TargetPosition,
+                    preferredMin,
+                    preferredMax,
+                    0.34f,
+                    "break_action_repetition"),
+                feasible,
+                score,
+                feasible ? string.Empty : "no_recent_action_or_movement_unavailable",
+                TacticalActionTag.Mobility | TacticalActionTag.LowCommitment,
+                new Dictionary<string, float>
+                {
+                    ["after_primary"] = afterPrimaryAction ? 1f : 0f,
+                    ["currently_repositioning"] = currentlyRepositioning ? 1f : 0f,
+                    ["repetition_pressure"] = repetitionPressure,
+                    ["target_facing"] = facingPressure,
+                    ["recent_penalty"] = recentPenalty
+                }));
         }
 
         private static void AddHoldRangeCandidate(
@@ -261,13 +495,18 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 0f,
                 1f);
             float stability = GetStabilityBonus(blackboard, CombatIntentType.Backpedal);
-            float score = closeNeed * (0.66f + 0.34f * retreatBias)
+            float recentMultiplier = blackboard.GetRecentIntentMultiplier(CombatIntentType.Backpedal);
+            float score = (closeNeed * (0.66f + 0.34f * retreatBias)
                 + snapshot.ThreatSeverity * 0.12f
-                + stability;
+                + stability) * recentMultiplier;
             if (insidePanic)
             {
-                // Panic radius là hard tactical priority, không để RecoverResources thắng vì vài phần trăm.
-                score = Mathf.Max(score, 0.84f + 0.14f * snapshot.ThreatSeverity);
+                // Chỉ ép lùi thật mạnh khi có áp lực. Nếu slime vừa hụt/recovery, Hyou được phép
+                // rút kiếm punish thay vì lùi vô điều kiện như một chiếc xe chỉ có số de.
+                float panicFloor = snapshot.ThreatSeverity >= 0.25f
+                    ? 0.84f + 0.14f * snapshot.ThreatSeverity
+                    : 0.62f;
+                score = Mathf.Max(score, panicFloor);
             }
             score = Mathf.Clamp(score, 0f, 1f);
 
@@ -283,7 +522,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                     ["retreat_bias"] = retreatBias,
                     ["panic"] = insidePanic ? 1f : 0f,
                     ["threat"] = snapshot.ThreatSeverity,
-                    ["stability"] = stability
+                    ["stability"] = stability,
+                    ["recent_multiplier"] = recentMultiplier
                 }));
         }
 
@@ -316,8 +556,10 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 0f,
                 1f);
             float stability = GetStabilityBonus(blackboard, type);
+            float recentMultiplier = blackboard.GetRecentIntentMultiplier(type);
             float score = Mathf.Clamp(
-                unsafePressure * mobilityBias * (0.62f + 0.38f * safety) + stability,
+                (unsafePressure * mobilityBias * (0.62f + 0.38f * safety) + stability)
+                * recentMultiplier,
                 0f,
                 1f);
             candidates.Add(BuildCandidate(
@@ -334,7 +576,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                     ["mobility_bias"] = mobilityBias,
                     ["safety"] = safety,
                     ["orbit_side"] = blackboard.OrbitSide,
-                    ["panic"] = insidePanic ? 1f : 0f
+                    ["panic"] = insidePanic ? 1f : 0f,
+                    ["recent_multiplier"] = recentMultiplier
                 }));
         }
 
@@ -445,7 +688,9 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                     targetExposure
                 },
                 new[] { 1.35f, 1.1f, 0.85f, 0.5f, 1.1f, 0.8f });
+            float rhythm = blackboard.GetActionRhythmMultiplier(skillKey);
             score *= Mathf.Lerp(0.68f, 1f, doctrine.RangeDiscipline);
+            score *= rhythm;
 
             candidates.Add(BuildCandidate(
                 intent,
@@ -467,7 +712,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                     ["cooldown_ready"] = offCooldown ? 1f : 0f,
                     ["runtime_cooldown"] = runtimeCooldown,
                     ["safety"] = safety,
-                    ["target_exposure"] = targetExposure
+                    ["target_exposure"] = targetExposure,
+                    ["rhythm"] = rhythm
                 }));
         }
 
@@ -691,6 +937,35 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             }
 
             return right.FinalScore.CompareTo(left.FinalScore);
+        }
+
+        private static string ResolvePanicEvadeFailure(
+            in CombatSnapshot snapshot,
+            bool enoughStamina,
+            bool cooldownReady,
+            bool tacticalNeed)
+        {
+            if (!snapshot.CanMove) return "movement_unavailable";
+            if (!snapshot.HasSafeRetreatVector) return "no_retreat_vector";
+            if (!enoughStamina) return "stamina_reserved";
+            if (!cooldownReady) return "evade_cooldown";
+            if (!tacticalNeed) return "no_immediate_dodge_window";
+            return string.Empty;
+        }
+
+        private static string ResolveMeleeFailure(
+            CombatClassProfile classProfile,
+            in CombatSnapshot snapshot,
+            bool rangeReady,
+            bool staminaReady,
+            bool safeEnough)
+        {
+            if (!classProfile.AllowsMeleeFallback) return "class_disallows_melee";
+            if (!rangeReady) return "outside_melee_range";
+            if (!staminaReady) return "stamina_reserve";
+            if (!safeEnough) return "incoming_attack_requires_evade";
+            if (!snapshot.CanStartAction) return "state_blocks_melee";
+            return string.Empty;
         }
 
         private static string ResolveGuardFailure(in CombatSnapshot snapshot)

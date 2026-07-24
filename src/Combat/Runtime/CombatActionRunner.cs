@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using System.Collections.Generic;
 using AshesofaDyingWorld.Combat.Actors;
 using AshesofaDyingWorld.Combat.Data;
 using AshesofaDyingWorld.Combat.Model;
@@ -8,7 +9,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
 {
     /// <summary>
     /// Chạy action từ Resource: stamina, frame window, combo buffer, delivery và recovery.
-    /// Melee mở CombatHitbox; projectile chỉ phát release event để world spawner tạo đạn.
+    /// Melee mở CombatHitbox; event timeline phát payload đúng một lần cho dispatcher.
     /// </summary>
     public sealed class CombatActionRunner
     {
@@ -30,14 +31,19 @@ namespace AshesofaDyingWorld.Combat.Runtime
         private int _comboIndex = -1;
         private float _bufferRemaining;
         private bool _usingFrameAnimation;
+        private bool _initializingFrameAnimation;
         private bool _deliveryOpened;
         private Vector2 _actionFacing = Vector2.Down;
         private string _actionFacingCardinal = "down";
         private FallbackPhase _fallbackPhase;
         private float _fallbackRemaining;
+        private float _actionElapsedSeconds;
+        private float _actionDurationSeconds;
+        private readonly HashSet<int> _triggeredEventIndices = new();
 
         public event Action<CombatActionData, Vector2> ActionStarted;
         public event Action<CombatActionData, Vector2> ActionReleased;
+        public event Action<CombatActionData, CombatActionEventData, Vector2> ActionEventTriggered;
         public event Action<CombatActionData, bool> ActionFinished;
 
         public CombatActionData CurrentAction => _currentAction;
@@ -115,11 +121,16 @@ namespace AshesofaDyingWorld.Combat.Runtime
 
         public void Update(float delta)
         {
-            _bufferRemaining = Mathf.Max(0f, _bufferRemaining - Mathf.Max(0f, delta));
+            float dt = Mathf.Max(0f, delta);
+            _bufferRemaining = Mathf.Max(0f, _bufferRemaining - dt);
             if (_currentAction == null)
             {
                 return;
             }
+
+            _actionElapsedSeconds = Mathf.Min(
+                Mathf.Max(0.01f, _actionDurationSeconds),
+                _actionElapsedSeconds + dt);
 
             if (_usingFrameAnimation)
             {
@@ -127,11 +138,23 @@ namespace AshesofaDyingWorld.Combat.Runtime
                 return;
             }
 
-            UpdateFallback(delta);
+            EvaluateActionEventsNormalized(
+                _actionDurationSeconds <= 0f
+                    ? 1f
+                    : _actionElapsedSeconds / _actionDurationSeconds);
+            UpdateFallback(dt);
         }
 
         public void HandleBodyFrameChanged()
         {
+            // AnimatedSprite2D phát FrameChanged đồng bộ ngay khi đổi Animation/Frame.
+            // Trong lúc khởi tạo action, callback đó không được phép đánh giá frame cũ
+            // (thường là EndFrame=7 của lần cast trước) rồi kết thúc action vừa sinh ra.
+            if (_initializingFrameAnimation)
+            {
+                return;
+            }
+
             if (_currentAction != null && _usingFrameAnimation)
             {
                 EvaluateAnimationFrame();
@@ -183,6 +206,11 @@ namespace AshesofaDyingWorld.Combat.Runtime
             _comboIndex = comboIndex;
             _bufferRemaining = 0f;
             _deliveryOpened = false;
+            _actionElapsedSeconds = 0f;
+            _actionDurationSeconds = Mathf.Max(
+                0.01f,
+                action.StartupSeconds + action.ActiveSeconds + action.RecoverySeconds);
+            _triggeredEventIndices.Clear();
             _hitbox.DisableHitbox();
 
             // Khóa hướng ngay lúc action được nhận. Animation dùng cardinal, còn projectile
@@ -197,7 +225,6 @@ namespace AshesofaDyingWorld.Combat.Runtime
                 _actionFacing = _actionFacing.Normalized();
             }
             _actionFacingCardinal = _owner.FacingCardinal;
-            ActionStarted?.Invoke(_currentAction, _actionFacing);
 
             string animationName = action.ResolveAnimation(_actionFacingCardinal);
             _usingFrameAnimation = _body?.SpriteFrames != null
@@ -206,18 +233,51 @@ namespace AshesofaDyingWorld.Combat.Runtime
 
             if (_usingFrameAnimation)
             {
-                _body.SpeedScale = _baseBodySpeedScale
-                    * Mathf.Max(0.1f, _owner.Stats?.AttackSpeed ?? 1f)
-                    * Mathf.Max(0.1f, action.PlaybackSpeedMultiplier);
-                _body.Animation = animationName;
-                _body.Frame = Mathf.Clamp(action.StartFrame, 0, _body.SpriteFrames.GetFrameCount(animationName) - 1);
-                _body.Play();
-                EvaluateAnimationFrame();
+                float attackSpeedScale = action.ScalePlaybackWithAttackSpeed
+                    ? Mathf.Max(0.1f, _owner.Stats?.AttackSpeed ?? 1f)
+                    : 1f;
+
+                // Quan trọng: chuẩn bị body hoàn chỉnh TRƯỚC khi phát ActionStarted.
+                // Trước đây ActionStarted bật VFX khi body vẫn có thể còn ở frame 7.
+                // Việc đổi animation/frame sau đó phát FrameChanged đồng bộ, callback thấy
+                // frame cuối và CompleteAction ngay lập tức. Kết quả là CAST START/STOP
+                // lặp mỗi physics frame, còn người chơi thấy... không khí.
+                _initializingFrameAnimation = true;
+                try
+                {
+                    _body.SpeedScale = _baseBodySpeedScale
+                        * attackSpeedScale
+                        * Mathf.Max(0.1f, action.PlaybackSpeedMultiplier);
+                    _body.Animation = animationName;
+                    _body.SpriteFrames.SetAnimationLoop(animationName, false);
+                    _body.Frame = Mathf.Clamp(
+                        action.StartFrame,
+                        0,
+                        _body.SpriteFrames.GetFrameCount(animationName) - 1);
+                    _body.Play();
+                }
+                finally
+                {
+                    _initializingFrameAnimation = false;
+                }
             }
             else
             {
                 _fallbackPhase = FallbackPhase.Startup;
                 _fallbackRemaining = Mathf.Max(0.01f, action.StartupSeconds);
+            }
+
+            // Listener presentation chỉ được thấy action sau khi runtime đã ở trạng thái
+            // nhất quán. Đây là ranh giới ownership, không phải nghi lễ phát signal cho vui.
+            ActionStarted?.Invoke(_currentAction, _actionFacing);
+
+            if (_usingFrameAnimation)
+            {
+                EvaluateAnimationFrame();
+            }
+            else
+            {
+                EvaluateActionEventsNormalized(0f);
             }
 
             return true;
@@ -231,6 +291,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
             }
 
             int frame = _body.Frame;
+            EvaluateActionEventsFrame(frame);
             if (!_deliveryOpened && frame >= _currentAction.ActiveStartFrame)
             {
                 BeginActiveWindow();
@@ -268,9 +329,60 @@ namespace AshesofaDyingWorld.Combat.Runtime
                     EndActiveWindow();
                     break;
                 case FallbackPhase.Recovery:
+                    EvaluateActionEventsNormalized(1f);
                     CompleteAction();
                     break;
             }
+        }
+
+        private void EvaluateActionEventsFrame(int currentFrame)
+        {
+            if (_currentAction?.Events == null)
+            {
+                return;
+            }
+
+            for (int index = 0; index < _currentAction.Events.Count; index++)
+            {
+                CombatActionEventData actionEvent = _currentAction.Events[index];
+                if (actionEvent == null
+                    || _triggeredEventIndices.Contains(index)
+                    || !actionEvent.IsDueAtFrame(_currentAction, currentFrame))
+                {
+                    continue;
+                }
+
+                TriggerActionEvent(index, actionEvent);
+            }
+        }
+
+        private void EvaluateActionEventsNormalized(float normalizedTime)
+        {
+            if (_currentAction?.Events == null)
+            {
+                return;
+            }
+
+            float safeNormalized = Mathf.Clamp(normalizedTime, 0f, 1f);
+            for (int index = 0; index < _currentAction.Events.Count; index++)
+            {
+                CombatActionEventData actionEvent = _currentAction.Events[index];
+                if (actionEvent == null
+                    || _triggeredEventIndices.Contains(index)
+                    || !actionEvent.IsDueAtNormalizedTime(_currentAction, safeNormalized))
+                {
+                    continue;
+                }
+
+                TriggerActionEvent(index, actionEvent);
+            }
+        }
+
+        private void TriggerActionEvent(int index, CombatActionEventData actionEvent)
+        {
+            // Ghi fired trước khi gọi listener để callback re-entrant không thể phát đôi event.
+            _triggeredEventIndices.Add(index);
+            ActionEventTriggered?.Invoke(_currentAction, actionEvent, _actionFacing);
         }
 
         private void BeginActiveWindow()
@@ -341,10 +453,14 @@ namespace AshesofaDyingWorld.Combat.Runtime
             _bufferRemaining = 0f;
             _deliveryOpened = false;
             _usingFrameAnimation = false;
+            _initializingFrameAnimation = false;
             _actionFacing = Vector2.Down;
             _actionFacingCardinal = "down";
             _fallbackPhase = FallbackPhase.None;
             _fallbackRemaining = 0f;
+            _actionElapsedSeconds = 0f;
+            _actionDurationSeconds = 0f;
+            _triggeredEventIndices.Clear();
 
             if (_body != null)
             {

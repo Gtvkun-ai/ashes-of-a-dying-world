@@ -23,7 +23,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Model
         RecoverResources = 12,
         ProtectLeader = 13,
         Reposition = 14,
-        PanicEvade = 15
+        PanicEvade = 15,
+        MeleePrimary = 16
     }
 
     [Flags]

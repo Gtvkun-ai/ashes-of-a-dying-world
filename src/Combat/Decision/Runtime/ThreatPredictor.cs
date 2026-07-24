@@ -1,13 +1,14 @@
 using Godot;
 using AshesofaDyingWorld.Combat.Actors;
+using AshesofaDyingWorld.Combat.Data;
 using AshesofaDyingWorld.Combat.Decision.Model;
 using AshesofaDyingWorld.Combat.Model;
 
 namespace AshesofaDyingWorld.Combat.Decision.Runtime
 {
     /// <summary>
-    /// Dự báo ngắn hạn đủ dùng cho shadow mode. Không giả vờ là hệ tiên tri hoàn chỉnh:
-    /// projectile incoming và action timing chính xác sẽ được bổ sung cùng projectile/scheduler.
+    /// Dự báo ngắn hạn cho combat thật. Thay vì chỉ hỏi "địch có gần không",
+    /// predictor đọc action đang chạy, reach, lunge và phase để biết lúc nào Hyou phải né.
     /// </summary>
     public sealed class ThreatPredictor : IThreatPredictor
     {
@@ -38,34 +39,74 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 && target.FacingDirection.Dot(incoming) >= _facingDotThreshold;
 
             CombatStateId state = target.StateMachine.Current;
-            float distancePressure = 1f - Mathf.Clamp(targetDistance / _dangerRange, 0f, 1f);
+            CombatActionData action = target.Actions?.CurrentAction;
+            bool meleeAction = action != null && action.DeliveryMode == CombatDeliveryMode.MeleeHitbox;
+
+            float actionReach = ResolveActionDangerRange(target, action);
+            float effectiveDangerRange = Mathf.Max(_dangerRange, actionReach);
+            float distancePressure = ResponseCurve.InverseSmoothRamp(
+                targetDistance,
+                Mathf.Max(12f, effectiveDangerRange * 0.30f),
+                effectiveDangerRange);
+
             float statePressure = state switch
             {
                 CombatStateId.AttackActive => 1f,
-                CombatStateId.AttackStartup => 0.82f,
-                CombatStateId.AttackRecovery => 0.12f,
-                _ => 0.22f
+                CombatStateId.AttackStartup => 0.94f,
+                CombatStateId.AttackRecovery => 0.08f,
+                _ => 0.16f
             };
 
             if (!facingSelf)
             {
-                statePressure *= 0.25f;
+                statePressure *= 0.18f;
             }
 
             float severity = Mathf.Clamp(distancePressure * statePressure, 0f, 1f);
             float eta = state switch
             {
-                CombatStateId.AttackActive => 0.05f,
-                CombatStateId.AttackStartup => 0.22f,
-                _ => 0.65f
+                CombatStateId.AttackActive => 0.04f,
+                CombatStateId.AttackStartup => Mathf.Clamp(action?.StartupSeconds ?? 0.24f, 0.08f, 0.42f),
+                CombatStateId.AttackRecovery => 0.70f,
+                _ => 0.85f
             };
+
+            bool threateningAttack = facingSelf
+                && meleeAction
+                && (state == CombatStateId.AttackStartup || state == CombatStateId.AttackActive)
+                && targetDistance <= effectiveDangerRange + 10f;
+            bool blockable = threateningAttack && severity >= 0.18f;
+            bool dodgeable = threateningAttack
+                && (state == CombatStateId.AttackStartup || severity >= 0.48f)
+                && eta <= 0.36f;
 
             return new ThreatAssessment(
                 eta,
                 severity,
                 incoming,
-                blockable: facingSelf && severity > 0.1f,
-                dodgeable: severity > 0.35f);
+                blockable,
+                dodgeable);
+        }
+
+        private float ResolveActionDangerRange(CombatCharacter target, CombatActionData action)
+        {
+            if (action == null || action.DeliveryMode != CombatDeliveryMode.MeleeHitbox)
+            {
+                return _dangerRange;
+            }
+
+            HitProfileData hit = action.HitProfile;
+            float hitboxHalfExtent = hit == null
+                ? 10f
+                : Mathf.Max(hit.HitboxSize.X, hit.HitboxSize.Y) * 0.5f;
+            float reach = hit?.Reach ?? 12f;
+            float lunge = Mathf.Max(0f, action.LungeSpeed)
+                * Mathf.Max(0f, target.ActionLungeMultiplier)
+                * Mathf.Clamp(action.StartupSeconds + action.ActiveSeconds, 0.08f, 0.65f);
+
+            // CombatCenter/collider của sprite scale 2 cần một margin nhỏ. Đây là prediction margin,
+            // không thay đổi hitbox thật nên tránh kiểu "né vì một đòn không thể chạm" quá xa.
+            return Mathf.Max(_dangerRange, reach + hitboxHalfExtent + lunge + 18f);
         }
 
         private static bool IsUsable(Node node)

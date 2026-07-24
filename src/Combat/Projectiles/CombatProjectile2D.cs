@@ -7,21 +7,29 @@ using AshesofaDyingWorld.Combat.Runtime;
 namespace AshesofaDyingWorld.Combat.Projectiles
 {
     /// <summary>
-    /// Projectile runtime chung cho combat. Projectile sweep bằng ShapeCast2D để không
-    /// xuyên mục tiêu khi tốc độ cao, rồi vẫn chuyển damage qua CombatResolver hiện có.
+    /// Projectile runtime chung. Damage/collision độc lập presentation.
+    /// Nếu VisualProfile có core sprite thì dùng asset thật; launch sheet phát một lần
+    /// lúc viên đạn rời caster. Hình học cũ chỉ là fallback có chủ ý.
     /// </summary>
     public partial class CombatProjectile2D : Node2D
     {
+        private const string VisualBuild = "v8-visual-profile-action-events";
+
         private readonly HashSet<ulong> _hitTargets = new();
 
         private CombatCharacter _attacker;
         private CombatActionData _action;
         private ProjectileSpecData _spec;
+        private ProjectileVisualProfileData _visual;
         private Vector2 _direction = Vector2.Right;
         private ShapeCast2D _shapeCast;
+        private Node2D _visualPivot;
+        private Sprite2D _coreVisual;
+        private AnimatedSprite2D _launchVisual;
         private float _lifeRemaining;
         private int _targetHits;
         private bool _initialized;
+        private bool _usesAssetVisual;
 
         public string ProjectileId => _spec?.ProjectileId ?? "projectile";
 
@@ -34,6 +42,7 @@ namespace AshesofaDyingWorld.Combat.Projectiles
             _attacker = attacker;
             _action = action;
             _spec = spec;
+            _visual = spec?.VisualProfile ?? new ProjectileVisualProfileData();
             _direction = direction.LengthSquared() <= 0.001f
                 ? Vector2.Right
                 : direction.Normalized();
@@ -51,7 +60,9 @@ namespace AshesofaDyingWorld.Combat.Projectiles
 
             Name = $"Projectile_{ProjectileId}";
             ZIndex = 20;
-            Rotation = _direction.Angle();
+
+            _usesAssetVisual = TryBuildAssetVisual();
+            Rotation = _usesAssetVisual ? 0f : _direction.Angle();
 
             var shape = new CircleShape2D
             {
@@ -69,6 +80,14 @@ namespace AshesofaDyingWorld.Combat.Projectiles
             };
             AddChild(_shapeCast);
             _shapeCast.AddException(_attacker);
+
+            if (!_usesAssetVisual && !_visual.UseProceduralFallback)
+            {
+                GD.PushError(
+                    $"[CombatProjectile] ASSET REQUIRED build={VisualBuild} id={ProjectileId} "
+                    + $"core='{_visual.SpriteSheetPath}'. Projectile sẽ không dùng viên tròn fallback.");
+            }
+
             QueueRedraw();
         }
 
@@ -97,18 +116,188 @@ namespace AshesofaDyingWorld.Combat.Projectiles
 
         public override void _Draw()
         {
-            if (_spec == null)
+            if (_spec == null || _usesAssetVisual || !_visual.UseProceduralFallback)
             {
                 return;
             }
 
-            float radius = Mathf.Max(2f, _spec.VisualWidth);
-            float length = Mathf.Max(radius * 2f, _spec.VisualLength);
+            float radius = Mathf.Max(2f, _visual.VisualWidth);
+            float length = Mathf.Max(radius * 2f, _visual.VisualLength);
+            DrawLine(new Vector2(-length, 0f), Vector2.Zero, _visual.GlowColor, radius * 1.5f, true);
+            DrawCircle(Vector2.Zero, radius * 1.65f, _visual.GlowColor);
+            DrawCircle(Vector2.Zero, radius, _visual.CoreColor);
+        }
 
-            // Vệt kéo nằm phía sau hướng bay vì Node2D đã xoay theo direction.
-            DrawLine(new Vector2(-length, 0f), Vector2.Zero, _spec.GlowColor, radius * 1.5f, true);
-            DrawCircle(Vector2.Zero, radius * 1.65f, _spec.GlowColor);
-            DrawCircle(Vector2.Zero, radius, _spec.CoreColor);
+        private bool TryBuildAssetVisual()
+        {
+            Vector2 cardinal = ResolveCardinal(_direction);
+            string directionName = ResolveDirectionName(cardinal);
+            int row = ResolveRow(directionName);
+
+            string corePath = directionName == "up"
+                && !string.IsNullOrWhiteSpace(_visual.UpSpriteSheetOverridePath)
+                    ? _visual.UpSpriteSheetOverridePath
+                    : _visual.SpriteSheetPath;
+
+            string launchPath = directionName == "up"
+                && !string.IsNullOrWhiteSpace(_visual.UpLaunchSpriteSheetOverridePath)
+                    ? _visual.UpLaunchSpriteSheetOverridePath
+                    : _visual.LaunchSpriteSheetPath;
+
+            Texture2D coreSheet = LoadSheet(corePath, "core");
+            Texture2D launchSheet = LoadSheet(launchPath, "launch", required: false);
+            if (coreSheet == null && launchSheet == null)
+            {
+                return false;
+            }
+
+            _visualPivot = new Node2D { Name = "VisualPivot" };
+            AddChild(_visualPivot);
+            if (_visual.RotateSpriteTowardExactAim)
+            {
+                _visualPivot.Rotation = _direction.Angle() - cardinal.Angle();
+            }
+
+            Vector2 alignedPosition = -cardinal
+                * Mathf.Max(0f, _visual.SpriteEmbeddedForwardOffset)
+                * Mathf.Max(0.01f, _visual.SpriteScale);
+
+            if (coreSheet != null)
+            {
+                AtlasTexture coreFrame = BuildAtlas(coreSheet, row, _visual.SpriteColumn, corePath);
+                if (coreFrame != null)
+                {
+                    _coreVisual = new Sprite2D
+                    {
+                        Name = "CoreSprite",
+                        Texture = coreFrame,
+                        Centered = true,
+                        Scale = Vector2.One * Mathf.Max(0.01f, _visual.SpriteScale),
+                        Position = alignedPosition,
+                        ZIndex = 2
+                    };
+                    _visualPivot.AddChild(_coreVisual);
+                }
+            }
+
+            if (launchSheet != null && _visual.LaunchFrameCount > 0)
+            {
+                SpriteFrames launchFrames = BuildLaunchFrames(launchSheet, row, launchPath);
+                if (launchFrames != null)
+                {
+                    _launchVisual = new AnimatedSprite2D
+                    {
+                        Name = "LaunchAnimation",
+                        SpriteFrames = launchFrames,
+                        Animation = "launch",
+                        Centered = true,
+                        Scale = Vector2.One * Mathf.Max(0.01f, _visual.LaunchSpriteScale),
+                        Position = alignedPosition,
+                        ZIndex = 1
+                    };
+                    _visualPivot.AddChild(_launchVisual);
+                    _launchVisual.Frame = 0;
+                    _launchVisual.Play();
+                }
+            }
+
+            bool built = _coreVisual != null || _launchVisual != null;
+            if (built && _visual.DebugVisualLogging)
+            {
+                GD.Print(
+                    $"[CombatProjectile] VISUAL build={VisualBuild} id={ProjectileId} "
+                    + $"dir={directionName} core={corePath} core_col={_visual.SpriteColumn} "
+                    + $"launch={launchPath} launch_cols={_visual.LaunchStartColumn}-"
+                    + $"{_visual.LaunchStartColumn + Mathf.Max(0, _visual.LaunchFrameCount - 1)}");
+            }
+
+            return built;
+        }
+
+        private Texture2D LoadSheet(string path, string role, bool required = true)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                if (required)
+                {
+                    GD.PushError($"[CombatProjectile] Thiếu {role} sprite path cho id={ProjectileId}");
+                }
+                return null;
+            }
+
+            Texture2D sheet = GD.Load<Texture2D>(path);
+            if (sheet == null)
+            {
+                GD.PushError($"[CombatProjectile] Không load được {role} sheet: {path}");
+            }
+            return sheet;
+        }
+
+        private AtlasTexture BuildAtlas(Texture2D sheet, int row, int column, string path)
+        {
+            int columns = Mathf.Max(1, _visual.SpriteColumns);
+            int rows = Mathf.Max(1, _visual.SpriteRows);
+            int frameWidth = _visual.SpriteFrameWidth > 0
+                ? _visual.SpriteFrameWidth
+                : sheet.GetWidth() / columns;
+            int frameHeight = _visual.SpriteFrameHeight > 0
+                ? _visual.SpriteFrameHeight
+                : sheet.GetHeight() / rows;
+
+            int safeRow = Mathf.Clamp(row, 0, rows - 1);
+            int safeColumn = Mathf.Clamp(column, 0, columns - 1);
+            int x = safeColumn * frameWidth;
+            int y = safeRow * frameHeight;
+            if (frameWidth <= 0 || frameHeight <= 0
+                || x + frameWidth > sheet.GetWidth()
+                || y + frameHeight > sheet.GetHeight())
+            {
+                GD.PushError(
+                    $"[CombatProjectile] Frame ngoài sheet: {path} row={safeRow} col={safeColumn} "
+                    + $"grid={columns}x{rows} frame={frameWidth}x{frameHeight}");
+                return null;
+            }
+
+            return new AtlasTexture
+            {
+                Atlas = sheet,
+                Region = new Rect2(x, y, frameWidth, frameHeight)
+            };
+        }
+
+        private SpriteFrames BuildLaunchFrames(Texture2D sheet, int row, string path)
+        {
+            int columns = Mathf.Max(1, _visual.SpriteColumns);
+            int start = Mathf.Clamp(_visual.LaunchStartColumn, 0, columns - 1);
+            int count = Mathf.Clamp(_visual.LaunchFrameCount, 1, columns - start);
+
+            var frames = new SpriteFrames();
+            frames.AddAnimation("launch");
+            frames.SetAnimationLoop("launch", false);
+            frames.SetAnimationSpeed("launch", Mathf.Max(1f, _visual.LaunchAnimationFps));
+
+            for (int index = 0; index < count; index++)
+            {
+                AtlasTexture frame = BuildAtlas(sheet, row, start + index, path);
+                if (frame != null)
+                {
+                    frames.AddFrame("launch", frame);
+                }
+            }
+
+            return frames.GetFrameCount("launch") > 0 ? frames : null;
+        }
+
+        private int ResolveRow(string directionName)
+        {
+            int row = directionName switch
+            {
+                "right" => _visual.RightRow,
+                "left" => _visual.LeftRow,
+                "up" => _visual.UpRow,
+                _ => _visual.DownRow,
+            };
+            return Mathf.Clamp(row, 0, Mathf.Max(0, _visual.SpriteRows - 1));
         }
 
         private bool Sweep(Vector2 step)
@@ -144,7 +333,6 @@ namespace AshesofaDyingWorld.Combat.Projectiles
                         QueueFree();
                         return true;
                     }
-
                     continue;
                 }
 
@@ -192,6 +380,28 @@ namespace AshesofaDyingWorld.Combat.Projectiles
             return false;
         }
 
+        private static Vector2 ResolveCardinal(Vector2 direction)
+        {
+            if (direction.LengthSquared() <= 0.001f)
+            {
+                return Vector2.Down;
+            }
+
+            Vector2 normalized = direction.Normalized();
+            if (Mathf.Abs(normalized.X) > Mathf.Abs(normalized.Y))
+            {
+                return normalized.X >= 0f ? Vector2.Right : Vector2.Left;
+            }
+            return normalized.Y >= 0f ? Vector2.Down : Vector2.Up;
+        }
+
+        private static string ResolveDirectionName(Vector2 cardinal)
+        {
+            if (cardinal == Vector2.Right) return "right";
+            if (cardinal == Vector2.Left) return "left";
+            return cardinal == Vector2.Up ? "up" : "down";
+        }
+
         private static CombatCharacter FindCombatCharacter(Node node)
         {
             Node cursor = node;
@@ -201,10 +411,8 @@ namespace AshesofaDyingWorld.Combat.Projectiles
                 {
                     return combatCharacter;
                 }
-
                 cursor = cursor.GetParent();
             }
-
             return null;
         }
 

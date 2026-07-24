@@ -86,6 +86,18 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 : 0f;
             bool leaderThreatened = hasLeader && IsActorThreatened(leader, _leaderDangerRadius);
 
+            // Với bộ kỹ năng hiện có, chạy nhanh chính là dodge. Perception chỉ cung cấp
+            // hướng thoát an toàn tương đối; movement solver vẫn chịu trách nhiệm tránh vật cản.
+            Vector2 safeRetreatVector = Vector2.Zero;
+            bool hasSafeRetreatVector = false;
+            if (hasTarget && directionToTarget.LengthSquared() > 0.001f)
+            {
+                Vector2 tangent = new Vector2(-directionToTarget.Y, directionToTarget.X)
+                    * (blackboard.OrbitSide < 0 ? -1f : 1f);
+                safeRetreatVector = (-directionToTarget * 0.86f + tangent * 0.52f).Normalized();
+                hasSafeRetreatVector = safeRetreatVector.LengthSquared() > 0.001f;
+            }
+
             var health = new CombatResourceSnapshot(self.Stats?.CurrentHP ?? 0f, self.Stats?.MaxHP ?? 0f);
             var mana = new CombatResourceSnapshot(self.Stats?.CurrentMP ?? 0f, self.Stats?.MaxMP ?? 0f);
             var stamina = new CombatResourceSnapshot(self.Stats?.CurrentStamina ?? 0f, self.Stats?.MaxStamina ?? 0f);
@@ -128,8 +140,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 leaderPosition,
                 distanceToLeader,
                 leaderThreatened,
-                false,
-                Vector2.Zero,
+                hasSafeRetreatVector,
+                safeRetreatVector,
                 false,
                 false,
                 timeSeconds);

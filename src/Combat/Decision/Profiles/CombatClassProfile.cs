@@ -24,6 +24,14 @@ namespace AshesofaDyingWorld.Combat.Decision.Profiles
         [Export] public float ReacquireRange { get; set; } = 72f;
         [Export] public float RangeSoftEdge { get; set; } = 10f;
 
+        [ExportGroup("Existing-kit Combat Rhythm")]
+        [Export] public bool AllowsMeleeFallback { get; set; } = false;
+        [Export] public float MeleeRange { get; set; } = 42f;
+        [Export(PropertyHint.Range, "0,1,0.01")] public float MeleeStaminaReserveRatio { get; set; } = 0.28f;
+        [Export] public float PanicEvadeMinStamina { get; set; } = 18f;
+        [Export] public float PanicEvadeCooldownSeconds { get; set; } = 1.25f;
+        [Export] public float RepositionAfterActionSeconds { get; set; } = 3.8f;
+
         [ExportGroup("Resources")]
         [Export] public bool UsesMana { get; set; } = false;
         [Export] public bool UsesStamina { get; set; } = true;
@@ -33,6 +41,13 @@ namespace AshesofaDyingWorld.Combat.Decision.Profiles
         [Export(PropertyHint.Range, "0,1,0.01")] public float CriticalManaRatio { get; set; } = 0.10f;
         [Export(PropertyHint.Range, "0,1,0.01")] public float LowStaminaRatio { get; set; } = 0.20f;
         [Export(PropertyHint.Range, "0,1,0.01")] public float CriticalStaminaRatio { get; set; } = 0.08f;
+
+        public bool CanUseMeleeFallback(float targetDistance, float staminaRatio)
+        {
+            return AllowsMeleeFallback
+                && targetDistance <= Mathf.Max(1f, MeleeRange)
+                && staminaRatio >= Mathf.Clamp(MeleeStaminaReserveRatio, 0f, 1f);
+        }
 
         public SkillData GetPrimarySkill()
         {

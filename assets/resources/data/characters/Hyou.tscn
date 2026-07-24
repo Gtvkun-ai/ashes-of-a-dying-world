@@ -12,6 +12,7 @@
 [ext_resource type="Resource" path="res://assets/resources/data/combat/decision/personalities/hyou_calm_protective.tres" id="10_personality"]
 [ext_resource type="Script" path="res://src/Combat/Visuals/HyouCastVisual.cs" id="11_cast_visual"]
 [ext_resource type="Resource" path="res://assets/resources/data/combat/movesets/hyou_cryomancer.tres" id="12_moveset"]
+[ext_resource type="Script" path="res://src/Combat/Decision/Debug/CombatDecisionDebugOverlay.cs" id="13_debug_overlay"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_sxeu7"]
 size = Vector2(11, 6)
@@ -28,6 +29,10 @@ script = ExtResource("2_npc")
 CombatantId = "companion_hyou"
 Faction = 2
 RemoveFromWorldOnDeath = true
+Speed = 100.0
+RunSpeed = 205.0
+RunStaminaCost = 28.0
+MinStaminaToRun = 18.0
 ActionLungeMultiplier = 0.2
 DefaultMoveset = ExtResource("12_moveset")
 
@@ -56,8 +61,10 @@ animation = &"Idle"
 [node name="HyouCastVisual" type="Node2D" parent="."]
 visible = false
 script = ExtResource("11_cast_visual")
-AnimationSpeed = 5.0
-ForceUpAnimation = true
+TimelineStartColumn = 0
+TimelineFrames = 8
+CastDurationSeconds = 2.0
+DebugLogging = true
 
 [node name="BackIce" type="AnimatedSprite2D" parent="HyouCastVisual"]
 z_index = -6
@@ -76,6 +83,9 @@ z_index = 4
 
 [node name="UpIceBolt" type="AnimatedSprite2D" parent="HyouCastVisual"]
 z_index = 6
+
+[node name="CastOrigin" type="Marker2D" parent="."]
+position = Vector2(0, -8)
 
 [node name="PlayerStats" type="Node" parent="." unique_id=1536723479 node_paths=PackedStringArray("EquipmentMgr")]
 script = ExtResource("3_stats")
@@ -139,7 +149,7 @@ LeaderDangerRadius = 86.0
 SwitchScoreMargin = 0.14
 EmergencyScoreMargin = 0.08
 MinimumSwitchCooldownSeconds = 0.12
-EmergencyThreatThreshold = 0.38
+EmergencyThreatThreshold = 0.30
 ObstacleCollisionMask = 1
 MovementProbeDistance = 34.0
 MovementArrivalDistance = 6.0
@@ -150,3 +160,12 @@ PersonalityProfile = ExtResource("10_personality")
 DebugLogging = true
 DebugFactorLogging = false
 TraceHistoryCapacity = 24
+[node name="CombatDecisionDebugOverlay" type="CanvasLayer" parent="."]
+layer = 90
+script = ExtResource("13_debug_overlay")
+AgentPath = NodePath("../CombatDecisionAgent")
+Enabled = true
+VisibleByDefault = false
+RefreshSeconds = 0.15
+MaxCandidates = 6
+

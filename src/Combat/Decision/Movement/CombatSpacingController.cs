@@ -49,6 +49,14 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
                     mode = CombatMovementMode.StrafeRight;
                     anchor = idealRangeAnchor - left * 34f;
                     break;
+                case CombatIntentType.Reposition:
+                    mode = blackboard.OrbitSide < 0
+                        ? CombatMovementMode.StrafeLeft
+                        : CombatMovementMode.StrafeRight;
+                    anchor = blackboard.OrbitSide < 0
+                        ? idealRangeAnchor + left * 42f
+                        : idealRangeAnchor - left * 42f;
+                    break;
                 case CombatIntentType.ProtectLeader:
                     mode = CombatMovementMode.FollowFormation;
                     anchor = assignment?.AnchorPosition
@@ -76,6 +84,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
                 case CombatIntentType.CastPrimary:
                 case CombatIntentType.CastSecondary:
                 case CombatIntentType.CastDefensive:
+                case CombatIntentType.MeleePrimary:
                 default:
                     mode = CombatMovementMode.Hold;
                     anchor = idealRangeAnchor;
@@ -83,7 +92,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             }
 
             blackboard.CurrentAnchor = anchor;
-            return new CombatPose(anchor, minRange, maxRange, true, mode);
+            bool faceTarget = intent.Type != CombatIntentType.PanicEvade;
+            return new CombatPose(anchor, minRange, maxRange, faceTarget, mode);
         }
     }
 }

@@ -48,7 +48,10 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             in CombatPose pose,
             CombatBlackboard blackboard)
         {
-            if (_self == null || !snapshot.CanMove || intent.IsNone)
+            bool interruptibleRunEvade = intent.Type == CombatIntentType.PanicEvade
+                && (snapshot.SelfState == AshesofaDyingWorld.Combat.Model.CombatStateId.AttackStartup
+                    || snapshot.SelfState == AshesofaDyingWorld.Combat.Model.CombatStateId.AttackRecovery);
+            if (_self == null || (!snapshot.CanMove && !interruptibleRunEvade) || intent.IsNone)
             {
                 return MovementCommand.Stop(snapshot.TargetPosition);
             }
@@ -116,7 +119,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             // Nội suy nhẹ giữa hướng tốt nhất và desired vector để không lộ 16 nấc cứng.
             Vector2 smoothDirection = (bestDirection * 0.72f + desiredDirection * 0.28f).Normalized();
             _lastDirectionSlot = bestSlot;
-            bool wantsRun = anchorDistance >= 112f
+            bool wantsRun = pose.Mode == CombatMovementMode.PanicEvade
+                || anchorDistance >= 112f
                 || (pose.Mode == CombatMovementMode.Approach && snapshot.TargetDistance >= pose.DesiredRangeMax + 70f);
             return new MovementCommand(
                 smoothDirection,
