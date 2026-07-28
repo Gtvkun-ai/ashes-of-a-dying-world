@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using AshesofaDyingWorld.Core.Data;
 using AshesofaDyingWorld.Core.Managers;
+using AshesofaDyingWorld.UI.Shared;
 
 namespace AshesofaDyingWorld.UI.Menus
 {
@@ -23,19 +24,16 @@ namespace AshesofaDyingWorld.UI.Menus
         // Kích thước chốt cho viewport 1600 x 900.
         // Bản V3 thu gọn lại gần tỉ lệ mockup người dùng chọn: đủ lớn để đọc,
         // nhưng vẫn thấy được thế giới game quanh cửa sổ kho đồ.
-        private const float PanelWidth = 1120f;
-        private const float PanelHeight = 640f;
-        private const float SlotSize = 64f;
-        private const float DetailPanelWidth = 330f;
-        private const int OuterFramePatchMargin = 18;
+        private const float PanelWidth = InventoryPanelChrome.PanelWidth;
+        private const float PanelHeight = InventoryPanelChrome.PanelHeight;
+        private const float SlotSize = InventoryPanelChrome.SlotSize;
+        private const float DetailPanelWidth = InventoryPanelChrome.DetailPanelWidth;
 
         // ---------------------------------------------------------------------
         // Asset hook: người dùng chỉ cần đặt PNG đúng tên vào thư mục này.
         // Nếu file chưa tồn tại, UI vẫn chạy bằng icon/style fallback trong code.
         // ---------------------------------------------------------------------
-        private const string InventoryAssetRoot = "res://assets/sprites/UI_HUD/Inventory";
-        private const string OuterFramePath = InventoryAssetRoot + "/frame_9slice.png";
-        private const string GrainTexturePath = InventoryAssetRoot + "/grain.png";
+        private const string InventoryAssetRoot = InventoryPanelChrome.AssetRoot;
         private const string BagIconPath = InventoryAssetRoot + "/icon_bag.png";
         private const string CoinIconPath = InventoryAssetRoot + "/icon_coin.png";
 
@@ -70,17 +68,17 @@ namespace AshesofaDyingWorld.UI.Menus
         // Design tokens: gom màu vào một chỗ để sau này chuyển sang Theme.tres dễ hơn.
         // ---------------------------------------------------------------------
         // Palette nâu ấm, hơi cũ. Có phân tầng rõ nhưng không fantasy dát vàng.
-        private readonly Color _windowColor = new("#20140e");
-        private readonly Color _headerColor = new("#2a1a12");
-        private readonly Color _surfaceColor = new("#382318");
-        private readonly Color _raisedSurfaceColor = new("#442a1c");
-        private readonly Color _deepSurfaceColor = new("#1b120d");
-        private readonly Color _slotSurfaceColor = new("#241710");
-        private readonly Color _borderColor = new("#68482f");
-        private readonly Color _strongBorderColor = new("#8d6542");
-        private readonly Color _accentColor = new("#d0a45c");
-        private readonly Color _mainTextColor = new("#f1e5d2");
-        private readonly Color _mutedTextColor = new("#c0aa8e");
+        private Color _windowColor => InventoryPanelChrome.WindowColor;
+        private Color _headerColor => InventoryPanelChrome.HeaderColor;
+        private Color _surfaceColor => InventoryPanelChrome.SurfaceColor;
+        private Color _raisedSurfaceColor => InventoryPanelChrome.RaisedSurfaceColor;
+        private Color _deepSurfaceColor => InventoryPanelChrome.DeepSurfaceColor;
+        private Color _slotSurfaceColor => InventoryPanelChrome.SlotSurfaceColor;
+        private Color _borderColor => InventoryPanelChrome.BorderColor;
+        private Color _strongBorderColor => InventoryPanelChrome.StrongBorderColor;
+        private Color _accentColor => InventoryPanelChrome.AccentColor;
+        private Color _mainTextColor => InventoryPanelChrome.MainTextColor;
+        private Color _mutedTextColor => InventoryPanelChrome.MutedTextColor;
         private readonly Color _categoryColor = new("#79a85c");
         private readonly Color _equipColor = new("#657d4d");
         private readonly Color _dropColor = new("#8f5548");
@@ -111,8 +109,6 @@ namespace AshesofaDyingWorld.UI.Menus
 
         private Texture2D _bagIcon;
         private Texture2D _coinIcon;
-        private Texture2D _outerFrameTexture;
-        private Texture2D _grainTexture;
         private readonly Dictionary<InventoryCategory, Texture2D> _categoryIcons = new();
 
         private InventoryCategory _currentCategory = InventoryCategory.All;
@@ -150,102 +146,20 @@ namespace AshesofaDyingWorld.UI.Menus
         /// </summary>
         private void ApplyPanelSize()
         {
-            AnchorLeft = 0.5f;
-            AnchorTop = 0.5f;
-            AnchorRight = 0.5f;
-            AnchorBottom = 0.5f;
-
-            OffsetLeft = -PanelWidth * 0.5f;
-            OffsetTop = -PanelHeight * 0.5f;
-            OffsetRight = PanelWidth * 0.5f;
-            OffsetBottom = PanelHeight * 0.5f;
-
-            CustomMinimumSize = new Vector2(PanelWidth, PanelHeight);
-            GrowHorizontal = GrowDirection.Both;
-            GrowVertical = GrowDirection.Both;
+            InventoryPanelChrome.ApplyPanelSize(this);
         }
 
         private void BuildUI()
         {
-            // Dùng nhiều layer thay vì bake toàn bộ UI vào một ảnh lớn:
-            // nền code -> grain gỗ -> nội dung bán trong suốt -> frame 9-slice.
-            var layers = new Control();
-            layers.SetAnchorsPreset(LayoutPreset.FullRect);
-            layers.ClipContents = true;
-            AddChild(layers);
-
-            var window = new PanelContainer();
-            window.SetAnchorsPreset(LayoutPreset.FullRect);
-            window.AddThemeStyleboxOverride("panel", CreateWindowStyle());
-            layers.AddChild(window);
-
-            // Grain nằm dưới các panel con. Panel con cố ý hơi trong để lớp gỗ này còn nhìn thấy.
-            _grainTexture ??= TryLoadTexture(GrainTexturePath);
-            if (_grainTexture != null)
-            {
-            var grain = new TextureRect();
-            grain.SetAnchorsPreset(LayoutPreset.FullRect);
-            grain.Size = new Vector2(PanelWidth, PanelHeight);
-            grain.Texture = _grainTexture;
-            grain.StretchMode = TextureRect.StretchModeEnum.Tile;
-            grain.TextureRepeat = CanvasItem.TextureRepeatEnum.Enabled;
-            grain.Modulate = new Color(1f, 1f, 1f, 0.24f);
-            grain.MouseFilter = MouseFilterEnum.Ignore;
-            layers.AddChild(grain);
-            }
-
-            var outerMargin = new MarginContainer();
-            outerMargin.SetAnchorsPreset(LayoutPreset.FullRect);
-            outerMargin.AddThemeConstantOverride("margin_left", 22);
-            outerMargin.AddThemeConstantOverride("margin_top", 22);
-            outerMargin.AddThemeConstantOverride("margin_right", 22);
-            outerMargin.AddThemeConstantOverride("margin_bottom", 20);
-            layers.AddChild(outerMargin);
-
-            var root = new VBoxContainer();
-            root.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-            root.SizeFlagsVertical = SizeFlags.ExpandFill;
-            root.AddThemeConstantOverride("separation", 5);
-            outerMargin.AddChild(root);
-
+            var root = InventoryPanelChrome.BuildWindowShell(this);
             root.AddChild(BuildHeader());
             root.AddChild(BuildCategoryTabs());
             root.AddChild(BuildBody());
-
-            // Source frame rất lớn; patch margin thấp để nó chỉ là viền trang trí mỏng.
-            _outerFrameTexture ??= TryLoadTexture(OuterFramePath);
-            if (_outerFrameTexture != null)
-            {
-                var frame = new NinePatchRect();
-                frame.SetAnchorsPreset(LayoutPreset.FullRect);
-                frame.Texture = _outerFrameTexture;
-                frame.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
-                frame.DrawCenter = false;
-                frame.PatchMarginLeft = OuterFramePatchMargin;
-                frame.PatchMarginTop = OuterFramePatchMargin;
-                frame.PatchMarginRight = OuterFramePatchMargin;
-                frame.PatchMarginBottom = OuterFramePatchMargin;
-                frame.MouseFilter = MouseFilterEnum.Ignore;
-                layers.AddChild(frame);
-            }
         }
 
         private Control BuildHeader()
         {
-            var headerPanel = new PanelContainer();
-            headerPanel.CustomMinimumSize = new Vector2(0, 52);
-            headerPanel.AddThemeStyleboxOverride("panel", CreateHeaderStyle());
-
-            var headerMargin = new MarginContainer();
-            headerMargin.AddThemeConstantOverride("margin_left", 14);
-            headerMargin.AddThemeConstantOverride("margin_top", 7);
-            headerMargin.AddThemeConstantOverride("margin_right", 8);
-            headerMargin.AddThemeConstantOverride("margin_bottom", 7);
-            headerPanel.AddChild(headerMargin);
-
-            var header = new HBoxContainer();
-            header.AddThemeConstantOverride("separation", 10);
-            headerMargin.AddChild(header);
+            var headerPanel = InventoryPanelChrome.CreateHeader(out var header);
 
             // Icon nhỏ, không thêm badge lồng quanh icon để tránh cảm giác "box trong box".
             var bagIcon = new TextureRect();
@@ -284,22 +198,8 @@ namespace AshesofaDyingWorld.UI.Menus
 
         private Control BuildCategoryTabs()
         {
-            var tabsPanel = new PanelContainer();
-            tabsPanel.CustomMinimumSize = new Vector2(0, 44);
-            tabsPanel.AddThemeStyleboxOverride("panel", CreateTabsBarStyle());
-
-            var tabsMargin = new MarginContainer();
-            tabsMargin.AddThemeConstantOverride("margin_left", 6);
-            tabsMargin.AddThemeConstantOverride("margin_top", 4);
-            tabsMargin.AddThemeConstantOverride("margin_right", 6);
-            tabsMargin.AddThemeConstantOverride("margin_bottom", 4);
-            tabsPanel.AddChild(tabsMargin);
-
-            // Tab dùng độ rộng theo nội dung thay vì kéo giãn toàn hàng như navbar web.
-            var tabs = new HBoxContainer();
-            tabs.AddThemeConstantOverride("separation", 4);
-            tabs.Alignment = BoxContainer.AlignmentMode.Begin;
-            tabsMargin.AddChild(tabs);
+            // Dùng đúng tab bar từ chrome chung để CharacterPanel và InventoryPanel không lệch style.
+            var tabsPanel = InventoryPanelChrome.CreateTabBar(out var tabs);
 
             _allButton = CreateCategoryButton("All", InventoryCategory.All);
             _consumablesButton = CreateCategoryButton("Consumables", InventoryCategory.Consumables);
@@ -565,20 +465,7 @@ namespace AshesofaDyingWorld.UI.Menus
 
         private Button CreateCloseButton()
         {
-            var button = new Button();
-            button.Text = "X";
-            button.CustomMinimumSize = new Vector2(38, 36);
-            button.FocusMode = FocusModeEnum.None;
-            button.MouseDefaultCursorShape = CursorShape.PointingHand;
-            button.Pressed += Hide;
-
-            button.AddThemeStyleboxOverride("normal", CreateButtonStyle(_dangerColor, _strongBorderColor, 2));
-            button.AddThemeStyleboxOverride("hover", CreateButtonStyle(_dangerColor.Lightened(0.08f), _accentColor, 2));
-            button.AddThemeStyleboxOverride("pressed", CreateButtonStyle(_dangerColor.Darkened(0.08f), _strongBorderColor, 2));
-            button.AddThemeColorOverride("font_color", _mainTextColor);
-            button.AddThemeColorOverride("font_hover_color", Colors.White);
-            button.AddThemeFontSizeOverride("font_size", 16);
-            return button;
+            return InventoryPanelChrome.CreateCloseButton(Hide);
         }
 
         private void CreateInventorySlot(int slotIndex)
@@ -750,29 +637,7 @@ namespace AshesofaDyingWorld.UI.Menus
 
         private void SetCategoryButtonSelected(Button button, bool selected)
         {
-            if (button == null)
-            {
-                return;
-            }
-
-            // Active tab theo kiểu inset/pressed của mockup: có khung mảnh quanh toàn tab,
-            // không phải một thanh navbar web chỉ có underline.
-            button.AddThemeStyleboxOverride("normal", CreateTabStyle(
-                selected ? _raisedSurfaceColor.Lightened(0.025f) : new Color(0f, 0f, 0f, 0f),
-                selected ? _accentColor.Darkened(0.16f) : new Color(0f, 0f, 0f, 0f),
-                selected ? 1 : 0));
-            button.AddThemeStyleboxOverride("hover", CreateTabStyle(
-                _raisedSurfaceColor.Lightened(0.07f),
-                _strongBorderColor,
-                1));
-            button.AddThemeStyleboxOverride("pressed", CreateTabStyle(
-                _deepSurfaceColor,
-                _accentColor,
-                1));
-            button.AddThemeColorOverride("font_color", selected ? _mainTextColor : _mutedTextColor);
-            button.AddThemeColorOverride("font_hover_color", _mainTextColor);
-            button.AddThemeColorOverride("font_pressed_color", _accentColor.Lightened(0.08f));
-            button.AddThemeFontSizeOverride("font_size", 14);
+            InventoryPanelChrome.ApplyTabStyle(button, selected);
         }
 
         private void RefreshInventoryView()
@@ -1096,11 +961,7 @@ namespace AshesofaDyingWorld.UI.Menus
 
         private Label CreateLabel(string text, int fontSize, Color color)
         {
-            var label = new Label();
-            label.Text = text;
-            label.AddThemeFontSizeOverride("font_size", fontSize);
-            label.AddThemeColorOverride("font_color", color);
-            return label;
+            return InventoryPanelChrome.CreateLabel(text, fontSize, color);
         }
 
         private Button CreateActionButton(string text, Color color)
@@ -1160,164 +1021,77 @@ namespace AshesofaDyingWorld.UI.Menus
 
         private ColorRect CreateDivider()
         {
-            var divider = new ColorRect();
-            divider.Color = _borderColor;
-            divider.CustomMinimumSize = new Vector2(0, 1);
-            divider.MouseFilter = MouseFilterEnum.Ignore;
-            return divider;
+            return InventoryPanelChrome.CreateDivider();
         }
 
         private ColorRect CreateThinDivider()
         {
-            var divider = new ColorRect();
-            divider.Color = new Color(_borderColor.R, _borderColor.G, _borderColor.B, 0.72f);
-            divider.CustomMinimumSize = new Vector2(0, 1);
-            divider.MouseFilter = MouseFilterEnum.Ignore;
-            return divider;
+            return InventoryPanelChrome.CreateDivider(true);
         }
 
         private StyleBoxFlat CreateWindowStyle()
         {
-            var style = new StyleBoxFlat();
-            style.BgColor = _windowColor;
-            style.BorderColor = new Color(_strongBorderColor.R, _strongBorderColor.G, _strongBorderColor.B, 0.42f);
-            style.SetBorderWidthAll(1);
-            style.SetCornerRadiusAll(4);
-            style.ShadowColor = new Color(0f, 0f, 0f, 0.56f);
-            style.ShadowSize = 10;
-            return style;
+            return InventoryPanelChrome.CreateWindowStyle();
         }
 
         private StyleBoxFlat CreateHeaderStyle()
         {
-            var style = new StyleBoxFlat();
-            style.BgColor = WithAlpha(_headerColor, 0.86f);
-            style.BorderColor = _borderColor;
-            style.BorderWidthBottom = 1;
-            style.SetCornerRadiusAll(2);
-            return style;
+            return InventoryPanelChrome.CreateHeaderStyle();
         }
 
         private StyleBoxFlat CreateTabsBarStyle()
         {
-            var style = new StyleBoxFlat();
-            style.BgColor = WithAlpha(_surfaceColor.Darkened(0.035f), 0.76f);
-            style.BorderColor = _borderColor;
-            style.BorderWidthBottom = 1;
-            style.SetCornerRadiusAll(2);
-            return style;
+            return InventoryPanelChrome.CreateTabsBarStyle();
         }
 
         private StyleBoxFlat CreateSectionStyle()
         {
-            var style = new StyleBoxFlat();
-            style.BgColor = WithAlpha(_surfaceColor, 0.72f);
-            style.BorderColor = new Color(_borderColor.R, _borderColor.G, _borderColor.B, 0.86f);
-            style.SetBorderWidthAll(1);
-            style.SetCornerRadiusAll(2);
-            return style;
+            return InventoryPanelChrome.CreateSectionStyle();
         }
 
         private StyleBoxFlat CreateDetailSectionStyle()
         {
-            var style = new StyleBoxFlat();
-            style.BgColor = WithAlpha(_raisedSurfaceColor.Darkened(0.055f), 0.74f);
-            style.BorderColor = new Color(_strongBorderColor.R, _strongBorderColor.G, _strongBorderColor.B, 0.9f).Darkened(0.1f);
-            style.SetBorderWidthAll(1);
-            style.SetCornerRadiusAll(2);
-            return style;
+            return InventoryPanelChrome.CreateDetailSectionStyle();
         }
 
         private StyleBoxFlat CreatePreviewStyle()
         {
-            var style = new StyleBoxFlat();
-            style.BgColor = WithAlpha(_deepSurfaceColor, 0.82f);
-            style.BorderColor = new Color(_strongBorderColor.R, _strongBorderColor.G, _strongBorderColor.B, 0.86f).Darkened(0.18f);
-            style.SetBorderWidthAll(1);
-            style.SetCornerRadiusAll(2);
-            return style;
+            return InventoryPanelChrome.CreatePreviewStyle();
         }
 
         private Color WithAlpha(Color color, float alpha)
         {
-            return new Color(color.R, color.G, color.B, alpha);
+            return InventoryPanelChrome.WithAlpha(color, alpha);
         }
 
         private StyleBoxFlat CreateSlotStyle(bool selected)
         {
-            var style = new StyleBoxFlat();
-            style.BgColor = selected ? _raisedSurfaceColor.Lightened(0.02f) : _slotSurfaceColor;
-            style.BorderColor = selected ? _accentColor : _borderColor.Darkened(0.05f);
-            style.SetBorderWidthAll(selected ? 2 : 1);
-            style.SetCornerRadiusAll(2);
-
-            // Glow chỉ để đọc selection, không biến kiếm gỗ thành thánh kiếm.
-            if (selected)
-            {
-                style.ShadowColor = new Color(_accentColor.R, _accentColor.G, _accentColor.B, 0.24f);
-                style.ShadowSize = 4;
-            }
-
-            style.ContentMarginLeft = 2;
-            style.ContentMarginTop = 2;
-            style.ContentMarginRight = 2;
-            style.ContentMarginBottom = 2;
-            return style;
+            return InventoryPanelChrome.CreateSlotStyle(selected);
         }
 
         private StyleBoxFlat CreateTabStyle(Color background, Color border, int borderWidth)
         {
-            var style = new StyleBoxFlat();
-            style.BgColor = background;
-            style.BorderColor = border;
-            style.SetBorderWidthAll(borderWidth);
-            style.SetCornerRadiusAll(2);
-            style.ContentMarginLeft = 12;
-            style.ContentMarginRight = 12;
-            style.ContentMarginTop = 6;
-            style.ContentMarginBottom = 6;
-            return style;
+            return InventoryPanelChrome.CreateTabStyle(background, border, borderWidth);
         }
 
         private StyleBoxFlat CreateButtonStyle(Color background, Color border, int borderWidth)
         {
-            var style = new StyleBoxFlat();
-            style.BgColor = background;
-            style.BorderColor = border;
-            style.SetBorderWidthAll(borderWidth);
-            style.SetCornerRadiusAll(3);
-            style.ContentMarginLeft = 10;
-            style.ContentMarginRight = 10;
-            style.ContentMarginTop = 6;
-            style.ContentMarginBottom = 6;
-            return style;
+            return InventoryPanelChrome.CreateButtonStyle(background, border, borderWidth);
         }
 
         private StyleBoxFlat CreateTransparentButtonStyle()
         {
-            var style = new StyleBoxFlat();
-            style.BgColor = new Color(0f, 0f, 0f, 0f);
-            return style;
+            return InventoryPanelChrome.CreateTransparentButtonStyle();
         }
 
         private StyleBoxFlat CreateSlotHoverStyle()
         {
-            var style = new StyleBoxFlat();
-            style.BgColor = new Color(_raisedSurfaceColor.R, _raisedSurfaceColor.G, _raisedSurfaceColor.B, 0.8f);
-            style.BorderColor = _strongBorderColor.Lightened(0.08f);
-            style.SetBorderWidthAll(1);
-            style.SetCornerRadiusAll(2);
-            return style;
+            return InventoryPanelChrome.CreateSlotHoverStyle();
         }
 
         private StyleBoxFlat CreateSlotPressedStyle()
         {
-            var style = new StyleBoxFlat();
-            style.BgColor = _deepSurfaceColor.Darkened(0.04f);
-            style.BorderColor = _accentColor.Darkened(0.08f);
-            style.SetBorderWidthAll(2);
-            style.SetCornerRadiusAll(2);
-            return style;
+            return InventoryPanelChrome.CreateSlotPressedStyle();
         }
 
         // ---------------------------------------------------------------------
@@ -1449,12 +1223,7 @@ namespace AshesofaDyingWorld.UI.Menus
         /// </summary>
         private Texture2D TryLoadTexture(string path)
         {
-            if (string.IsNullOrWhiteSpace(path) || !ResourceLoader.Exists(path))
-            {
-                return null;
-            }
-
-            return GD.Load<Texture2D>(path);
+            return InventoryPanelChrome.TryLoadTexture(path);
         }
 
         private Texture2D CreatePixelIcon(System.Action<Image> draw, int width = 16, int height = 16)

@@ -67,7 +67,10 @@ namespace AshesofaDyingWorld.Combat.Decision.Debug
                 }
             }
 
-            _worldDraw?.QueueRedraw();
+            if (_worldDraw != null && GodotObject.IsInstanceValid(_worldDraw))
+            {
+                _worldDraw.QueueRedraw();
+            }
         }
 
         public override void _UnhandledInput(InputEvent inputEvent)
@@ -120,6 +123,11 @@ namespace AshesofaDyingWorld.Combat.Decision.Debug
             _panel = new PanelContainer
             {
                 Name = "DecisionPanel",
+                // Dùng anchor top-left thuần, set offset sau _ready() để tránh warning
+                AnchorLeft = 0f,
+                AnchorTop = 0f,
+                AnchorRight = 0f,
+                AnchorBottom = 0f,
                 OffsetLeft = 16f,
                 OffsetTop = 16f,
                 OffsetRight = 660f,
@@ -207,7 +215,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Debug
 
         private void UpdateWorldFlags()
         {
-            if (_worldDraw == null)
+            if (_worldDraw == null || !GodotObject.IsInstanceValid(_worldDraw))
             {
                 return;
             }

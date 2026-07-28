@@ -3,13 +3,14 @@ using AshesofaDyingWorld.Entities.Player;
 using AshesofaDyingWorld.Core.Data;
 using AshesofaDyingWorld.Core.Managers;
 using System.Collections.Generic;
+using AshesofaDyingWorld.UI.Shared;
 
 namespace AshesofaDyingWorld.UI.HUD
 {
-	public partial class CharacterDetailUI : Control
+	public partial class CharacterDetailUI : Panel
 	{
 		// UI Elements
-		private VBoxContainer _characterListContainer;
+		private HBoxContainer _characterListContainer;
 		private TextureRect _backgroundDisplay;
 		
 		// Tab system
@@ -41,21 +42,23 @@ namespace AshesofaDyingWorld.UI.HUD
 		// Chart
 		private StatHexagonChart _overviewStatsChart; 
 		
-		// Cấu hình màu sắc
-		private readonly Color _accentColor = new Color("#38bdf8"); 
-		private readonly Color _subTextColor = new Color("#94a3b8"); 
-		private readonly Color _tabActiveColor = new Color("#38bdf8");
-		private readonly Color _tabInactiveColor = new Color("#64748b");
-		private string _currentTab = "overview";
-		private Color _themeBorderColor = new Color("#38bdf8");   
-		private Color _btnNormalColor = new Color("#1e293b");     
-		private Color _btnHoverColor = new Color("#334155");       
+		// Layout cố định, đồng bộ với InventoryPanel cho viewport mục tiêu 1600 x 900.
+		private const float DetailPanelWidth = InventoryPanelChrome.DetailPanelWidth;
+		private const string CharacterIconPath = "res://assets/sprites/button/characterbutton.png";
 
-		private Color _currentThemeColor;           // Màu theme của nhân vật hiện tại
-		private NinePatchRect _panelFrame;          // Khung bọc ngoài toàn bộ UI
-		private NinePatchRect _panelGlow;           // Lớp glow phía sau khung panel
-		private Control _equipmentBodyContainer;    // Container chứa AnimatedSprite2D body trong tab Equipment
-		private GridContainer _inventoryGrid;       // Grid inventory trong tab Equipment (số ô dựa theo InventoryManager.MaxSlots)
+		// Design tokens dùng chung tinh thần với InventoryPanel.
+		private Color _deepSurfaceColor => InventoryPanelChrome.DeepSurfaceColor;
+		private Color _borderColor => InventoryPanelChrome.BorderColor;
+		private Color _accentColor => InventoryPanelChrome.AccentColor;
+		private Color _mainTextColor => InventoryPanelChrome.MainTextColor;
+		private Color _subTextColor => InventoryPanelChrome.MutedTextColor;
+		private string _currentTab = "overview";
+
+		private Color _currentThemeColor;
+		private Texture2D _characterIconTexture;
+		private TextureRect _headerIcon;
+		private Control _equipmentBodyContainer;
+		private GridContainer _inventoryGrid;
 		private readonly List<TextureRect> _inventorySlotIcons = new();
 		private readonly List<Label> _inventorySlotLabels = new();
 		private readonly List<Button> _inventorySlotButtons = new();
@@ -69,40 +72,17 @@ namespace AshesofaDyingWorld.UI.HUD
 		
 		public override void _Ready()
 		{
-			// Đặt UI ở giữa màn hình với 80% kích thước
-			// Set anchors để UI chiếm 80% màn hình (10% margin mỗi bên)
-			AnchorLeft = 0.1f;
-			AnchorTop = 0.1f;
-			AnchorRight = 0.9f;
-			AnchorBottom = 0.9f;
-			
-			// Reset tất cả offset về 0 để UI theo đúng anchor
-			OffsetLeft = 0;
-			OffsetTop = 0;
-			OffsetRight = 0;
-			OffsetBottom = 0;
-			
-			SetupBackground();
-			SetupPanelFrame();
-
-			var mainHBox = new HBoxContainer();
-			mainHBox.SetAnchorsPreset(LayoutPreset.FullRect);
-			mainHBox.AddThemeConstantOverride("separation", 0);
-			AddChild(mainHBox);
-
-			SetupCharacterListColumn(mainHBox);
-			SetupMainContentColumn(mainHBox);
+			ApplyPanelSize();
+			AddThemeStyleboxOverride("panel", new StyleBoxEmpty());
+			BuildInventoryInspiredUI();
 
 			VisibilityChanged += OnVisibilityChanged;
 			if (PlayerManager.Instance != null)
 			{
 				PlayerManager.Instance.ActiveCharacterChanged += OnActiveCharacterChanged;
 			}
-			
-			ApplyIceTheme();
-			
-			// Thêm nút Exit
-			AddExitButton();
+
+			SwitchTab("overview");
 		}
 
 		public override void _ExitTree()
@@ -128,606 +108,438 @@ namespace AshesofaDyingWorld.UI.HUD
 			}
 		}
 
-		private void SetupBackground()
+
+		private void ApplyPanelSize()
 		{
-			// Tạo TextureRect rỗng, sẽ cập nhật texture khi load character
-			_backgroundDisplay = new TextureRect();
-			_backgroundDisplay.SetAnchorsPreset(LayoutPreset.FullRect);
-			
-			// Thêm margin nhỏ để không bị lồi ra ngoài khung bo góc
-			_backgroundDisplay.OffsetLeft = 5;
-			_backgroundDisplay.OffsetTop = 5;
-			_backgroundDisplay.OffsetRight = -5;
-			_backgroundDisplay.OffsetBottom = -5;
-			
-			_backgroundDisplay.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
-			_backgroundDisplay.StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered;
-			_backgroundDisplay.ZIndex = -100;  // Đảm bảo luôn nằm dưới cùng
-			
-			// Bo góc cho background để khớp với khung panel
-			ApplyRoundedCorners(_backgroundDisplay, 35f);
-			
-			AddChild(_backgroundDisplay);
+			InventoryPanelChrome.ApplyPanelSize(this);
 		}
 
-		private void SetupPanelFrame()
+		private void BuildInventoryInspiredUI()
 		{
-			// Load texture khung panel
-			var frameTexture = GD.Load<Texture2D>("res://assets/sprites/button/khungPanel.png");
-			
-			if (frameTexture != null)
-			{
-				// 1. TẠO LỚP GLOW PHÍA SAU (render trước để nằm dưới)
-				_panelGlow = new NinePatchRect();
-				_panelGlow.Texture = frameTexture;
-				_panelGlow.SetAnchorsPreset(LayoutPreset.FullRect);
-				_panelGlow.ZIndex = -1;  // Nằm dưới panel chính
-				
-				// Cấu hình NinePatch giống panel chính
-				_panelGlow.PatchMarginLeft = 40;
-				_panelGlow.PatchMarginTop = 40;
-				_panelGlow.PatchMarginRight = 40;
-				_panelGlow.PatchMarginBottom = 40;
-				
-				// Tắt vẽ phần giữa cho glow - chỉ vẽ viền
-				_panelGlow.DrawCenter = false;
-				
-				// Tạo shader glow additive
-				var glowShaderCode = @"
-shader_type canvas_item;
-render_mode blend_add, unshaded;
-
-void fragment() {
-    vec4 tex = texture(TEXTURE, UV);
-    COLOR = tex;
-}
-";
-				var glowShader = new Shader();
-				glowShader.Code = glowShaderCode;
-				var glowMaterial = new ShaderMaterial();
-				glowMaterial.Shader = glowShader;
-				_panelGlow.Material = glowMaterial;
-				
-				// Set màu mặc định, sẽ update khi có theme color
-				_panelGlow.Modulate = new Color(_themeBorderColor.R, _themeBorderColor.G, _themeBorderColor.B, 0.8f);
-				
-				// Scale nhỏ hơn để glow mỏng và gần sát viền hơn
-				_panelGlow.Scale = new Vector2(1.005f, 1.005f);
-				_panelGlow.Position = new Vector2(-2, -2);  // Offset nhỏ để glow đều các cạnh
-				
-				AddChild(_panelGlow);
-				
-				// 2. TẠO PANEL CHÍNH (render sau để nằm trên)
-				_panelFrame = new NinePatchRect();
-				_panelFrame.Texture = frameTexture;
-				_panelFrame.SetAnchorsPreset(LayoutPreset.FullRect);
-				_panelFrame.ZIndex = 0;
-				
-				// Cấu hình NinePatch để kéo dãn đúng cách
-				_panelFrame.PatchMarginLeft = 40;
-				_panelFrame.PatchMarginTop = 40;
-				_panelFrame.PatchMarginRight = 40;
-				_panelFrame.PatchMarginBottom = 40;
-				
-				// QUAN TRỌNG: Tắt vẽ phần giữa - chỉ vẽ viền khung, tránh lớp phủ đen
-				_panelFrame.DrawCenter = false;
-				
-				AddChild(_panelFrame);
-			}
-		}
-		
-		// Shader bo góc cho NinePatchRect - dựa trên FRAGCOORD thay vì UV
-		private void ApplyRoundedCornersForNinePatch(Control node, float radius, bool additive)
-		{
-			string blendMode = additive ? "render_mode blend_add, unshaded;" : "";
-			
-			var shaderCode = $@"
-shader_type canvas_item;
-{blendMode}
-
-uniform float corner_radius = 25.0;
-
-void fragment() {{
-    // Lấy kích thước thực của node (pixel)
-    vec2 size = 1.0 / TEXTURE_PIXEL_SIZE;
-    
-    // Vị trí pixel hiện tại trong node
-    vec2 pixel_pos = UV * size;
-    
-    // Tính khoảng cách từ pixel đến 4 góc
-    float dist = 0.0;
-    
-    // Góc trên trái
-    if (pixel_pos.x < corner_radius && pixel_pos.y < corner_radius) {{
-        dist = length(pixel_pos - vec2(corner_radius));
-    }}
-    // Góc trên phải  
-    else if (pixel_pos.x > size.x - corner_radius && pixel_pos.y < corner_radius) {{
-        dist = length(pixel_pos - vec2(size.x - corner_radius, corner_radius));
-    }}
-    // Góc dưới trái
-    else if (pixel_pos.x < corner_radius && pixel_pos.y > size.y - corner_radius) {{
-        dist = length(pixel_pos - vec2(corner_radius, size.y - corner_radius));
-    }}
-    // Góc dưới phải
-    else if (pixel_pos.x > size.x - corner_radius && pixel_pos.y > size.y - corner_radius) {{
-        dist = length(pixel_pos - vec2(size.x - corner_radius, size.y - corner_radius));
-    }}
-    
-    // Nếu nằm ngoài vùng bo góc thì discard
-    if (dist > corner_radius) {{
-        discard;
-    }}
-    
-    // Anti-aliasing cho viền bo góc
-    float alpha = 1.0 - smoothstep(corner_radius - 1.5, corner_radius, dist);
-    
-    vec4 tex = texture(TEXTURE, UV);
-    
-    if (alpha < 0.01) {{
-        discard;
-    }}
-    
-    COLOR = vec4(tex.rgb, tex.a * alpha);
-}}
-";
-			
-			var shader = new Shader();
-			shader.Code = shaderCode;
-			
-			var material = new ShaderMaterial();
-			material.Shader = shader;
-			material.SetShaderParameter("corner_radius", radius);
-			
-			node.Material = material;
-		}
-		
-		// Method để apply shader làm tròn góc
-		private void ApplyRoundedCorners(CanvasItem node, float radius)
-		{
-			var shaderCode = @"
-shader_type canvas_item;
-
-uniform float corner_radius = 20.0;
-
-void fragment() {
-    vec2 uv = UV;
-    vec2 size = 1.0 / TEXTURE_PIXEL_SIZE;
-    vec2 pixel_pos = uv * size;
-    
-    // Tính khoảng cách từ pixel đến góc gần nhất
-    vec2 dist_to_corner = max(vec2(0.0), 
-        max(vec2(corner_radius) - pixel_pos, 
-            pixel_pos - (size - vec2(corner_radius))));
-    
-    float corner_dist = length(dist_to_corner);
-    
-    // Cải thiện anti-aliasing với smoothstep rộng hơn
-    float alpha = 1.0 - smoothstep(corner_radius - 2.0, corner_radius + 1.0, corner_dist);
-    
-    vec4 tex = texture(TEXTURE, UV);
-    
-    // Chỉ áp dụng bo góc nếu alpha > 0, tránh pixel đen
-    if (alpha < 0.01) {
-        discard; // Loại bỏ hoàn toàn pixel thay vì làm đen
-    }
-    
-    COLOR = vec4(tex.rgb, tex.a * alpha);
-}
-";
-			
-			var shader = new Shader();
-			shader.Code = shaderCode;
-			
-			var material = new ShaderMaterial();
-			material.Shader = shader;
-			material.SetShaderParameter("corner_radius", radius);
-			
-			node.Material = material;
-		}
-		
-		// Method để apply shader làm tròn góc + blend additive (cho glow)
-		private void ApplyRoundedCornersWithBlend(CanvasItem node, float radius)
-		{
-			var shaderCode = @"
-shader_type canvas_item;
-render_mode blend_add, unshaded;
-
-uniform float corner_radius = 20.0;
-
-void fragment() {
-    vec2 uv = UV;
-    vec2 size = 1.0 / TEXTURE_PIXEL_SIZE;
-    vec2 pixel_pos = uv * size;
-    
-    // Tính khoảng cách từ pixel đến góc gần nhất
-    vec2 dist_to_corner = max(vec2(0.0), 
-        max(vec2(corner_radius) - pixel_pos, 
-            pixel_pos - (size - vec2(corner_radius))));
-    
-    float corner_dist = length(dist_to_corner);
-    
-    // Anti-aliasing mượt hơn
-    float alpha = 1.0 - smoothstep(corner_radius - 3.0, corner_radius + 2.0, corner_dist);
-    
-    vec4 tex = texture(TEXTURE, UV);
-    
-    // Loại bỏ pixel ở góc hoàn toàn
-    if (alpha < 0.01) {
-        discard;
-    }
-    
-    COLOR = vec4(tex.rgb, tex.a * alpha);
-}
-";
-			
-			var shader = new Shader();
-			shader.Code = shaderCode;
-			
-			var material = new ShaderMaterial();
-			material.Shader = shader;
-			material.SetShaderParameter("corner_radius", radius);
-			
-			node.Material = material;
+			// Đây không còn là bản "lấy cảm hứng" nữa. Character và Inventory dùng
+			// chung đúng một shell: nền, grain, margin và frame 9-slice.
+			var root = InventoryPanelChrome.BuildWindowShell(this);
+			root.AddChild(BuildCharacterHeader());
+			root.AddChild(BuildCharacterTabs());
+			root.AddChild(BuildCharacterBody());
 		}
 
-		private void ApplyIceTheme()
+		private Control BuildCharacterHeader()
 		{
-			var btnNormal = new StyleBoxFlat
-			{
-				BgColor = _btnNormalColor,
-				CornerRadiusTopLeft = 5, CornerRadiusTopRight = 5,
-				ContentMarginLeft = 15, ContentMarginRight = 15,
-				ContentMarginTop = 8, ContentMarginBottom = 8
-			};
+			var headerPanel = InventoryPanelChrome.CreateHeader(out var row);
 
-			var btnHover = (StyleBoxFlat)btnNormal.Duplicate();
-			btnHover.BgColor = _btnHoverColor;
-			btnHover.BorderColor = _themeBorderColor;
-			btnHover.BorderWidthBottom = 2;
+			_headerIcon = new TextureRect();
+			_characterIconTexture ??= TryLoadTexture(CharacterIconPath);
+			_headerIcon.Texture = _characterIconTexture;
+			_headerIcon.CustomMinimumSize = new Vector2(24, 24);
+			_headerIcon.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
+			_headerIcon.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
+			_headerIcon.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
+			row.AddChild(_headerIcon);
 
-			var btnPressed = (StyleBoxFlat)btnNormal.Duplicate();
-			btnPressed.BgColor = new Color("#0f172a");
-			btnPressed.BorderColor = _themeBorderColor;
-			btnPressed.BorderWidthTop = 2;
+			var title = CreateLabel("CHARACTER", 22, _mainTextColor);
+			title.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			title.VerticalAlignment = VerticalAlignment.Center;
+			row.AddChild(title);
 
-			// ĐÃ XÓA: _btnTalents khỏi danh sách này
-			Button[] tabButtons = { _btnOverview, _btnEquipment, _btnSkills };
+			var identity = new VBoxContainer();
+			identity.Alignment = BoxContainer.AlignmentMode.Center;
+			identity.AddThemeConstantOverride("separation", 0);
+			row.AddChild(identity);
 
-			foreach (var btn in tabButtons)
-			{
-				if (btn != null)
-				{
-					btn.AddThemeStyleboxOverride("normal", btnNormal);
-					btn.AddThemeStyleboxOverride("hover", btnHover);
-					btn.AddThemeStyleboxOverride("pressed", btnPressed);
-					btn.AddThemeColorOverride("font_color", _tabInactiveColor);
-					btn.AddThemeColorOverride("font_hover_color", Colors.White);
-					btn.AddThemeColorOverride("font_pressed_color", _accentColor);
-					btn.AddThemeColorOverride("font_focus_color", _accentColor);
-				}
-			}
+			_nameLabel = CreateLabel("NHÂN VẬT", 18, _mainTextColor);
+			_nameLabel.HorizontalAlignment = HorizontalAlignment.Right;
+			identity.AddChild(_nameLabel);
+
+			var meta = new HBoxContainer();
+			meta.Alignment = BoxContainer.AlignmentMode.End;
+			meta.AddThemeConstantOverride("separation", 8);
+			identity.AddChild(meta);
+
+			_levelLabel = CreateLabel("LV. 00", 12, _accentColor);
+			meta.AddChild(_levelLabel);
+			meta.AddChild(CreateLabel("·", 12, _subTextColor));
+			_raceLabel = CreateLabel("UNKNOWN", 12, _subTextColor);
+			meta.AddChild(_raceLabel);
+
+			row.AddChild(CreateCloseButton());
+			return headerPanel;
 		}
 
-		private void SetupCharacterListColumn(HBoxContainer parent)
+		private Control BuildCharacterTabs()
 		{
-			// Dùng MarginContainer thay vì PanelContainer để không có nền đen
-			var listMargin = new MarginContainer();
-			listMargin.CustomMinimumSize = new Vector2(50, 0); 
-			listMargin.AddThemeConstantOverride("margin_left", 30);
-			listMargin.AddThemeConstantOverride("margin_top", 10);
-			parent.AddChild(listMargin);
-
-			var listVBox = new VBoxContainer();
-			listMargin.AddChild(listVBox);
-
-			var titleLabel = new Label();
-			titleLabel.HorizontalAlignment = HorizontalAlignment.Center;
-			listVBox.AddChild(titleLabel);
-
-			_characterListContainer = new VBoxContainer();
-			_characterListContainer.AddThemeConstantOverride("separation", 10);
-			_characterListContainer.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			_characterListContainer.SizeFlagsVertical = SizeFlags.ExpandFill;
-			listVBox.AddChild(_characterListContainer);
-		}
-
-		private void SetupMainContentColumn(HBoxContainer parent)
-		{
-			var contentVBox = new VBoxContainer();
-			contentVBox.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			parent.AddChild(contentVBox);
-
-			SetupContentHeader(contentVBox);
-			SetupTabBar(contentVBox);
-			SetupContentArea(contentVBox);
-		}
-
-		private void SetupContentHeader(VBoxContainer parent)
-		{
-			var headerMargin = new MarginContainer();
-			headerMargin.AddThemeConstantOverride("margin_left", 20);
-			headerMargin.AddThemeConstantOverride("margin_top", 20);
-			parent.AddChild(headerMargin);
-
-			var headerVBox = new VBoxContainer();
-			headerMargin.AddChild(headerVBox);
-
-			_nameLabel = new Label();
-			_nameLabel.AddThemeFontSizeOverride("font_size", 36);
-			_nameLabel.Uppercase = true;
-			headerVBox.AddChild(_nameLabel);
-
-			var subInfoHBox = new HBoxContainer();
-			subInfoHBox.AddThemeConstantOverride("separation", 15);
-			headerVBox.AddChild(subInfoHBox);
-
-			_levelLabel = CreateStyledLabel(18, _accentColor);
-			subInfoHBox.AddChild(_levelLabel);
-
-			var separator = new Label();
-			separator.Text = "|";
-			subInfoHBox.AddChild(separator);
-
-			_raceLabel = CreateStyledLabel(18, _subTextColor);
-			subInfoHBox.AddChild(_raceLabel);
-		}
-
-		private void SetupTabBar(VBoxContainer parent)
-		{
-			var tabMargin = new MarginContainer();
-			tabMargin.AddThemeConstantOverride("margin_left", 20);
-			tabMargin.AddThemeConstantOverride("margin_top", 10);
-			parent.AddChild(tabMargin);
-
-			var tabHBox = new HBoxContainer();
-			tabHBox.AddThemeConstantOverride("separation", 5);
-			tabMargin.AddChild(tabHBox);
+			var tabsPanel = InventoryPanelChrome.CreateTabBar(out var tabs);
 
 			_btnOverview = CreateTabButton("TỔNG QUAN");
 			_btnOverview.Pressed += () => SwitchTab("overview");
-			tabHBox.AddChild(_btnOverview);
+			tabs.AddChild(_btnOverview);
 
 			_btnEquipment = CreateTabButton("TRANG BỊ");
 			_btnEquipment.Pressed += () => SwitchTab("equipment");
-			tabHBox.AddChild(_btnEquipment);
+			tabs.AddChild(_btnEquipment);
 
 			_btnSkills = CreateTabButton("KỸ NĂNG");
 			_btnSkills.Pressed += () => SwitchTab("skills");
-			tabHBox.AddChild(_btnSkills);
+			tabs.AddChild(_btnSkills);
 
+			return tabsPanel;
 		}
 
-		// Nội dung chính bên dưới tab bar
-		private void SetupContentArea(VBoxContainer parent)
+		private Control BuildCharacterBody()
 		{
-			var contentMargin = new MarginContainer();
-			contentMargin.SizeFlagsVertical = SizeFlags.ExpandFill;
-			contentMargin.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			contentMargin.AddThemeConstantOverride("margin_left", 20);
-			contentMargin.AddThemeConstantOverride("margin_right", 10);
-			contentMargin.AddThemeConstantOverride("margin_top", 10);
-			contentMargin.AddThemeConstantOverride("margin_bottom", 50);
-			parent.AddChild(contentMargin);
+			// Body bám đúng tỉ lệ InventoryPanel: vùng nội dung lớn bên trái,
+			// detail panel cố định 330 px bên phải. Không còn party rail riêng.
+			var body = new HBoxContainer();
+			body.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			body.SizeFlagsVertical = SizeFlags.ExpandFill;
+			body.AddThemeConstantOverride("separation", 8);
 
-			// Dùng Control với FullRect anchors để các panel con có thể fill đầy
-			var contentContainer = new Control();
-			contentContainer.SetAnchorsPreset(LayoutPreset.FullRect);
-			contentContainer.SizeFlagsVertical = SizeFlags.ExpandFill;
-			contentContainer.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			contentMargin.AddChild(contentContainer);
+			var mainPanel = new PanelContainer();
+			mainPanel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			mainPanel.SizeFlagsVertical = SizeFlags.ExpandFill;
+			mainPanel.AddThemeStyleboxOverride("panel", CreateSectionStyle());
+			body.AddChild(mainPanel);
+
+			var mainMargin = new MarginContainer();
+			mainMargin.AddThemeConstantOverride("margin_left", 14);
+			mainMargin.AddThemeConstantOverride("margin_top", 14);
+			mainMargin.AddThemeConstantOverride("margin_right", 14);
+			mainMargin.AddThemeConstantOverride("margin_bottom", 14);
+			mainPanel.AddChild(mainMargin);
+
+			var content = new Control();
+			content.SetAnchorsPreset(LayoutPreset.FullRect);
+			content.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			content.SizeFlagsVertical = SizeFlags.ExpandFill;
+			mainMargin.AddChild(content);
 
 			_overviewPanel = CreateOverviewPanel();
-			contentContainer.AddChild(_overviewPanel);
-
+			content.AddChild(_overviewPanel);
 			_equipmentPanel = CreateEquipmentPanel();
-			contentContainer.AddChild(_equipmentPanel);
-
+			content.AddChild(_equipmentPanel);
 			_skillsPanel = CreateSkillsPanelLayout();
-			contentContainer.AddChild(_skillsPanel);
+			content.AddChild(_skillsPanel);
 
+			var sidebar = BuildCharacterSidebar();
+			sidebar.SizeFlagsHorizontal = SizeFlags.ShrinkEnd;
+			sidebar.SizeFlagsVertical = SizeFlags.ExpandFill;
+			body.AddChild(sidebar);
+			return body;
 		}
 
+		private PanelContainer BuildCharacterSidebar()
+		{
+			var panel = new PanelContainer();
+			panel.CustomMinimumSize = new Vector2(DetailPanelWidth, 0);
+			panel.AddThemeStyleboxOverride("panel", CreateDetailSectionStyle());
+
+			var margin = new MarginContainer();
+			margin.AddThemeConstantOverride("margin_left", 16);
+			margin.AddThemeConstantOverride("margin_top", 16);
+			margin.AddThemeConstantOverride("margin_right", 16);
+			margin.AddThemeConstantOverride("margin_bottom", 14);
+			panel.AddChild(margin);
+
+			var column = new VBoxContainer();
+			column.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			column.SizeFlagsVertical = SizeFlags.ExpandFill;
+			column.AddThemeConstantOverride("separation", 9);
+			margin.AddChild(column);
+
+			var previewFrame = new PanelContainer();
+			previewFrame.CustomMinimumSize = new Vector2(0, 150);
+			previewFrame.AddThemeStyleboxOverride("panel", CreatePreviewStyle());
+			column.AddChild(previewFrame);
+
+			_backgroundDisplay = new TextureRect();
+			_backgroundDisplay.SetAnchorsPreset(LayoutPreset.FullRect);
+			_backgroundDisplay.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
+			_backgroundDisplay.StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered;
+			_backgroundDisplay.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
+			_backgroundDisplay.Modulate = new Color(0.92f, 0.88f, 0.8f, 0.9f);
+			_backgroundDisplay.MouseFilter = MouseFilterEnum.Ignore;
+			previewFrame.AddChild(_backgroundDisplay);
+
+			column.AddChild(CreateLabel("PARTY", 14, _mainTextColor));
+			column.AddChild(CreateDivider());
+
+			_characterListContainer = new HBoxContainer();
+			_characterListContainer.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			_characterListContainer.Alignment = BoxContainer.AlignmentMode.Begin;
+			_characterListContainer.AddThemeConstantOverride("separation", 8);
+			column.AddChild(_characterListContainer);
+
+			column.AddChild(CreateLabel("ATTRIBUTES", 14, _mainTextColor));
+			column.AddChild(CreateDivider());
+
+			var chartFrame = new PanelContainer();
+			chartFrame.SizeFlagsVertical = SizeFlags.ExpandFill;
+			chartFrame.CustomMinimumSize = new Vector2(0, 215);
+			chartFrame.AddThemeStyleboxOverride("panel", CreatePreviewStyle());
+			column.AddChild(chartFrame);
+
+			var chartMargin = new MarginContainer();
+			chartMargin.AddThemeConstantOverride("margin_left", 6);
+			chartMargin.AddThemeConstantOverride("margin_top", 6);
+			chartMargin.AddThemeConstantOverride("margin_right", 6);
+			chartMargin.AddThemeConstantOverride("margin_bottom", 6);
+			chartFrame.AddChild(chartMargin);
+
+			_overviewStatsChart = new StatHexagonChart();
+			_overviewStatsChart.MainColor = _accentColor;
+			_overviewStatsChart.ChartRadiusOffset = 30f;
+			_overviewStatsChart.FontSize = 9;
+			_overviewStatsChart.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			_overviewStatsChart.SizeFlagsVertical = SizeFlags.ExpandFill;
+			chartMargin.AddChild(_overviewStatsChart);
+			return panel;
+		}
+
+		private Texture2D TryLoadTexture(string path)
+		{
+			return InventoryPanelChrome.TryLoadTexture(path);
+		}
+
+		private Label CreateLabel(string text, int fontSize, Color color)
+		{
+			return InventoryPanelChrome.CreateLabel(text, fontSize, color);
+		}
+
+		private ColorRect CreateDivider()
+		{
+			return InventoryPanelChrome.CreateDivider();
+		}
+
+		private ColorRect CreateThinDivider()
+		{
+			return InventoryPanelChrome.CreateDivider(true);
+		}
+
+		private Button CreateCloseButton()
+		{
+			return InventoryPanelChrome.CreateCloseButton(Hide);
+		}
+
+		private StyleBoxFlat CreateSectionStyle()
+		{
+			return InventoryPanelChrome.CreateSectionStyle();
+		}
+
+		private StyleBoxFlat CreateDetailSectionStyle()
+		{
+			return InventoryPanelChrome.CreateDetailSectionStyle();
+		}
+
+		private StyleBoxFlat CreatePreviewStyle()
+		{
+			return InventoryPanelChrome.CreatePreviewStyle();
+		}
+
+		private StyleBoxFlat CreateSlotStyle(bool selected = false)
+		{
+			return InventoryPanelChrome.CreateSlotStyle(selected);
+		}
+
+		// Nội dung chính bên dưới tab bar.
 		private Control CreateOverviewPanel()
 		{
 			var panel = new PanelContainer();
-			//FullRect dùng để hiển thị panel đúng kích thước cha
 			panel.SetAnchorsPreset(LayoutPreset.FullRect);
 			panel.AddThemeStyleboxOverride("panel", GetCommonPanelStyle());
 
-			// Thêm ScrollContainer để tránh bị tràn xuống dưới
-			var scrollContainer = new ScrollContainer();
-			scrollContainer.SetAnchorsPreset(LayoutPreset.FullRect);
-			panel.AddChild(scrollContainer);
+			var body = new HBoxContainer();
+			body.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			body.SizeFlagsVertical = SizeFlags.ExpandFill;
+			body.AddThemeConstantOverride("separation", 14);
+			panel.AddChild(body);
 
-			var mainVBox = new VBoxContainer();
-			mainVBox.AddThemeConstantOverride("separation", 10);  // Giảm separation từ 15 xuống 10
-			mainVBox.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			scrollContainer.AddChild(mainVBox);
+			var statsColumn = new VBoxContainer();
+			statsColumn.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			statsColumn.SizeFlagsVertical = SizeFlags.ExpandFill;
+			statsColumn.AddThemeConstantOverride("separation", 9);
+			body.AddChild(statsColumn);
+			statsColumn.AddChild(CreateLabel("THUỘC TÍNH", 15, _mainTextColor));
+			statsColumn.AddChild(CreateDivider());
 
-			
-
-			// 2. Tạo khu vực chứa 2 cột (Stats bên trái, Hexagon bên phải)
-			var statsAreaHBox = new HBoxContainer();
-			statsAreaHBox.AddThemeConstantOverride("separation", 15);  // Giảm từ 20 xuống 15
-			statsAreaHBox.SizeFlagsVertical = SizeFlags.ShrinkCenter;  // Không expand vertical
-			mainVBox.AddChild(statsAreaHBox);
-
-			// Cột Trái: Chỉ chứa các dòng STR, DEX... 
 			_statsTextContainer = new VBoxContainer();
 			_statsTextContainer.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			_statsTextContainer.SizeFlagsVertical = SizeFlags.ShrinkCenter;  // Không expand vertical
-			_statsTextContainer.AddThemeConstantOverride("separation", 5);  // Thêm separation nhỏ
-			statsAreaHBox.AddChild(_statsTextContainer);
+			_statsTextContainer.SizeFlagsVertical = SizeFlags.ExpandFill;
+			_statsTextContainer.AddThemeConstantOverride("separation", 0);
+			statsColumn.AddChild(_statsTextContainer);
 
-			// Cột Phải: Chứa Hexagon Chart
-			_overviewStatsChart = new StatHexagonChart();
-			_overviewStatsChart.MainColor = _accentColor;
-			_overviewStatsChart.ChartRadiusOffset = 30f;  // Giảm từ 35 xuống 30
-			_overviewStatsChart.FontSize = 9;  // Giảm từ 10 xuống 9
-			_overviewStatsChart.CustomMinimumSize = new Vector2(180, 180);  // Giảm từ 220x220 xuống 180x180
-			_overviewStatsChart.SizeFlagsHorizontal = SizeFlags.ShrinkEnd;
-			_overviewStatsChart.SizeFlagsVertical = SizeFlags.ShrinkCenter;  // Không expand vertical
-			statsAreaHBox.AddChild(_overviewStatsChart);
+			var resourcesPanel = new PanelContainer();
+			resourcesPanel.CustomMinimumSize = new Vector2(300, 0);
+			resourcesPanel.SizeFlagsVertical = SizeFlags.ExpandFill;
+			resourcesPanel.AddThemeStyleboxOverride("panel", CreateDetailSectionStyle());
+			body.AddChild(resourcesPanel);
 
-			// --- Phần thanh HP, MP, Stamina ở dưới
+			var resourceMargin = new MarginContainer();
+			resourceMargin.AddThemeConstantOverride("margin_left", 16);
+			resourceMargin.AddThemeConstantOverride("margin_top", 16);
+			resourceMargin.AddThemeConstantOverride("margin_right", 16);
+			resourceMargin.AddThemeConstantOverride("margin_bottom", 16);
+			resourcesPanel.AddChild(resourceMargin);
+
+			var resourceColumn = new VBoxContainer();
+			resourceColumn.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			resourceColumn.AddThemeConstantOverride("separation", 12);
+			resourceMargin.AddChild(resourceColumn);
+			resourceColumn.AddChild(CreateLabel("TÀI NGUYÊN", 15, _mainTextColor));
+			resourceColumn.AddChild(CreateDivider());
+
 			_resourceBarsContainer = new VBoxContainer();
-			_resourceBarsContainer.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
-			_resourceBarsContainer.SizeFlagsVertical = SizeFlags.ShrinkCenter;  // Không expand vertical
-			_resourceBarsContainer.AddThemeConstantOverride("separation", 1);  // Giảm từ 8 xuống 5
-			mainVBox.AddChild(_resourceBarsContainer);
+			_resourceBarsContainer.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			_resourceBarsContainer.AddThemeConstantOverride("separation", 12);
+			resourceColumn.AddChild(_resourceBarsContainer);
+			_resourceBarsContainer.AddChild(CreateResourceBarRow("HP", new Color("#b85348"), out _hpBar, out _hpValueLabel));
+			_resourceBarsContainer.AddChild(CreateResourceBarRow("MP", new Color("#4f7896"), out _mpBar, out _mpValueLabel));
+			_resourceBarsContainer.AddChild(CreateResourceBarRow("STA", new Color("#657d4d"), out _staminaBar, out _staminaValueLabel));
 
-			// Tạo sẵn các thanh Bar
-			_resourceBarsContainer.AddChild(CreateResourceBarRow("HP", new Color("#ef4444"), out _hpBar, out _hpValueLabel));
-			_resourceBarsContainer.AddChild(CreateResourceBarRow("MP", new Color("#3b82f6"), out _mpBar, out _mpValueLabel));
-			_resourceBarsContainer.AddChild(CreateResourceBarRow("STA", new Color("#22c55e"), out _staminaBar, out _staminaValueLabel));
-
+			var resourceSpacer = new Control();
+			resourceSpacer.SizeFlagsVertical = SizeFlags.ExpandFill;
+			resourceColumn.AddChild(resourceSpacer);
+			var hint = CreateLabel("Chọn thành viên ở panel bên phải để xem chỉ số.", 12, _subTextColor);
+			hint.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+			resourceColumn.AddChild(hint);
 			return panel;
 		}
 
 		private Control CreateEquipmentPanel()
 		{
 			var panel = new PanelContainer();
-			panel.SetAnchorsPreset(LayoutPreset.FullRect); 
+			panel.SetAnchorsPreset(LayoutPreset.FullRect);
 			panel.Visible = false;
 			panel.AddThemeStyleboxOverride("panel", GetCommonPanelStyle());
 
-			// HBox chính chia 2 phần: [Bên trái: Slots + Body] | [Bên phải: Inventory Grid]
-			var mainHBox = new HBoxContainer();
-			mainHBox.SetAnchorsPreset(LayoutPreset.FullRect);
-			mainHBox.AddThemeConstantOverride("separation", 15);
-			mainHBox.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			mainHBox.SizeFlagsVertical = SizeFlags.ExpandFill;
-			panel.AddChild(mainHBox);
+			var body = new HBoxContainer();
+			body.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			body.SizeFlagsVertical = SizeFlags.ExpandFill;
+			body.AddThemeConstantOverride("separation", 12);
+			panel.AddChild(body);
 
-			// ========== NỬA TRÁI: Character + Equipment Slots ==========
-			var leftHBox = new HBoxContainer();
-			leftHBox.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			leftHBox.SizeFlagsVertical = SizeFlags.ExpandFill;
-			leftHBox.AddThemeConstantOverride("separation", 2);
-			leftHBox.Alignment = BoxContainer.AlignmentMode.Center;
-			mainHBox.AddChild(leftHBox);
+			var loadoutColumn = new VBoxContainer();
+			loadoutColumn.CustomMinimumSize = new Vector2(335, 0);
+			loadoutColumn.SizeFlagsVertical = SizeFlags.ExpandFill;
+			loadoutColumn.AddThemeConstantOverride("separation", 9);
+			body.AddChild(loadoutColumn);
+			loadoutColumn.AddChild(CreateLabel("TRANG BỊ ĐANG MẶC", 15, _mainTextColor));
+			loadoutColumn.AddChild(CreateDivider());
 
-			// --- Cột slot trái (3 slot) ---
-			var leftSlotsVBox = new VBoxContainer();
-			leftSlotsVBox.SizeFlagsVertical = SizeFlags.ShrinkCenter;
-			leftSlotsVBox.AddThemeConstantOverride("separation", 4);
-			leftSlotsVBox.Alignment = BoxContainer.AlignmentMode.Center;
-			leftHBox.AddChild(leftSlotsVBox);
+			var loadoutPanel = new PanelContainer();
+			loadoutPanel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			loadoutPanel.SizeFlagsVertical = SizeFlags.ExpandFill;
+			loadoutPanel.AddThemeStyleboxOverride("panel", CreateDetailSectionStyle());
+			loadoutColumn.AddChild(loadoutPanel);
 
-			CreateEquipmentSlot(leftSlotsVBox, "Đầu", "res://assets/resources/data/icon/Exit.tres", EquipmentSlot.Head);
-			CreateEquipmentSlot(leftSlotsVBox, "Áo", "res://assets/resources/data/icon/Exit.tres", EquipmentSlot.Body);
-			CreateEquipmentSlot(leftSlotsVBox, "Quần", "res://assets/resources/data/icon/Exit.tres", EquipmentSlot.Legs);
+			var loadoutMargin = new MarginContainer();
+			loadoutMargin.AddThemeConstantOverride("margin_left", 12);
+			loadoutMargin.AddThemeConstantOverride("margin_top", 12);
+			loadoutMargin.AddThemeConstantOverride("margin_right", 12);
+			loadoutMargin.AddThemeConstantOverride("margin_bottom", 12);
+			loadoutPanel.AddChild(loadoutMargin);
 
-			// --- Body Idle ở giữa ---
+			var loadout = new HBoxContainer();
+			loadout.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			loadout.SizeFlagsVertical = SizeFlags.ExpandFill;
+			loadout.Alignment = BoxContainer.AlignmentMode.Center;
+			loadout.AddThemeConstantOverride("separation", 8);
+			loadoutMargin.AddChild(loadout);
+
+			var leftSlots = new VBoxContainer();
+			leftSlots.Alignment = BoxContainer.AlignmentMode.Center;
+			leftSlots.AddThemeConstantOverride("separation", 10);
+			loadout.AddChild(leftSlots);
+			CreateEquipmentSlot(leftSlots, "ĐẦU", null, EquipmentSlot.Head);
+			CreateEquipmentSlot(leftSlots, "ÁO", null, EquipmentSlot.Body);
+			CreateEquipmentSlot(leftSlots, "QUẦN", null, EquipmentSlot.Legs);
+
+			var bodyFrame = new PanelContainer();
+			bodyFrame.CustomMinimumSize = new Vector2(125, 315);
+			bodyFrame.AddThemeStyleboxOverride("panel", CreatePreviewStyle());
+			loadout.AddChild(bodyFrame);
+
 			_equipmentBodyContainer = new Control();
-			_equipmentBodyContainer.CustomMinimumSize = new Vector2(80, 160);
-			_equipmentBodyContainer.SizeFlagsVertical = SizeFlags.ShrinkCenter;
-			leftHBox.AddChild(_equipmentBodyContainer);
+			_equipmentBodyContainer.CustomMinimumSize = new Vector2(125, 315);
+			_equipmentBodyContainer.ClipContents = true;
+			bodyFrame.AddChild(_equipmentBodyContainer);
 
-			// --- Cột slot phải (3 slot) ---
-			var rightSlotsVBox = new VBoxContainer();
-			rightSlotsVBox.SizeFlagsVertical = SizeFlags.ShrinkCenter;
-			rightSlotsVBox.AddThemeConstantOverride("separation", 4);
-			rightSlotsVBox.Alignment = BoxContainer.AlignmentMode.Center;
-			leftHBox.AddChild(rightSlotsVBox);
+			var rightSlots = new VBoxContainer();
+			rightSlots.Alignment = BoxContainer.AlignmentMode.Center;
+			rightSlots.AddThemeConstantOverride("separation", 10);
+			loadout.AddChild(rightSlots);
+			CreateEquipmentSlot(rightSlots, "GIÀY", null, EquipmentSlot.Accessory2);
+			CreateEquipmentSlot(rightSlots, "VŨ KHÍ", null, EquipmentSlot.MainHand);
+			CreateEquipmentSlot(rightSlots, "PHỤ", null, EquipmentSlot.OffHand);
 
-			CreateEquipmentSlot(rightSlotsVBox, "Giày", "res://assets/resources/data/icon/Exit.tres", EquipmentSlot.Accessory2);
-			CreateEquipmentSlot(rightSlotsVBox, "Vũ khí", "res://assets/resources/data/icon/Exit.tres", EquipmentSlot.MainHand);
-			CreateEquipmentSlot(rightSlotsVBox, "Phụ", "res://assets/resources/data/icon/Exit.tres", EquipmentSlot.OffHand);
+			var inventoryColumn = new VBoxContainer();
+			inventoryColumn.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			inventoryColumn.SizeFlagsVertical = SizeFlags.ExpandFill;
+			inventoryColumn.AddThemeConstantOverride("separation", 9);
+			body.AddChild(inventoryColumn);
+			inventoryColumn.AddChild(CreateLabel("TÚI ĐỒ", 15, _mainTextColor));
+			inventoryColumn.AddChild(CreateDivider());
 
-			// ========== NỬA PHẢI: Inventory Grid (theo số ô của túi đồ) ==========
-			var inventoryVBox = new VBoxContainer();
-			inventoryVBox.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			inventoryVBox.SizeFlagsVertical = SizeFlags.ExpandFill;
-			inventoryVBox.AddThemeConstantOverride("separation", 8);
-			mainHBox.AddChild(inventoryVBox);
-			// Grid 4 cột, số hàng tùy theo MaxSlots của InventoryManager (mặc định 40 ô => 10 hàng)
+			var scroll = new ScrollContainer();
+			scroll.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			scroll.SizeFlagsVertical = SizeFlags.ExpandFill;
+			inventoryColumn.AddChild(scroll);
+
 			_inventoryGrid = new GridContainer();
 			_inventoryGrid.Columns = 4;
-			_inventoryGrid.AddThemeConstantOverride("h_separation", 6);
-			_inventoryGrid.AddThemeConstantOverride("v_separation", 6);
-			_inventoryGrid.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			_inventoryGrid.SizeFlagsVertical = SizeFlags.ShrinkCenter;
-			inventoryVBox.AddChild(_inventoryGrid);
+			_inventoryGrid.AddThemeConstantOverride("h_separation", 8);
+			_inventoryGrid.AddThemeConstantOverride("v_separation", 8);
+			_inventoryGrid.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
+			_inventoryGrid.SizeFlagsVertical = SizeFlags.ShrinkBegin;
+			scroll.AddChild(_inventoryGrid);
 
-			// Tạo số ô inventory dựa trên MaxSlots của InventoryManager (nếu tìm được),
-			// nếu không thì mặc định 40 ô để khớp grid inventory chính.
 			var inventory = ResolveInventoryManager();
 			int slotCount = inventory != null ? inventory.MaxSlots : 40;
-			if (slotCount < 1)
-			{
-				slotCount = 40;
-			}
-
-			for (int i = 0; i < slotCount; i++)
-			{
-				CreateInventorySlot(_inventoryGrid);
-			}
-
+			if (slotCount < 1) slotCount = 40;
+			for (int i = 0; i < slotCount; i++) CreateInventorySlot(_inventoryGrid);
 			return panel;
 		}
 
 		// Tạo 1 ô inventory nhỏ (nền đen, viền theo màu nhân vật)
 		private void CreateInventorySlot(GridContainer parent)
 		{
-			var slot = new PanelContainer();
-			slot.CustomMinimumSize = new Vector2(48, 48);
 			int slotIndex = _inventorySlotButtons.Count;
+			var slot = new PanelContainer();
+			slot.CustomMinimumSize = new Vector2(InventoryPanelChrome.SlotSize, InventoryPanelChrome.SlotSize);
+			slot.AddThemeStyleboxOverride("panel", CreateSlotStyle());
 
-			var style = new StyleBoxFlat();
-			style.BgColor = new Color(0, 0, 0, 0.85f); // Nền đen
-			Color borderCol = _currentThemeColor != default ? _currentThemeColor : _themeBorderColor; // Màu viền theo theme nhân vật hoặc mặc định
-			style.BorderColor = new Color(borderCol.R, borderCol.G, borderCol.B, 0.6f);
-			style.SetBorderWidthAll(2); // Viền 2px
-			style.SetCornerRadiusAll(4); // Bo góc nhẹ
-			slot.AddThemeStyleboxOverride("panel", style);
-
-			// Icon/placeholder
-			var center = new CenterContainer();
-			slot.AddChild(center);
-
-			var content = new VBoxContainer();
-			content.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
-			content.SizeFlagsVertical = SizeFlags.ShrinkCenter; // Không expand, giữ kích thước vừa đủ cho icon và label
-			content.Alignment = BoxContainer.AlignmentMode.Center; // Căn giữa cả icon và label
-			content.AddThemeConstantOverride("separation", 1);
-			center.AddChild(content);
+			var inner = new Control();
+			inner.CustomMinimumSize = new Vector2(InventoryPanelChrome.SlotSize, InventoryPanelChrome.SlotSize);
+			slot.AddChild(inner);
 
 			var iconRect = new TextureRect();
-			iconRect.CustomMinimumSize = new Vector2(24, 24);
-			iconRect.ExpandMode = TextureRect.ExpandModeEnum.FitHeightProportional;
+			iconRect.Position = new Vector2(8, 7);
+			iconRect.Size = new Vector2(48, 44);
+			iconRect.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
 			iconRect.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
+			iconRect.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
 			iconRect.Visible = false;
-			content.AddChild(iconRect);
+			inner.AddChild(iconRect);
 
-			var lbl = new Label();
-			lbl.Text = "";
-			lbl.HorizontalAlignment = HorizontalAlignment.Center;
-			lbl.AddThemeFontSizeOverride("font_size", 8);
-			lbl.AddThemeColorOverride("font_color", new Color(0.4f, 0.4f, 0.4f, 0.5f));
-			content.AddChild(lbl);
+			var label = CreateLabel("", 9, _subTextColor);
+			label.Position = new Vector2(4, 48);
+			label.Size = new Vector2(56, 13);
+			label.HorizontalAlignment = HorizontalAlignment.Center;
+			inner.AddChild(label);
 
-			// Hover effect
-			var hoverBtn = new Button();
-			hoverBtn.Text = "";
-			hoverBtn.SetAnchorsPreset(LayoutPreset.FullRect); // Đảm bảo button phủ toàn bộ slot để bắt hover
-			hoverBtn.MouseDefaultCursorShape = CursorShape.PointingHand; // Đổi con trỏ khi hover
-			var normalStyle = new StyleBoxFlat();
-			normalStyle.BgColor = new Color(0, 0, 0, 0);
-			hoverBtn.AddThemeStyleboxOverride("normal", normalStyle);
-			var hoverStyle = new StyleBoxFlat();
-			hoverStyle.BgColor = new Color(1f, 1f, 1f, 0.08f);
-			hoverStyle.SetCornerRadiusAll(4);
-			hoverBtn.AddThemeStyleboxOverride("hover", hoverStyle);
-			hoverBtn.Pressed += () => OnInventorySlotPressed(slotIndex);
-			slot.AddChild(hoverBtn);
+			var button = new Button();
+			button.SetAnchorsPreset(LayoutPreset.FullRect);
+			button.FocusMode = FocusModeEnum.None;
+			button.MouseDefaultCursorShape = CursorShape.PointingHand;
+			button.AddThemeStyleboxOverride("normal", InventoryPanelChrome.CreateTransparentButtonStyle());
+			button.AddThemeStyleboxOverride("hover", InventoryPanelChrome.CreateSlotHoverStyle());
+			button.AddThemeStyleboxOverride("pressed", InventoryPanelChrome.CreateSlotPressedStyle());
+			button.Pressed += () => OnInventorySlotPressed(slotIndex);
+			slot.AddChild(button);
 
 			_inventorySlotIcons.Add(iconRect);
-			_inventorySlotLabels.Add(lbl);
-			_inventorySlotButtons.Add(hoverBtn);
+			_inventorySlotLabels.Add(label);
+			_inventorySlotButtons.Add(button);
 			_inventorySlotItemIds.Add(string.Empty);
-
 			parent.AddChild(slot);
 		}
 
@@ -873,80 +685,45 @@ void fragment() {
 		// Tạo một slot trang bị (đang mặc) - nhỏ gọn
 		private void CreateEquipmentSlot(Container parent, string slotName, string iconPath = null, EquipmentSlot? slotType = null)
 		{
-			var slotVBox = new VBoxContainer();
-			slotVBox.AddThemeConstantOverride("separation", 2);
-			slotVBox.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
+			var slotColumn = new VBoxContainer();
+			slotColumn.AddThemeConstantOverride("separation", 4);
+			slotColumn.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
 
-			// Kích thước nhỏ
-			float slotSize = 36f;
-			float panelSize = slotSize + 10f;
+			var slotPanel = new PanelContainer();
+			slotPanel.CustomMinimumSize = new Vector2(62, 62);
+			slotPanel.AddThemeStyleboxOverride("panel", CreateSlotStyle());
+			slotColumn.AddChild(slotPanel);
 
-			var slotPanel = new Panel();
-			slotPanel.CustomMinimumSize = new Vector2(panelSize, panelSize);
-			slotPanel.Size = new Vector2(panelSize, panelSize);
-			slotPanel.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
-			slotPanel.SizeFlagsVertical = SizeFlags.ShrinkCenter;
+			Texture2D fallback = !string.IsNullOrEmpty(iconPath) ? TryLoadTexture(iconPath) : null;
+			var icon = new TextureRect();
+			icon.Texture = fallback;
+			icon.CustomMinimumSize = new Vector2(48, 48);
+			icon.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
+			icon.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
+			slotPanel.AddChild(icon);
 
-			Color borderCol = _currentThemeColor != default ? _currentThemeColor : _themeBorderColor;
-			var slotStyle = new StyleBoxFlat();
-			slotStyle.BgColor = new Color(0, 0, 0, 0.8f); // Nền đen
-			slotStyle.BorderColor = new Color(borderCol.R, borderCol.G, borderCol.B, 0.6f);
-			slotStyle.SetBorderWidthAll(2);
-			slotStyle.SetCornerRadiusAll(5);
-			slotPanel.AddThemeStyleboxOverride("panel", slotStyle);
-
-			Texture2D defaultTexture = null;
-			if (!string.IsNullOrEmpty(iconPath))
-			{
-				defaultTexture = GD.Load<Texture2D>(iconPath);
-			}
-
-			var iconRect = new TextureRect();
-			iconRect.Texture = defaultTexture;
-			iconRect.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
-			iconRect.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
-			iconRect.SetAnchorsPreset(LayoutPreset.Center);
-			iconRect.Size = new Vector2(slotSize, slotSize);
-			iconRect.Position = new Vector2(-slotSize / 2f, -slotSize / 2f);
-			slotPanel.AddChild(iconRect);
-
-			// Button trong suốt để bắt click
-			var clickButton = new Button();
-			clickButton.Text = "";
-			clickButton.SetAnchorsPreset(LayoutPreset.FullRect);
-			clickButton.MouseDefaultCursorShape = CursorShape.PointingHand;
-			var transparentStyle = new StyleBoxFlat();
-			transparentStyle.BgColor = new Color(0, 0, 0, 0);
-			clickButton.AddThemeStyleboxOverride("normal", transparentStyle);
-			var hoverStyle = new StyleBoxFlat();
-			hoverStyle.BgColor = new Color(1f, 1f, 1f, 0.12f);
-			hoverStyle.SetCornerRadiusAll(5);
-			clickButton.AddThemeStyleboxOverride("hover", hoverStyle);
+			var button = new Button();
+			button.Text = "";
+			button.SetAnchorsPreset(LayoutPreset.FullRect);
+			button.FocusMode = FocusModeEnum.None;
+			button.MouseDefaultCursorShape = CursorShape.PointingHand;
+			button.AddThemeStyleboxOverride("normal", InventoryPanelChrome.CreateTransparentButtonStyle());
+			button.AddThemeStyleboxOverride("hover", InventoryPanelChrome.CreateSlotHoverStyle());
+			button.AddThemeStyleboxOverride("pressed", InventoryPanelChrome.CreateSlotPressedStyle());
 			if (slotType.HasValue)
 			{
-				var capturedSlot = slotType.Value;
-				clickButton.Pressed += () => OnEquipmentSlotPressed(capturedSlot);
+				EquipmentSlot captured = slotType.Value;
+				button.Pressed += () => OnEquipmentSlotPressed(captured);
+				_equipmentSlotIcons[captured] = icon;
+				_equipmentSlotDefaultIcons[captured] = fallback;
+				_equipmentSlotButtons[captured] = button;
 			}
-			slotPanel.AddChild(clickButton);
+			slotPanel.AddChild(button);
 
-			slotVBox.AddChild(slotPanel);
-
-			// Label tên slot nhỏ
-			var nameLabel = new Label();
-			nameLabel.Text = slotName;
-			nameLabel.HorizontalAlignment = HorizontalAlignment.Center;
-			nameLabel.AddThemeFontSizeOverride("font_size", 10);
-			nameLabel.AddThemeColorOverride("font_color", _subTextColor);
-			slotVBox.AddChild(nameLabel);
-
-			if (slotType.HasValue)
-			{
-				_equipmentSlotIcons[slotType.Value] = iconRect;
-				_equipmentSlotDefaultIcons[slotType.Value] = defaultTexture;
-				_equipmentSlotButtons[slotType.Value] = clickButton;
-			}
-
-			parent.AddChild(slotVBox);
+			var label = CreateLabel(slotName, 9, _subTextColor);
+			label.HorizontalAlignment = HorizontalAlignment.Center;
+			slotColumn.AddChild(label);
+			parent.AddChild(slotColumn);
 		}
 
 		private EquipmentManager ResolveEquipmentManager()
@@ -1013,25 +790,8 @@ void fragment() {
 			RefreshInventoryGrid();
 		}
 
-		private Control CreateSkillsPanelPlaceholder()
-		{
-			var panel = new PanelContainer();
-			// QUAN TRỌNG: Set FullRect
-			panel.SetAnchorsPreset(LayoutPreset.FullRect);
-			panel.Visible = false;
 
-			// Thêm style nền
-			panel.AddThemeStyleboxOverride("panel", GetCommonPanelStyle());
-
-			var label = new Label();
-			label.Text = "KỸ NĂNG (Đang cập nhật)";
-			label.HorizontalAlignment = HorizontalAlignment.Center;
-			panel.AddChild(label);
-
-			return panel;
-		}
-
-		// Tạo style chung cho các panel - trong suốt với viền phát sáng
+		// Nội dung tab dùng nền trong suốt vì shell và section ngoài đã đảm nhiệm phần khung.
 		private Control CreateSkillsPanelLayout()
 		{
 			var panel = new PanelContainer();
@@ -1039,22 +799,23 @@ void fragment() {
 			panel.Visible = false;
 			panel.AddThemeStyleboxOverride("panel", GetCommonPanelStyle());
 
-			var scrollContainer = new ScrollContainer();
-			scrollContainer.SetAnchorsPreset(LayoutPreset.FullRect);
-			scrollContainer.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			scrollContainer.SizeFlagsVertical = SizeFlags.ExpandFill;
-			panel.AddChild(scrollContainer);
+			var column = new VBoxContainer();
+			column.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			column.SizeFlagsVertical = SizeFlags.ExpandFill;
+			column.AddThemeConstantOverride("separation", 10);
+			panel.AddChild(column);
+			column.AddChild(CreateLabel("KỸ NĂNG", 15, _mainTextColor));
+			column.AddChild(CreateDivider());
 
-			var mainVBox = new VBoxContainer();
-			mainVBox.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			mainVBox.AddThemeConstantOverride("separation", 12);
-			scrollContainer.AddChild(mainVBox);
+			var scroll = new ScrollContainer();
+			scroll.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			scroll.SizeFlagsVertical = SizeFlags.ExpandFill;
+			column.AddChild(scroll);
 
 			_skillsListContainer = new VBoxContainer();
 			_skillsListContainer.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			_skillsListContainer.AddThemeConstantOverride("separation", 10);
-			mainVBox.AddChild(_skillsListContainer);
-
+			_skillsListContainer.AddThemeConstantOverride("separation", 8);
+			scroll.AddChild(_skillsListContainer);
 			return panel;
 		}
 
@@ -1106,195 +867,102 @@ void fragment() {
 		{
 			var card = new PanelContainer();
 			card.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			card.CustomMinimumSize = new Vector2(0, 104);
+			card.CustomMinimumSize = new Vector2(0, 92);
+			card.AddThemeStyleboxOverride("panel", CreateDetailSectionStyle());
 
-			Color borderColor = _currentThemeColor != default ? _currentThemeColor : _themeBorderColor;
-			var cardStyle = new StyleBoxFlat();
-			cardStyle.BgColor = new Color(0.02f, 0.04f, 0.08f, 0.72f);
-			cardStyle.BorderColor = new Color(borderColor.R, borderColor.G, borderColor.B, 0.6f);
-			cardStyle.SetBorderWidthAll(2);
-			cardStyle.SetCornerRadiusAll(10);
-			cardStyle.ContentMarginLeft = 12;
-			cardStyle.ContentMarginRight = 12;
-			cardStyle.ContentMarginTop = 12;
-			cardStyle.ContentMarginBottom = 12;
-			card.AddThemeStyleboxOverride("panel", cardStyle);
+			var margin = new MarginContainer();
+			margin.AddThemeConstantOverride("margin_left", 12);
+			margin.AddThemeConstantOverride("margin_top", 10);
+			margin.AddThemeConstantOverride("margin_right", 12);
+			margin.AddThemeConstantOverride("margin_bottom", 10);
+			card.AddChild(margin);
 
-			var contentHBox = new HBoxContainer();
-			contentHBox.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			contentHBox.AddThemeConstantOverride("separation", 12);
-			card.AddChild(contentHBox);
+			var row = new HBoxContainer();
+			row.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			row.AddThemeConstantOverride("separation", 12);
+			margin.AddChild(row);
+			row.AddChild(CreateSkillIconFrame(skill));
 
-			contentHBox.AddChild(CreateSkillIconFrame(skill));
+			var textColumn = new VBoxContainer();
+			textColumn.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			textColumn.AddThemeConstantOverride("separation", 5);
+			row.AddChild(textColumn);
 
-			var textVBox = new VBoxContainer();
-			textVBox.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			textVBox.AddThemeConstantOverride("separation", 6);
-			contentHBox.AddChild(textVBox);
-
-			var titleLabel = new Label();
-			titleLabel.Text = string.IsNullOrWhiteSpace(skill?.SkillName) ? "Ky nang chua dat ten" : skill.SkillName;
-			titleLabel.AddThemeFontSizeOverride("font_size", 18);
-			titleLabel.AddThemeColorOverride("font_color", Colors.White);
-			textVBox.AddChild(titleLabel);
-
-			var descriptionLabel = new Label();
-			descriptionLabel.Text = string.IsNullOrWhiteSpace(skill?.Description)
-				? "Ky nang nay chua co mo ta."
-				: skill.Description;
-			descriptionLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-			descriptionLabel.AddThemeFontSizeOverride("font_size", 13);
-			descriptionLabel.AddThemeColorOverride("font_color", _subTextColor);
-			textVBox.AddChild(descriptionLabel);
-
+			var title = CreateLabel(string.IsNullOrWhiteSpace(skill?.SkillName) ? "Kỹ năng chưa đặt tên" : skill.SkillName, 17, _mainTextColor);
+			textColumn.AddChild(title);
+			var description = CreateLabel(string.IsNullOrWhiteSpace(skill?.Description) ? "Kỹ năng này chưa có mô tả." : skill.Description, 13, _subTextColor);
+			description.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+			textColumn.AddChild(description);
 			return card;
 		}
 
 		private Control CreateSkillIconFrame(SkillData skill)
 		{
 			var frame = new PanelContainer();
-			frame.CustomMinimumSize = new Vector2(84, 84);
-
-			Color borderColor = _currentThemeColor != default ? _currentThemeColor : _themeBorderColor;
-			var frameStyle = new StyleBoxFlat();
-			frameStyle.BgColor = new Color(0f, 0f, 0f, 0.55f);
-			frameStyle.BorderColor = new Color(borderColor.R, borderColor.G, borderColor.B, 0.85f);
-			frameStyle.SetBorderWidthAll(2);
-			frameStyle.SetCornerRadiusAll(8);
-			frameStyle.ContentMarginLeft = 8;
-			frameStyle.ContentMarginRight = 8;
-			frameStyle.ContentMarginTop = 8;
-			frameStyle.ContentMarginBottom = 8;
-			frame.AddThemeStyleboxOverride("panel", frameStyle);
-
+			frame.CustomMinimumSize = new Vector2(68, 68);
+			frame.AddThemeStyleboxOverride("panel", CreatePreviewStyle());
 			var center = new CenterContainer();
 			frame.AddChild(center);
 
 			if (skill?.Icon != null)
 			{
-				var iconRect = new TextureRect();
-				iconRect.Texture = skill.Icon;
-				iconRect.CustomMinimumSize = new Vector2(56, 56);
-				iconRect.ExpandMode = TextureRect.ExpandModeEnum.FitHeightProportional;
-				iconRect.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
-				center.AddChild(iconRect);
+				var icon = new TextureRect();
+				icon.Texture = skill.Icon;
+				icon.CustomMinimumSize = new Vector2(48, 48);
+				icon.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
+				icon.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
+				center.AddChild(icon);
 			}
 			else
 			{
-				var fallbackLabel = new Label();
-				fallbackLabel.Text = "NO ICON";
-				fallbackLabel.HorizontalAlignment = HorizontalAlignment.Center;
-				fallbackLabel.VerticalAlignment = VerticalAlignment.Center;
-				fallbackLabel.AddThemeFontSizeOverride("font_size", 11);
-				fallbackLabel.AddThemeColorOverride("font_color", _subTextColor);
-				center.AddChild(fallbackLabel);
+				var fallback = CreateLabel("—", 20, _subTextColor);
+				fallback.HorizontalAlignment = HorizontalAlignment.Center;
+				center.AddChild(fallback);
 			}
-
 			return frame;
 		}
 
 		private Control CreateSkillEmptyState()
 		{
-			var emptyPanel = new PanelContainer();
-			emptyPanel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-
-			Color borderColor = _currentThemeColor != default ? _currentThemeColor : _themeBorderColor;
-			var style = new StyleBoxFlat();
-			style.BgColor = new Color(0.02f, 0.04f, 0.08f, 0.55f);
-			style.BorderColor = new Color(borderColor.R, borderColor.G, borderColor.B, 0.45f);
-			style.SetBorderWidthAll(1);
-			style.SetCornerRadiusAll(10);
-			style.ContentMarginLeft = 16;
-			style.ContentMarginRight = 16;
-			style.ContentMarginTop = 16;
-			style.ContentMarginBottom = 16;
-			emptyPanel.AddThemeStyleboxOverride("panel", style);
-
-			var label = new Label();
-			label.Text = "Nhan vat nay chua duoc gan du lieu ky nang.";
+			var panel = new PanelContainer();
+			panel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			panel.AddThemeStyleboxOverride("panel", CreateDetailSectionStyle());
+			var margin = new MarginContainer();
+			margin.AddThemeConstantOverride("margin_left", 16);
+			margin.AddThemeConstantOverride("margin_top", 18);
+			margin.AddThemeConstantOverride("margin_right", 16);
+			margin.AddThemeConstantOverride("margin_bottom", 18);
+			panel.AddChild(margin);
+			var label = CreateLabel("Nhân vật này chưa được gán dữ liệu kỹ năng.", 13, _subTextColor);
 			label.AutowrapMode = TextServer.AutowrapMode.WordSmart;
 			label.HorizontalAlignment = HorizontalAlignment.Center;
-			label.AddThemeFontSizeOverride("font_size", 13);
-			label.AddThemeColorOverride("font_color", _subTextColor);
-			emptyPanel.AddChild(label);
-
-			return emptyPanel;
+			margin.AddChild(label);
+			return panel;
 		}
 
 		private StyleBoxFlat GetCommonPanelStyle()
 		{
 			var style = new StyleBoxFlat();
-			
-			Color themeColor = _currentThemeColor != default ? _currentThemeColor : _themeBorderColor;
-			
-			// 1. QUAN TRỌNG: Phải set DrawCenter = true thì mới có màu nền để chỉnh Alpha
-			style.DrawCenter = true;
-
-			// 2. Nền: Màu theme với độ Alpha thấp (0.1f = 10% đậm)
-			// Nếu bạn muốn trong hơn nữa, thử 0.05f. Đừng dùng 0.01f vì sẽ không thấy gì cả.
-			style.BgColor = new Color(themeColor.R, themeColor.G, themeColor.B, 0.01f);
-			
-			// Viền
-			style.BorderColor = new Color(themeColor.R, themeColor.G, themeColor.B, 0.9f);
-			style.SetBorderWidthAll(2);
-			style.SetCornerRadiusAll(8);
-			
-			// 3. SỬA SHADOW: Giảm Alpha của shadow xuống 0.1f hoặc tắt luôn nếu muốn kính trong vắt
-			// Shadow quá đậm sẽ làm nền bị tối khi nhìn xuyên qua
-			style.ShadowColor = new Color(themeColor.R, themeColor.G, themeColor.B, 0.1f); 
-			style.ShadowSize = 8;
-			
-			style.ContentMarginLeft = 15;
-			style.ContentMarginRight = 15;
-			style.ContentMarginTop = 10;
-			style.ContentMarginBottom = 10;
-			
+			style.BgColor = new Color(0f, 0f, 0f, 0f);
 			return style;
 		}
-		private void AddExitButton()
-		{
-			var exitTexture = GD.Load<Texture2D>("res://assets/resources/data/icon/Exit.tres");
-			
-			var exitBtn = new TextureButton();
-			exitBtn.TextureNormal = exitTexture;
-			exitBtn.CustomMinimumSize = new Vector2(50, 50);
-			exitBtn.StretchMode = TextureButton.StretchModeEnum.KeepAspectCentered;
-			exitBtn.IgnoreTextureSize = true;
-			
-			// Đặt nút ở góc trên phải
-			exitBtn.SetAnchorsPreset(LayoutPreset.TopRight);
-			exitBtn.Position = new Vector2(-80, 30);
-			
-			// Hiệu ứng hover - làm sáng hơn khi di chuột qua
-			var hoverStyle = new StyleBoxFlat();
-			hoverStyle.BgColor = new Color(1f, 1f, 1f, 0.2f);
-			hoverStyle.SetCornerRadiusAll(25);
-			exitBtn.AddThemeStyleboxOverride("hover", hoverStyle);
-			
-			exitBtn.Pressed += OnExitPressed;
-			
-			AddChild(exitBtn);
-		}
-		
-		private void OnExitPressed()
-		{
-			Visible = false;
-		}
-		
-		private Label CreateStyledLabel(int size, Color color)
-		{
-			var lbl = new Label();
-			lbl.AddThemeFontSizeOverride("font_size", size);
-			lbl.AddThemeColorOverride("font_color", color);
-			return lbl;
-		}
+
 
 		private Button CreateTabButton(string text)
 		{
-			var btn = new Button();
-			btn.Text = text;
-			btn.CustomMinimumSize = new Vector2(120, 35);
-			return btn;
+			var button = new Button();
+			button.Text = text;
+			button.CustomMinimumSize = new Vector2(126, 36);
+			button.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
+			button.FocusMode = FocusModeEnum.None;
+			button.MouseDefaultCursorShape = CursorShape.PointingHand;
+			ApplyTabStyle(button, false);
+			return button;
+		}
+
+		private void ApplyTabStyle(Button button, bool active)
+		{
+			InventoryPanelChrome.ApplyTabStyle(button, active);
 		}
 
 		private void SwitchTab(string tabName)
@@ -1302,27 +970,24 @@ void fragment() {
 			HidePanel(_overviewPanel);
 			HidePanel(_equipmentPanel);
 			HidePanel(_skillsPanel);
-			// ĐÃ XÓA: HidePanel(_talentsPanel);
-			
-			ResetTabButtonColors();
+			_currentTab = tabName;
 
 			switch (tabName)
 			{
-				case "overview":
-					ShowPanel(_overviewPanel);
-					_btnOverview.AddThemeColorOverride("font_color", _tabActiveColor);
-					break;
 				case "equipment":
 					ShowPanel(_equipmentPanel);
-					_btnEquipment.AddThemeColorOverride("font_color", _tabActiveColor);
+					RefreshInventoryGrid();
+					RefreshEquipmentSlots();
 					break;
 				case "skills":
 					ShowPanel(_skillsPanel);
-					_btnSkills.AddThemeColorOverride("font_color", _tabActiveColor);
 					break;
-				// ĐÃ XÓA: Case talents
+				default:
+					_currentTab = "overview";
+					ShowPanel(_overviewPanel);
+					break;
 			}
-			_currentTab = tabName; 
+			ResetTabButtonColors();
 		}
 
 		private void HidePanel(Control panel)
@@ -1346,80 +1011,59 @@ void fragment() {
 		}
 		private void ResetTabButtonColors()
 		{
-			_btnOverview.AddThemeColorOverride("font_color", _tabInactiveColor);
-			_btnEquipment.AddThemeColorOverride("font_color", _tabInactiveColor);
-			_btnSkills.AddThemeColorOverride("font_color", _tabInactiveColor);
-			// ĐÃ XÓA: Talents button reset
+			ApplyTabStyle(_btnOverview, _currentTab == "overview");
+			ApplyTabStyle(_btnEquipment, _currentTab == "equipment");
+			ApplyTabStyle(_btnSkills, _currentTab == "skills");
 		}
 
 		// Cập nhật style của các panel với màu theme mới
 		private void UpdatePanelStyles()
 		{
-			var newStyle = GetCommonPanelStyle();
-			
-			if (_overviewPanel is PanelContainer overviewPanelContainer)
-				overviewPanelContainer.AddThemeStyleboxOverride("panel", newStyle);
-			
-			if (_equipmentPanel is PanelContainer equipmentPanelContainer)
-				equipmentPanelContainer.AddThemeStyleboxOverride("panel", newStyle);
-			
-			if (_skillsPanel is PanelContainer skillsPanelContainer)
-				skillsPanelContainer.AddThemeStyleboxOverride("panel", newStyle);
-				
-			// Cập nhật màu accent cho các label
-			Color themeColor = _currentThemeColor != default ? _currentThemeColor : _accentColor;
-			_levelLabel?.AddThemeColorOverride("font_color", themeColor);
-			
-			// Cập nhật màu glow của khung panel
-			if (_panelGlow != null)
+			Color characterAccent = _currentThemeColor != default ? _currentThemeColor : _accentColor;
+			_levelLabel?.AddThemeColorOverride("font_color", characterAccent);
+			if (_overviewStatsChart != null)
 			{
-				// Giữ nguyên shader, chỉ update màu modulate
-				var currentMaterial = _panelGlow.Material;
-				_panelGlow.Modulate = new Color(themeColor.R, themeColor.G, themeColor.B, 0.8f);
-				
-				// Tạo lại shader material với màu mới nếu cần
-				if (currentMaterial is ShaderMaterial)
-				{
-					_panelGlow.Material = currentMaterial; // Giữ nguyên shader
-				}
+				_overviewStatsChart.MainColor = characterAccent;
+				_overviewStatsChart.QueueRedraw();
 			}
+			ResetTabButtonColors();
 		}
 
 		private void LoadCharacterList()
 		{
-			var children = _characterListContainer.GetChildren();
-			foreach (var child in children) child.QueueFree();
+			if (_characterListContainer == null || PlayerManager.Instance == null) return;
+			foreach (var child in _characterListContainer.GetChildren()) child.QueueFree();
 
 			for (int i = 0; i < PlayerManager.Instance.PartyMembers.Count; i++)
 			{
-				int index = i; 
+				int index = i;
 				var character = PlayerManager.Instance.PartyMembers[i];
-				
-				if (character?.ConfigData?.Icon != null)
-				{
-					var btn = new TextureButton();
-					btn.TextureNormal = character.ConfigData.Icon;
-					btn.CustomMinimumSize = new Vector2(70, 70);
-					btn.StretchMode = TextureButton.StretchModeEnum.KeepAspectCentered;
-					btn.IgnoreTextureSize = true;
-					btn.Pressed += () => OnCharacterSelected(index);
-					
-					if (index == PlayerManager.Instance.ActiveCharacterIndex)
-					{
-						var style = new StyleBoxFlat();
-						style.BgColor = new Color(1, 1, 0, 0.3f);
-						style.SetBorderWidthAll(3);
-						style.BorderColor = _accentColor;
-						style.SetCornerRadiusAll(5);
-						btn.AddThemeStyleboxOverride("normal", style);
-					}
-					_characterListContainer.AddChild(btn);
-				}
+				bool active = index == PlayerManager.Instance.ActiveCharacterIndex;
+
+				var button = new Button();
+				button.CustomMinimumSize = new Vector2(58, 58);
+				button.FocusMode = FocusModeEnum.None;
+				button.MouseDefaultCursorShape = CursorShape.PointingHand;
+				button.Icon = character?.ConfigData?.Icon;
+				button.ExpandIcon = true;
+				button.IconAlignment = HorizontalAlignment.Center;
+				button.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
+				button.AddThemeConstantOverride("icon_max_width", 46);
+				string characterName = character?.ConfigData?.Name;
+				button.Text = button.Icon == null ? (!string.IsNullOrEmpty(characterName) ? characterName.Substring(0, 1).ToUpper() : "?") : "";
+				button.TooltipText = character?.ConfigData?.Name ?? "Nhân vật";
+				button.AddThemeStyleboxOverride("normal", CreateSlotStyle(active));
+				button.AddThemeStyleboxOverride("hover", InventoryPanelChrome.CreateSlotHoverStyle());
+				button.AddThemeStyleboxOverride("pressed", InventoryPanelChrome.CreateSlotPressedStyle());
+				button.AddThemeColorOverride("font_color", _mainTextColor);
+				button.Pressed += () => OnCharacterSelected(index);
+				_characterListContainer.AddChild(button);
 			}
 		}
 
 		private void OnCharacterSelected(int index)
 		{
+			if (PlayerManager.Instance == null) return;
 			PlayerManager.Instance.SetActiveCharacter(index);
 			UpdateCharacterInfo();
 		}
@@ -1431,8 +1075,9 @@ void fragment() {
 
 		public void UpdateCharacterInfo()
 		{
+			if (PlayerManager.Instance == null) return;
 			var activeIndex = PlayerManager.Instance.ActiveCharacterIndex;
-			if (activeIndex >= PlayerManager.Instance.PartyMembers.Count) return;
+			if (activeIndex < 0 || activeIndex >= PlayerManager.Instance.PartyMembers.Count) return;
 
 			PlayerStats currentStats = PlayerManager.Instance.PartyMembers[activeIndex];
 			if (currentStats == null || currentStats.ConfigData == null) return;
@@ -1448,9 +1093,14 @@ void fragment() {
 			_currentThemeColor = config.ThemeColor;
 			
 			// Cập nhật background từ character config
-			if (config.BackgroundImage != null && _backgroundDisplay != null)
+			if (_headerIcon != null)
 			{
-				_backgroundDisplay.Texture = config.BackgroundImage;
+				_headerIcon.Texture = config.Icon ?? _characterIconTexture;
+			}
+
+			if (_backgroundDisplay != null)
+			{
+				_backgroundDisplay.Texture = config.BackgroundImage ?? config.Icon;
 			}
 			
 			// Cập nhật style panel với màu theme mới
@@ -1529,36 +1179,33 @@ void fragment() {
 			{
 				foreach (var attr in stats.FinalAttributes)
 				{
-					var hbox = new HBoxContainer();
-					hbox.AddThemeConstantOverride("separation", 10);
-					
-					// Thêm icon cho stat
-					string statShortName = FormatStatName(attr.Key.ToString());
-					var iconTexture = LoadStatIcon(statShortName);
+					var row = new HBoxContainer();
+					row.CustomMinimumSize = new Vector2(0, 38);
+					row.AddThemeConstantOverride("separation", 9);
+
+					string shortName = FormatStatName(attr.Key.ToString());
+					var iconTexture = LoadStatIcon(shortName);
 					if (iconTexture != null)
 					{
-						var iconRect = new TextureRect();
-						iconRect.Texture = iconTexture;
-						iconRect.CustomMinimumSize = new Vector2(24, 24);
-						iconRect.ExpandMode = TextureRect.ExpandModeEnum.FitHeight;
-						iconRect.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
-						hbox.AddChild(iconRect);
+						var icon = new TextureRect();
+						icon.Texture = iconTexture;
+						icon.CustomMinimumSize = new Vector2(22, 22);
+						icon.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
+						icon.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
+						row.AddChild(icon);
 					}
-					
-					var nameLabel = new Label();
-					nameLabel.Text = statShortName;
-					nameLabel.CustomMinimumSize = new Vector2(70, 0);
-					nameLabel.AddThemeFontSizeOverride("font_size", 16);
-					nameLabel.AddThemeColorOverride("font_color", _subTextColor);
-					hbox.AddChild(nameLabel);
 
-					var valueLabel = new Label();
-					valueLabel.Text = attr.Value.ToString();
-					valueLabel.AddThemeFontSizeOverride("font_size", 16);
-					valueLabel.AddThemeColorOverride("font_color", Colors.White);
-					hbox.AddChild(valueLabel);
-
-					_statsTextContainer.AddChild(hbox);
+					var name = CreateLabel(shortName, 14, _subTextColor);
+					name.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+					name.VerticalAlignment = VerticalAlignment.Center;
+					row.AddChild(name);
+					var value = CreateLabel(attr.Value.ToString(), 15, _mainTextColor);
+					value.CustomMinimumSize = new Vector2(54, 0);
+					value.HorizontalAlignment = HorizontalAlignment.Right;
+					value.VerticalAlignment = VerticalAlignment.Center;
+					row.AddChild(value);
+					_statsTextContainer.AddChild(row);
+					_statsTextContainer.AddChild(CreateThinDivider());
 				}
 			}
 
@@ -1568,15 +1215,11 @@ void fragment() {
 				if (stats.FinalAttributes != null)
 				{
 					foreach (var attr in stats.FinalAttributes)
-					{
 						_overviewStatsChart.SetStat(FormatStatName(attr.Key.ToString()), attr.Value);
-					}
 				}
 				_overviewStatsChart.UpdateAllStats();
 			}
-			
 			UpdateResourceBars(stats);
-
 		}
 
 		private void UpdateResourceBars(PlayerStats stats)
@@ -1607,58 +1250,39 @@ void fragment() {
 		private HBoxContainer CreateResourceBarRow(string labelText, Color fillColor, out ProgressBar bar, out Label valueLabel)
 		{
 			var row = new HBoxContainer();
+			row.CustomMinimumSize = new Vector2(0, 28);
 			row.AddThemeConstantOverride("separation", 8);
 
-			var nameLabel = new Label();
-			nameLabel.Text = labelText;
-			nameLabel.CustomMinimumSize = new Vector2(35, 0);
-			nameLabel.AddThemeFontSizeOverride("font_size", 12);
-			nameLabel.AddThemeColorOverride("font_color", _subTextColor);
-			row.AddChild(nameLabel);
+			var name = CreateLabel(labelText, 12, _subTextColor);
+			name.CustomMinimumSize = new Vector2(38, 0);
+			name.VerticalAlignment = VerticalAlignment.Center;
+			row.AddChild(name);
 
 			bar = new ProgressBar();
-			bar.CustomMinimumSize = new Vector2(200, 8);
+			bar.CustomMinimumSize = new Vector2(220, 12);
 			bar.SizeFlagsHorizontal = SizeFlags.ExpandFill;
 			bar.SizeFlagsVertical = SizeFlags.ShrinkCenter;
 			bar.ShowPercentage = false;
 
-			var bg = new StyleBoxFlat();
-			bg.BgColor = new Color(0.1f, 0.12f, 0.2f, 1f);
-			bg.CornerRadiusTopLeft = 1;
-			bg.CornerRadiusTopRight = 1;
-			bg.CornerRadiusBottomLeft = 1;
-			bg.CornerRadiusBottomRight = 1;
-			bg.ContentMarginTop = -5;
-			bg.ContentMarginBottom = -5;
-			bg.ContentMarginLeft = 0;
-			bg.ContentMarginRight = 0;
-
+			var background = new StyleBoxFlat();
+			background.BgColor = _deepSurfaceColor;
+			background.BorderColor = _borderColor.Darkened(0.1f);
+			background.SetBorderWidthAll(1);
+			background.SetCornerRadiusAll(2);
 			var fill = new StyleBoxFlat();
 			fill.BgColor = fillColor;
-			fill.CornerRadiusTopLeft = 1;
-			fill.CornerRadiusTopRight = 1;
-			fill.CornerRadiusBottomLeft = 1;
-			fill.CornerRadiusBottomRight = 1;
-			fill.ContentMarginTop = -5;
-			fill.ContentMarginBottom = -5;
-			fill.ContentMarginLeft = 0;
-			fill.ContentMarginRight = 0;
-
-			bar.AddThemeStyleboxOverride("background", bg);
+			fill.SetCornerRadiusAll(2);
+			bar.AddThemeStyleboxOverride("background", background);
 			bar.AddThemeStyleboxOverride("fill", fill);
-
 			row.AddChild(bar);
 
-			valueLabel = new Label();
-			valueLabel.Text = "0/0";
-			valueLabel.CustomMinimumSize = new Vector2(50, 0);
-			valueLabel.AddThemeFontSizeOverride("font_size", 8);
-			valueLabel.AddThemeColorOverride("font_color", Colors.White);
+			valueLabel = CreateLabel("0/0", 11, _mainTextColor);
+			valueLabel.CustomMinimumSize = new Vector2(72, 0);
+			valueLabel.HorizontalAlignment = HorizontalAlignment.Right;
+			valueLabel.VerticalAlignment = VerticalAlignment.Center;
 			row.AddChild(valueLabel);
-
 			return row;
 		}
-
 
 
 		private string FormatStatName(string original)
