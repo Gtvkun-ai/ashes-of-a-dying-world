@@ -27,6 +27,14 @@ namespace AshesofaDyingWorld.UI.HUD
 		private Label _nameLabel;
 		private Label _levelLabel;
 		private Label _raceLabel;
+		private Label _sidebarNameLabel;
+		private Label _sidebarLevelLabel;
+		private Label _portraitPlaceholderLabel;
+		private Label _attackValueLabel;
+		private Label _speedValueLabel;
+		private Label _armorValueLabel;
+		private Label _unspentAttributePointsLabel;
+		private Control _overviewFooter;
 		private VBoxContainer _statsTextContainer;
 
 		// bar gốc (Hp, Mana, Stamina)
@@ -38,13 +46,36 @@ namespace AshesofaDyingWorld.UI.HUD
 		private Label _mpValueLabel;
 		private Label _staminaValueLabel;
 		private VBoxContainer _skillsListContainer;
+		private readonly List<PanelContainer> _inventorySlotPanels = new();
+		private readonly Dictionary<EquipmentSlot, Label> _equipmentSlotTextLabels = new();
+		private readonly Dictionary<EquipmentSlot, PanelContainer> _equipmentSlotPanels = new();
+		private readonly Dictionary<EquipmentSlot, string> _equipmentSlotEmptyCaptions = new();
+		private Label _equipmentDetailNameLabel;
+		private Label _equipmentDetailTypeLabel;
+		private Label _equipmentDetailStat1Label;
+		private Label _equipmentDetailStat2Label;
+		private Label _equipmentDetailDescriptionLabel;
+		private Label _inventoryCountLabel;
+		private Button _equipmentPrimaryActionButton;
+		private Label _equipmentActionHintLabel;
+		private EquipmentItemData _selectedEquipmentItem;
+		private EquipmentSlot? _selectedEquipmentSlot;
+		private int _selectedInventorySlotIndex = -1;
+		private string _selectedEquipmentSource = "";
+		private VBoxContainer _skillCategoryContainer;
+		private VBoxContainer _skillEntriesContainer;
+		private readonly Dictionary<string, Button> _skillCategoryButtons = new();
+		private readonly Dictionary<SkillData, PanelContainer> _skillEntryCards = new();
+		private readonly List<SkillData> _allSkills = new();
+		private string _currentSkillFilter = "all";
+		private SkillData _selectedSkill;
+		private Label _skillDetailTitleLabel;
+		private Label _skillDetailMetaLabel;
+		private Label _skillDetailCooldownLabel;
+		private Label _skillDetailDescriptionLabel;
+		private Button _skillEquipButton;
+		private Button _skillUpgradeButton;
 		
-		// Chart
-		private StatHexagonChart _overviewStatsChart; 
-		
-		// Layout cố định, đồng bộ với InventoryPanel cho viewport mục tiêu 1600 x 900.
-		private const float DetailPanelWidth = InventoryPanelChrome.DetailPanelWidth;
-		private const string CharacterIconPath = "res://assets/sprites/button/characterbutton.png";
 
 		// Design tokens dùng chung tinh thần với InventoryPanel.
 		private Color _deepSurfaceColor => InventoryPanelChrome.DeepSurfaceColor;
@@ -55,8 +86,6 @@ namespace AshesofaDyingWorld.UI.HUD
 		private string _currentTab = "overview";
 
 		private Color _currentThemeColor;
-		private Texture2D _characterIconTexture;
-		private TextureRect _headerIcon;
 		private Control _equipmentBodyContainer;
 		private GridContainer _inventoryGrid;
 		private readonly List<TextureRect> _inventorySlotIcons = new();
@@ -116,51 +145,36 @@ namespace AshesofaDyingWorld.UI.HUD
 
 		private void BuildInventoryInspiredUI()
 		{
-			// Đây không còn là bản "lấy cảm hứng" nữa. Character và Inventory dùng
-			// chung đúng một shell: nền, grain, margin và frame 9-slice.
+			// Khung ngoài vẫn dùng chung với Inventory để giao diện đồng bộ.
+			// Phần bố cục bên trong được dựng riêng theo bản wireframe 3 cột.
 			var root = InventoryPanelChrome.BuildWindowShell(this);
 			root.AddChild(BuildCharacterHeader());
 			root.AddChild(BuildCharacterTabs());
 			root.AddChild(BuildCharacterBody());
+			_overviewFooter = BuildOverviewFooter();
+			root.AddChild(_overviewFooter);
 		}
 
 		private Control BuildCharacterHeader()
 		{
 			var headerPanel = InventoryPanelChrome.CreateHeader(out var row);
 
-			_headerIcon = new TextureRect();
-			_characterIconTexture ??= TryLoadTexture(CharacterIconPath);
-			_headerIcon.Texture = _characterIconTexture;
-			_headerIcon.CustomMinimumSize = new Vector2(24, 24);
-			_headerIcon.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
-			_headerIcon.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
-			_headerIcon.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
-			row.AddChild(_headerIcon);
-
-			var title = CreateLabel("CHARACTER", 22, _mainTextColor);
+			// Tiêu đề bên trái. Không bắt buộc ảnh, người dùng có thể thêm icon sau.
+			var title = CreateLabel("NHÂN VẬT", 18, _mainTextColor);
 			title.SizeFlagsHorizontal = SizeFlags.ExpandFill;
 			title.VerticalAlignment = VerticalAlignment.Center;
 			row.AddChild(title);
 
-			var identity = new VBoxContainer();
-			identity.Alignment = BoxContainer.AlignmentMode.Center;
-			identity.AddThemeConstantOverride("separation", 0);
-			row.AddChild(identity);
+			// Thông tin ngắn gọn bên phải theo wireframe: Hikaru | Cấp 01 | [x].
+			_nameLabel = CreateLabel("NHÂN VẬT", 15, _mainTextColor);
+			_nameLabel.VerticalAlignment = VerticalAlignment.Center;
+			row.AddChild(_nameLabel);
 
-			_nameLabel = CreateLabel("NHÂN VẬT", 18, _mainTextColor);
-			_nameLabel.HorizontalAlignment = HorizontalAlignment.Right;
-			identity.AddChild(_nameLabel);
+			row.AddChild(CreateLabel("·", 13, _subTextColor));
 
-			var meta = new HBoxContainer();
-			meta.Alignment = BoxContainer.AlignmentMode.End;
-			meta.AddThemeConstantOverride("separation", 8);
-			identity.AddChild(meta);
-
-			_levelLabel = CreateLabel("LV. 00", 12, _accentColor);
-			meta.AddChild(_levelLabel);
-			meta.AddChild(CreateLabel("·", 12, _subTextColor));
-			_raceLabel = CreateLabel("UNKNOWN", 12, _subTextColor);
-			meta.AddChild(_raceLabel);
+			_levelLabel = CreateLabel("Cấp 00", 13, _mainTextColor);
+			_levelLabel.VerticalAlignment = VerticalAlignment.Center;
+			row.AddChild(_levelLabel);
 
 			row.AddChild(CreateCloseButton());
 			return headerPanel;
@@ -187,31 +201,11 @@ namespace AshesofaDyingWorld.UI.HUD
 
 		private Control BuildCharacterBody()
 		{
-			// Body bám đúng tỉ lệ InventoryPanel: vùng nội dung lớn bên trái,
-			// detail panel cố định 330 px bên phải. Không còn party rail riêng.
-			var body = new HBoxContainer();
-			body.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			body.SizeFlagsVertical = SizeFlags.ExpandFill;
-			body.AddThemeConstantOverride("separation", 8);
-
-			var mainPanel = new PanelContainer();
-			mainPanel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			mainPanel.SizeFlagsVertical = SizeFlags.ExpandFill;
-			mainPanel.AddThemeStyleboxOverride("panel", CreateSectionStyle());
-			body.AddChild(mainPanel);
-
-			var mainMargin = new MarginContainer();
-			mainMargin.AddThemeConstantOverride("margin_left", 14);
-			mainMargin.AddThemeConstantOverride("margin_top", 14);
-			mainMargin.AddThemeConstantOverride("margin_right", 14);
-			mainMargin.AddThemeConstantOverride("margin_bottom", 14);
-			mainPanel.AddChild(mainMargin);
-
+			// Ba tab dùng chung một vùng nội dung. Mỗi panel được chồng lên nhau
+			// và SwitchTab chỉ bật panel cần thiết.
 			var content = new Control();
-			content.SetAnchorsPreset(LayoutPreset.FullRect);
 			content.SizeFlagsHorizontal = SizeFlags.ExpandFill;
 			content.SizeFlagsVertical = SizeFlags.ExpandFill;
-			mainMargin.AddChild(content);
 
 			_overviewPanel = CreateOverviewPanel();
 			content.AddChild(_overviewPanel);
@@ -220,79 +214,7 @@ namespace AshesofaDyingWorld.UI.HUD
 			_skillsPanel = CreateSkillsPanelLayout();
 			content.AddChild(_skillsPanel);
 
-			var sidebar = BuildCharacterSidebar();
-			sidebar.SizeFlagsHorizontal = SizeFlags.ShrinkEnd;
-			sidebar.SizeFlagsVertical = SizeFlags.ExpandFill;
-			body.AddChild(sidebar);
-			return body;
-		}
-
-		private PanelContainer BuildCharacterSidebar()
-		{
-			var panel = new PanelContainer();
-			panel.CustomMinimumSize = new Vector2(DetailPanelWidth, 0);
-			panel.AddThemeStyleboxOverride("panel", CreateDetailSectionStyle());
-
-			var margin = new MarginContainer();
-			margin.AddThemeConstantOverride("margin_left", 16);
-			margin.AddThemeConstantOverride("margin_top", 16);
-			margin.AddThemeConstantOverride("margin_right", 16);
-			margin.AddThemeConstantOverride("margin_bottom", 14);
-			panel.AddChild(margin);
-
-			var column = new VBoxContainer();
-			column.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			column.SizeFlagsVertical = SizeFlags.ExpandFill;
-			column.AddThemeConstantOverride("separation", 9);
-			margin.AddChild(column);
-
-			var previewFrame = new PanelContainer();
-			previewFrame.CustomMinimumSize = new Vector2(0, 150);
-			previewFrame.AddThemeStyleboxOverride("panel", CreatePreviewStyle());
-			column.AddChild(previewFrame);
-
-			_backgroundDisplay = new TextureRect();
-			_backgroundDisplay.SetAnchorsPreset(LayoutPreset.FullRect);
-			_backgroundDisplay.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
-			_backgroundDisplay.StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered;
-			_backgroundDisplay.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
-			_backgroundDisplay.Modulate = new Color(0.92f, 0.88f, 0.8f, 0.9f);
-			_backgroundDisplay.MouseFilter = MouseFilterEnum.Ignore;
-			previewFrame.AddChild(_backgroundDisplay);
-
-			column.AddChild(CreateLabel("PARTY", 14, _mainTextColor));
-			column.AddChild(CreateDivider());
-
-			_characterListContainer = new HBoxContainer();
-			_characterListContainer.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			_characterListContainer.Alignment = BoxContainer.AlignmentMode.Begin;
-			_characterListContainer.AddThemeConstantOverride("separation", 8);
-			column.AddChild(_characterListContainer);
-
-			column.AddChild(CreateLabel("ATTRIBUTES", 14, _mainTextColor));
-			column.AddChild(CreateDivider());
-
-			var chartFrame = new PanelContainer();
-			chartFrame.SizeFlagsVertical = SizeFlags.ExpandFill;
-			chartFrame.CustomMinimumSize = new Vector2(0, 215);
-			chartFrame.AddThemeStyleboxOverride("panel", CreatePreviewStyle());
-			column.AddChild(chartFrame);
-
-			var chartMargin = new MarginContainer();
-			chartMargin.AddThemeConstantOverride("margin_left", 6);
-			chartMargin.AddThemeConstantOverride("margin_top", 6);
-			chartMargin.AddThemeConstantOverride("margin_right", 6);
-			chartMargin.AddThemeConstantOverride("margin_bottom", 6);
-			chartFrame.AddChild(chartMargin);
-
-			_overviewStatsChart = new StatHexagonChart();
-			_overviewStatsChart.MainColor = _accentColor;
-			_overviewStatsChart.ChartRadiusOffset = 30f;
-			_overviewStatsChart.FontSize = 9;
-			_overviewStatsChart.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			_overviewStatsChart.SizeFlagsVertical = SizeFlags.ExpandFill;
-			chartMargin.AddChild(_overviewStatsChart);
-			return panel;
+			return content;
 		}
 
 		private Texture2D TryLoadTexture(string path)
@@ -340,25 +262,30 @@ namespace AshesofaDyingWorld.UI.HUD
 			return InventoryPanelChrome.CreateSlotStyle(selected);
 		}
 
-		// Nội dung chính bên dưới tab bar.
+		// Nội dung tab Tổng quan: đúng bố cục 3 cột của wireframe.
 		private Control CreateOverviewPanel()
 		{
 			var panel = new PanelContainer();
 			panel.SetAnchorsPreset(LayoutPreset.FullRect);
-			panel.AddThemeStyleboxOverride("panel", GetCommonPanelStyle());
+			panel.AddThemeStyleboxOverride("panel", CreateOverviewSurfaceStyle());
+
+			var outerMargin = new MarginContainer();
+			outerMargin.AddThemeConstantOverride("margin_left", 12);
+			outerMargin.AddThemeConstantOverride("margin_top", 12);
+			outerMargin.AddThemeConstantOverride("margin_right", 12);
+			outerMargin.AddThemeConstantOverride("margin_bottom", 12);
+			panel.AddChild(outerMargin);
 
 			var body = new HBoxContainer();
 			body.SizeFlagsHorizontal = SizeFlags.ExpandFill;
 			body.SizeFlagsVertical = SizeFlags.ExpandFill;
-			body.AddThemeConstantOverride("separation", 14);
-			panel.AddChild(body);
+			body.AddThemeConstantOverride("separation", 0);
+			outerMargin.AddChild(body);
 
-			var statsColumn = new VBoxContainer();
-			statsColumn.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			statsColumn.SizeFlagsVertical = SizeFlags.ExpandFill;
-			statsColumn.AddThemeConstantOverride("separation", 9);
-			body.AddChild(statsColumn);
-			statsColumn.AddChild(CreateLabel("THUỘC TÍNH", 15, _mainTextColor));
+			// Cột 1: thuộc tính cơ bản.
+			var statsFrame = CreateOverviewColumn(300, out var statsColumn);
+			body.AddChild(statsFrame);
+			statsColumn.AddChild(CreateSectionTitle("THUỘC TÍNH"));
 			statsColumn.AddChild(CreateDivider());
 
 			_statsTextContainer = new VBoxContainer();
@@ -367,41 +294,191 @@ namespace AshesofaDyingWorld.UI.HUD
 			_statsTextContainer.AddThemeConstantOverride("separation", 0);
 			statsColumn.AddChild(_statsTextContainer);
 
-			var resourcesPanel = new PanelContainer();
-			resourcesPanel.CustomMinimumSize = new Vector2(300, 0);
-			resourcesPanel.SizeFlagsVertical = SizeFlags.ExpandFill;
-			resourcesPanel.AddThemeStyleboxOverride("panel", CreateDetailSectionStyle());
-			body.AddChild(resourcesPanel);
+			body.AddChild(CreateVerticalDivider());
 
-			var resourceMargin = new MarginContainer();
-			resourceMargin.AddThemeConstantOverride("margin_left", 16);
-			resourceMargin.AddThemeConstantOverride("margin_top", 16);
-			resourceMargin.AddThemeConstantOverride("margin_right", 16);
-			resourceMargin.AddThemeConstantOverride("margin_bottom", 16);
-			resourcesPanel.AddChild(resourceMargin);
-
-			var resourceColumn = new VBoxContainer();
-			resourceColumn.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			resourceColumn.AddThemeConstantOverride("separation", 12);
-			resourceMargin.AddChild(resourceColumn);
-			resourceColumn.AddChild(CreateLabel("TÀI NGUYÊN", 15, _mainTextColor));
-			resourceColumn.AddChild(CreateDivider());
+			// Cột 2: tài nguyên và chỉ số chiến đấu.
+			var centerFrame = CreateOverviewColumn(390, out var centerColumn);
+			centerFrame.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			body.AddChild(centerFrame);
+			centerColumn.AddChild(CreateSectionTitle("TÀI NGUYÊN"));
+			centerColumn.AddChild(CreateDivider());
 
 			_resourceBarsContainer = new VBoxContainer();
 			_resourceBarsContainer.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			_resourceBarsContainer.AddThemeConstantOverride("separation", 12);
-			resourceColumn.AddChild(_resourceBarsContainer);
-			_resourceBarsContainer.AddChild(CreateResourceBarRow("HP", new Color("#b85348"), out _hpBar, out _hpValueLabel));
-			_resourceBarsContainer.AddChild(CreateResourceBarRow("MP", new Color("#4f7896"), out _mpBar, out _mpValueLabel));
-			_resourceBarsContainer.AddChild(CreateResourceBarRow("STA", new Color("#657d4d"), out _staminaBar, out _staminaValueLabel));
+			_resourceBarsContainer.AddThemeConstantOverride("separation", 10);
+			centerColumn.AddChild(_resourceBarsContainer);
+			_resourceBarsContainer.AddChild(CreateResourceBarRow("HP", new Color("#c95752"), out _hpBar, out _hpValueLabel));
+			_resourceBarsContainer.AddChild(CreateResourceBarRow("MP", new Color("#4e8eb8"), out _mpBar, out _mpValueLabel));
+			_resourceBarsContainer.AddChild(CreateResourceBarRow("STA", new Color("#6e965b"), out _staminaBar, out _staminaValueLabel));
 
-			var resourceSpacer = new Control();
-			resourceSpacer.SizeFlagsVertical = SizeFlags.ExpandFill;
-			resourceColumn.AddChild(resourceSpacer);
-			var hint = CreateLabel("Chọn thành viên ở panel bên phải để xem chỉ số.", 12, _subTextColor);
-			hint.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-			resourceColumn.AddChild(hint);
+			centerColumn.AddChild(CreateSectionSpacer(18));
+			centerColumn.AddChild(CreateSectionTitle("CHỈ SỐ CHIẾN ĐẤU", HorizontalAlignment.Left));
+			centerColumn.AddChild(CreateDivider());
+			centerColumn.AddChild(CreateCombatStatRow("Công vật lý", out _attackValueLabel));
+			centerColumn.AddChild(CreateCombatStatRow("Tốc độ", out _speedValueLabel));
+			centerColumn.AddChild(CreateCombatStatRow("Kháng phép", out _armorValueLabel));
+			var centerSpacer = new Control();
+			centerSpacer.SizeFlagsVertical = SizeFlags.ExpandFill;
+			centerColumn.AddChild(centerSpacer);
+
+			body.AddChild(CreateVerticalDivider());
+
+			// Cột 3: chân dung, danh tính và tổ đội.
+			var identityFrame = CreateOverviewColumn(250, out var identityColumn);
+			body.AddChild(identityFrame);
+			identityColumn.AddChild(CreateSectionTitle("NHÂN VẬT"));
+			identityColumn.AddChild(CreateDivider());
+
+			var previewFrame = new PanelContainer();
+			previewFrame.CustomMinimumSize = new Vector2(0, 145);
+			previewFrame.AddThemeStyleboxOverride("panel", CreatePortraitStyle());
+			identityColumn.AddChild(previewFrame);
+
+			_portraitPlaceholderLabel = CreateLabel("[ ẢNH CHÂN DUNG ]", 12, _subTextColor);
+			_portraitPlaceholderLabel.HorizontalAlignment = HorizontalAlignment.Center;
+			_portraitPlaceholderLabel.VerticalAlignment = VerticalAlignment.Center;
+			_portraitPlaceholderLabel.SetAnchorsPreset(LayoutPreset.FullRect);
+			previewFrame.AddChild(_portraitPlaceholderLabel);
+
+			_backgroundDisplay = new TextureRect();
+			_backgroundDisplay.SetAnchorsPreset(LayoutPreset.FullRect);
+			_backgroundDisplay.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
+			_backgroundDisplay.StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered;
+			_backgroundDisplay.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
+			_backgroundDisplay.MouseFilter = MouseFilterEnum.Ignore;
+			previewFrame.AddChild(_backgroundDisplay);
+
+			identityColumn.AddChild(CreateSectionSpacer(8));
+			_sidebarNameLabel = CreateLabel("Hikaru", 15, _mainTextColor);
+			_sidebarNameLabel.HorizontalAlignment = HorizontalAlignment.Left;
+			identityColumn.AddChild(_sidebarNameLabel);
+
+			_raceLabel = CreateLabel("Con người", 12, _subTextColor);
+			identityColumn.AddChild(_raceLabel);
+			_sidebarLevelLabel = CreateLabel("Cấp 01", 12, _subTextColor);
+			identityColumn.AddChild(_sidebarLevelLabel);
+
+			identityColumn.AddChild(CreateSectionSpacer(12));
+			identityColumn.AddChild(CreateSectionTitle("TỔ ĐỘI", HorizontalAlignment.Left));
+			identityColumn.AddChild(CreateDivider());
+
+			_characterListContainer = new HBoxContainer();
+			_characterListContainer.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			_characterListContainer.Alignment = BoxContainer.AlignmentMode.Begin;
+			_characterListContainer.AddThemeConstantOverride("separation", 8);
+			identityColumn.AddChild(_characterListContainer);
+
+			var identitySpacer = new Control();
+			identitySpacer.SizeFlagsVertical = SizeFlags.ExpandFill;
+			identityColumn.AddChild(identitySpacer);
 			return panel;
+		}
+
+		/// <summary>
+		/// Tạo một cột của màn Tổng quan. Toàn bộ khoảng cách nằm ở đây để
+		/// sau này chỉnh layout không phải săn từng con số rải rác.
+		/// </summary>
+		private MarginContainer CreateOverviewColumn(float minimumWidth, out VBoxContainer column)
+		{
+			// MarginContainer tạo khoảng thở thật giữa nội dung và đường chia cột.
+			var frame = new MarginContainer();
+			frame.CustomMinimumSize = new Vector2(minimumWidth, 0);
+			frame.SizeFlagsVertical = SizeFlags.ExpandFill;
+			frame.AddThemeConstantOverride("margin_left", 16);
+			frame.AddThemeConstantOverride("margin_top", 4);
+			frame.AddThemeConstantOverride("margin_right", 16);
+			frame.AddThemeConstantOverride("margin_bottom", 4);
+
+			column = new VBoxContainer();
+			column.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			column.SizeFlagsVertical = SizeFlags.ExpandFill;
+			column.AddThemeConstantOverride("separation", 8);
+			frame.AddChild(column);
+			return frame;
+		}
+
+		private Label CreateSectionTitle(string text, HorizontalAlignment alignment = HorizontalAlignment.Center)
+		{
+			var label = CreateLabel(text, 14, _mainTextColor);
+			label.CustomMinimumSize = new Vector2(0, 28);
+			label.HorizontalAlignment = alignment;
+			label.VerticalAlignment = VerticalAlignment.Center;
+			return label;
+		}
+
+		private ColorRect CreateVerticalDivider()
+		{
+			var divider = new ColorRect();
+			divider.Color = new Color(_borderColor.R, _borderColor.G, _borderColor.B, 0.72f);
+			divider.CustomMinimumSize = new Vector2(1, 0);
+			divider.MouseFilter = MouseFilterEnum.Ignore;
+			return divider;
+		}
+
+		private Control CreateSectionSpacer(float height)
+		{
+			var spacer = new Control();
+			spacer.CustomMinimumSize = new Vector2(0, height);
+			return spacer;
+		}
+
+		private HBoxContainer CreateCombatStatRow(string title, out Label valueLabel)
+		{
+			var row = new HBoxContainer();
+			row.CustomMinimumSize = new Vector2(0, 30);
+			var name = CreateLabel(title, 13, _mainTextColor);
+			name.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			name.VerticalAlignment = VerticalAlignment.Center;
+			row.AddChild(name);
+			valueLabel = CreateLabel("0", 13, _mainTextColor);
+			valueLabel.CustomMinimumSize = new Vector2(72, 0);
+			valueLabel.HorizontalAlignment = HorizontalAlignment.Right;
+			valueLabel.VerticalAlignment = VerticalAlignment.Center;
+			row.AddChild(valueLabel);
+			return row;
+		}
+
+		private Control BuildOverviewFooter()
+		{
+			var panel = new PanelContainer();
+			panel.CustomMinimumSize = new Vector2(0, 42);
+			panel.AddThemeStyleboxOverride("panel", CreateFooterStyle());
+			var margin = new MarginContainer();
+			margin.AddThemeConstantOverride("margin_left", 14);
+			margin.AddThemeConstantOverride("margin_right", 14);
+			panel.AddChild(margin);
+			_unspentAttributePointsLabel = CreateLabel("0 điểm thuộc tính chưa sử dụng", 12, _mainTextColor);
+			_unspentAttributePointsLabel.VerticalAlignment = VerticalAlignment.Center;
+			margin.AddChild(_unspentAttributePointsLabel);
+			return panel;
+		}
+
+		private StyleBoxFlat CreateOverviewSurfaceStyle()
+		{
+			var style = new StyleBoxFlat();
+			style.BgColor = new Color(_deepSurfaceColor.R, _deepSurfaceColor.G, _deepSurfaceColor.B, 0.58f);
+			style.BorderColor = new Color(_borderColor.R, _borderColor.G, _borderColor.B, 0.84f);
+			style.SetBorderWidthAll(1);
+			return style;
+		}
+
+		private StyleBoxFlat CreatePortraitStyle()
+		{
+			var style = new StyleBoxFlat();
+			style.BgColor = _deepSurfaceColor;
+			style.BorderColor = _borderColor;
+			style.SetBorderWidthAll(1);
+			style.SetCornerRadiusAll(2);
+			return style;
+		}
+
+		private StyleBoxFlat CreateFooterStyle()
+		{
+			var style = new StyleBoxFlat();
+			style.BgColor = new Color(_deepSurfaceColor.R, _deepSurfaceColor.G, _deepSurfaceColor.B, 0.72f);
+			style.BorderColor = _borderColor;
+			style.BorderWidthTop = 1;
+			return style;
 		}
 
 		private Control CreateEquipmentPanel()
@@ -409,97 +486,209 @@ namespace AshesofaDyingWorld.UI.HUD
 			var panel = new PanelContainer();
 			panel.SetAnchorsPreset(LayoutPreset.FullRect);
 			panel.Visible = false;
-			panel.AddThemeStyleboxOverride("panel", GetCommonPanelStyle());
+			panel.AddThemeStyleboxOverride("panel", CreateOverviewSurfaceStyle());
+
+			var outerMargin = new MarginContainer();
+			outerMargin.AddThemeConstantOverride("margin_left", 12);
+			outerMargin.AddThemeConstantOverride("margin_top", 12);
+			outerMargin.AddThemeConstantOverride("margin_right", 12);
+			outerMargin.AddThemeConstantOverride("margin_bottom", 12);
+			panel.AddChild(outerMargin);
 
 			var body = new HBoxContainer();
 			body.SizeFlagsHorizontal = SizeFlags.ExpandFill;
 			body.SizeFlagsVertical = SizeFlags.ExpandFill;
-			body.AddThemeConstantOverride("separation", 12);
-			panel.AddChild(body);
+			body.AddThemeConstantOverride("separation", 0);
+			outerMargin.AddChild(body);
 
-			var loadoutColumn = new VBoxContainer();
-			loadoutColumn.CustomMinimumSize = new Vector2(335, 0);
-			loadoutColumn.SizeFlagsVertical = SizeFlags.ExpandFill;
-			loadoutColumn.AddThemeConstantOverride("separation", 9);
-			body.AddChild(loadoutColumn);
-			loadoutColumn.AddChild(CreateLabel("TRANG BỊ ĐANG MẶC", 15, _mainTextColor));
+			var loadoutFrame = CreateOverviewColumn(330, out var loadoutColumn);
+			body.AddChild(loadoutFrame);
+			loadoutColumn.AddChild(CreateSectionTitle("TRANG BỊ ĐANG MẶC"));
 			loadoutColumn.AddChild(CreateDivider());
+			loadoutColumn.AddChild(CreateEquipmentLoadoutLayout());
 
-			var loadoutPanel = new PanelContainer();
-			loadoutPanel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			loadoutPanel.SizeFlagsVertical = SizeFlags.ExpandFill;
-			loadoutPanel.AddThemeStyleboxOverride("panel", CreateDetailSectionStyle());
-			loadoutColumn.AddChild(loadoutPanel);
+			body.AddChild(CreateVerticalDivider());
 
-			var loadoutMargin = new MarginContainer();
-			loadoutMargin.AddThemeConstantOverride("margin_left", 12);
-			loadoutMargin.AddThemeConstantOverride("margin_top", 12);
-			loadoutMargin.AddThemeConstantOverride("margin_right", 12);
-			loadoutMargin.AddThemeConstantOverride("margin_bottom", 12);
-			loadoutPanel.AddChild(loadoutMargin);
-
-			var loadout = new HBoxContainer();
-			loadout.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			loadout.SizeFlagsVertical = SizeFlags.ExpandFill;
-			loadout.Alignment = BoxContainer.AlignmentMode.Center;
-			loadout.AddThemeConstantOverride("separation", 8);
-			loadoutMargin.AddChild(loadout);
-
-			var leftSlots = new VBoxContainer();
-			leftSlots.Alignment = BoxContainer.AlignmentMode.Center;
-			leftSlots.AddThemeConstantOverride("separation", 10);
-			loadout.AddChild(leftSlots);
-			CreateEquipmentSlot(leftSlots, "ĐẦU", null, EquipmentSlot.Head);
-			CreateEquipmentSlot(leftSlots, "ÁO", null, EquipmentSlot.Body);
-			CreateEquipmentSlot(leftSlots, "QUẦN", null, EquipmentSlot.Legs);
-
-			var bodyFrame = new PanelContainer();
-			bodyFrame.CustomMinimumSize = new Vector2(125, 315);
-			bodyFrame.AddThemeStyleboxOverride("panel", CreatePreviewStyle());
-			loadout.AddChild(bodyFrame);
-
-			_equipmentBodyContainer = new Control();
-			_equipmentBodyContainer.CustomMinimumSize = new Vector2(125, 315);
-			_equipmentBodyContainer.ClipContents = true;
-			bodyFrame.AddChild(_equipmentBodyContainer);
-
-			var rightSlots = new VBoxContainer();
-			rightSlots.Alignment = BoxContainer.AlignmentMode.Center;
-			rightSlots.AddThemeConstantOverride("separation", 10);
-			loadout.AddChild(rightSlots);
-			CreateEquipmentSlot(rightSlots, "GIÀY", null, EquipmentSlot.Accessory2);
-			CreateEquipmentSlot(rightSlots, "VŨ KHÍ", null, EquipmentSlot.MainHand);
-			CreateEquipmentSlot(rightSlots, "PHỤ", null, EquipmentSlot.OffHand);
-
-			var inventoryColumn = new VBoxContainer();
-			inventoryColumn.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			inventoryColumn.SizeFlagsVertical = SizeFlags.ExpandFill;
-			inventoryColumn.AddThemeConstantOverride("separation", 9);
-			body.AddChild(inventoryColumn);
-			inventoryColumn.AddChild(CreateLabel("TÚI ĐỒ", 15, _mainTextColor));
+			var inventoryFrame = CreateOverviewColumn(360, out var inventoryColumn);
+			inventoryFrame.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			body.AddChild(inventoryFrame);
+			inventoryColumn.AddChild(CreateSectionTitle("TÚI ĐỒ"));
 			inventoryColumn.AddChild(CreateDivider());
 
-			var scroll = new ScrollContainer();
-			scroll.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			scroll.SizeFlagsVertical = SizeFlags.ExpandFill;
-			inventoryColumn.AddChild(scroll);
+			var inventoryScroll = new ScrollContainer();
+			inventoryScroll.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			inventoryScroll.SizeFlagsVertical = SizeFlags.ExpandFill;
+			inventoryColumn.AddChild(inventoryScroll);
 
 			_inventoryGrid = new GridContainer();
-			_inventoryGrid.Columns = 4;
+			_inventoryGrid.Columns = 5;
 			_inventoryGrid.AddThemeConstantOverride("h_separation", 8);
 			_inventoryGrid.AddThemeConstantOverride("v_separation", 8);
-			_inventoryGrid.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
+			_inventoryGrid.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
 			_inventoryGrid.SizeFlagsVertical = SizeFlags.ShrinkBegin;
-			scroll.AddChild(_inventoryGrid);
+			inventoryScroll.AddChild(_inventoryGrid);
 
 			var inventory = ResolveInventoryManager();
 			int slotCount = inventory != null ? inventory.MaxSlots : 40;
 			if (slotCount < 1) slotCount = 40;
 			for (int i = 0; i < slotCount; i++) CreateInventorySlot(_inventoryGrid);
+
+			var inventoryFooter = new HBoxContainer();
+			inventoryFooter.CustomMinimumSize = new Vector2(0, 28);
+			inventoryFooter.AddThemeConstantOverride("separation", 8);
+			inventoryColumn.AddChild(inventoryFooter);
+
+			var filterLabel = CreateLabel("Bộ lọc: Tất cả ▼", 12, _mainTextColor);
+			filterLabel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			inventoryFooter.AddChild(filterLabel);
+
+			_inventoryCountLabel = CreateLabel("0 / 0", 12, _mainTextColor);
+			_inventoryCountLabel.HorizontalAlignment = HorizontalAlignment.Right;
+			inventoryFooter.AddChild(_inventoryCountLabel);
+
+			body.AddChild(CreateVerticalDivider());
+
+			var detailFrame = CreateOverviewColumn(220, out var detailColumn);
+			body.AddChild(detailFrame);
+			detailColumn.AddChild(CreateSectionTitle("CHI TIẾT"));
+			detailColumn.AddChild(CreateDivider());
+
+			_equipmentDetailNameLabel = CreateLabel("Chưa chọn vật phẩm", 15, _mainTextColor);
+			_equipmentDetailNameLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+			detailColumn.AddChild(_equipmentDetailNameLabel);
+
+			_equipmentDetailTypeLabel = CreateLabel("", 13, _subTextColor);
+			_equipmentDetailTypeLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+			detailColumn.AddChild(_equipmentDetailTypeLabel);
+
+			detailColumn.AddChild(CreateSectionSpacer(14));
+			_equipmentDetailStat1Label = CreateLabel("", 13, _mainTextColor);
+			detailColumn.AddChild(_equipmentDetailStat1Label);
+			_equipmentDetailStat2Label = CreateLabel("", 13, _mainTextColor);
+			detailColumn.AddChild(_equipmentDetailStat2Label);
+
+			detailColumn.AddChild(CreateSectionSpacer(14));
+			_equipmentDetailDescriptionLabel = CreateLabel("Chọn một ô trong túi đồ hoặc trang bị đang mặc để xem chi tiết.", 12, _subTextColor);
+			_equipmentDetailDescriptionLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+			_equipmentDetailDescriptionLabel.SizeFlagsVertical = SizeFlags.ExpandFill;
+			detailColumn.AddChild(_equipmentDetailDescriptionLabel);
+
+			_equipmentPrimaryActionButton = CreateActionButton("Trang bị", OnEquipmentPrimaryActionPressed);
+			_equipmentPrimaryActionButton.Disabled = true;
+			detailColumn.AddChild(_equipmentPrimaryActionButton);
+
+			_equipmentActionHintLabel = CreateLabel("", 11, _subTextColor);
+			_equipmentActionHintLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+			detailColumn.AddChild(_equipmentActionHintLabel);
+
+			UpdateEquipmentDetailPanel();
 			return panel;
 		}
 
-		// Tạo 1 ô inventory nhỏ (nền đen, viền theo màu nhân vật)
+		private Control CreateEquipmentLoadoutLayout()
+		{
+			var wrapper = new VBoxContainer();
+			wrapper.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			wrapper.SizeFlagsVertical = SizeFlags.ExpandFill;
+			wrapper.Alignment = BoxContainer.AlignmentMode.Center;
+			wrapper.AddThemeConstantOverride("separation", 12);
+
+			var topRow = new HBoxContainer();
+			topRow.Alignment = BoxContainer.AlignmentMode.Center;
+			wrapper.AddChild(topRow);
+			CreateEquipmentSlotWidget(topRow, "Đầu", EquipmentSlot.Head);
+
+			var middleRow = new HBoxContainer();
+			middleRow.Alignment = BoxContainer.AlignmentMode.Center;
+			middleRow.AddThemeConstantOverride("separation", 10);
+			wrapper.AddChild(middleRow);
+			CreateEquipmentSlotWidget(middleRow, "Áo", EquipmentSlot.Body);
+
+			var bodyFrame = new PanelContainer();
+			bodyFrame.CustomMinimumSize = new Vector2(116, 116);
+			bodyFrame.AddThemeStyleboxOverride("panel", CreatePreviewStyle());
+			middleRow.AddChild(bodyFrame);
+
+			var bodyCenter = new CenterContainer();
+			bodyFrame.AddChild(bodyCenter);
+
+			var bodyInner = new VBoxContainer();
+			bodyInner.Alignment = BoxContainer.AlignmentMode.Center;
+			bodyInner.AddThemeConstantOverride("separation", 6);
+			bodyCenter.AddChild(bodyInner);
+
+			var bodyLabel = CreateLabel("[ Nhân vật ]", 12, _subTextColor);
+			bodyLabel.HorizontalAlignment = HorizontalAlignment.Center;
+			bodyInner.AddChild(bodyLabel);
+
+			_equipmentBodyContainer = new Control();
+			_equipmentBodyContainer.CustomMinimumSize = new Vector2(84, 84);
+			_equipmentBodyContainer.ClipContents = true;
+			bodyInner.AddChild(_equipmentBodyContainer);
+
+			CreateEquipmentSlotWidget(middleRow, "Vũ khí", EquipmentSlot.MainHand);
+
+			var bottomRow1 = new HBoxContainer();
+			bottomRow1.Alignment = BoxContainer.AlignmentMode.Center;
+			wrapper.AddChild(bottomRow1);
+			CreateEquipmentSlotWidget(bottomRow1, "Quần", EquipmentSlot.Legs);
+
+			var bottomRow2 = new HBoxContainer();
+			bottomRow2.Alignment = BoxContainer.AlignmentMode.Center;
+			wrapper.AddChild(bottomRow2);
+			CreateEquipmentSlotWidget(bottomRow2, "Giày", EquipmentSlot.Accessory2);
+
+			var spacer = new Control();
+			spacer.SizeFlagsVertical = SizeFlags.ExpandFill;
+			wrapper.AddChild(spacer);
+			return wrapper;
+		}
+
+		private void CreateEquipmentSlotWidget(Container parent, string displayText, EquipmentSlot slotType)
+		{
+			var slotPanel = new PanelContainer();
+			slotPanel.CustomMinimumSize = new Vector2(108, 46);
+			slotPanel.AddThemeStyleboxOverride("panel", CreateSlotStyle());
+			parent.AddChild(slotPanel);
+
+			var inner = new Control();
+			inner.CustomMinimumSize = new Vector2(108, 46);
+			slotPanel.AddChild(inner);
+
+			var icon = new TextureRect();
+			icon.SetAnchorsPreset(LayoutPreset.FullRect);
+			icon.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
+			icon.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
+			icon.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
+			icon.Visible = false;
+			inner.AddChild(icon);
+
+			var label = CreateLabel($"[ {displayText} ]", 12, _mainTextColor);
+			label.SetAnchorsPreset(LayoutPreset.FullRect);
+			label.HorizontalAlignment = HorizontalAlignment.Center;
+			label.VerticalAlignment = VerticalAlignment.Center;
+			label.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+			inner.AddChild(label);
+
+			var button = new Button();
+			button.SetAnchorsPreset(LayoutPreset.FullRect);
+			button.FocusMode = FocusModeEnum.None;
+			button.MouseDefaultCursorShape = CursorShape.PointingHand;
+			button.AddThemeStyleboxOverride("normal", InventoryPanelChrome.CreateTransparentButtonStyle());
+			button.AddThemeStyleboxOverride("hover", InventoryPanelChrome.CreateSlotHoverStyle());
+			button.AddThemeStyleboxOverride("pressed", InventoryPanelChrome.CreateSlotPressedStyle());
+			button.Pressed += () => OnEquipmentSlotPressed(slotType);
+			inner.AddChild(button);
+
+			_equipmentSlotIcons[slotType] = icon;
+			_equipmentSlotButtons[slotType] = button;
+			_equipmentSlotTextLabels[slotType] = label;
+			_equipmentSlotPanels[slotType] = slotPanel;
+			_equipmentSlotDefaultIcons[slotType] = null;
+			_equipmentSlotEmptyCaptions[slotType] = displayText;
+		}
+
+		// Tạo 1 ô inventory nhỏ.
 		private void CreateInventorySlot(GridContainer parent)
 		{
 			int slotIndex = _inventorySlotButtons.Count;
@@ -513,7 +702,7 @@ namespace AshesofaDyingWorld.UI.HUD
 
 			var iconRect = new TextureRect();
 			iconRect.Position = new Vector2(8, 7);
-			iconRect.Size = new Vector2(48, 44);
+			iconRect.Size = new Vector2(48, 40);
 			iconRect.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
 			iconRect.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
 			iconRect.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
@@ -521,7 +710,7 @@ namespace AshesofaDyingWorld.UI.HUD
 			inner.AddChild(iconRect);
 
 			var label = CreateLabel("", 9, _subTextColor);
-			label.Position = new Vector2(4, 48);
+			label.Position = new Vector2(4, 46);
 			label.Size = new Vector2(56, 13);
 			label.HorizontalAlignment = HorizontalAlignment.Center;
 			inner.AddChild(label);
@@ -536,6 +725,7 @@ namespace AshesofaDyingWorld.UI.HUD
 			button.Pressed += () => OnInventorySlotPressed(slotIndex);
 			slot.AddChild(button);
 
+			_inventorySlotPanels.Add(slot);
 			_inventorySlotIcons.Add(iconRect);
 			_inventorySlotLabels.Add(label);
 			_inventorySlotButtons.Add(button);
@@ -543,12 +733,11 @@ namespace AshesofaDyingWorld.UI.HUD
 			parent.AddChild(slot);
 		}
 
-		// Cập nhật hiển thị cho grid inventory dựa trên InventoryManager hiện tại
 		private void RefreshInventoryGrid()
 		{
 			if (_inventorySlotIcons.Count == 0) return;
 
-			var inventory = ResolveInventoryManager(); 
+			var inventory = ResolveInventoryManager();
 			RebindInventory(inventory);
 
 			for (int i = 0; i < _inventorySlotIcons.Count; i++)
@@ -558,7 +747,7 @@ namespace AshesofaDyingWorld.UI.HUD
 				var button = _inventorySlotButtons[i];
 
 				var item = (inventory != null && i < inventory.Items.Count) ? inventory.Items[i] : null;
-				if (item == null) // Nếu không có item nào ở slot này, reset về trạng thái trống
+				if (item == null)
 				{
 					iconRect.Texture = null;
 					iconRect.Visible = false;
@@ -574,6 +763,26 @@ namespace AshesofaDyingWorld.UI.HUD
 				button.TooltipText = item.ItemName;
 				_inventorySlotItemIds[i] = item.ID;
 			}
+
+			int usedSlots = inventory?.Items.Count ?? 0;
+			int maxSlots = inventory?.MaxSlots ?? _inventorySlotIcons.Count;
+			if (_inventoryCountLabel != null)
+			{
+				_inventoryCountLabel.Text = $"{usedSlots} / {maxSlots}";
+			}
+
+			if (_selectedInventorySlotIndex >= usedSlots)
+			{
+				_selectedInventorySlotIndex = -1;
+				if (_selectedEquipmentSource == "inventory")
+				{
+					_selectedEquipmentItem = null;
+					_selectedEquipmentSource = "";
+				}
+			}
+
+			RefreshInventorySelectionVisuals();
+			UpdateEquipmentDetailPanel();
 		}
 
 		private void OnInventorySlotPressed(int slotIndex)
@@ -581,20 +790,54 @@ namespace AshesofaDyingWorld.UI.HUD
 			if (slotIndex < 0 || slotIndex >= _inventorySlotItemIds.Count) return;
 
 			string itemId = _inventorySlotItemIds[slotIndex];
-			if (string.IsNullOrEmpty(itemId)) return;
+			_selectedInventorySlotIndex = slotIndex;
+			_selectedEquipmentSlot = null;
+			_selectedEquipmentSource = "inventory";
+			_selectedEquipmentItem = string.IsNullOrEmpty(itemId) ? null : ResolveInventoryManager()?.GetItem(itemId);
 
+			RefreshInventorySelectionVisuals();
+			RefreshEquipmentSlotSelectionVisuals();
+			UpdateEquipmentDetailPanel();
+		}
+
+		private void OnEquipmentPrimaryActionPressed()
+		{
 			var player = ResolvePlayer();
-			if (player == null)
+			if (player == null || _selectedEquipmentItem == null)
 			{
-				GD.PrintErr("[CharacterDetailUI] Không tìm thấy Player để equip item.");
 				return;
 			}
 
-			player.EquipFromInventory(itemId);
+			if (_selectedEquipmentSource == "inventory")
+			{
+				player.EquipFromInventory(_selectedEquipmentItem.ID);
+			}
+			else if (_selectedEquipmentSource == "equipped" && _selectedEquipmentSlot.HasValue)
+			{
+				player.UnequipToInventory(_selectedEquipmentSlot.Value);
+			}
+
+			_selectedEquipmentItem = null;
+			_selectedEquipmentSlot = null;
+			_selectedInventorySlotIndex = -1;
+			_selectedEquipmentSource = "";
 			RefreshInventoryGrid();
 			RefreshEquipmentSlots();
+			UpdateCharacterInfo();
 		}
 
+		private void RefreshInventorySelectionVisuals()
+		{
+			for (int i = 0; i < _inventorySlotPanels.Count; i++)
+			{
+				_inventorySlotPanels[i].AddThemeStyleboxOverride("panel", CreateSlotStyle(i == _selectedInventorySlotIndex));
+			}
+		}
+
+		/// <summary>
+		/// Tìm Player hiện tại. Ưu tiên Player do SceneManager quản lý,
+		/// sau đó mới dò node thuộc group "Player" để tránh phụ thuộc cứng vào scene.
+		/// </summary>
 		private Player ResolvePlayer()
 		{
 			var sceneManager = GetTree()?.Root?.GetNodeOrNull<SceneManager>("SceneManager");
@@ -618,38 +861,26 @@ namespace AshesofaDyingWorld.UI.HUD
 			return null;
 		}
 
+		/// <summary>
+		/// Lấy InventoryManager của Player hiện tại.
+		/// Hàm này không giữ tham chiếu vĩnh viễn vì Player có thể đổi khi chuyển scene.
+		/// </summary>
 		private InventoryManager ResolveInventoryManager()
 		{
-			var sceneManager = GetTree()?.Root?.GetNodeOrNull<SceneManager>("SceneManager");
-			var playerFromSceneManager = sceneManager?.Player;
-			if (playerFromSceneManager != null)
-			{
-				var inventoryFromPlayer = playerFromSceneManager.GetNodeOrNull<InventoryManager>("InventoryManager");
-				if (inventoryFromPlayer != null)
-					return inventoryFromPlayer;
-			}
-
-			var playerNodes = GetTree()?.GetNodesInGroup("Player");
-			if (playerNodes != null)
-			{
-				// Nếu có nhiều node Player, ưu tiên node nào có InventoryManager
-				foreach (var node in playerNodes)
-				{
-					if (node is Node playerNode)
-					{
-						var inventory = playerNode.GetNodeOrNull<InventoryManager>("InventoryManager");
-						if (inventory != null)
-							return inventory;
-					}
-				}
-			}
-
-			return null;
+			var player = ResolvePlayer();
+			return player?.GetNodeOrNull<InventoryManager>("InventoryManager");
 		}
 
+		/// <summary>
+		/// Gỡ signal khỏi inventory cũ và nối signal vào inventory mới.
+		/// Làm vậy để tránh callback bị gọi nhiều lần sau khi đổi nhân vật hoặc scene.
+		/// </summary>
 		private void RebindInventory(InventoryManager inventory)
 		{
-			if (_boundInventory == inventory) return;
+			if (_boundInventory == inventory)
+			{
+				return;
+			}
 
 			if (_boundInventory != null)
 			{
@@ -664,66 +895,29 @@ namespace AshesofaDyingWorld.UI.HUD
 			}
 		}
 
+		/// <summary>
+		/// Làm mới tab Trang bị khi nội dung túi đồ thay đổi.
+		/// </summary>
 		private void OnInventoryChanged()
 		{
-			RefreshInventoryGrid(); // Cập nhật lại grid khi có thay đổi trong inventory
+			RefreshInventoryGrid();
 		}
 
+		/// <summary>
+		/// Tạo chữ viết tắt dùng khi vật phẩm chưa có icon.
+		/// Ví dụ "Kiếm gỗ" thành "KI".
+		/// </summary>
 		private string CompactItemName(string itemName)
 		{
-			if (string.IsNullOrEmpty(itemName)) return "";
-			return itemName.Length <= 2 ? itemName.ToUpper() : itemName.Substring(0, 2).ToUpper();
-		}
-
-		public void OpenEquipmentTab()
-		{
-			SwitchTab("equipment");
-			RefreshInventoryGrid();
-			RefreshEquipmentSlots();
-		}
-
-		// Tạo một slot trang bị (đang mặc) - nhỏ gọn
-		private void CreateEquipmentSlot(Container parent, string slotName, string iconPath = null, EquipmentSlot? slotType = null)
-		{
-			var slotColumn = new VBoxContainer();
-			slotColumn.AddThemeConstantOverride("separation", 4);
-			slotColumn.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
-
-			var slotPanel = new PanelContainer();
-			slotPanel.CustomMinimumSize = new Vector2(62, 62);
-			slotPanel.AddThemeStyleboxOverride("panel", CreateSlotStyle());
-			slotColumn.AddChild(slotPanel);
-
-			Texture2D fallback = !string.IsNullOrEmpty(iconPath) ? TryLoadTexture(iconPath) : null;
-			var icon = new TextureRect();
-			icon.Texture = fallback;
-			icon.CustomMinimumSize = new Vector2(48, 48);
-			icon.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
-			icon.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
-			slotPanel.AddChild(icon);
-
-			var button = new Button();
-			button.Text = "";
-			button.SetAnchorsPreset(LayoutPreset.FullRect);
-			button.FocusMode = FocusModeEnum.None;
-			button.MouseDefaultCursorShape = CursorShape.PointingHand;
-			button.AddThemeStyleboxOverride("normal", InventoryPanelChrome.CreateTransparentButtonStyle());
-			button.AddThemeStyleboxOverride("hover", InventoryPanelChrome.CreateSlotHoverStyle());
-			button.AddThemeStyleboxOverride("pressed", InventoryPanelChrome.CreateSlotPressedStyle());
-			if (slotType.HasValue)
+			if (string.IsNullOrWhiteSpace(itemName))
 			{
-				EquipmentSlot captured = slotType.Value;
-				button.Pressed += () => OnEquipmentSlotPressed(captured);
-				_equipmentSlotIcons[captured] = icon;
-				_equipmentSlotDefaultIcons[captured] = fallback;
-				_equipmentSlotButtons[captured] = button;
+				return "?";
 			}
-			slotPanel.AddChild(button);
 
-			var label = CreateLabel(slotName, 9, _subTextColor);
-			label.HorizontalAlignment = HorizontalAlignment.Center;
-			slotColumn.AddChild(label);
-			parent.AddChild(slotColumn);
+			string normalized = itemName.Trim();
+			return normalized.Length <= 2
+				? normalized.ToUpperInvariant()
+				: normalized.Substring(0, 2).ToUpperInvariant();
 		}
 
 		private EquipmentManager ResolveEquipmentManager()
@@ -769,82 +963,296 @@ namespace AshesofaDyingWorld.UI.HUD
 				var slotType = pair.Key;
 				var iconRect = pair.Value;
 				var button = _equipmentSlotButtons[slotType];
+				var label = _equipmentSlotTextLabels[slotType];
 
 				var equipped = equipmentManager?.GetEquippedItem(slotType);
-				var fallback = _equipmentSlotDefaultIcons[slotType];
+				iconRect.Texture = equipped?.Icon;
+				iconRect.Visible = equipped?.Icon != null;
+				label.Text = equipped == null
+					? $"[ {_equipmentSlotEmptyCaptions[slotType]} ]"
+					: (equipped.Icon == null ? $"[ {CompactItemName(equipped.ItemName)} ]" : "");
+				button.TooltipText = equipped != null ? equipped.ItemName : $"Ô {_equipmentSlotEmptyCaptions[slotType]}";
+			}
 
-				iconRect.Texture = equipped?.Icon ?? fallback;
-				button.TooltipText = equipped != null
-					? $"{equipped.ItemName} (Chuot trai de thao)"
-					: "Trong (Chuot trai de thao neu co do)";
+			RefreshEquipmentSlotSelectionVisuals();
+			UpdateEquipmentDetailPanel();
+		}
+
+		private void RefreshEquipmentSlotSelectionVisuals()
+		{
+			foreach (var pair in _equipmentSlotPanels)
+			{
+				pair.Value.AddThemeStyleboxOverride("panel", CreateSlotStyle(_selectedEquipmentSlot.HasValue && _selectedEquipmentSlot.Value == pair.Key));
 			}
 		}
 
 		private void OnEquipmentSlotPressed(EquipmentSlot slotType)
 		{
-			var player = ResolvePlayer();
-			if (player == null) return;
-
-			player.UnequipToInventory(slotType);
-			RefreshEquipmentSlots();
-			RefreshInventoryGrid();
+			var equipmentManager = ResolveEquipmentManager();
+			_selectedInventorySlotIndex = -1;
+			_selectedEquipmentSlot = slotType;
+			_selectedEquipmentItem = equipmentManager?.GetEquippedItem(slotType);
+			_selectedEquipmentSource = _selectedEquipmentItem != null ? "equipped" : "";
+			RefreshInventorySelectionVisuals();
+			RefreshEquipmentSlotSelectionVisuals();
+			UpdateEquipmentDetailPanel();
 		}
 
+		private void UpdateEquipmentDetailPanel()
+		{
+			if (_equipmentDetailNameLabel == null)
+			{
+				return;
+			}
 
-		// Nội dung tab dùng nền trong suốt vì shell và section ngoài đã đảm nhiệm phần khung.
+			if (_selectedEquipmentItem == null)
+			{
+				_equipmentDetailNameLabel.Text = "Chưa chọn vật phẩm";
+				_equipmentDetailTypeLabel.Text = "";
+				_equipmentDetailStat1Label.Text = "";
+				_equipmentDetailStat2Label.Text = "";
+				_equipmentDetailDescriptionLabel.Text = "Chọn một ô trong túi đồ hoặc trang bị đang mặc để xem chi tiết.";
+				if (_equipmentPrimaryActionButton != null)
+				{
+					_equipmentPrimaryActionButton.Text = "Trang bị";
+					_equipmentPrimaryActionButton.Disabled = true;
+				}
+				if (_equipmentActionHintLabel != null)
+				{
+					_equipmentActionHintLabel.Text = "";
+				}
+				return;
+			}
+
+			_equipmentDetailNameLabel.Text = _selectedEquipmentItem.ItemName;
+			_equipmentDetailTypeLabel.Text = GetEquipmentSlotDisplayName(_selectedEquipmentItem.SlotType);
+			_equipmentDetailStat1Label.Text = BuildPrimaryItemStatText(_selectedEquipmentItem);
+			_equipmentDetailStat2Label.Text = BuildSecondaryItemStatText(_selectedEquipmentItem);
+			_equipmentDetailDescriptionLabel.Text = string.IsNullOrWhiteSpace(_selectedEquipmentItem.Description)
+				? "Vật phẩm này chưa có mô tả."
+				: _selectedEquipmentItem.Description;
+
+			if (_equipmentPrimaryActionButton != null)
+			{
+				bool fromInventory = _selectedEquipmentSource == "inventory";
+				_equipmentPrimaryActionButton.Text = fromInventory ? "Trang bị" : "Tháo";
+				_equipmentPrimaryActionButton.Disabled = false;
+			}
+
+			if (_equipmentActionHintLabel != null)
+			{
+				_equipmentActionHintLabel.Text = _selectedEquipmentSource == "inventory"
+					? "Nhấn để chuyển vật phẩm từ túi đồ sang ô trang bị phù hợp."
+					: "Nhấn để tháo vật phẩm đang mặc và trả về túi đồ.";
+			}
+		}
+
+		private string BuildPrimaryItemStatText(EquipmentItemData item)
+		{
+			if (item == null) return "";
+			int amount = Mathf.RoundToInt(item.BaseValue);
+			if (item.SlotType == EquipmentSlot.MainHand)
+			{
+				return $"Công {(amount >= 0 ? "+" : "")}{amount}";
+			}
+			return $"Phòng thủ {(amount >= 0 ? "+" : "")}{amount}";
+		}
+
+		private string BuildSecondaryItemStatText(EquipmentItemData item)
+		{
+			if (item == null) return "";
+
+			if (item.AttributeBonuses != null)
+			{
+				foreach (var bonus in item.AttributeBonuses)
+				{
+					if (bonus.Value != 0)
+					{
+						return $"{GetAttributeDisplayName(bonus.Key)} {(bonus.Value >= 0 ? "+" : "")}{bonus.Value}";
+					}
+				}
+			}
+
+			if (item.SlotType == EquipmentSlot.MainHand)
+			{
+				int speedBonus = Mathf.RoundToInt((1.15f - item.WeaponWeight) * 10f);
+				return $"Tốc độ {(speedBonus >= 0 ? "+" : "")}{speedBonus}";
+			}
+
+			return "Không có cộng thêm";
+		}
+
+		private string GetAttributeDisplayName(AttributeType attributeType)
+		{
+			return attributeType switch
+			{
+				AttributeType.Strength => "STR",
+				AttributeType.Dexterity => "DEX",
+				AttributeType.Intelligence => "INT",
+				AttributeType.Vitality => "VIT",
+				AttributeType.Spirit => "SPI",
+				AttributeType.Defense => "DEF",
+				_ => attributeType.ToString().ToUpper()
+			};
+		}
+
+		private string GetEquipmentSlotDisplayName(EquipmentSlot slotType)
+		{
+			return slotType switch
+			{
+				EquipmentSlot.MainHand => "Vũ khí",
+				EquipmentSlot.OffHand => "Phụ",
+				EquipmentSlot.Head => "Đầu",
+				EquipmentSlot.Body => "Áo",
+				EquipmentSlot.Legs => "Quần",
+				EquipmentSlot.Accessory1 => "Phụ kiện 1",
+				EquipmentSlot.Accessory2 => "Giày",
+				_ => "Trang bị"
+			};
+		}
+
 		private Control CreateSkillsPanelLayout()
 		{
 			var panel = new PanelContainer();
 			panel.SetAnchorsPreset(LayoutPreset.FullRect);
 			panel.Visible = false;
-			panel.AddThemeStyleboxOverride("panel", GetCommonPanelStyle());
+			panel.AddThemeStyleboxOverride("panel", CreateOverviewSurfaceStyle());
 
-			var column = new VBoxContainer();
-			column.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			column.SizeFlagsVertical = SizeFlags.ExpandFill;
-			column.AddThemeConstantOverride("separation", 10);
-			panel.AddChild(column);
-			column.AddChild(CreateLabel("KỸ NĂNG", 15, _mainTextColor));
-			column.AddChild(CreateDivider());
+			var outerMargin = new MarginContainer();
+			outerMargin.AddThemeConstantOverride("margin_left", 12);
+			outerMargin.AddThemeConstantOverride("margin_top", 12);
+			outerMargin.AddThemeConstantOverride("margin_right", 12);
+			outerMargin.AddThemeConstantOverride("margin_bottom", 12);
+			panel.AddChild(outerMargin);
+
+			var body = new HBoxContainer();
+			body.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			body.SizeFlagsVertical = SizeFlags.ExpandFill;
+			body.AddThemeConstantOverride("separation", 0);
+			outerMargin.AddChild(body);
+
+			var categoryFrame = CreateOverviewColumn(180, out var categoryColumn);
+			body.AddChild(categoryFrame);
+			categoryColumn.AddChild(CreateSectionTitle("LOẠI KỸ NĂNG"));
+			categoryColumn.AddChild(CreateDivider());
+
+			_skillCategoryContainer = new VBoxContainer();
+			_skillCategoryContainer.AddThemeConstantOverride("separation", 8);
+			categoryColumn.AddChild(_skillCategoryContainer);
+			_skillCategoryContainer.AddChild(CreateSkillCategoryButton("all", "Tất cả"));
+			_skillCategoryContainer.AddChild(CreateSkillCategoryButton("active", "Chủ động"));
+			_skillCategoryContainer.AddChild(CreateSkillCategoryButton("passive", "Bị động"));
+			_skillCategoryContainer.AddChild(CreateSkillCategoryButton("innate", "Nội tại"));
+
+			var categorySpacer = new Control();
+			categorySpacer.SizeFlagsVertical = SizeFlags.ExpandFill;
+			categoryColumn.AddChild(categorySpacer);
+
+			body.AddChild(CreateVerticalDivider());
+
+			var listFrame = CreateOverviewColumn(320, out var listColumn);
+			listFrame.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			body.AddChild(listFrame);
+			listColumn.AddChild(CreateSectionTitle("DANH SÁCH KỸ NĂNG"));
+			listColumn.AddChild(CreateDivider());
 
 			var scroll = new ScrollContainer();
 			scroll.SizeFlagsHorizontal = SizeFlags.ExpandFill;
 			scroll.SizeFlagsVertical = SizeFlags.ExpandFill;
-			column.AddChild(scroll);
+			listColumn.AddChild(scroll);
 
-			_skillsListContainer = new VBoxContainer();
-			_skillsListContainer.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			_skillsListContainer.AddThemeConstantOverride("separation", 8);
-			scroll.AddChild(_skillsListContainer);
+			_skillEntriesContainer = new VBoxContainer();
+			_skillEntriesContainer.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			_skillEntriesContainer.AddThemeConstantOverride("separation", 8);
+			scroll.AddChild(_skillEntriesContainer);
+
+			body.AddChild(CreateVerticalDivider());
+
+			var detailFrame = CreateOverviewColumn(280, out var detailColumn);
+			body.AddChild(detailFrame);
+			detailColumn.AddChild(CreateSectionTitle("CHI TIẾT"));
+			detailColumn.AddChild(CreateDivider());
+
+			_skillDetailTitleLabel = CreateLabel("Chưa chọn kỹ năng", 15, _mainTextColor);
+			_skillDetailTitleLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+			detailColumn.AddChild(_skillDetailTitleLabel);
+
+			_skillDetailMetaLabel = CreateLabel("", 13, _mainTextColor);
+			detailColumn.AddChild(_skillDetailMetaLabel);
+
+			_skillDetailCooldownLabel = CreateLabel("", 13, _mainTextColor);
+			detailColumn.AddChild(_skillDetailCooldownLabel);
+
+			detailColumn.AddChild(CreateSectionSpacer(14));
+			_skillDetailDescriptionLabel = CreateLabel("Chọn một kỹ năng ở danh sách bên trái để xem mô tả chi tiết.", 12, _subTextColor);
+			_skillDetailDescriptionLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+			_skillDetailDescriptionLabel.SizeFlagsVertical = SizeFlags.ExpandFill;
+			detailColumn.AddChild(_skillDetailDescriptionLabel);
+
+			var skillActions = new HBoxContainer();
+			skillActions.AddThemeConstantOverride("separation", 8);
+			detailColumn.AddChild(skillActions);
+
+			_skillEquipButton = CreateActionButton("Trang bị", null);
+			_skillEquipButton.Disabled = true;
+			_skillEquipButton.TooltipText = "Chức năng trang bị kỹ năng chưa được triển khai trong project hiện tại.";
+			skillActions.AddChild(_skillEquipButton);
+
+			_skillUpgradeButton = CreateActionButton("Nâng cấp", null);
+			_skillUpgradeButton.Disabled = true;
+			_skillUpgradeButton.TooltipText = "Chức năng nâng cấp kỹ năng chưa được triển khai trong project hiện tại.";
+			skillActions.AddChild(_skillUpgradeButton);
+
+			RefreshSkillCategoryStyles();
+			UpdateSkillDetailPanel();
 			return panel;
+		}
+
+		private Button CreateSkillCategoryButton(string filterId, string text)
+		{
+			var button = new Button();
+			button.Text = text;
+			button.CustomMinimumSize = new Vector2(0, 34);
+			button.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			button.FocusMode = FocusModeEnum.None;
+			button.MouseDefaultCursorShape = CursorShape.PointingHand;
+			button.Pressed += () => SelectSkillFilter(filterId);
+			_skillCategoryButtons[filterId] = button;
+			return button;
+		}
+
+		private void SelectSkillFilter(string filterId)
+		{
+			_currentSkillFilter = filterId;
+			RefreshSkillCategoryStyles();
+			RefreshSkillsList();
+		}
+
+		private void RefreshSkillCategoryStyles()
+		{
+			foreach (var pair in _skillCategoryButtons)
+			{
+				bool active = pair.Key == _currentSkillFilter;
+				pair.Value.AddThemeStyleboxOverride("normal", CreateSlotStyle(active));
+				pair.Value.AddThemeStyleboxOverride("hover", InventoryPanelChrome.CreateSlotHoverStyle());
+				pair.Value.AddThemeStyleboxOverride("pressed", InventoryPanelChrome.CreateSlotPressedStyle());
+				pair.Value.AddThemeColorOverride("font_color", active ? _mainTextColor : _subTextColor);
+				pair.Value.AddThemeColorOverride("font_hover_color", _mainTextColor);
+			}
 		}
 
 		private void UpdateSkillsPanel(CharacterConfig config)
 		{
-			if (_skillsListContainer == null)
+			_allSkills.Clear();
+			AddSkillsFromCollection(config?.ActiveSkills, _allSkills);
+			AddSkillsFromCollection(config?.ComboSequence, _allSkills);
+
+			if (_selectedSkill != null && !_allSkills.Contains(_selectedSkill))
 			{
-				return;
+				_selectedSkill = null;
 			}
 
-			foreach (var child in _skillsListContainer.GetChildren())
-			{
-				child.QueueFree();
-			}
-
-			var skills = new List<SkillData>();
-			AddSkillsFromCollection(config?.ActiveSkills, skills);
-			AddSkillsFromCollection(config?.ComboSequence, skills);
-
-			if (skills.Count == 0)
-			{
-				_skillsListContainer.AddChild(CreateSkillEmptyState());
-				return;
-			}
-
-			foreach (var skill in skills)
-			{
-				_skillsListContainer.AddChild(CreateSkillEntry(skill));
-			}
+			RefreshSkillsList();
 		}
 
 		private void AddSkillsFromCollection(Godot.Collections.Array<SkillData> source, List<SkillData> target)
@@ -863,43 +1271,121 @@ namespace AshesofaDyingWorld.UI.HUD
 			}
 		}
 
+		private void RefreshSkillsList()
+		{
+			if (_skillEntriesContainer == null)
+			{
+				return;
+			}
+
+			foreach (var child in _skillEntriesContainer.GetChildren())
+			{
+				child.QueueFree();
+			}
+			_skillEntryCards.Clear();
+
+			var filteredSkills = new List<SkillData>();
+			foreach (var skill in _allSkills)
+			{
+				if (SkillMatchesCurrentFilter(skill))
+				{
+					filteredSkills.Add(skill);
+				}
+			}
+
+			if (filteredSkills.Count == 0)
+			{
+				_skillEntriesContainer.AddChild(CreateSkillEmptyState());
+				_selectedSkill = null;
+				UpdateSkillDetailPanel();
+				return;
+			}
+
+			if (_selectedSkill == null || !filteredSkills.Contains(_selectedSkill))
+			{
+				_selectedSkill = filteredSkills[0];
+			}
+
+			foreach (var skill in filteredSkills)
+			{
+				_skillEntriesContainer.AddChild(CreateSkillEntry(skill));
+			}
+
+			UpdateSkillEntrySelectionVisuals();
+			UpdateSkillDetailPanel();
+		}
+
+		private bool SkillMatchesCurrentFilter(SkillData skill)
+		{
+			if (skill == null) return false;
+			return _currentSkillFilter switch
+			{
+				"active" => GetSkillCategoryLabel(skill) == "Chủ động",
+				"passive" => GetSkillCategoryLabel(skill) == "Bị động",
+				"innate" => GetSkillCategoryLabel(skill) == "Nội tại",
+				_ => true
+			};
+		}
+
 		private Control CreateSkillEntry(SkillData skill)
 		{
 			var card = new PanelContainer();
 			card.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			card.CustomMinimumSize = new Vector2(0, 92);
-			card.AddThemeStyleboxOverride("panel", CreateDetailSectionStyle());
+			card.CustomMinimumSize = new Vector2(0, 56);
+			card.AddThemeStyleboxOverride("panel", CreateSlotStyle(skill == _selectedSkill));
 
 			var margin = new MarginContainer();
-			margin.AddThemeConstantOverride("margin_left", 12);
-			margin.AddThemeConstantOverride("margin_top", 10);
-			margin.AddThemeConstantOverride("margin_right", 12);
-			margin.AddThemeConstantOverride("margin_bottom", 10);
+			margin.AddThemeConstantOverride("margin_left", 10);
+			margin.AddThemeConstantOverride("margin_top", 8);
+			margin.AddThemeConstantOverride("margin_right", 10);
+			margin.AddThemeConstantOverride("margin_bottom", 8);
 			card.AddChild(margin);
 
 			var row = new HBoxContainer();
 			row.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			row.AddThemeConstantOverride("separation", 12);
+			row.AddThemeConstantOverride("separation", 8);
 			margin.AddChild(row);
+
 			row.AddChild(CreateSkillIconFrame(skill));
 
-			var textColumn = new VBoxContainer();
-			textColumn.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			textColumn.AddThemeConstantOverride("separation", 5);
-			row.AddChild(textColumn);
+			var nameLabel = CreateLabel($"{(string.IsNullOrWhiteSpace(skill.SkillName) ? "Kỹ năng" : skill.SkillName)}   Lv.1", 13, _mainTextColor);
+			nameLabel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			nameLabel.VerticalAlignment = VerticalAlignment.Center;
+			row.AddChild(nameLabel);
 
-			var title = CreateLabel(string.IsNullOrWhiteSpace(skill?.SkillName) ? "Kỹ năng chưa đặt tên" : skill.SkillName, 17, _mainTextColor);
-			textColumn.AddChild(title);
-			var description = CreateLabel(string.IsNullOrWhiteSpace(skill?.Description) ? "Kỹ năng này chưa có mô tả." : skill.Description, 13, _subTextColor);
-			description.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-			textColumn.AddChild(description);
+			var button = new Button();
+			button.SetAnchorsPreset(LayoutPreset.FullRect);
+			button.FocusMode = FocusModeEnum.None;
+			button.MouseDefaultCursorShape = CursorShape.PointingHand;
+			button.AddThemeStyleboxOverride("normal", InventoryPanelChrome.CreateTransparentButtonStyle());
+			button.AddThemeStyleboxOverride("hover", InventoryPanelChrome.CreateSlotHoverStyle());
+			button.AddThemeStyleboxOverride("pressed", InventoryPanelChrome.CreateSlotPressedStyle());
+			button.Pressed += () => OnSkillEntryPressed(skill);
+			card.AddChild(button);
+
+			_skillEntryCards[skill] = card;
 			return card;
+		}
+
+		private void OnSkillEntryPressed(SkillData skill)
+		{
+			_selectedSkill = skill;
+			UpdateSkillEntrySelectionVisuals();
+			UpdateSkillDetailPanel();
+		}
+
+		private void UpdateSkillEntrySelectionVisuals()
+		{
+			foreach (var pair in _skillEntryCards)
+			{
+				pair.Value.AddThemeStyleboxOverride("panel", CreateSlotStyle(pair.Key == _selectedSkill));
+			}
 		}
 
 		private Control CreateSkillIconFrame(SkillData skill)
 		{
 			var frame = new PanelContainer();
-			frame.CustomMinimumSize = new Vector2(68, 68);
+			frame.CustomMinimumSize = new Vector2(36, 36);
 			frame.AddThemeStyleboxOverride("panel", CreatePreviewStyle());
 			var center = new CenterContainer();
 			frame.AddChild(center);
@@ -908,14 +1394,15 @@ namespace AshesofaDyingWorld.UI.HUD
 			{
 				var icon = new TextureRect();
 				icon.Texture = skill.Icon;
-				icon.CustomMinimumSize = new Vector2(48, 48);
+				icon.CustomMinimumSize = new Vector2(28, 28);
 				icon.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
 				icon.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
+				icon.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
 				center.AddChild(icon);
 			}
 			else
 			{
-				var fallback = CreateLabel("—", 20, _subTextColor);
+				var fallback = CreateLabel("●", 14, _subTextColor);
 				fallback.HorizontalAlignment = HorizontalAlignment.Center;
 				center.AddChild(fallback);
 			}
@@ -933,11 +1420,100 @@ namespace AshesofaDyingWorld.UI.HUD
 			margin.AddThemeConstantOverride("margin_right", 16);
 			margin.AddThemeConstantOverride("margin_bottom", 18);
 			panel.AddChild(margin);
-			var label = CreateLabel("Nhân vật này chưa được gán dữ liệu kỹ năng.", 13, _subTextColor);
+			var label = CreateLabel("Không có kỹ năng phù hợp với bộ lọc hiện tại.", 13, _subTextColor);
 			label.AutowrapMode = TextServer.AutowrapMode.WordSmart;
 			label.HorizontalAlignment = HorizontalAlignment.Center;
 			margin.AddChild(label);
 			return panel;
+		}
+
+		private void UpdateSkillDetailPanel()
+		{
+			if (_skillDetailTitleLabel == null)
+			{
+				return;
+			}
+
+			if (_selectedSkill == null)
+			{
+				_skillDetailTitleLabel.Text = "Chưa chọn kỹ năng";
+				_skillDetailMetaLabel.Text = "";
+				_skillDetailCooldownLabel.Text = "";
+				_skillDetailDescriptionLabel.Text = "Chọn một kỹ năng ở danh sách bên trái để xem mô tả chi tiết.";
+				return;
+			}
+
+			_skillDetailTitleLabel.Text = string.IsNullOrWhiteSpace(_selectedSkill.SkillName) ? "Kỹ năng" : _selectedSkill.SkillName.ToUpper();
+			_skillDetailMetaLabel.Text = BuildSkillMetaLine(_selectedSkill);
+			_skillDetailCooldownLabel.Text = BuildSkillCooldownLine(_selectedSkill);
+			_skillDetailDescriptionLabel.Text = string.IsNullOrWhiteSpace(_selectedSkill.Description)
+				? "Kỹ năng này chưa có mô tả."
+				: _selectedSkill.Description;
+		}
+
+		private string BuildSkillMetaLine(SkillData skill)
+		{
+			var text = GetSkillCategoryLabel(skill);
+			if (skill.ManaCost > 0)
+			{
+				text += $" · {skill.ManaCost} MP";
+			}
+			if (skill.StaminaCost > 0)
+			{
+				text += $" · {skill.StaminaCost} STA";
+			}
+			return text;
+		}
+
+		private string BuildSkillCooldownLine(SkillData skill)
+		{
+			if (skill.Cooldown <= 0f)
+			{
+				return "Hồi chiêu: tức thì";
+			}
+			return $"Hồi chiêu: {Mathf.RoundToInt(skill.Cooldown)} giây";
+		}
+
+		private string GetSkillCategoryLabel(SkillData skill)
+		{
+			if (skill == null)
+			{
+				return "Chủ động";
+			}
+
+			string id = skill.SkillId?.ToLowerInvariant() ?? string.Empty;
+			string name = skill.SkillName?.ToLowerInvariant() ?? string.Empty;
+			if (id.Contains("racial") || id.Contains("innate") || name.Contains("nội tại"))
+			{
+				return "Nội tại";
+			}
+
+			if (skill.ManaCost <= 0 && skill.StaminaCost <= 0 && skill.Cooldown <= 0 && skill.ExecutionType == SkillExecutionType.TimedBuff)
+			{
+				return "Bị động";
+			}
+
+			return "Chủ động";
+		}
+
+		private Button CreateActionButton(string text, System.Action onPressed)
+		{
+			var button = new Button();
+			button.Text = text;
+			button.CustomMinimumSize = new Vector2(0, 34);
+			button.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			button.FocusMode = FocusModeEnum.None;
+			button.MouseDefaultCursorShape = CursorShape.PointingHand;
+			button.AddThemeStyleboxOverride("normal", InventoryPanelChrome.CreateButtonStyle(InventoryPanelChrome.ButtonNormalColor, _borderColor, 1));
+			button.AddThemeStyleboxOverride("hover", InventoryPanelChrome.CreateButtonStyle(InventoryPanelChrome.ButtonHoverColor, _accentColor, 1));
+			button.AddThemeStyleboxOverride("pressed", InventoryPanelChrome.CreateButtonStyle(_deepSurfaceColor, _accentColor, 1));
+			button.AddThemeColorOverride("font_color", _mainTextColor);
+			button.AddThemeColorOverride("font_hover_color", Colors.White);
+			if (onPressed != null)
+			{
+				button.Pressed += onPressed;
+			}
+			return button;
 		}
 
 		private StyleBoxFlat GetCommonPanelStyle()
@@ -962,7 +1538,31 @@ namespace AshesofaDyingWorld.UI.HUD
 
 		private void ApplyTabStyle(Button button, bool active)
 		{
-			InventoryPanelChrome.ApplyTabStyle(button, active);
+			if (button == null) return;
+
+			// Tab active chỉ dùng một gạch chân sáng, tránh đóng hộp mọi thứ.
+			button.AddThemeStyleboxOverride("normal", CreateCharacterTabStyle(active, false));
+			button.AddThemeStyleboxOverride("hover", CreateCharacterTabStyle(active, true));
+			button.AddThemeStyleboxOverride("pressed", CreateCharacterTabStyle(true, true));
+			button.AddThemeColorOverride("font_color", active ? _mainTextColor : _subTextColor);
+			button.AddThemeColorOverride("font_hover_color", _mainTextColor);
+			button.AddThemeColorOverride("font_pressed_color", _accentColor);
+			button.AddThemeFontSizeOverride("font_size", 14);
+		}
+
+		private StyleBoxFlat CreateCharacterTabStyle(bool active, bool hovered)
+		{
+			var style = new StyleBoxFlat();
+			style.BgColor = hovered
+				? new Color(_deepSurfaceColor.R, _deepSurfaceColor.G, _deepSurfaceColor.B, 0.44f)
+				: new Color(0f, 0f, 0f, 0f);
+			style.BorderColor = active ? _accentColor : new Color(0f, 0f, 0f, 0f);
+			style.BorderWidthBottom = active ? 2 : 0;
+			style.ContentMarginLeft = 14;
+			style.ContentMarginRight = 14;
+			style.ContentMarginTop = 7;
+			style.ContentMarginBottom = 7;
+			return style;
 		}
 
 		private void SwitchTab(string tabName)
@@ -981,11 +1581,17 @@ namespace AshesofaDyingWorld.UI.HUD
 					break;
 				case "skills":
 					ShowPanel(_skillsPanel);
+					RefreshSkillsList();
+					UpdateSkillDetailPanel();
 					break;
 				default:
 					_currentTab = "overview";
 					ShowPanel(_overviewPanel);
 					break;
+			}
+			if (_overviewFooter != null)
+			{
+				_overviewFooter.Visible = _currentTab == "overview";
 			}
 			ResetTabButtonColors();
 		}
@@ -1019,13 +1625,12 @@ namespace AshesofaDyingWorld.UI.HUD
 		// Cập nhật style của các panel với màu theme mới
 		private void UpdatePanelStyles()
 		{
-			Color characterAccent = _currentThemeColor != default ? _currentThemeColor : _accentColor;
+			// Một vài CharacterConfig đang để ThemeColor = đen. Dùng thẳng màu đó
+			// sẽ khiến chữ cấp độ biến mất trên nền tối, một màn ảo thuật không ai cần.
+			bool themeIsReadable = _currentThemeColor.A > 0.1f
+				&& Mathf.Max(_currentThemeColor.R, Mathf.Max(_currentThemeColor.G, _currentThemeColor.B)) > 0.22f;
+			Color characterAccent = themeIsReadable ? _currentThemeColor : _accentColor;
 			_levelLabel?.AddThemeColorOverride("font_color", characterAccent);
-			if (_overviewStatsChart != null)
-			{
-				_overviewStatsChart.MainColor = characterAccent;
-				_overviewStatsChart.QueueRedraw();
-			}
 			ResetTabButtonColors();
 		}
 
@@ -1059,6 +1664,18 @@ namespace AshesofaDyingWorld.UI.HUD
 				button.Pressed += () => OnCharacterSelected(index);
 				_characterListContainer.AddChild(button);
 			}
+
+			// Ô "+" chỉ là placeholder cho chức năng thêm thành viên sau này.
+			var addMember = new Button();
+			addMember.Text = "+";
+			addMember.CustomMinimumSize = new Vector2(48, 48);
+			addMember.FocusMode = FocusModeEnum.None;
+			addMember.Disabled = true;
+			addMember.TooltipText = "Chưa có chức năng thêm thành viên";
+			addMember.AddThemeStyleboxOverride("normal", CreateSlotStyle());
+			addMember.AddThemeColorOverride("font_color", _subTextColor);
+			addMember.AddThemeFontSizeOverride("font_size", 18);
+			_characterListContainer.AddChild(addMember);
 		}
 
 		private void OnCharacterSelected(int index)
@@ -1086,21 +1703,23 @@ namespace AshesofaDyingWorld.UI.HUD
 			var config = currentStats.ConfigData;
 
 			_nameLabel.Text = config.Name;
-			_levelLabel.Text = $"LV. {currentStats.CurrentLevel:00}";
-			_raceLabel.Text = config.CharacterRace?.RaceName?.ToUpper() ?? "UNKNOWN";
+			_levelLabel.Text = $"Cấp {currentStats.CurrentLevel:00}";
+			_sidebarNameLabel.Text = config.Name;
+			_sidebarLevelLabel.Text = $"Cấp {currentStats.CurrentLevel:00}";
+			_raceLabel.Text = config.CharacterRace?.RaceName ?? "Không rõ";
 			
 			// Cập nhật theme color từ character config
 			_currentThemeColor = config.ThemeColor;
 			
 			// Cập nhật background từ character config
-			if (_headerIcon != null)
-			{
-				_headerIcon.Texture = config.Icon ?? _characterIconTexture;
-			}
-
 			if (_backgroundDisplay != null)
 			{
 				_backgroundDisplay.Texture = config.BackgroundImage ?? config.Icon;
+				_backgroundDisplay.Visible = _backgroundDisplay.Texture != null;
+			}
+			if (_portraitPlaceholderLabel != null)
+			{
+				_portraitPlaceholderLabel.Visible = _backgroundDisplay?.Texture == null;
 			}
 			
 			// Cập nhật style panel với màu theme mới
@@ -1209,16 +1828,26 @@ namespace AshesofaDyingWorld.UI.HUD
 				}
 			}
 
-			if (_overviewStatsChart != null)
-			{
-				_overviewStatsChart.ClearStats();
-				if (stats.FinalAttributes != null)
-				{
-					foreach (var attr in stats.FinalAttributes)
-						_overviewStatsChart.SetStat(FormatStatName(attr.Key.ToString()), attr.Value);
-				}
-				_overviewStatsChart.UpdateAllStats();
-			}
+			// Công vật lý dùng giá trị đã tính của PlayerStats.
+			if (_attackValueLabel != null)
+				_attackValueLabel.Text = Mathf.RoundToInt(stats.AttackDamage).ToString();
+
+			// Wireframe hiển thị số nguyên, vì vậy Tốc độ dùng DEX và Kháng phép dùng SPI.
+			// Sau này nếu có stat riêng, chỉ cần đổi hai dòng lấy dữ liệu bên dưới.
+			int dexterity = 0;
+			int spirit = 0;
+			stats.FinalAttributes?.TryGetValue(AttributeType.Dexterity, out dexterity);
+			stats.FinalAttributes?.TryGetValue(AttributeType.Spirit, out spirit);
+			if (_speedValueLabel != null)
+				_speedValueLabel.Text = dexterity.ToString();
+			if (_armorValueLabel != null)
+				_armorValueLabel.Text = spirit.ToString();
+
+			// Project hiện chưa có trường điểm thuộc tính chưa dùng, nên tạm hiển thị 0.
+			// Khi thêm hệ thống tăng điểm, chỉ cần gán giá trị thật cho label này.
+			if (_unspentAttributePointsLabel != null)
+				_unspentAttributePointsLabel.Text = "0 điểm thuộc tính chưa sử dụng";
+
 			UpdateResourceBars(stats);
 		}
 
@@ -1250,16 +1879,16 @@ namespace AshesofaDyingWorld.UI.HUD
 		private HBoxContainer CreateResourceBarRow(string labelText, Color fillColor, out ProgressBar bar, out Label valueLabel)
 		{
 			var row = new HBoxContainer();
-			row.CustomMinimumSize = new Vector2(0, 28);
+			row.CustomMinimumSize = new Vector2(0, 30);
 			row.AddThemeConstantOverride("separation", 8);
 
-			var name = CreateLabel(labelText, 12, _subTextColor);
-			name.CustomMinimumSize = new Vector2(38, 0);
+			var name = CreateLabel(labelText, 13, _mainTextColor);
+			name.CustomMinimumSize = new Vector2(34, 0);
 			name.VerticalAlignment = VerticalAlignment.Center;
 			row.AddChild(name);
 
 			bar = new ProgressBar();
-			bar.CustomMinimumSize = new Vector2(220, 12);
+			bar.CustomMinimumSize = new Vector2(170, 14);
 			bar.SizeFlagsHorizontal = SizeFlags.ExpandFill;
 			bar.SizeFlagsVertical = SizeFlags.ShrinkCenter;
 			bar.ShowPercentage = false;
@@ -1268,16 +1897,16 @@ namespace AshesofaDyingWorld.UI.HUD
 			background.BgColor = _deepSurfaceColor;
 			background.BorderColor = _borderColor.Darkened(0.1f);
 			background.SetBorderWidthAll(1);
-			background.SetCornerRadiusAll(2);
+			background.SetCornerRadiusAll(1);
 			var fill = new StyleBoxFlat();
 			fill.BgColor = fillColor;
-			fill.SetCornerRadiusAll(2);
+			fill.SetCornerRadiusAll(1);
 			bar.AddThemeStyleboxOverride("background", background);
 			bar.AddThemeStyleboxOverride("fill", fill);
 			row.AddChild(bar);
 
-			valueLabel = CreateLabel("0/0", 11, _mainTextColor);
-			valueLabel.CustomMinimumSize = new Vector2(72, 0);
+			valueLabel = CreateLabel("0/0", 12, _mainTextColor);
+			valueLabel.CustomMinimumSize = new Vector2(76, 0);
 			valueLabel.HorizontalAlignment = HorizontalAlignment.Right;
 			valueLabel.VerticalAlignment = VerticalAlignment.Center;
 			row.AddChild(valueLabel);
