@@ -1,6 +1,8 @@
 from pathlib import Path
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.stdout.reconfigure(encoding="utf-8")
 
 def read(rel: str) -> str:
     path = ROOT / rel
@@ -29,21 +31,21 @@ for token in ('LaunchSpriteSheetPath', 'UpLaunchSpriteSheetOverridePath', 'Launc
 
 assert 'VisualProfile = ExtResource' in resource
 for token in (
-    'x10 hyou ice up.png',
-    'x10 hyou ice bh.png',
     'x10 hyou up ice.png',
     'x10 hyou bh ice .png',
-    'SpriteColumns = 8',
-    'SpriteFrameWidth = 66',
-    'SpriteColumn = 2',
-    'LaunchStartColumn = 2',
-    'LaunchFrameCount = 4',
+    'SpriteColumns = 11',
+    'SpriteFrameWidth = 48',
+    'SpriteColumn = 5',
+    'LaunchSpriteSheetPath = ""',
+    'UpLaunchSpriteSheetOverridePath = ""',
+    'LaunchFrameCount = 0',
     'UseProceduralFallback = false',
     'DebugVisualLogging = true',
 ):
     assert token in visual_resource, f"Visual profile Ice Bolt thiếu: {token}"
 
 assert 'reason=leash_exceeded' not in slime
+assert 'x10 hyou ice bh.png' not in visual_resource
 assert 'SetTarget(null, "leash_exceeded")' not in slime
 for token in ('v6-soft-pursuit', 'UseCombatSpawnLeash', 'TargetForgetRadius', 'ProvokedForgetRadius', 'target_too_far'):
     assert token in slime, f"Slime pursuit thiếu: {token}"
