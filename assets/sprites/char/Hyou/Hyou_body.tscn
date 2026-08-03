@@ -4,7 +4,7 @@
 [ext_resource type="Texture2D" uid="uid://l6f06auus8af" path="res://assets/sprites/char/Hyou/Reira_walk 4 h#U01b0#U1edbng c#U00f2n l#U1ea1i.png" id="2_ap81g"]
 [ext_resource type="Texture2D" uid="uid://br0o27aguajjq" path="res://assets/sprites/char/Hyou/Reira_run.png" id="3_i3sow"]
 [ext_resource type="Texture2D" uid="uid://b71p4i281p43h" path="res://assets/sprites/char/Hyou/Reira_run 4 h#U01b0#U1edbng c#U00f2n l#U1ea1i.png" id="4_771cn"]
-[ext_resource type="Texture2D" path="res://assets/sprites/char/Hyou/11x4 scale 0.1 hyou ice bolt/scaled_0_1/x10 hyou body.png" id="4_i3sow"]
+[ext_resource type="Texture2D" uid="uid://dkj8i7hn36pvk" path="res://assets/sprites/char/Hyou/11x4 scale 0.1 hyou ice bolt/scaled_0_1/x10 hyou body.png" id="4_i3sow"]
 [ext_resource type="Texture2D" uid="uid://ddytcaghjtkut" path="res://assets/sprites/char/Hyou/toctim slash fix size.png" id="5_ap81g"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_ap81g"]
