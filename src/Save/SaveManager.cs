@@ -9,6 +9,8 @@ using AshesofaDyingWorld.Core.Save;
 using AshesofaDyingWorld.Core.Skills;
 using AshesofaDyingWorld.Entities.Player;
 using AshesofaDyingWorld.UI.Menus;
+using AshesofaDyingWorld.Quests.Data;
+using AshesofaDyingWorld.Quests.Runtime;
 
 namespace AshesofaDyingWorld.Core.Managers
 {
@@ -283,6 +285,9 @@ namespace AshesofaDyingWorld.Core.Managers
                 player.GlobalPosition = snapshot.PlayerPosition.ToVector2();
             }
 
+            // Khôi phục thứ tự trước, sau đó mới áp dụng index đội trưởng đã lưu.
+            // Làm ngược lại sẽ khiến index trỏ sang người khác sau khi reorder.
+            PlayerManager.Instance?.RestorePartyOrder(snapshot.PartyOrderCharacterIds);
             PlayerManager.Instance?.SetActiveCharacter(snapshot.ActiveCharacterIndex);
 
             // Đảm bảo người chơi không bị kẹt trạng thái sau khi load (đang attack/knockback/pause).
@@ -297,7 +302,9 @@ namespace AshesofaDyingWorld.Core.Managers
                 Node currentScene = tree.CurrentScene;
                 if (currentScene != null)
                 {
-                    currentScene.GetNodeOrNull<GameMenuButton>("GameMenuButton")?.ResetUiStateAfterLoad();
+                    GameMenuButton gameMenu = currentScene.GetNodeOrNull<GameMenuButton>("GameMenuButton");
+                    RestoreQuestProgress(gameMenu, snapshot.QuestProgress, snapshot.TrackedQuestId);
+                    gameMenu?.ResetUiStateAfterLoad();
                 }
             }
         }
@@ -362,6 +369,72 @@ namespace AshesofaDyingWorld.Core.Managers
             }
         }
 
+        /// <summary>
+        /// Chuyển trạng thái runtime của QuestManager sang DTO JSON.
+        /// QuestData vẫn là nguồn sự thật cho tên, mô tả, mục tiêu và phần thưởng.
+        /// </summary>
+        private List<QuestProgressSaveData> CaptureQuestProgress(GameMenuButton gameMenu)
+        {
+            var result = new List<QuestProgressSaveData>();
+            if (gameMenu == null) return result;
+
+            foreach (QuestProgressRecord record in gameMenu.CaptureQuestProgress())
+            {
+                if (record == null) continue;
+                var save = new QuestProgressSaveData
+                {
+                    QuestId = record.QuestId,
+                    Status = (int)record.Status,
+                    IsNew = record.IsNew
+                };
+                foreach (var objective in record.ObjectiveProgress)
+                {
+                    save.Objectives.Add(new QuestObjectiveProgressSaveData
+                    {
+                        ObjectiveId = objective.Key,
+                        Progress = objective.Value
+                    });
+                }
+                result.Add(save);
+            }
+            return result;
+        }
+
+        private void RestoreQuestProgress(
+            GameMenuButton gameMenu,
+            IReadOnlyList<QuestProgressSaveData> saved,
+            string trackedQuestId)
+        {
+            if (gameMenu == null) return;
+
+            var records = new List<QuestProgressRecord>();
+            if (saved != null)
+            {
+                foreach (QuestProgressSaveData entry in saved)
+                {
+                    if (entry == null || string.IsNullOrWhiteSpace(entry.QuestId)) continue;
+                    var record = new QuestProgressRecord
+                    {
+                        QuestId = entry.QuestId,
+                        Status = Enum.IsDefined(typeof(QuestStatus), entry.Status)
+                            ? (QuestStatus)entry.Status
+                            : QuestStatus.Available,
+                        IsNew = entry.IsNew
+                    };
+                    if (entry.Objectives != null)
+                    {
+                        foreach (QuestObjectiveProgressSaveData objective in entry.Objectives)
+                        {
+                            if (objective == null || string.IsNullOrWhiteSpace(objective.ObjectiveId)) continue;
+                            record.ObjectiveProgress[objective.ObjectiveId] = objective.Progress;
+                        }
+                    }
+                    records.Add(record);
+                }
+            }
+            gameMenu.RestoreQuestProgress(records, trackedQuestId ?? string.Empty);
+        }
+
         private SaveGameData CaptureCurrentGame()
         {
             SceneManager sceneManager = GetTree().Root.GetNodeOrNull<SceneManager>("SceneManager");
@@ -376,15 +449,19 @@ namespace AshesofaDyingWorld.Core.Managers
 
             InventoryManager inventory = player.GetInventoryManager();
             EquipmentManager equipment = player.GetEquipmentManager();
+            GameMenuButton gameMenu = GetTree().CurrentScene?.GetNodeOrNull<GameMenuButton>("GameMenuButton");
 
             return new SaveGameData
             {
-                Version = 3,
+                Version = 5,
                 SavedAtUtc = DateTime.UtcNow.ToString("O"),
                 ScenePath = GetTree().CurrentScene?.SceneFilePath ?? string.Empty,
                 PlayerPosition = Vector2SaveData.FromVector2(player.GlobalPosition),
                 ActiveCharacterIndex = PlayerManager.Instance?.ActiveCharacterIndex ?? 0,
+                PartyOrderCharacterIds = PlayerManager.Instance?.CapturePartyOrder() ?? new List<string>(),
                 PartySkillProgress = CapturePartySkillProgress(player),
+                QuestProgress = CaptureQuestProgress(gameMenu),
+                TrackedQuestId = gameMenu?.CaptureTrackedQuestId() ?? string.Empty,
                 Player = new PlayerSaveData
                 {
                     CharacterConfigPath = stats.ConfigData?.ResourcePath ?? string.Empty,

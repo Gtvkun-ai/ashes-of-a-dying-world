@@ -6,14 +6,23 @@ namespace AshesofaDyingWorld.Core.Save
 {
     public sealed class SaveGameData
     {
-        // Version 3 chuyển hệ thống kỹ năng sang lưu state thay vì sao chép toàn bộ Resource.
-        public int Version { get; set; } = 3;
+        // Version 5 bổ sung thứ tự đội hình; save version 4 vẫn tải bình thường vì field mới có mặc định rỗng.
+        public int Version { get; set; } = 5;
         public string SavedAtUtc { get; set; } = "";
         public string ScenePath { get; set; } = "";
         public Vector2SaveData PlayerPosition { get; set; } = new();
         public int ActiveCharacterIndex { get; set; } = 0;
+
+        /// <summary>
+        /// Thứ tự thành viên trong panel Tổ đội, lưu bằng CharacterConfig.ID.
+        /// Không lưu NodePath vì node có thể thay đổi khi chuyển scene.
+        /// </summary>
+        public List<string> PartyOrderCharacterIds { get; set; } = new();
+
         public PlayerSaveData Player { get; set; } = new();
         public List<PartySkillProgressSaveData> PartySkillProgress { get; set; } = new();
+        public List<QuestProgressSaveData> QuestProgress { get; set; } = new();
+        public string TrackedQuestId { get; set; } = "";
     }
 
     public sealed class PlayerSaveData
@@ -51,6 +60,22 @@ namespace AshesofaDyingWorld.Core.Save
         public string CharacterId { get; set; } = "";
         public List<SkillStateSaveData> SkillStates { get; set; } = new();
         public int UnspentSkillPoints { get; set; }
+    }
+
+    /// <summary>Trạng thái một nhiệm vụ trong save version 4.</summary>
+    public sealed class QuestProgressSaveData
+    {
+        public string QuestId { get; set; } = "";
+        public int Status { get; set; } = 0;
+        public bool IsNew { get; set; } = true;
+        public List<QuestObjectiveProgressSaveData> Objectives { get; set; } = new();
+    }
+
+    /// <summary>Tiến độ của từng mục tiêu, tách khỏi Resource định nghĩa.</summary>
+    public sealed class QuestObjectiveProgressSaveData
+    {
+        public string ObjectiveId { get; set; } = "";
+        public int Progress { get; set; } = 0;
     }
 
     public sealed class EquippedItemSaveData

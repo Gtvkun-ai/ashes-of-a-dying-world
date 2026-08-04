@@ -1,6 +1,10 @@
 using Godot;
+using System.Collections.Generic;
 using AshesofaDyingWorld.UI.HUD;
 using AshesofaDyingWorld.UI.Skills;
+using AshesofaDyingWorld.UI.Quests;
+using PartyManagementPanel = AshesofaDyingWorld.UI.Party.PartyPanel;
+using AshesofaDyingWorld.Quests.Runtime;
 
 namespace AshesofaDyingWorld.UI.Menus
 {
@@ -41,10 +45,12 @@ namespace AshesofaDyingWorld.UI.Menus
         
         private bool _isGridOpen = false;
         private Control _currentOpenPanel = null;
+        private QuestTrackerHud _questTracker;
 
         public override void _Ready()
         {
-            
+            _questTracker = GetNodeOrNull<QuestTrackerHud>("Control/QuestTrackerHud");
+
             if (MenuButton != null)
             {
                 MenuButton.Pressed += ToggleMenuGrid;
@@ -104,6 +110,7 @@ namespace AshesofaDyingWorld.UI.Menus
             {
                 MenuGridPanel.Visible = _isGridOpen;
             }
+            _questTracker?.SetMenuSuppressed(_isGridOpen || _currentOpenPanel != null);
         }
 
         private void OpenPanel(Control panel, string panelName)
@@ -117,6 +124,7 @@ namespace AshesofaDyingWorld.UI.Menus
             CloseCurrentPanel();
             panel.Show();
             _currentOpenPanel = panel;
+            _questTracker?.SetMenuSuppressed(true);
             
             // Cập nhật thông tin khi mở CharacterPanel
             // CharacterPanel có script CharacterDetailUI nên cast trực tiếp
@@ -128,6 +136,16 @@ namespace AshesofaDyingWorld.UI.Menus
             if (panel == SkillsPanel && SkillsPanel is SkillTreePanel skillTreePanel)
             {
                 skillTreePanel.RefreshFromCurrentParty();
+            }
+
+            if (panel == QuestsPanel && QuestsPanel is QuestJournalPanel questJournalPanel)
+            {
+                questJournalPanel.RefreshJournal();
+            }
+
+            if (panel == PartyPanel && PartyPanel is PartyManagementPanel partyPanel)
+            {
+                partyPanel.RefreshParty();
             }
             
             if (MenuGridPanel != null)
@@ -143,6 +161,7 @@ namespace AshesofaDyingWorld.UI.Menus
                 _currentOpenPanel.Hide();
                 _currentOpenPanel = null;
             }
+            _questTracker?.SetMenuSuppressed(_isGridOpen);
         }
 
         private void HideAllPanels()
@@ -181,8 +200,35 @@ namespace AshesofaDyingWorld.UI.Menus
                 if (!panel.Visible && _currentOpenPanel == panel)
                 {
                     _currentOpenPanel = null;
+                    _questTracker?.SetMenuSuppressed(_isGridOpen);
                 }
             };
+        }
+
+        /// <summary>
+        /// SaveManager dùng các hàm này thay vì tự lần theo NodePath của panel nhiệm vụ.
+        /// GameMenuButton là điểm nối UI đã tồn tại sẵn trong scene nên việc tích hợp ổn định hơn.
+        /// </summary>
+        public List<QuestProgressRecord> CaptureQuestProgress()
+        {
+            return QuestsPanel is QuestJournalPanel journal
+                ? journal.CaptureProgress()
+                : new List<QuestProgressRecord>();
+        }
+
+        public string CaptureTrackedQuestId()
+        {
+            return QuestsPanel is QuestJournalPanel journal
+                ? journal.Manager?.TrackedQuestId ?? string.Empty
+                : string.Empty;
+        }
+
+        public void RestoreQuestProgress(IReadOnlyList<QuestProgressRecord> records, string trackedQuestId)
+        {
+            if (QuestsPanel is QuestJournalPanel journal)
+            {
+                journal.RestoreProgress(records, trackedQuestId);
+            }
         }
 
         public void ResetUiStateAfterLoad()
@@ -196,6 +242,7 @@ namespace AshesofaDyingWorld.UI.Menus
             {
                 MenuGridPanel.Hide();
             }
+            _questTracker?.SetMenuSuppressed(false);
 
             ProcessMode = ProcessModeEnum.Inherit;
             SetProcess(true);
