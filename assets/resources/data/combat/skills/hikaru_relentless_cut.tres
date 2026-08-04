@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="SkillData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://src/Combat/Abilities/SkillData.cs" id="1_skill"]
+[ext_resource type="Resource" path="res://assets/resources/data/combat/actions/wood_sword_light_2.tres" id="2_action"]
+[ext_resource type="Texture2D" path="res://assets/resources/data/icon/DEX.tres" id="3_icon"]
+
+[resource]
+script = ExtResource("1_skill")
+SkillId = "hikaru_relentless_cut"
+SkillName = "Liên trảm"
+Icon = ExtResource("3_icon")
+Description = "Giữ áp lực lên mục tiêu bằng một nhát chém nối nhanh sau khi đã làm chủ Trảm phá."
+Category = 0
+Element = 1
+MaxLevel = 1
+DefaultUnlocked = false
+ExecutionType = 1
+CombatAction = ExtResource("2_action")
+Cooldown = 1.4
+ManaCost = 0
+StaminaCost = 6
+AnimationName = "sword"

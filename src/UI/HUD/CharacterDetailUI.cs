@@ -94,6 +94,7 @@ namespace AshesofaDyingWorld.UI.HUD
 		private readonly Dictionary<string, Button> _skillCategoryButtons = new();
 		private readonly Dictionary<SkillData, PanelContainer> _skillEntryCards = new();
 		private readonly List<SkillData> _allSkills = new();
+		private PlayerSkillCollection _displayedSkillCollection;
 		private string _currentSkillFilter = "all";
 		private SkillData _selectedSkill;
 
@@ -1388,11 +1389,27 @@ namespace AshesofaDyingWorld.UI.HUD
 			return count;
 		}
 
-		private void UpdateSkillsPanel(CharacterConfig config)
+		private void UpdateSkillsPanel(PlayerStats stats)
 		{
+			CharacterConfig config = stats?.ConfigData;
+			_displayedSkillCollection = SkillCollectionResolver.Resolve(stats);
 			_allSkills.Clear();
-			AddSkillsFromCollection(config?.ActiveSkills, _allSkills);
-			AddSkillsFromCollection(config?.ComboSequence, _allSkills);
+
+			if (_displayedSkillCollection != null)
+			{
+				foreach (SkillData skill in _displayedSkillCollection.GetDefinitions())
+				{
+					if (skill != null && _displayedSkillCollection.IsUnlocked(skill))
+					{
+						_allSkills.Add(skill);
+					}
+				}
+			}
+			else
+			{
+				AddSkillsFromCollection(config?.ActiveSkills, _allSkills);
+				AddSkillsFromCollection(config?.ComboSequence, _allSkills);
+			}
 
 			if (_selectedSkill != null && !_allSkills.Contains(_selectedSkill))
 			{
@@ -1653,8 +1670,7 @@ namespace AshesofaDyingWorld.UI.HUD
 
 		private SkillViewModel BuildSkillViewModel(SkillData skill)
 		{
-			Player player = ResolvePlayer();
-			PlayerSkillState state = player?.GetSkillState(skill);
+			PlayerSkillState state = _displayedSkillCollection?.GetState(skill);
 			return new SkillViewModel(skill, state);
 		}
 
@@ -2046,7 +2062,7 @@ namespace AshesofaDyingWorld.UI.HUD
 			// Cập nhật style panel với màu theme mới
 			UpdatePanelStyles();
 			UpdateOverviewPanel(currentStats);
-			UpdateSkillsPanel(config);
+			UpdateSkillsPanel(currentStats);
 			UpdateEquipmentBody(config);
 			RefreshInventoryGrid();
 			RefreshEquipmentSlots();

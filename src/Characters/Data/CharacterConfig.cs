@@ -22,6 +22,11 @@ namespace AshesofaDyingWorld.Core.Data
 		[Export] public Array<SkillData> ActiveSkills {get; set;}
 		[Export] public Array<SkillData> ComboSequence {get; set;} // Chuỗi kỹ năng combo
 
+		[ExportGroup("Skill Development")]
+		// Cây phát triển của panel Kỹ năng riêng trong menu chính.
+		// Tab Kỹ năng của panel Nhân vật vẫn chỉ hiển thị state đã mở khóa.
+		[Export] public CharacterSkillTreeData SkillTree { get; set; }
+
 		[ExportGroup("Equipment")]
 		[Export] public string WeaponID {get; set;}
 		[Export] public string ArmorID {get; set;}

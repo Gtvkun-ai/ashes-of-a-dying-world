@@ -1,10 +1,12 @@
 using Godot;
 using System;
+using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using AshesofaDyingWorld.Core.Data;
 using AshesofaDyingWorld.Core.Save;
+using AshesofaDyingWorld.Core.Skills;
 using AshesofaDyingWorld.Entities.Player;
 using AshesofaDyingWorld.UI.Menus;
 
@@ -269,6 +271,8 @@ namespace AshesofaDyingWorld.Core.Managers
                 playerData.SkillCooldowns,
                 playerData.ActiveTimedSkill);
 
+            RestorePartySkillProgress(player, snapshot.PartySkillProgress);
+
             stats.RestoreResourceValues(
                 playerData.CurrentHP,
                 playerData.CurrentMP,
@@ -298,6 +302,66 @@ namespace AshesofaDyingWorld.Core.Managers
             }
         }
 
+        private List<PartySkillProgressSaveData> CapturePartySkillProgress(Player player)
+        {
+            var result = new List<PartySkillProgressSaveData>();
+            if (PlayerManager.Instance == null) return result;
+
+            PlayerStats playerStats = player?.GetStatsNode();
+            foreach (PlayerStats member in PlayerManager.Instance.PartyMembers)
+            {
+                if (member == null || member == playerStats || member.ConfigData == null) continue;
+                PlayerSkillCollection collection = SkillCollectionResolver.Resolve(member);
+                if (collection == null) continue;
+
+                var entry = new PartySkillProgressSaveData
+                {
+                    CharacterId = member.ConfigData.ID ?? "",
+                    UnspentSkillPoints = collection.UnspentSkillPoints
+                };
+                foreach (PlayerSkillState state in collection.CaptureStates())
+                {
+                    entry.SkillStates.Add(new SkillStateSaveData
+                    {
+                        SkillId = state.SkillId,
+                        Level = state.Level,
+                        IsUnlocked = state.IsUnlocked,
+                        EquippedSlot = state.EquippedSlot
+                    });
+                }
+                result.Add(entry);
+            }
+            return result;
+        }
+
+        private void RestorePartySkillProgress(Player player, IReadOnlyList<PartySkillProgressSaveData> saved)
+        {
+            if (saved == null || PlayerManager.Instance == null) return;
+            foreach (PartySkillProgressSaveData entry in saved)
+            {
+                if (entry == null) continue;
+                foreach (PlayerStats member in PlayerManager.Instance.PartyMembers)
+                {
+                    if (member == null || member == player?.GetStatsNode() || member.ConfigData?.ID != entry.CharacterId) continue;
+                    PlayerSkillCollection collection = SkillCollectionResolver.Resolve(member);
+                    var states = new List<PlayerSkillState>();
+                    if (entry.SkillStates != null)
+                    {
+                        foreach (SkillStateSaveData state in entry.SkillStates)
+                        {
+                            states.Add(new PlayerSkillState
+                            {
+                                SkillId = state.SkillId, Level = state.Level,
+                                IsUnlocked = state.IsUnlocked, EquippedSlot = state.EquippedSlot
+                            });
+                        }
+                    }
+                    collection?.RestoreStates(states, entry.UnspentSkillPoints);
+                    break;
+                }
+            }
+        }
+
         private SaveGameData CaptureCurrentGame()
         {
             SceneManager sceneManager = GetTree().Root.GetNodeOrNull<SceneManager>("SceneManager");
@@ -320,6 +384,7 @@ namespace AshesofaDyingWorld.Core.Managers
                 ScenePath = GetTree().CurrentScene?.SceneFilePath ?? string.Empty,
                 PlayerPosition = Vector2SaveData.FromVector2(player.GlobalPosition),
                 ActiveCharacterIndex = PlayerManager.Instance?.ActiveCharacterIndex ?? 0,
+                PartySkillProgress = CapturePartySkillProgress(player),
                 Player = new PlayerSaveData
                 {
                     CharacterConfigPath = stats.ConfigData?.ResourcePath ?? string.Empty,

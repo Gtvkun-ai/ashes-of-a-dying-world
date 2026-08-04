@@ -1,5 +1,6 @@
 using Godot;
 using AshesofaDyingWorld.UI.HUD;
+using AshesofaDyingWorld.UI.Skills;
 
 namespace AshesofaDyingWorld.UI.Menus
 {
@@ -122,6 +123,11 @@ namespace AshesofaDyingWorld.UI.Menus
             if (panel == CharacterPanel && CharacterPanel is CharacterDetailUI characterUI)
             {
                 characterUI.UpdateCharacterInfo();
+            }
+
+            if (panel == SkillsPanel && SkillsPanel is SkillTreePanel skillTreePanel)
+            {
+                skillTreePanel.RefreshFromCurrentParty();
             }
             
             if (MenuGridPanel != null)

@@ -1,0 +1,94 @@
+[gd_resource type="Resource" script_class="CharacterSkillTreeData" load_steps=13 format=3]
+
+[ext_resource type="Script" path="res://src/Combat/Abilities/SkillTree/CharacterSkillTreeData.cs" id="1_tree"]
+[ext_resource type="Script" path="res://src/Combat/Abilities/SkillTree/SkillTreeBranchData.cs" id="2_branch"]
+[ext_resource type="Script" path="res://src/Combat/Abilities/SkillTree/SkillTreeNodeData.cs" id="3_node"]
+[ext_resource type="Resource" path="res://assets/resources/data/combat/skills/hikaru_quick_slash.tres" id="4_quick"]
+[ext_resource type="Resource" path="res://assets/resources/data/combat/skills/hikaru_heavy_slash.tres" id="5_heavy"]
+[ext_resource type="Resource" path="res://assets/resources/data/combat/skills/hikaru_relentless_cut.tres" id="6_relentless"]
+[ext_resource type="Resource" path="res://assets/resources/data/combat/skills/hikaru_focus.tres" id="7_focus"]
+[ext_resource type="Resource" path="res://assets/resources/data/combat/skills/hikaru_second_wind.tres" id="8_second_wind"]
+[ext_resource type="Resource" path="res://assets/resources/data/combat/skills/hikaru_battle_trance.tres" id="9_trance"]
+[ext_resource type="Texture2D" path="res://assets/resources/data/icon/STR .tres" id="10_sword_icon"]
+[ext_resource type="Texture2D" path="res://assets/resources/data/icon/DEX.tres" id="11_discipline_icon"]
+
+[sub_resource type="Resource" id="Node_quick"]
+script = ExtResource("3_node")
+NodeId = "hikaru_quick_slash"
+Skill = ExtResource("4_quick")
+GraphPosition = Vector2(80, 150)
+RequiredNodeIds = Array[String]([])
+RequiredCharacterLevel = 1
+SkillPointCost = 0
+GrantedByDefault = true
+
+[sub_resource type="Resource" id="Node_heavy"]
+script = ExtResource("3_node")
+NodeId = "hikaru_heavy_slash"
+Skill = ExtResource("5_heavy")
+GraphPosition = Vector2(290, 70)
+RequiredNodeIds = Array[String](["hikaru_quick_slash"])
+RequiredCharacterLevel = 3
+SkillPointCost = 1
+GrantedByDefault = false
+
+[sub_resource type="Resource" id="Node_relentless"]
+script = ExtResource("3_node")
+NodeId = "hikaru_relentless_cut"
+Skill = ExtResource("6_relentless")
+GraphPosition = Vector2(500, 150)
+RequiredNodeIds = Array[String](["hikaru_heavy_slash"])
+RequiredCharacterLevel = 6
+SkillPointCost = 2
+GrantedByDefault = false
+
+[sub_resource type="Resource" id="Branch_sword"]
+script = ExtResource("2_branch")
+BranchId = "hikaru_sword"
+BranchName = "Kiếm thuật"
+Description = "Nhánh tấn công trực diện, ưu tiên nhịp chém và khả năng nối đòn."
+Icon = ExtResource("10_sword_icon")
+Nodes = Array[Resource]([SubResource("Node_quick"), SubResource("Node_heavy"), SubResource("Node_relentless")])
+
+[sub_resource type="Resource" id="Node_focus"]
+script = ExtResource("3_node")
+NodeId = "focus"
+Skill = ExtResource("7_focus")
+GraphPosition = Vector2(80, 150)
+RequiredNodeIds = Array[String]([])
+RequiredCharacterLevel = 1
+SkillPointCost = 0
+GrantedByDefault = true
+
+[sub_resource type="Resource" id="Node_second_wind"]
+script = ExtResource("3_node")
+NodeId = "hikaru_second_wind"
+Skill = ExtResource("8_second_wind")
+GraphPosition = Vector2(290, 230)
+RequiredNodeIds = Array[String](["focus"])
+RequiredCharacterLevel = 3
+SkillPointCost = 1
+GrantedByDefault = false
+
+[sub_resource type="Resource" id="Node_trance"]
+script = ExtResource("3_node")
+NodeId = "hikaru_battle_trance"
+Skill = ExtResource("9_trance")
+GraphPosition = Vector2(500, 150)
+RequiredNodeIds = Array[String](["hikaru_second_wind"])
+RequiredCharacterLevel = 7
+SkillPointCost = 2
+GrantedByDefault = false
+
+[sub_resource type="Resource" id="Branch_discipline"]
+script = ExtResource("2_branch")
+BranchId = "hikaru_discipline"
+BranchName = "Kỷ luật"
+Description = "Nhánh duy trì thể lực và tăng cường khả năng chiến đấu trong thời gian ngắn."
+Icon = ExtResource("11_discipline_icon")
+Nodes = Array[Resource]([SubResource("Node_focus"), SubResource("Node_second_wind"), SubResource("Node_trance")])
+
+[resource]
+script = ExtResource("1_tree")
+CharacterId = "001"
+Branches = Array[Resource]([SubResource("Branch_sword"), SubResource("Branch_discipline")])

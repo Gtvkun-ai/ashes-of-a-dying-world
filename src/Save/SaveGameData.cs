@@ -13,6 +13,7 @@ namespace AshesofaDyingWorld.Core.Save
         public Vector2SaveData PlayerPosition { get; set; } = new();
         public int ActiveCharacterIndex { get; set; } = 0;
         public PlayerSaveData Player { get; set; } = new();
+        public List<PartySkillProgressSaveData> PartySkillProgress { get; set; } = new();
     }
 
     public sealed class PlayerSaveData
@@ -42,6 +43,14 @@ namespace AshesofaDyingWorld.Core.Save
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public TimedSkillSaveData ActiveTimedSkill { get; set; }
+    }
+
+    /// <summary>Tiến trình kỹ năng của companion trong party.</summary>
+    public sealed class PartySkillProgressSaveData
+    {
+        public string CharacterId { get; set; } = "";
+        public List<SkillStateSaveData> SkillStates { get; set; } = new();
+        public int UnspentSkillPoints { get; set; }
     }
 
     public sealed class EquippedItemSaveData

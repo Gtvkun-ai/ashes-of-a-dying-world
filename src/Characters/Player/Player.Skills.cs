@@ -18,6 +18,9 @@ public partial class Player
     {
         EnsureDefaultSkills();
         _skillCollection.Initialize(Stats?.ConfigData);
+        _skillCollection.RecalculateUnspentSkillPoints(
+            Stats?.CurrentLevel ?? 1,
+            Stats?.ConfigData?.SkillTree);
     }
 
     /// <summary>
@@ -79,6 +82,7 @@ public partial class Player
 
     // API dành cho UI. UI đọc state qua đây thay vì tự sửa CharacterConfig.ActiveSkills.
     public IReadOnlyList<SkillData> GetKnownSkills() => _skillCollection.GetDefinitions();
+    public PlayerSkillCollection GetSkillCollection() => _skillCollection;
     public PlayerSkillState GetSkillState(SkillData skill) => _skillCollection.GetState(skill);
     public int GetUnspentSkillPoints() => _skillCollection.UnspentSkillPoints;
     public bool OwnsSkill(SkillData skill) => _skillCollection.Contains(skill);
