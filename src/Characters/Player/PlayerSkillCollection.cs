@@ -41,6 +41,7 @@ namespace AshesofaDyingWorld.Core.Skills
 
             RegisterDefinitions(config.ActiveSkills);
             RegisterDefinitions(config.ComboSequence);
+            RegisterDefinitionsFromTree(config.SkillTree);
 
             // Giữ hành vi cũ: các kỹ năng chủ động đầu tiên trong ActiveSkills được xếp vào slot mặc định.
             // Điểm khác biệt là chúng không còn bị tráo trực tiếp trong CharacterConfig nữa.
@@ -77,6 +78,75 @@ namespace AshesofaDyingWorld.Core.Skills
         {
             string skillId = NormalizeSkillId(skill);
             return !string.IsNullOrWhiteSpace(skillId) && _definitionsById.ContainsKey(skillId);
+        }
+
+        /// <summary>
+        /// Kiểm tra quyền sở hữu thực tế. Contains chỉ nói rằng định nghĩa đã được đăng ký,
+        /// còn IsUnlocked mới phản ánh tiến trình của nhân vật.
+        /// </summary>
+        public bool IsUnlocked(SkillData skill)
+        {
+            PlayerSkillState state = GetState(skill);
+            return state != null && state.IsUnlocked;
+        }
+
+        /// <summary>
+        /// Mở một kỹ năng đã có trong cây và trừ điểm. Luật prerequisite/level được
+        /// SkillTreeProgression kiểm tra trước; collection chỉ thực hiện thay đổi state.
+        /// </summary>
+        public bool TryUnlock(SkillData skill, int pointCost)
+        {
+            string skillId = NormalizeSkillId(skill);
+            int cost = Math.Max(0, pointCost);
+            if (!_definitionsById.TryGetValue(skillId, out SkillData definition)
+                || !_statesById.TryGetValue(skillId, out PlayerSkillState state)
+                || state.IsUnlocked
+                || UnspentSkillPoints < cost)
+            {
+                return false;
+            }
+
+            state.IsUnlocked = true;
+            state.Level = Math.Clamp(state.Level, 1, Math.Max(1, definition.MaxLevel));
+            UnspentSkillPoints -= cost;
+            Changed?.Invoke();
+            return true;
+        }
+
+        /// <summary>
+        /// Đồng bộ điểm kỹ năng với cấp nhân vật. Bản hiện tại cấp một điểm mỗi level;
+        /// điểm đã tiêu được suy ra từ node mở khóa và cấp kỹ năng, nên mở lại panel
+        /// không thể vô tình phát điểm lần hai.
+        /// </summary>
+        public void RecalculateUnspentSkillPoints(int characterLevel, CharacterSkillTreeData tree)
+        {
+            int earned = Math.Max(1, characterLevel);
+            int spent = 0;
+
+            foreach (var pair in _statesById)
+            {
+                PlayerSkillState state = pair.Value;
+                if (state == null || !state.IsUnlocked)
+                {
+                    continue;
+                }
+
+                spent += Math.Max(0, state.Level - 1);
+                SkillData definition = _definitionsById.TryGetValue(pair.Key, out SkillData found) ? found : null;
+                SkillTreeNodeData node = FindTreeNodeBySkillId(tree, pair.Key);
+                if (definition == null || definition.DefaultUnlocked || node?.GrantedByDefault == true)
+                {
+                    continue;
+                }
+
+                if (node != null)
+                {
+                    spent += Math.Max(0, node.SkillPointCost);
+                }
+            }
+
+            UnspentSkillPoints = Math.Max(0, earned - spent);
+            Changed?.Invoke();
         }
 
         public SkillData GetDefinition(string skillId)
@@ -248,6 +318,68 @@ namespace AshesofaDyingWorld.Core.Skills
 
             UnspentSkillPoints = Math.Max(0, unspentSkillPoints);
             Changed?.Invoke();
+        }
+
+        private void RegisterDefinitionsFromTree(CharacterSkillTreeData tree)
+        {
+            if (tree?.Branches == null)
+            {
+                return;
+            }
+
+            foreach (SkillTreeBranchData branch in tree.Branches)
+            {
+                if (branch?.Nodes == null)
+                {
+                    continue;
+                }
+
+                foreach (SkillTreeNodeData node in branch.Nodes)
+                {
+                    if (node?.Skill == null)
+                    {
+                        continue;
+                    }
+
+                    RegisterDefinitions(new[] { node.Skill });
+
+                    // GrantedByDefault thuộc dữ liệu cây. Nó có thể cấp node gốc miễn phí
+                    // ngay cả khi designer quên bật DefaultUnlocked trên SkillData.
+                    string skillId = NormalizeSkillId(node.Skill);
+                    if (node.GrantedByDefault && _statesById.TryGetValue(skillId, out PlayerSkillState state))
+                    {
+                        state.IsUnlocked = true;
+                        state.Level = Math.Max(1, state.Level);
+                    }
+                }
+            }
+        }
+
+        private static SkillTreeNodeData FindTreeNodeBySkillId(CharacterSkillTreeData tree, string skillId)
+        {
+            string normalized = NormalizeSkillId(skillId);
+            if (tree?.Branches == null || string.IsNullOrWhiteSpace(normalized))
+            {
+                return null;
+            }
+
+            foreach (SkillTreeBranchData branch in tree.Branches)
+            {
+                if (branch?.Nodes == null)
+                {
+                    continue;
+                }
+
+                foreach (SkillTreeNodeData node in branch.Nodes)
+                {
+                    if (NormalizeSkillId(node?.Skill) == normalized)
+                    {
+                        return node;
+                    }
+                }
+            }
+
+            return null;
         }
 
         private void RegisterDefinitions(IEnumerable<SkillData> skills)
