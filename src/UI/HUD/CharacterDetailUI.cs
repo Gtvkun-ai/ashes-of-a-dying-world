@@ -39,11 +39,13 @@ namespace AshesofaDyingWorld.UI.HUD
 		private Control _overviewFooter;
 		private VBoxContainer _statsTextContainer;
 
-		// bar gốc (Hp, Mana, Stamina)
+		// Ba thanh tài nguyên dùng ảnh riêng trong thư mục "3 main stat".
+		// TextureProgressBar sẽ cắt ảnh từ trái sang phải theo giá trị hiện tại.
+		private const string MainStatTextureRoot = "res://assets/sprites/UI_HUD/Status_bar/3 main stat";
 		private VBoxContainer _resourceBarsContainer;
-		private ProgressBar _hpBar;
-		private ProgressBar _mpBar;
-		private ProgressBar _staminaBar;
+		private TextureProgressBar _hpBar;
+		private TextureProgressBar _mpBar;
+		private TextureProgressBar _staminaBar;
 		private Label _hpValueLabel;
 		private Label _mpValueLabel;
 		private Label _staminaValueLabel;
@@ -317,11 +319,17 @@ namespace AshesofaDyingWorld.UI.HUD
 
 			_resourceBarsContainer = new VBoxContainer();
 			_resourceBarsContainer.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			_resourceBarsContainer.AddThemeConstantOverride("separation", 10);
+			_resourceBarsContainer.AddThemeConstantOverride("separation", 6);
 			centerColumn.AddChild(_resourceBarsContainer);
-			_resourceBarsContainer.AddChild(CreateResourceBarRow("HP", new Color("#c95752"), out _hpBar, out _hpValueLabel));
-			_resourceBarsContainer.AddChild(CreateResourceBarRow("MP", new Color("#4e8eb8"), out _mpBar, out _mpValueLabel));
-			_resourceBarsContainer.AddChild(CreateResourceBarRow("STA", new Color("#6e965b"), out _staminaBar, out _staminaValueLabel));
+
+			// Tất cả PNG nằm trực tiếp trong thư mục "3 main stat", không có thư mục con.
+			// File "... ic.png" là phần khung/icon; file hp.png, mp.png, sta.png là phần màu chạy.
+			_resourceBarsContainer.AddChild(CreateResourceBarRow(
+				"HP", "hp ic.png", "hp.png", "Sinh lực", out _hpBar, out _hpValueLabel));
+			_resourceBarsContainer.AddChild(CreateResourceBarRow(
+				"MP", "mp ic.png", "mp.png", "Năng lượng phép", out _mpBar, out _mpValueLabel));
+			_resourceBarsContainer.AddChild(CreateResourceBarRow(
+				"STA", "sta ic.png", "sta.png", "Thể lực", out _staminaBar, out _staminaValueLabel));
 
 			centerColumn.AddChild(CreateSectionSpacer(18));
 			centerColumn.AddChild(CreateSectionTitle("CHỈ SỐ CHIẾN ĐẤU", HorizontalAlignment.Left));
@@ -2162,7 +2170,11 @@ namespace AshesofaDyingWorld.UI.HUD
 			SetBarValue(_staminaBar, _staminaValueLabel, (int)stats.CurrentStamina, (int)stats.MaxStamina);
 
 		}
-		private void SetBarValue(ProgressBar bar, Label valueLabel, int current, int max)
+		/// <summary>
+		/// Cập nhật giá trị cho thanh ảnh HP/MP/STA. TextureProgressBar tự cắt ảnh
+		/// từ trái sang phải theo tỉ lệ Value / MaxValue.
+		/// </summary>
+		private void SetBarValue(TextureProgressBar bar, Label valueLabel, int current, int max)
 		{
 			max = Mathf.Max(1, max);
 			current = Mathf.Clamp(current, 0, max);
@@ -2180,43 +2192,139 @@ namespace AshesofaDyingWorld.UI.HUD
 			}
 		}
 
-		private HBoxContainer CreateResourceBarRow(string labelText, Color fillColor, out ProgressBar bar, out Label valueLabel)
+		/// <summary>
+		/// Tạo một hàng stat từ hai PNG: ảnh khung/icon luôn hiển thị và
+		/// ảnh màu được TextureProgressBar cắt theo phần trăm hiện tại.
+		/// </summary>
+		private Control CreateResourceBarRow(
+			string statName,
+			string frameFile,
+			string progressFile,
+			string vietnameseDescription,
+			out TextureProgressBar bar,
+			out Label valueLabel)
 		{
-			var row = new HBoxContainer();
-			row.CustomMinimumSize = new Vector2(0, 30);
-			row.AddThemeConstantOverride("separation", 8);
+			var row = new Control();
+			row.CustomMinimumSize = new Vector2(-25, 10);
+			row.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			row.MouseFilter = MouseFilterEnum.Ignore;
 
-			var name = CreateLabel(labelText, 13, _mainTextColor);
-			name.CustomMinimumSize = new Vector2(34, 0);
-			name.VerticalAlignment = VerticalAlignment.Center;
-			row.AddChild(name);
+			// Nạp đúng tên file chữ thường như trong thư mục thật:
+			// hp ic.png + hp.png, mp ic.png + mp.png, sta ic.png + sta.png.
+			Texture2D frameTexture = LoadMainStatTexture(statName, frameFile);
+			Texture2D progressTexture = LoadMainStatTexture(statName, progressFile);
 
-			bar = new ProgressBar();
-			bar.CustomMinimumSize = new Vector2(170, 14);
-			bar.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			bar.SizeFlagsVertical = SizeFlags.ShrinkCenter;
-			bar.ShowPercentage = false;
-
-			var background = new StyleBoxFlat();
-			background.BgColor = _deepSurfaceColor;
-			background.BorderColor = _borderColor.Darkened(0.1f);
-			background.SetBorderWidthAll(1);
-			background.SetCornerRadiusAll(1);
-			var fill = new StyleBoxFlat();
-			fill.BgColor = fillColor;
-			fill.SetCornerRadiusAll(1);
-			bar.AddThemeStyleboxOverride("background", background);
-			bar.AddThemeStyleboxOverride("fill", fill);
+			bar = new TextureProgressBar();
+			bar.SetAnchorsPreset(LayoutPreset.FullRect);
+			bar.TextureUnder = frameTexture;
+			bar.TextureProgress = progressTexture;
+			bar.NinePatchStretch = true;
+			bar.MinValue = 0;
+			bar.MaxValue = 100;
+			bar.Value = 100;
+			bar.TooltipText = $"{statName} - {vietnameseDescription}";
+			bar.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
+			bar.MouseFilter = MouseFilterEnum.Ignore;
 			row.AddChild(bar);
 
-			valueLabel = CreateLabel("0/0", 12, _mainTextColor);
-			valueLabel.CustomMinimumSize = new Vector2(76, 0);
-			valueLabel.HorizontalAlignment = HorizontalAlignment.Right;
+			// Số hiện tại/tối đa được đặt trên cùng, không phụ thuộc texture có tải được hay không.
+			valueLabel = CreateLabel("0/0", 12, Colors.White);
+			valueLabel.SetAnchorsPreset(LayoutPreset.FullRect);
+			valueLabel.HorizontalAlignment = HorizontalAlignment.Center;
 			valueLabel.VerticalAlignment = VerticalAlignment.Center;
+			valueLabel.MouseFilter = MouseFilterEnum.Ignore;
+			valueLabel.AddThemeConstantOverride("outline_size", 4);
+			valueLabel.AddThemeColorOverride(
+				"font_outline_color", new Color(0.02f, 0.02f, 0.03f, 0.95f));
 			row.AddChild(valueLabel);
+
 			return row;
 		}
 
+		/// <summary>
+		/// Nạp texture trong thư mục 3 main stat. Ưu tiên đường dẫn chính xác,
+		/// sau đó quét tên file không phân biệt hoa/thường để tránh asset cũ như HP.png.
+		/// </summary>
+		private Texture2D LoadMainStatTexture(string statName, string fileName)
+		{
+			string exactPath = $"{MainStatTextureRoot}/{fileName}";
+			Texture2D exactTexture = TryLoadTexture(exactPath);
+			if (exactTexture != null)
+			{
+				GD.Print($"[CharacterDetailUI] Đã nạp ảnh {statName}: {exactPath}");
+				return exactTexture;
+			}
+
+			// Fallback cho asset cũ có chữ hoa như HP.png hoặc tên lệch hoa/thường.
+			string discoveredPath = FindTexturePathRecursive(MainStatTextureRoot, fileName, 0);
+			if (!string.IsNullOrEmpty(discoveredPath))
+			{
+				Texture2D discoveredTexture = TryLoadTexture(discoveredPath);
+				if (discoveredTexture != null)
+				{
+					GD.Print($"[CharacterDetailUI] Đã tự tìm ảnh {statName}: {discoveredPath}");
+					return discoveredTexture;
+				}
+			}
+
+			GD.PrintErr(
+				$"[CharacterDetailUI] Không tìm thấy {fileName} trong {MainStatTextureRoot}. " +
+				"Hãy kiểm tra tên file và chờ Godot import xong.");
+			return null;
+		}
+
+		/// <summary>
+		/// Tìm file theo tên không phân biệt chữ hoa/thường.
+		/// </summary>
+		private string FindTexturePathRecursive(
+			string directoryPath,
+			string targetFileName,
+			int depth)
+		{
+			if (depth > 2)
+			{
+				return string.Empty;
+			}
+
+			DirAccess directory = DirAccess.Open(directoryPath);
+			if (directory == null)
+			{
+				return string.Empty;
+			}
+
+			directory.ListDirBegin();
+			string entryName = directory.GetNext();
+			while (!string.IsNullOrEmpty(entryName))
+			{
+				if (entryName != "." && entryName != "..")
+				{
+					string entryPath = $"{directoryPath}/{entryName}";
+					if (directory.CurrentIsDir())
+					{
+						string nestedResult = FindTexturePathRecursive(
+							entryPath, targetFileName, depth + 1);
+						if (!string.IsNullOrEmpty(nestedResult))
+						{
+							directory.ListDirEnd();
+							return nestedResult;
+						}
+					}
+					else if (string.Equals(
+						entryName,
+						targetFileName,
+						System.StringComparison.OrdinalIgnoreCase))
+					{
+						directory.ListDirEnd();
+						return entryPath;
+					}
+				}
+
+				entryName = directory.GetNext();
+			}
+
+			directory.ListDirEnd();
+			return string.Empty;
+		}
 
 		private string FormatStatName(string original)
 		{
