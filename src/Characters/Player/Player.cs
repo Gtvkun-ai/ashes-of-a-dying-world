@@ -27,7 +27,8 @@ public partial class Player : CombatCharacter
             AddChild(_inventory);
         }
 
-        EnsureDefaultSkills();
+        // Dựng trạng thái kỹ năng runtime sau khi các component combat đã sẵn sàng.
+        InitializeSkillCollection();
     }
 
     protected override void UpdateControlSource(float delta)

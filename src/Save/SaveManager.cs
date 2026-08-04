@@ -262,7 +262,12 @@ namespace AshesofaDyingWorld.Core.Managers
             EquipmentManager equipment = player.GetEquipmentManager();
             equipment?.RestoreEquipment(playerData.EquippedItems);
 
-            player.RestoreSavedSkills(playerData.ActiveSkills, playerData.SkillCooldowns, playerData.ActiveTimedSkill);
+            player.RestoreSavedSkills(
+                playerData.ActiveSkills,
+                playerData.SkillStates,
+                playerData.UnspentSkillPoints,
+                playerData.SkillCooldowns,
+                playerData.ActiveTimedSkill);
 
             stats.RestoreResourceValues(
                 playerData.CurrentHP,
@@ -310,7 +315,7 @@ namespace AshesofaDyingWorld.Core.Managers
 
             return new SaveGameData
             {
-                Version = 2,
+                Version = 3,
                 SavedAtUtc = DateTime.UtcNow.ToString("O"),
                 ScenePath = GetTree().CurrentScene?.SceneFilePath ?? string.Empty,
                 PlayerPosition = Vector2SaveData.FromVector2(player.GlobalPosition),
@@ -325,7 +330,9 @@ namespace AshesofaDyingWorld.Core.Managers
                     CurrentStamina = stats.CurrentStamina,
                     InventoryItemPaths = inventory?.GetItemResourcePaths() ?? new(),
                     EquippedItems = equipment?.CaptureEquippedItems() ?? new(),
-                    ActiveSkills = player.CaptureActiveSkills(),
+                    // Save v3 chỉ giữ state của người chơi; định nghĩa kỹ năng đọc lại từ Resource.
+                    SkillStates = player.CaptureSkillStates(),
+                    UnspentSkillPoints = player.GetUnspentSkillPoints(),
                     SkillCooldowns = player.CaptureSkillCooldowns(),
                     ActiveTimedSkill = player.CaptureActiveTimedSkill()
                 }
