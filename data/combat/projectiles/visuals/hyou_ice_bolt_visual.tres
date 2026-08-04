@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="ProjectileVisualProfileData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/Combat/Data/ProjectileVisualProfileData.cs" id="1_visual"]
+
+[resource]
+script = ExtResource("1_visual")
+SpriteSheetPath = "res://assets/graphics/characters/hyou/vfx/ice_bolt/up_ice.png"
+UpSpriteSheetOverridePath = "res://assets/graphics/characters/hyou/vfx/ice_bolt/back_ice.png"
+SpriteColumns = 11
+SpriteRows = 4
+SpriteFrameWidth = 48
+SpriteFrameHeight = 64
+SpriteColumn = 5
+DownRow = 0
+RightRow = 1
+LeftRow = 2
+UpRow = 3
+SpriteScale = 2.0
+LaunchSpriteSheetPath = ""
+UpLaunchSpriteSheetOverridePath = ""
+LaunchStartColumn = 2
+LaunchFrameCount = 0
+LaunchAnimationFps = 12.0
+LaunchSpriteScale = 2.0
+SpriteEmbeddedForwardOffset = 0.0
+RotateSpriteTowardExactAim = true
+UseProceduralFallback = false
+DebugVisualLogging = false
+CoreColor = Color(0.78, 0.97, 1, 1)
+GlowColor = Color(0.16, 0.72, 1, 0.72)
+VisualLength = 22.0
+VisualWidth = 4.5

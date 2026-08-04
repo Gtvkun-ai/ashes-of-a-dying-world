@@ -1,0 +1,26 @@
+[gd_scene format=3 uid="uid://bs3fndem6lq72"]
+
+[ext_resource type="Texture2D" uid="uid://cqooxh3h0tb1v" path="res://assets/graphics/environment/flora/flora_sheet.png" id="1_jv3e5"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_osshh"]
+atlas = ExtResource("1_jv3e5")
+region = Rect2(16, 34, 16, 17)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_efhp4"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_osshh")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 5.0
+}]
+
+[node name="red_flower" type="Node2D" unique_id=1369062975]
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=2115074369]
+position = Vector2(0, 22)
+scale = Vector2(1.75, 1.75)
+sprite_frames = SubResource("SpriteFrames_efhp4")
+animation = &"idle"

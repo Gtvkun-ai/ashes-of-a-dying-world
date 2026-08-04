@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="WeaponMovesetData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/Combat/Data/WeaponMovesetData.cs" id="1"]
+[ext_resource type="Resource" path="res://data/combat/actions/slime_bite.tres" id="2"]
+
+[resource]
+script = ExtResource("1")
+MovesetId = "slime"
+GuardAnimationTemplate = ""
+LightCombo = Array[Resource]([ExtResource("2")])
+GuardDamageReduction = 0.0
+GuardArcDegrees = 0.0
+GuardMoveSpeedMultiplier = 0.0
+GuardStaminaPerDamage = 0.0
+GuardRecoveryDelay = 1.0

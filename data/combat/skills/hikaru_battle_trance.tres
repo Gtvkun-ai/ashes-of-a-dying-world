@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/Combat/Abilities/SkillData.cs" id="1_skill"]
+[ext_resource type="Texture2D" path="res://data/icons/dex.tres" id="2_icon"]
+
+[resource]
+script = ExtResource("1_skill")
+SkillId = "hikaru_battle_trance"
+SkillName = "Nhập tâm"
+Icon = ExtResource("2_icon")
+Description = "Bước vào trạng thái tập trung cao độ, tăng 15% tốc độ và 15% Dexterity trong 15 giây."
+Category = 0
+Element = 1
+MaxLevel = 1
+DefaultUnlocked = false
+ExecutionType = 0
+Duration = 15.0
+MoveSpeedBonusPercent = 15.0
+DexterityBonusPercent = 15.0
+Cooldown = 75.0
+ManaCost = 0
+StaminaCost = 0

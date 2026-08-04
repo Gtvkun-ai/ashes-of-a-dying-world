@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="CombatActionData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/Combat/Data/CombatActionData.cs" id="1"]
+[ext_resource type="Resource" path="res://data/combat/hit_profiles/slime_bite.tres" id="2"]
+
+[resource]
+script = ExtResource("1")
+ActionId = "slime_bite"
+Tags = 5
+AnimationTemplate = "at_{dir}"
+StartFrame = 0
+ActiveStartFrame = 2
+ActiveEndFrame = 3
+EndFrame = 4
+PlaybackSpeedMultiplier = 1.0
+StartupSeconds = 0.25
+ActiveSeconds = 0.18
+RecoverySeconds = 0.3
+InputBufferSeconds = 0.0
+StaminaCost = 0.0
+LungeSpeed = 72.0
+HitProfile = ExtResource("2")

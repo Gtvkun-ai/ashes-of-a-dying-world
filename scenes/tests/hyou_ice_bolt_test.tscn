@@ -1,8 +1,8 @@
 [gd_scene load_steps=4 format=3]
 
-[ext_resource type="PackedScene" path="res://scenes/actors/player/player.tscn" id="1_player"]
-[ext_resource type="PackedScene" path="res://assets/resources/data/characters/Hyou.tscn" id="2_hyou"]
-[ext_resource type="PackedScene" path="res://scenes/world/WhisperingFields/slime_1.tscn" id="3_slime"]
+[ext_resource type="PackedScene" path="res://scenes/characters/player/player.tscn" id="1_player"]
+[ext_resource type="PackedScene" path="res://scenes/characters/companions/hyou.tscn" id="2_hyou"]
+[ext_resource type="PackedScene" path="res://scenes/characters/enemies/slime_01.tscn" id="3_slime"]
 
 [node name="HyouIceBoltTest" type="Node2D"]
 

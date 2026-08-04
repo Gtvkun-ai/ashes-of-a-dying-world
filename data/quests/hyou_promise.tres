@@ -1,0 +1,56 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://scripts/Quests/Data/QuestData.cs" id="1_quest"]
+[ext_resource type="Script" path="res://scripts/Quests/Data/QuestObjectiveData.cs" id="2_objective"]
+[ext_resource type="Script" path="res://scripts/Quests/Data/QuestRewardData.cs" id="3_reward"]
+[ext_resource type="Texture2D" path="res://assets/graphics/ui/inventory/category_quest.png" id="4_icon"]
+[ext_resource type="Texture2D" path="res://data/icons/spi.tres" id="5_spirit_icon"]
+
+[sub_resource type="Resource" id="Objective_hyou"]
+script = ExtResource("2_objective")
+ObjectiveId = "talk_to_hyou"
+Description = "Nói chuyện với Hyou khi cả đội nghỉ ngơi"
+RequiredAmount = 1
+InitialProgress = 0
+
+[sub_resource type="Resource" id="Objective_shrine"]
+script = ExtResource("2_objective")
+ObjectiveId = "inspect_ice_shrine"
+Description = "Cùng Hyou kiểm tra ngôi đền băng cũ"
+RequiredAmount = 1
+InitialProgress = 0
+RevealAfterObjectiveId = "talk_to_hyou"
+
+[sub_resource type="Resource" id="Objective_memory"]
+script = ExtResource("2_objective")
+ObjectiveId = "recover_hyou_memory"
+Description = "Tìm mảnh ký ức bị phong ấn trong tinh thể"
+RequiredAmount = 3
+InitialProgress = 0
+UnitLabel = "mảnh"
+RevealAfterObjectiveId = "inspect_ice_shrine"
+
+[sub_resource type="Resource" id="Reward_skill_point"]
+script = ExtResource("3_reward")
+RewardType = 3
+DisplayName = "Điểm KN"
+Amount = 1
+Icon = ExtResource("5_spirit_icon")
+
+[resource]
+script = ExtResource("1_quest")
+QuestId = "hyou_promise"
+Title = "Lời hứa của Hyou"
+Icon = ExtResource("4_icon")
+QuestType = 2
+Chapter = "Câu chuyện đồng hành"
+Summary = "Hyou nhận ra một biểu tượng quen thuộc trên mảnh tinh thể băng. Cô muốn quay lại ngôi đền cũ trước khi ký ức ấy tan biến."
+Description = "Hãy trò chuyện với Hyou tại nơi nghỉ chân. Nhiệm vụ này mở đầu chuỗi phát triển quan hệ và câu chuyện riêng của cô."
+QuestGiver = "Hyou"
+LocationName = "Trại nghỉ"
+MapHint = "Ngôi đền băng ở phía đông bắc"
+RequiredCharacterLevel = 2
+StartsActive = false
+StartsAsNew = true
+Objectives = Array[Resource]([SubResource("Objective_hyou"), SubResource("Objective_shrine"), SubResource("Objective_memory")])
+Rewards = Array[Resource]([SubResource("Reward_skill_point")])

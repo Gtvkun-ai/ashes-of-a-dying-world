@@ -1,0 +1,47 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/Quests/Data/QuestData.cs" id="1_quest"]
+[ext_resource type="Script" path="res://scripts/Quests/Data/QuestObjectiveData.cs" id="2_objective"]
+[ext_resource type="Script" path="res://scripts/Quests/Data/QuestRewardData.cs" id="3_reward"]
+[ext_resource type="Texture2D" path="res://assets/graphics/ui/inventory/category_quest.png" id="4_icon"]
+[ext_resource type="Texture2D" path="res://data/icons/vit.tres" id="5_item_icon"]
+
+[sub_resource type="Resource" id="Objective_flowers"]
+script = ExtResource("2_objective")
+ObjectiveId = "collect_purple_flower"
+Description = "Thu thập hoa tím mọc trên vùng đất cháy"
+RequiredAmount = 6
+InitialProgress = 4
+UnitLabel = "hoa"
+
+[sub_resource type="Resource" id="Objective_return"]
+script = ExtResource("2_objective")
+ObjectiveId = "return_to_healer"
+Description = "Mang số hoa đã thu thập về cho người chữa bệnh"
+RequiredAmount = 1
+InitialProgress = 0
+RevealAfterObjectiveId = "collect_purple_flower"
+
+[sub_resource type="Resource" id="Reward_item"]
+script = ExtResource("3_reward")
+RewardType = 2
+DisplayName = "Thuốc hồi phục"
+Amount = 2
+Icon = ExtResource("5_item_icon")
+
+[resource]
+script = ExtResource("1_quest")
+QuestId = "flowers_on_ashes"
+Title = "Hoa trên tàn tro"
+Icon = ExtResource("4_icon")
+QuestType = 1
+Summary = "Một loài hoa tím hiếm chỉ nở trên đất từng bị thiêu cháy. Người chữa bệnh cần chúng để điều chế thuốc cho dân làng."
+Description = "Tìm những cụm hoa tím quanh bìa rừng. Chúng thường mọc cạnh gốc cây cháy và những phiến đá giữ được hơi ấm sau hoàng hôn."
+QuestGiver = "Mira"
+LocationName = "Bìa rừng phía tây"
+MapHint = "Các gốc cây cháy ở phía tây Đồng Cỏ Thì Thầm"
+RequiredCharacterLevel = 1
+StartsActive = true
+StartsAsNew = true
+Objectives = Array[Resource]([SubResource("Objective_flowers"), SubResource("Objective_return")])
+Rewards = Array[Resource]([SubResource("Reward_item")])

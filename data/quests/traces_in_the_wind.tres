@@ -1,0 +1,71 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=11 format=3]
+
+[ext_resource type="Script" path="res://scripts/Quests/Data/QuestData.cs" id="1_quest"]
+[ext_resource type="Script" path="res://scripts/Quests/Data/QuestObjectiveData.cs" id="2_objective"]
+[ext_resource type="Script" path="res://scripts/Quests/Data/QuestRewardData.cs" id="3_reward"]
+[ext_resource type="Texture2D" path="res://assets/graphics/ui/inventory/category_quest.png" id="4_icon"]
+[ext_resource type="Texture2D" path="res://data/icons/int.tres" id="5_xp_icon"]
+
+[sub_resource type="Resource" id="Objective_guard"]
+script = ExtResource("2_objective")
+ObjectiveId = "talk_to_guard"
+Description = "Nói chuyện với người canh gác"
+RequiredAmount = 1
+InitialProgress = 1
+
+[sub_resource type="Resource" id="Objective_footprints"]
+script = ExtResource("2_objective")
+ObjectiveId = "find_river_footprints"
+Description = "Tìm dấu chân gần bờ sông"
+RequiredAmount = 1
+InitialProgress = 1
+RevealAfterObjectiveId = "talk_to_guard"
+
+[sub_resource type="Resource" id="Objective_forest"]
+script = ExtResource("2_objective")
+ObjectiveId = "inspect_north_forest"
+Description = "Điều tra các dấu vết trong khu rừng phía bắc"
+RequiredAmount = 3
+InitialProgress = 1
+UnitLabel = "dấu vết"
+RevealAfterObjectiveId = "find_river_footprints"
+
+[sub_resource type="Resource" id="Objective_report"]
+script = ExtResource("2_objective")
+ObjectiveId = "report_to_ansel"
+Description = "Quay về báo cáo với trưởng làng Ansel"
+RequiredAmount = 1
+InitialProgress = 0
+RevealAfterObjectiveId = "inspect_north_forest"
+
+[sub_resource type="Resource" id="Reward_xp"]
+script = ExtResource("3_reward")
+RewardType = 0
+DisplayName = "XP"
+Amount = 500
+Icon = ExtResource("5_xp_icon")
+
+[sub_resource type="Resource" id="Reward_gold"]
+script = ExtResource("3_reward")
+RewardType = 1
+DisplayName = "Vàng"
+Amount = 120
+Icon = ExtResource("4_icon")
+
+[resource]
+script = ExtResource("1_quest")
+QuestId = "traces_in_the_wind"
+Title = "Dấu vết trong gió"
+Icon = ExtResource("4_icon")
+QuestType = 0
+Chapter = "Chương I"
+Summary = "Những dấu chân lạ xuất hiện quanh bờ sông sau đêm bão. Dân làng lo rằng một sinh vật nguy hiểm đang tiến gần khu định cư."
+Description = "Hãy lần theo các dấu vết còn sót lại trong khu rừng phía bắc. Tập trung vào những nơi cây cỏ bị đóng băng hoặc mặt đất có dấu kéo lê bất thường."
+QuestGiver = "Trưởng làng Ansel"
+LocationName = "Đồng Cỏ Thì Thầm"
+MapHint = "Khu rừng phía bắc, bên kia bờ sông"
+RequiredCharacterLevel = 1
+StartsActive = true
+StartsAsNew = false
+Objectives = Array[Resource]([SubResource("Objective_guard"), SubResource("Objective_footprints"), SubResource("Objective_forest"), SubResource("Objective_report")])
+Rewards = Array[Resource]([SubResource("Reward_xp"), SubResource("Reward_gold")])

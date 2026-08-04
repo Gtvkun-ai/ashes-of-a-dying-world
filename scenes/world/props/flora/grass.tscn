@@ -1,0 +1,26 @@
+[gd_scene load_steps=4 format=3 uid="uid://b5hpvdqiypg5l"]
+
+[ext_resource type="Texture2D" uid="uid://cqooxh3h0tb1v" path="res://assets/graphics/environment/flora/flora_sheet.png" id="1_ma61n"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_o1wda"]
+atlas = ExtResource("1_ma61n")
+region = Rect2(160, 34, 16, 17)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_apf4k"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_o1wda")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 5.0
+}]
+
+[node name="grass" type="Node2D"]
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+position = Vector2(0, 25)
+scale = Vector2(1.25, 1.25)
+sprite_frames = SubResource("SpriteFrames_apf4k")
+animation = &"idle"

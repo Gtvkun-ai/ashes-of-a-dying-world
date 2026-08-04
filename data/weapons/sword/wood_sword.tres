@@ -1,0 +1,18 @@
+[gd_resource type="Resource" load_steps=5 format=3 uid="uid://dfqbrbuxibsyc"]
+
+[ext_resource type="Texture2D" uid="uid://bpl2o2cx3dj8w" path="res://assets/graphics/items/weapons/wood_sword_icon.png" id="1_q4yj7"]
+[ext_resource type="Script" uid="uid://0rcnky7tuhpg" path="res://scripts/Inventory/Data/EquipmentItemData.cs" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://cuvb1bj8tm5wr" path="res://scenes/items/weapons/wood_sword.tscn" id="2_weapon"]
+[ext_resource type="Resource" path="res://data/combat/movesets/wood_sword.tres" id="3_moveset"]
+
+[resource]
+script = ExtResource("1_script")
+ID = "weapon_wood_sword"
+ItemName = "Wood Sword"
+Icon = ExtResource("1_q4yj7")
+BaseValue = 8.0
+WeaponScene = ExtResource("2_weapon")
+Moveset = ExtResource("3_moveset")
+PassiveSkills = null
+metadata/_custom_type_script = "uid://0rcnky7tuhpg"
+WeaponWeight = 0.6

@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="CombatActionData" format=3 uid="uid://bhmaw8s16tvt3"]
+
+[ext_resource type="Script" uid="uid://ka2t1rxetu3" path="res://scripts/Combat/Data/CombatActionData.cs" id="1_action"]
+[ext_resource type="Resource" path="res://data/combat/hit_profiles/hyou_ice_bolt.tres" id="2_hit"]
+[ext_resource type="Resource" path="res://data/combat/projectiles/hyou_ice_bolt.tres" id="3_projectile"]
+[ext_resource type="Script" uid="uid://c1n6tin5w1evj" path="res://scripts/Combat/Data/CombatActionEventData.cs" id="4_event"]
+
+[sub_resource type="Resource" id="Resource_spawn_ice_bolt"]
+script = ExtResource("4_event")
+EventId = "spawn_hyou_ice_bolt"
+TriggerFrame = 7
+TriggerNormalizedTime = 0.99
+ProjectileSpec = ExtResource("3_projectile")
+
+[resource]
+script = ExtResource("1_action")
+ActionId = "hyou_ice_bolt"
+Tags = 9
+AnimationTemplate = "ice_bolt_{dir}"
+ActiveStartFrame = 7
+ActiveEndFrame = 7
+EndFrame = 7
+PlaybackSpeedMultiplier = 0.7
+ScalePlaybackWithAttackSpeed = false
+StartupSeconds = 2.0
+ActiveSeconds = 0.01
+RecoverySeconds = 0.01
+InputBufferSeconds = 0.1
+StaminaCost = 0.0
+LungeSpeed = 0.0
+DeliveryMode = 1
+HitProfile = ExtResource("2_hit")
+Events = Array[ExtResource("4_event")]([SubResource("Resource_spawn_ice_bolt")])

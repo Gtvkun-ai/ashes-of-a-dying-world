@@ -1,0 +1,53 @@
+[gd_scene format=3 uid="uid://brhkdy734ch4x"]
+
+[ext_resource type="Script" uid="uid://jguaf0akgd71" path="res://scripts/Characters/Player/Player.cs" id="1_v6v2t"]
+[ext_resource type="Script" uid="uid://cqcbhn0crt0fx" path="res://scripts/Characters/Stats/PlayerStats.cs" id="6_kimch"]
+[ext_resource type="Resource" uid="uid://btue7yvcpa6pm" path="res://data/characters/main.tres" id="7_owkge"]
+[ext_resource type="Script" uid="uid://bmhf2l4kgx1rl" path="res://scripts/Inventory/Runtime/EquipmentManager.cs" id="8_4rh2k"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_6685u"]
+size = Vector2(9, 2.5)
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_sgmg4"]
+radius = 6.5
+height = 27.0
+
+[node name="CharacterBody2D" type="CharacterBody2D" unique_id=1143067928 groups=["Combatant", "Player"]]
+motion_mode = 1
+y_sort_enabled = true
+scale = Vector2(2, 2)
+collision_mask = 11
+script = ExtResource("1_v6v2t")
+CombatantId = "player_hikaru"
+Faction = 1
+RemoveFromWorldOnDeath = false
+BodyPath = NodePath("")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1263195701]
+y_sort_enabled = true
+position = Vector2(0, 9.75)
+shape = SubResource("RectangleShape2D_6685u")
+
+[node name="WeaponSprite" type="AnimatedSprite2D" parent="." unique_id=126676805]
+visible = false
+position = Vector2(0, -16)
+
+[node name="Hurtbox" type="Area2D" parent="." unique_id=900000001]
+collision_layer = 16
+collision_mask = 8
+monitoring = false
+monitorable = true
+
+[node name="HurtboxShape" type="CollisionShape2D" parent="Hurtbox" unique_id=900000002]
+shape = SubResource("CapsuleShape2D_sgmg4")
+
+[node name="follow" type="Camera2D" parent="." unique_id=497279611]
+
+[node name="PlayerStats" type="Node" parent="." unique_id=1279805624 node_paths=PackedStringArray("EquipmentMgr")]
+script = ExtResource("6_kimch")
+ConfigData = ExtResource("7_owkge")
+EquipmentMgr = NodePath("../EquipmentManager")
+
+[node name="EquipmentManager" type="Node" parent="." unique_id=307736108 node_paths=PackedStringArray("_playerStats")]
+script = ExtResource("8_4rh2k")
+_playerStats = NodePath("../PlayerStats")

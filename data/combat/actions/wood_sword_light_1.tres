@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="CombatActionData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/Combat/Data/CombatActionData.cs" id="1"]
+[ext_resource type="Resource" path="res://data/combat/hit_profiles/wood_sword_light_1.tres" id="2"]
+
+[resource]
+script = ExtResource("1")
+ActionId = "wood_sword_light_1"
+Tags = 5
+AnimationTemplate = "sword_{dir}"
+StartFrame = 0
+ActiveStartFrame = 2
+ActiveEndFrame = 3
+EndFrame = 4
+PlaybackSpeedMultiplier = 1.0
+StartupSeconds = 0.12
+ActiveSeconds = 0.12
+RecoverySeconds = 0.18
+InputBufferSeconds = 0.28
+StaminaCost = 9.0
+LungeSpeed = 38.0
+HitProfile = ExtResource("2")

@@ -21,10 +21,10 @@ config/icon="res://icon.svg"
 
 [autoload]
 
-SaveManager="*res://src/Save/SaveManager.cs"
+SaveManager="*res://scripts/Save/SaveManager.cs"
 Dialogic="*res://addons/dialogic/Core/DialogicGameHandler.gd"
-PlayerManager="*res://src/Characters/Party/PlayerManager.cs"
-SceneManager="*res://src/App/SceneManager.cs"
+PlayerManager="*res://scripts/Characters/Party/PlayerManager.cs"
+SceneManager="*res://scripts/App/SceneManager.cs"
 
 [dialogic]
 

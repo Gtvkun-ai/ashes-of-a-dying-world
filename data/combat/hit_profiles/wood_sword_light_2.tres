@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="HitProfileData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/Combat/Data/HitProfileData.cs" id="1"]
+
+[resource]
+script = ExtResource("1")
+DamageType = 1
+BaseDamage = 0.0
+AttackPowerScale = 1.05
+ArmorPenetration = 0.0
+GuardDamage = 18.0
+PoiseDamage = 16.0
+HitstunSeconds = 0.16
+KnockbackForce = 95.0
+HitboxSize = Vector2(18, 32)
+Reach = 18.0

@@ -1,0 +1,171 @@
+[gd_scene format=3 uid="uid://didkkxo61jbss"]
+
+[ext_resource type="PackedScene" uid="uid://duqdt7585p3xh" path="res://scenes/characters/companions/hyou_body.tscn" id="1_6i4ff"]
+[ext_resource type="Script" uid="uid://j27ppclyk1pk" path="res://scripts/Characters/Companion/NpcCharacter.cs" id="2_npc"]
+[ext_resource type="Script" uid="uid://cqcbhn0crt0fx" path="res://scripts/Characters/Stats/PlayerStats.cs" id="3_stats"]
+[ext_resource type="Resource" uid="uid://cpdjbs8w3cyi8" path="res://data/characters/hyou.tres" id="4_config"]
+[ext_resource type="Script" uid="uid://bmhf2l4kgx1rl" path="res://scripts/Inventory/Runtime/EquipmentManager.cs" id="5_equip"]
+[ext_resource type="Script" uid="uid://dwbeyl76glva6" path="res://scripts/Combat/AI/HyouAI.cs" id="6_ai"]
+[ext_resource type="Script" path="res://scripts/Combat/Decision/Runtime/CombatDecisionAgent.cs" id="7_decision"]
+[ext_resource type="Resource" path="res://data/combat/decision/classes/cryomancer.tres" id="8_class"]
+[ext_resource type="Resource" path="res://data/combat/decision/doctrines/hyou_safe_control.tres" id="9_doctrine"]
+[ext_resource type="Resource" path="res://data/combat/decision/personalities/hyou_calm_protective.tres" id="10_personality"]
+[ext_resource type="Script" path="res://scripts/Combat/Visuals/HyouCastVisual.cs" id="11_cast_visual"]
+[ext_resource type="Resource" path="res://data/combat/movesets/hyou_cryomancer.tres" id="12_moveset"]
+[ext_resource type="Script" path="res://scripts/Combat/Decision/Debug/CombatDecisionDebugOverlay.cs" id="13_debug_overlay"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_sxeu7"]
+size = Vector2(11, 6)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ytw1f"]
+size = Vector2(18, 27)
+
+[node name="Hyou" type="CharacterBody2D" unique_id=881301954 groups=["Combatant", "Companion"]]
+motion_mode = 1
+scale = Vector2(2, 2)
+collision_layer = 1
+collision_mask = 11
+script = ExtResource("2_npc")
+CombatantId = "companion_hyou"
+Faction = 2
+RemoveFromWorldOnDeath = true
+Speed = 100.0
+RunSpeed = 205.0
+RunStaminaCost = 28.0
+MinStaminaToRun = 18.0
+ActionLungeMultiplier = 0.2
+DefaultMoveset = ExtResource("12_moveset")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=626250723]
+position = Vector2(0, 14)
+scale = Vector2(0.9241728, 0.6761824)
+shape = SubResource("RectangleShape2D_sxeu7")
+
+[node name="Hurtbox" type="Area2D" parent="." unique_id=1699755985]
+collision_layer = 16
+collision_mask = 8
+monitoring = false
+monitorable = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox" unique_id=226924603]
+position = Vector2(0, 2.5)
+shape = SubResource("RectangleShape2D_ytw1f")
+
+[node name="WeaponSprite" type="AnimatedSprite2D" parent="." unique_id=1315873885]
+visible = false
+position = Vector2(0, -16)
+
+[node name="Body" parent="." unique_id=958096685 instance=ExtResource("1_6i4ff")]
+animation = &"Idle"
+
+[node name="HyouCastVisual" type="Node2D" parent="."]
+visible = false
+script = ExtResource("11_cast_visual")
+TimelineStartColumn = 0
+TimelineFrames = 8
+CastDurationSeconds = 2.0
+DebugLogging = false
+
+[node name="BackIce" type="AnimatedSprite2D" parent="HyouCastVisual"]
+z_index = -6
+
+[node name="BackIceBolt" type="AnimatedSprite2D" parent="HyouCastVisual"]
+z_index = -4
+
+[node name="IceBehind" type="AnimatedSprite2D" parent="HyouCastVisual"]
+z_index = -2
+
+[node name="IceUp" type="AnimatedSprite2D" parent="HyouCastVisual"]
+z_index = 2
+
+[node name="UpIce" type="AnimatedSprite2D" parent="HyouCastVisual"]
+z_index = 4
+
+[node name="UpIceBolt" type="AnimatedSprite2D" parent="HyouCastVisual"]
+z_index = 6
+
+[node name="CastOrigin" type="Marker2D" parent="."]
+position = Vector2(0, -8)
+
+[node name="PlayerStats" type="Node" parent="." unique_id=1536723479 node_paths=PackedStringArray("EquipmentMgr")]
+script = ExtResource("3_stats")
+ConfigData = ExtResource("4_config")
+EquipmentMgr = NodePath("../EquipmentManager")
+AutoRegisterWithPlayerManager = false
+
+[node name="EquipmentManager" type="Node" parent="." unique_id=1075680233 node_paths=PackedStringArray("_playerStats")]
+script = ExtResource("5_equip")
+_playerStats = NodePath("../PlayerStats")
+
+[node name="HyouAI" type="Node" parent="." unique_id=1411975786]
+script = ExtResource("6_ai")
+Enabled = false
+EnemySearchRadius = 240.0
+FollowRunDistance = 92.0
+FollowOrbitMinRadius = 46.0
+FollowOrbitMaxRadius = 72.0
+FollowOrbitRetargetMinSeconds = 3.5
+FollowOrbitRetargetMaxSeconds = 7.0
+FollowOrbitArriveRadius = 7.0
+FollowOrbitResumeRadius = 16.0
+LeaderSeparationEnterRadius = 30.0
+LeaderSeparationExitRadius = 40.0
+LeaderSeparationWeight = 2.8
+AttackRange = 142.0
+PreferredAttackDistance = 118.0
+MinimumAttackDistance = 82.0
+RetreatEnterDistance = 58.0
+RetreatExitDistance = 76.0
+AttackLaneTolerance = 18.0
+RepositionRange = 100.0
+
+
+[node name="NavAgent" type="NavigationAgent2D" parent="."]
+path_desired_distance = 6.0
+target_desired_distance = 8.0
+path_max_distance = 28.0
+radius = 12.0
+avoidance_enabled = false
+
+[node name="LoSRay" type="RayCast2D" parent="."]
+enabled = true
+target_position = Vector2(0, -140)
+collision_mask = 1
+collide_with_areas = false
+collide_with_bodies = true
+exclude_parent = true
+
+[node name="CombatDecisionAgent" type="Node" parent="."]
+script = ExtResource("7_decision")
+UseDecisionCore = true
+ShadowMode = false
+CharacterPath = NodePath("..")
+LineOfSightRayPath = NodePath("../LoSRay")
+NavigationAgentPath = NodePath("../NavAgent")
+DecisionIntervalSeconds = 0.12
+EnemySearchRadius = 240.0
+ThreatDangerRange = 78.0
+LeaderDangerRadius = 86.0
+SwitchScoreMargin = 0.14
+EmergencyScoreMargin = 0.08
+MinimumSwitchCooldownSeconds = 0.12
+EmergencyThreatThreshold = 0.30
+ObstacleCollisionMask = 1
+MovementProbeDistance = 34.0
+MovementArrivalDistance = 6.0
+NavigationThreshold = 1000.0
+ClassProfile = ExtResource("8_class")
+DoctrineProfile = ExtResource("9_doctrine")
+PersonalityProfile = ExtResource("10_personality")
+DebugLogging = false
+DebugFactorLogging = false
+TraceHistoryCapacity = 24
+[node name="CombatDecisionDebugOverlay" type="CanvasLayer" parent="."]
+layer = 90
+script = ExtResource("13_debug_overlay")
+AgentPath = NodePath("../CombatDecisionAgent")
+Enabled = false
+VisibleByDefault = false
+RefreshSeconds = 0.15
+MaxCandidates = 6
+

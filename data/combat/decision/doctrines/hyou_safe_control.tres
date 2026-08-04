@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CombatDoctrineProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/Combat/Decision/Profiles/CombatDoctrineProfile.cs" id="1_doctrine"]
+
+[resource]
+script = ExtResource("1_doctrine")
+Aggression = 0.36
+RiskTolerance = 0.24
+RangeDiscipline = 0.92
+ResourceConservation = 0.78
+LeaderProtection = 0.84
+MobilityPreference = 0.71
+RetreatReadiness = 0.88
