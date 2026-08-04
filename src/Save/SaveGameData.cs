@@ -6,7 +6,8 @@ namespace AshesofaDyingWorld.Core.Save
 {
     public sealed class SaveGameData
     {
-        public int Version { get; set; } = 2;
+        // Version 3 chuyển hệ thống kỹ năng sang lưu state thay vì sao chép toàn bộ Resource.
+        public int Version { get; set; } = 3;
         public string SavedAtUtc { get; set; } = "";
         public string ScenePath { get; set; } = "";
         public Vector2SaveData PlayerPosition { get; set; } = new();
@@ -24,7 +25,19 @@ namespace AshesofaDyingWorld.Core.Save
         public float CurrentStamina { get; set; }
         public List<string> InventoryItemPaths { get; set; } = new();
         public List<EquippedItemSaveData> EquippedItems { get; set; } = new();
+
+        /// <summary>
+        /// Dữ liệu mới: chỉ lưu phần thay đổi theo người chơi.
+        /// Tên, icon, damage, mana cost... luôn được đọc từ SkillData hiện hành.
+        /// </summary>
+        public List<SkillStateSaveData> SkillStates { get; set; } = new();
+        public int UnspentSkillPoints { get; set; } = 0;
+
+        /// <summary>
+        /// Dữ liệu cũ của save version 2. Chỉ giữ để migrate, save mới không cần ghi nội dung vào đây.
+        /// </summary>
         public List<SkillSaveData> ActiveSkills { get; set; } = new();
+
         public List<SkillCooldownSaveData> SkillCooldowns { get; set; } = new();
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -38,6 +51,21 @@ namespace AshesofaDyingWorld.Core.Save
         public string ItemId { get; set; } = "";
     }
 
+    /// <summary>
+    /// Trạng thái kỹ năng gọn nhẹ trong save version 3.
+    /// </summary>
+    public sealed class SkillStateSaveData
+    {
+        public string SkillId { get; set; } = "";
+        public int Level { get; set; } = 1;
+        public bool IsUnlocked { get; set; } = true;
+        public int EquippedSlot { get; set; } = -1;
+    }
+
+    /// <summary>
+    /// Schema legacy của save version 2.
+    /// Không xóa ngay để người chơi vẫn tải được save cũ, nhưng code mới không dùng nó làm nguồn sự thật.
+    /// </summary>
     public sealed class SkillSaveData
     {
         public string SkillKey { get; set; } = "";
@@ -45,6 +73,9 @@ namespace AshesofaDyingWorld.Core.Save
         public string IconPath { get; set; } = "";
         public string SkillName { get; set; } = "";
         public string Description { get; set; } = "";
+        public int Category { get; set; } = 0;
+        public int Element { get; set; } = 0;
+        public int MaxLevel { get; set; } = 1;
         public int ExecutionType { get; set; } = 0;
         public string CombatActionPath { get; set; } = "";
         public bool CanUseWhileBlocking { get; set; }

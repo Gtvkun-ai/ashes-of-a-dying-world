@@ -4,6 +4,8 @@ using AshesofaDyingWorld.Core.Data;
 using AshesofaDyingWorld.Core.Managers;
 using System.Collections.Generic;
 using AshesofaDyingWorld.UI.Shared;
+using AshesofaDyingWorld.Core.Skills;
+using AshesofaDyingWorld.UI.HUD.Skills;
 
 namespace AshesofaDyingWorld.UI.HUD
 {
@@ -64,17 +66,26 @@ namespace AshesofaDyingWorld.UI.HUD
 		private EquipmentSlot? _selectedEquipmentSlot;
 		private int _selectedInventorySlotIndex = -1;
 		private string _selectedEquipmentSource = "";
-		private VBoxContainer _skillCategoryContainer;
 		private VBoxContainer _skillEntriesContainer;
 		private readonly Dictionary<string, Button> _skillCategoryButtons = new();
 		private readonly Dictionary<SkillData, PanelContainer> _skillEntryCards = new();
 		private readonly List<SkillData> _allSkills = new();
 		private string _currentSkillFilter = "all";
 		private SkillData _selectedSkill;
+
+		// Các control của tab Kỹ năng. Dữ liệu hiển thị được gom qua SkillViewModel.
+		private Label _skillPointsLabel;
 		private Label _skillDetailTitleLabel;
 		private Label _skillDetailMetaLabel;
-		private Label _skillDetailCooldownLabel;
 		private Label _skillDetailDescriptionLabel;
+		private TextureRect _skillDetailIconRect;
+		private Label _skillDetailIconFallbackLabel;
+		private HFlowContainer _skillDetailBadgeContainer;
+		private Label _skillDamageValueLabel;
+		private Label _skillCooldownValueLabel;
+		private Label _skillCostValueLabel;
+		private Label _skillCastTimeValueLabel;
+		private Label _skillDetailActionHintLabel;
 		private Button _skillEquipButton;
 		private Button _skillUpgradeButton;
 		
@@ -1119,6 +1130,10 @@ namespace AshesofaDyingWorld.UI.HUD
 			};
 		}
 
+		/// <summary>
+		/// Dựng tab Kỹ năng theo bố cục toolbar ngang + danh sách/chi tiết 60/40.
+		/// Layout chỉ chịu trách nhiệm trình bày; state và loadout được quản lý trong PlayerSkillCollection.
+		/// </summary>
 		private Control CreateSkillsPanelLayout()
 		{
 			var panel = new PanelContainer();
@@ -1133,35 +1148,53 @@ namespace AshesofaDyingWorld.UI.HUD
 			outerMargin.AddThemeConstantOverride("margin_bottom", 12);
 			panel.AddChild(outerMargin);
 
+			var layout = new VBoxContainer();
+			layout.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			layout.SizeFlagsVertical = SizeFlags.ExpandFill;
+			layout.AddThemeConstantOverride("separation", 10);
+			outerMargin.AddChild(layout);
+
+			// Thanh lọc ngang giúp dành toàn bộ chiều cao cho nội dung kỹ năng.
+			var toolbar = new PanelContainer();
+			toolbar.CustomMinimumSize = new Vector2(0, 44);
+			toolbar.AddThemeStyleboxOverride("panel", CreateDetailSectionStyle());
+			layout.AddChild(toolbar);
+
+			var toolbarMargin = new MarginContainer();
+			toolbarMargin.AddThemeConstantOverride("margin_left", 12);
+			toolbarMargin.AddThemeConstantOverride("margin_top", 6);
+			toolbarMargin.AddThemeConstantOverride("margin_right", 12);
+			toolbarMargin.AddThemeConstantOverride("margin_bottom", 6);
+			toolbar.AddChild(toolbarMargin);
+
+			var toolbarRow = new HBoxContainer();
+			toolbarRow.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			toolbarRow.AddThemeConstantOverride("separation", 8);
+			toolbarMargin.AddChild(toolbarRow);
+
+			var filtersRow = new HBoxContainer();
+			filtersRow.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			filtersRow.AddThemeConstantOverride("separation", 8);
+			toolbarRow.AddChild(filtersRow);
+			filtersRow.AddChild(CreateSkillCategoryButton("all", "Tất cả"));
+			filtersRow.AddChild(CreateSkillCategoryButton("active", "Chủ động"));
+			filtersRow.AddChild(CreateSkillCategoryButton("passive", "Bị động"));
+			filtersRow.AddChild(CreateSkillCategoryButton("innate", "Nội tại"));
+
+			_skillPointsLabel = CreateLabel("Điểm KN: 0", 13, _mainTextColor);
+			_skillPointsLabel.VerticalAlignment = VerticalAlignment.Center;
+			toolbarRow.AddChild(_skillPointsLabel);
+
 			var body = new HBoxContainer();
 			body.SizeFlagsHorizontal = SizeFlags.ExpandFill;
 			body.SizeFlagsVertical = SizeFlags.ExpandFill;
 			body.AddThemeConstantOverride("separation", 0);
-			outerMargin.AddChild(body);
+			layout.AddChild(body);
 
-			var categoryFrame = CreateOverviewColumn(180, out var categoryColumn);
-			body.AddChild(categoryFrame);
-			categoryColumn.AddChild(CreateSectionTitle("LOẠI KỸ NĂNG"));
-			categoryColumn.AddChild(CreateDivider());
-
-			_skillCategoryContainer = new VBoxContainer();
-			_skillCategoryContainer.AddThemeConstantOverride("separation", 8);
-			categoryColumn.AddChild(_skillCategoryContainer);
-			_skillCategoryContainer.AddChild(CreateSkillCategoryButton("all", "Tất cả"));
-			_skillCategoryContainer.AddChild(CreateSkillCategoryButton("active", "Chủ động"));
-			_skillCategoryContainer.AddChild(CreateSkillCategoryButton("passive", "Bị động"));
-			_skillCategoryContainer.AddChild(CreateSkillCategoryButton("innate", "Nội tại"));
-
-			var categorySpacer = new Control();
-			categorySpacer.SizeFlagsVertical = SizeFlags.ExpandFill;
-			categoryColumn.AddChild(categorySpacer);
-
-			body.AddChild(CreateVerticalDivider());
-
-			var listFrame = CreateOverviewColumn(320, out var listColumn);
+			var listFrame = CreateOverviewColumn(620, out var listColumn);
 			listFrame.SizeFlagsHorizontal = SizeFlags.ExpandFill;
 			body.AddChild(listFrame);
-			listColumn.AddChild(CreateSectionTitle("DANH SÁCH KỸ NĂNG"));
+			listColumn.AddChild(CreateSectionTitle("DANH SÁCH KỸ NĂNG", HorizontalAlignment.Left));
 			listColumn.AddChild(CreateDivider());
 
 			var scroll = new ScrollContainer();
@@ -1176,40 +1209,88 @@ namespace AshesofaDyingWorld.UI.HUD
 
 			body.AddChild(CreateVerticalDivider());
 
-			var detailFrame = CreateOverviewColumn(280, out var detailColumn);
+			var detailFrame = CreateOverviewColumn(400, out var detailColumn);
+			detailFrame.SizeFlagsHorizontal = SizeFlags.ExpandFill;
 			body.AddChild(detailFrame);
-			detailColumn.AddChild(CreateSectionTitle("CHI TIẾT"));
+			detailColumn.AddChild(CreateSectionTitle("CHI TIẾT", HorizontalAlignment.Left));
 			detailColumn.AddChild(CreateDivider());
 
-			_skillDetailTitleLabel = CreateLabel("Chưa chọn kỹ năng", 15, _mainTextColor);
+			var iconHolder = new CenterContainer();
+			iconHolder.CustomMinimumSize = new Vector2(0, 104);
+			detailColumn.AddChild(iconHolder);
+
+			var iconFrame = new PanelContainer();
+			iconFrame.CustomMinimumSize = new Vector2(88, 88);
+			iconFrame.AddThemeStyleboxOverride("panel", CreatePreviewStyle());
+			iconHolder.AddChild(iconFrame);
+
+			var iconCenter = new CenterContainer();
+			iconFrame.AddChild(iconCenter);
+
+			_skillDetailIconRect = new TextureRect();
+			_skillDetailIconRect.CustomMinimumSize = new Vector2(70, 70);
+			_skillDetailIconRect.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
+			_skillDetailIconRect.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
+			_skillDetailIconRect.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
+			iconCenter.AddChild(_skillDetailIconRect);
+
+			_skillDetailIconFallbackLabel = CreateLabel("?", 22, _subTextColor);
+			_skillDetailIconFallbackLabel.HorizontalAlignment = HorizontalAlignment.Center;
+			iconCenter.AddChild(_skillDetailIconFallbackLabel);
+
+			_skillDetailTitleLabel = CreateLabel("Chưa chọn kỹ năng", 18, _mainTextColor);
 			_skillDetailTitleLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+			_skillDetailTitleLabel.HorizontalAlignment = HorizontalAlignment.Center;
 			detailColumn.AddChild(_skillDetailTitleLabel);
 
-			_skillDetailMetaLabel = CreateLabel("", 13, _mainTextColor);
+			_skillDetailBadgeContainer = new HFlowContainer();
+			_skillDetailBadgeContainer.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			_skillDetailBadgeContainer.AddThemeConstantOverride("h_separation", 6);
+			_skillDetailBadgeContainer.AddThemeConstantOverride("v_separation", 6);
+			detailColumn.AddChild(_skillDetailBadgeContainer);
+
+			_skillDetailMetaLabel = CreateLabel("", 12, _subTextColor);
+			_skillDetailMetaLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
 			detailColumn.AddChild(_skillDetailMetaLabel);
 
-			_skillDetailCooldownLabel = CreateLabel("", 13, _mainTextColor);
-			detailColumn.AddChild(_skillDetailCooldownLabel);
-
-			detailColumn.AddChild(CreateSectionSpacer(14));
-			_skillDetailDescriptionLabel = CreateLabel("Chọn một kỹ năng ở danh sách bên trái để xem mô tả chi tiết.", 12, _subTextColor);
+			_skillDetailDescriptionLabel = CreateLabel(
+				"Chọn một kỹ năng ở danh sách bên trái để xem mô tả chi tiết.",
+				12,
+				_subTextColor);
 			_skillDetailDescriptionLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-			_skillDetailDescriptionLabel.SizeFlagsVertical = SizeFlags.ExpandFill;
 			detailColumn.AddChild(_skillDetailDescriptionLabel);
 
-			var skillActions = new HBoxContainer();
-			skillActions.AddThemeConstantOverride("separation", 8);
-			detailColumn.AddChild(skillActions);
+			detailColumn.AddChild(CreateSectionSpacer(4));
+			detailColumn.AddChild(CreateDivider());
 
-			_skillEquipButton = CreateActionButton("Trang bị", null);
-			_skillEquipButton.Disabled = true;
-			_skillEquipButton.TooltipText = "Chức năng trang bị kỹ năng chưa được triển khai trong project hiện tại.";
-			skillActions.AddChild(_skillEquipButton);
+			var stats = new VBoxContainer();
+			stats.AddThemeConstantOverride("separation", 2);
+			detailColumn.AddChild(stats);
+			stats.AddChild(CreateCombatStatRow("Sát thương", out _skillDamageValueLabel));
+			stats.AddChild(CreateThinDivider());
+			stats.AddChild(CreateCombatStatRow("Hồi chiêu", out _skillCooldownValueLabel));
+			stats.AddChild(CreateThinDivider());
+			stats.AddChild(CreateCombatStatRow("Tiêu hao", out _skillCostValueLabel));
+			stats.AddChild(CreateThinDivider());
+			stats.AddChild(CreateCombatStatRow("Thi triển", out _skillCastTimeValueLabel));
 
-			_skillUpgradeButton = CreateActionButton("Nâng cấp", null);
-			_skillUpgradeButton.Disabled = true;
-			_skillUpgradeButton.TooltipText = "Chức năng nâng cấp kỹ năng chưa được triển khai trong project hiện tại.";
-			skillActions.AddChild(_skillUpgradeButton);
+			var actionSpacer = new Control();
+			actionSpacer.SizeFlagsVertical = SizeFlags.ExpandFill;
+			detailColumn.AddChild(actionSpacer);
+
+			var actions = new HBoxContainer();
+			actions.AddThemeConstantOverride("separation", 8);
+			detailColumn.AddChild(actions);
+
+			_skillEquipButton = CreateActionButton("TRANG BỊ VÀO SLOT 1", EquipSelectedSkillToSlotOne);
+			actions.AddChild(_skillEquipButton);
+
+			_skillUpgradeButton = CreateActionButton("NÂNG CẤP", UpgradeSelectedSkill);
+			actions.AddChild(_skillUpgradeButton);
+
+			_skillDetailActionHintLabel = CreateLabel("", 11, _subTextColor);
+			_skillDetailActionHintLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+			detailColumn.AddChild(_skillDetailActionHintLabel);
 
 			RefreshSkillCategoryStyles();
 			UpdateSkillDetailPanel();
@@ -1220,10 +1301,11 @@ namespace AshesofaDyingWorld.UI.HUD
 		{
 			var button = new Button();
 			button.Text = text;
-			button.CustomMinimumSize = new Vector2(0, 34);
-			button.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			button.CustomMinimumSize = new Vector2(0, 32);
+			button.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
 			button.FocusMode = FocusModeEnum.None;
 			button.MouseDefaultCursorShape = CursorShape.PointingHand;
+			button.AddThemeFontSizeOverride("font_size", 13);
 			button.Pressed += () => SelectSkillFilter(filterId);
 			_skillCategoryButtons[filterId] = button;
 			return button;
@@ -1241,12 +1323,44 @@ namespace AshesofaDyingWorld.UI.HUD
 			foreach (var pair in _skillCategoryButtons)
 			{
 				bool active = pair.Key == _currentSkillFilter;
-				pair.Value.AddThemeStyleboxOverride("normal", CreateSlotStyle(active));
-				pair.Value.AddThemeStyleboxOverride("hover", InventoryPanelChrome.CreateSlotHoverStyle());
-				pair.Value.AddThemeStyleboxOverride("pressed", InventoryPanelChrome.CreateSlotPressedStyle());
+				pair.Value.Text = GetSkillFilterCaption(pair.Key);
+				pair.Value.AddThemeStyleboxOverride("normal", CreateSkillFilterChipStyle(active));
+				pair.Value.AddThemeStyleboxOverride("hover", CreateSkillFilterChipHoverStyle(active));
+				pair.Value.AddThemeStyleboxOverride("pressed", CreateSkillFilterChipHoverStyle(true));
 				pair.Value.AddThemeColorOverride("font_color", active ? _mainTextColor : _subTextColor);
 				pair.Value.AddThemeColorOverride("font_hover_color", _mainTextColor);
+				pair.Value.AddThemeColorOverride("font_pressed_color", _mainTextColor);
 			}
+
+			if (_skillPointsLabel != null)
+			{
+				_skillPointsLabel.Text = $"Điểm KN: {ResolvePlayer()?.GetUnspentSkillPoints() ?? 0}";
+			}
+		}
+
+		private string GetSkillFilterCaption(string filterId)
+		{
+			string label = filterId switch
+			{
+				"active" => "Chủ động",
+				"passive" => "Bị động",
+				"innate" => "Nội tại",
+				_ => "Tất cả"
+			};
+			return $"{label} {GetSkillCountForFilter(filterId)}";
+		}
+
+		private int GetSkillCountForFilter(string filterId)
+		{
+			int count = 0;
+			foreach (SkillData skill in _allSkills)
+			{
+				if (skill != null && (filterId == "all" || SkillMatchesFilter(skill, filterId)))
+				{
+					count++;
+				}
+			}
+			return count;
 		}
 
 		private void UpdateSkillsPanel(CharacterConfig config)
@@ -1260,6 +1374,7 @@ namespace AshesofaDyingWorld.UI.HUD
 				_selectedSkill = null;
 			}
 
+			RefreshSkillCategoryStyles();
 			RefreshSkillsList();
 		}
 
@@ -1270,7 +1385,7 @@ namespace AshesofaDyingWorld.UI.HUD
 				return;
 			}
 
-			foreach (var skill in source)
+			foreach (SkillData skill in source)
 			{
 				if (skill != null && !target.Contains(skill))
 				{
@@ -1286,16 +1401,17 @@ namespace AshesofaDyingWorld.UI.HUD
 				return;
 			}
 
-			foreach (var child in _skillEntriesContainer.GetChildren())
+			foreach (Node child in _skillEntriesContainer.GetChildren())
 			{
+				_skillEntriesContainer.RemoveChild(child);
 				child.QueueFree();
 			}
 			_skillEntryCards.Clear();
 
 			var filteredSkills = new List<SkillData>();
-			foreach (var skill in _allSkills)
+			foreach (SkillData skill in _allSkills)
 			{
-				if (SkillMatchesCurrentFilter(skill))
+				if (skill != null && (_currentSkillFilter == "all" || SkillMatchesFilter(skill, _currentSkillFilter)))
 				{
 					filteredSkills.Add(skill);
 				}
@@ -1314,7 +1430,7 @@ namespace AshesofaDyingWorld.UI.HUD
 				_selectedSkill = filteredSkills[0];
 			}
 
-			foreach (var skill in filteredSkills)
+			foreach (SkillData skill in filteredSkills)
 			{
 				_skillEntriesContainer.AddChild(CreateSkillEntry(skill));
 			}
@@ -1323,51 +1439,78 @@ namespace AshesofaDyingWorld.UI.HUD
 			UpdateSkillDetailPanel();
 		}
 
-		private bool SkillMatchesCurrentFilter(SkillData skill)
+		private bool SkillMatchesFilter(SkillData skill, string filterId)
 		{
-			if (skill == null) return false;
-			return _currentSkillFilter switch
+			if (skill == null)
 			{
-				"active" => GetSkillCategoryLabel(skill) == "Chủ động",
-				"passive" => GetSkillCategoryLabel(skill) == "Bị động",
-				"innate" => GetSkillCategoryLabel(skill) == "Nội tại",
+				return false;
+			}
+
+			return filterId switch
+			{
+				"active" => skill.Category == SkillCategory.Active,
+				"passive" => skill.Category == SkillCategory.Passive,
+				"innate" => skill.Category == SkillCategory.Innate,
 				_ => true
 			};
 		}
 
 		private Control CreateSkillEntry(SkillData skill)
 		{
+			SkillViewModel view = BuildSkillViewModel(skill);
+
 			var card = new PanelContainer();
 			card.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			card.CustomMinimumSize = new Vector2(0, 56);
-			card.AddThemeStyleboxOverride("panel", CreateSlotStyle(skill == _selectedSkill));
+			card.CustomMinimumSize = new Vector2(0, 76);
+			card.AddThemeStyleboxOverride("panel", CreateSkillCardStyle(skill == _selectedSkill));
 
 			var margin = new MarginContainer();
-			margin.AddThemeConstantOverride("margin_left", 10);
-			margin.AddThemeConstantOverride("margin_top", 8);
-			margin.AddThemeConstantOverride("margin_right", 10);
-			margin.AddThemeConstantOverride("margin_bottom", 8);
+			margin.AddThemeConstantOverride("margin_left", 12);
+			margin.AddThemeConstantOverride("margin_top", 9);
+			margin.AddThemeConstantOverride("margin_right", 12);
+			margin.AddThemeConstantOverride("margin_bottom", 9);
 			card.AddChild(margin);
 
 			var row = new HBoxContainer();
 			row.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			row.AddThemeConstantOverride("separation", 8);
+			row.AddThemeConstantOverride("separation", 12);
 			margin.AddChild(row);
+			row.AddChild(CreateSkillIconFrame(view.Icon, 48f, 34f));
 
-			row.AddChild(CreateSkillIconFrame(skill));
+			var textColumn = new VBoxContainer();
+			textColumn.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			textColumn.AddThemeConstantOverride("separation", 2);
+			row.AddChild(textColumn);
 
-			var nameLabel = CreateLabel($"{(string.IsNullOrWhiteSpace(skill.SkillName) ? "Kỹ năng" : skill.SkillName)}   Lv.1", 13, _mainTextColor);
-			nameLabel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			nameLabel.VerticalAlignment = VerticalAlignment.Center;
-			row.AddChild(nameLabel);
+			var titleRow = new HBoxContainer();
+			titleRow.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			textColumn.AddChild(titleRow);
+
+			var title = CreateLabel(view.Name.ToUpper(), 14, _mainTextColor);
+			title.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			titleRow.AddChild(title);
+
+			string stateText = view.IsEquipped
+				? $"SLOT {view.EquippedSlot + 1}"
+				: view.LevelText;
+			var stateLabel = CreateLabel(stateText, 11, view.IsEquipped ? GetCharacterAccentColor() : _subTextColor);
+			stateLabel.HorizontalAlignment = HorizontalAlignment.Right;
+			titleRow.AddChild(stateLabel);
+
+			var subtitle = CreateLabel(view.SubtitleText, 12, _subTextColor);
+			subtitle.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+			textColumn.AddChild(subtitle);
+
+			var quickStats = CreateLabel(view.QuickStatsText, 12, _mainTextColor);
+			textColumn.AddChild(quickStats);
 
 			var button = new Button();
 			button.SetAnchorsPreset(LayoutPreset.FullRect);
 			button.FocusMode = FocusModeEnum.None;
 			button.MouseDefaultCursorShape = CursorShape.PointingHand;
 			button.AddThemeStyleboxOverride("normal", InventoryPanelChrome.CreateTransparentButtonStyle());
-			button.AddThemeStyleboxOverride("hover", InventoryPanelChrome.CreateSlotHoverStyle());
-			button.AddThemeStyleboxOverride("pressed", InventoryPanelChrome.CreateSlotPressedStyle());
+			button.AddThemeStyleboxOverride("hover", InventoryPanelChrome.CreateTransparentButtonStyle());
+			button.AddThemeStyleboxOverride("pressed", InventoryPanelChrome.CreateTransparentButtonStyle());
 			button.Pressed += () => OnSkillEntryPressed(skill);
 			card.AddChild(button);
 
@@ -1386,23 +1529,23 @@ namespace AshesofaDyingWorld.UI.HUD
 		{
 			foreach (var pair in _skillEntryCards)
 			{
-				pair.Value.AddThemeStyleboxOverride("panel", CreateSlotStyle(pair.Key == _selectedSkill));
+				pair.Value.AddThemeStyleboxOverride("panel", CreateSkillCardStyle(pair.Key == _selectedSkill));
 			}
 		}
 
-		private Control CreateSkillIconFrame(SkillData skill)
+		private Control CreateSkillIconFrame(Texture2D texture, float frameSize, float iconSize)
 		{
 			var frame = new PanelContainer();
-			frame.CustomMinimumSize = new Vector2(36, 36);
+			frame.CustomMinimumSize = new Vector2(frameSize, frameSize);
 			frame.AddThemeStyleboxOverride("panel", CreatePreviewStyle());
 			var center = new CenterContainer();
 			frame.AddChild(center);
 
-			if (skill?.Icon != null)
+			if (texture != null)
 			{
 				var icon = new TextureRect();
-				icon.Texture = skill.Icon;
-				icon.CustomMinimumSize = new Vector2(28, 28);
+				icon.Texture = texture;
+				icon.CustomMinimumSize = new Vector2(iconSize, iconSize);
 				icon.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
 				icon.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
 				icon.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
@@ -1410,7 +1553,7 @@ namespace AshesofaDyingWorld.UI.HUD
 			}
 			else
 			{
-				var fallback = CreateLabel("●", 14, _subTextColor);
+				var fallback = CreateLabel("?", 14, _subTextColor);
 				fallback.HorizontalAlignment = HorizontalAlignment.Center;
 				center.AddChild(fallback);
 			}
@@ -1424,9 +1567,9 @@ namespace AshesofaDyingWorld.UI.HUD
 			panel.AddThemeStyleboxOverride("panel", CreateDetailSectionStyle());
 			var margin = new MarginContainer();
 			margin.AddThemeConstantOverride("margin_left", 16);
-			margin.AddThemeConstantOverride("margin_top", 18);
+			margin.AddThemeConstantOverride("margin_top", 20);
 			margin.AddThemeConstantOverride("margin_right", 16);
-			margin.AddThemeConstantOverride("margin_bottom", 18);
+			margin.AddThemeConstantOverride("margin_bottom", 20);
 			panel.AddChild(margin);
 			var label = CreateLabel("Không có kỹ năng phù hợp với bộ lọc hiện tại.", 13, _subTextColor);
 			label.AutowrapMode = TextServer.AutowrapMode.WordSmart;
@@ -1442,66 +1585,210 @@ namespace AshesofaDyingWorld.UI.HUD
 				return;
 			}
 
+			RefreshSkillCategoryStyles();
+
 			if (_selectedSkill == null)
 			{
 				_skillDetailTitleLabel.Text = "Chưa chọn kỹ năng";
 				_skillDetailMetaLabel.Text = "";
-				_skillDetailCooldownLabel.Text = "";
 				_skillDetailDescriptionLabel.Text = "Chọn một kỹ năng ở danh sách bên trái để xem mô tả chi tiết.";
+				_skillDamageValueLabel.Text = "-";
+				_skillCooldownValueLabel.Text = "-";
+				_skillCostValueLabel.Text = "-";
+				_skillCastTimeValueLabel.Text = "-";
+				_skillDetailIconRect.Texture = null;
+				_skillDetailIconRect.Visible = false;
+				_skillDetailIconFallbackLabel.Visible = true;
+				ClearSkillDetailBadges();
+				_skillEquipButton.Disabled = true;
+				_skillUpgradeButton.Visible = false;
+				_skillDetailActionHintLabel.Text = "";
 				return;
 			}
 
-			_skillDetailTitleLabel.Text = string.IsNullOrWhiteSpace(_selectedSkill.SkillName) ? "Kỹ năng" : _selectedSkill.SkillName.ToUpper();
-			_skillDetailMetaLabel.Text = BuildSkillMetaLine(_selectedSkill);
-			_skillDetailCooldownLabel.Text = BuildSkillCooldownLine(_selectedSkill);
+			SkillViewModel view = BuildSkillViewModel(_selectedSkill);
+			_skillDetailTitleLabel.Text = view.MaxLevel > 1
+				? $"{view.Name.ToUpper()} · LV.{view.Level}/{view.MaxLevel}"
+				: view.Name.ToUpper();
+			_skillDetailMetaLabel.Text = view.BonusSummary;
 			_skillDetailDescriptionLabel.Text = string.IsNullOrWhiteSpace(_selectedSkill.Description)
 				? "Kỹ năng này chưa có mô tả."
 				: _selectedSkill.Description;
+			_skillDamageValueLabel.Text = view.DamageText;
+			_skillCooldownValueLabel.Text = view.CooldownText;
+			_skillCostValueLabel.Text = view.CostText;
+			_skillCastTimeValueLabel.Text = view.CastTimeText;
+
+			_skillDetailIconRect.Texture = view.Icon;
+			_skillDetailIconRect.Visible = view.Icon != null;
+			_skillDetailIconFallbackLabel.Visible = view.Icon == null;
+			PopulateSkillDetailBadges(view);
+			UpdateSkillActionButtons(view);
 		}
 
-		private string BuildSkillMetaLine(SkillData skill)
+		private SkillViewModel BuildSkillViewModel(SkillData skill)
 		{
-			var text = GetSkillCategoryLabel(skill);
-			if (skill.ManaCost > 0)
-			{
-				text += $" · {skill.ManaCost} MP";
-			}
-			if (skill.StaminaCost > 0)
-			{
-				text += $" · {skill.StaminaCost} STA";
-			}
-			return text;
+			Player player = ResolvePlayer();
+			PlayerSkillState state = player?.GetSkillState(skill);
+			return new SkillViewModel(skill, state);
 		}
 
-		private string BuildSkillCooldownLine(SkillData skill)
+		private void UpdateSkillActionButtons(SkillViewModel view)
 		{
-			if (skill.Cooldown <= 0f)
+			Player player = ResolvePlayer();
+			bool canManage = player != null && player.OwnsSkill(view.Definition);
+
+			_skillEquipButton.Visible = view.Definition.Category == SkillCategory.Active;
+			_skillEquipButton.Disabled = !canManage || !view.CanEquip || view.EquippedSlot == 0;
+			_skillEquipButton.Text = view.EquippedSlot switch
 			{
-				return "Hồi chiêu: tức thì";
+				0 => "ĐÃ TRANG BỊ SLOT 1",
+				> 0 => "CHUYỂN SANG SLOT 1",
+				_ => "TRANG BỊ VÀO SLOT 1"
+			};
+
+			_skillUpgradeButton.Visible = view.MaxLevel > 1;
+			_skillUpgradeButton.Disabled = !canManage
+				|| !view.IsUnlocked
+				|| view.Level >= view.MaxLevel
+				|| (player?.GetUnspentSkillPoints() ?? 0) <= 0;
+			_skillUpgradeButton.Text = view.Level >= view.MaxLevel
+				? "ĐÃ ĐẠT CẤP TỐI ĐA"
+				: "NÂNG CẤP · 1 ĐIỂM";
+
+			if (!canManage)
+			{
+				_skillDetailActionHintLabel.Text = "Kỹ năng này không thuộc loadout của Player hiện tại.";
 			}
-			return $"Hồi chiêu: {Mathf.RoundToInt(skill.Cooldown)} giây";
+			else if (!view.IsUnlocked)
+			{
+				_skillDetailActionHintLabel.Text = "Kỹ năng chưa được mở khóa.";
+			}
+			else if (view.Definition.Category != SkillCategory.Active)
+			{
+				_skillDetailActionHintLabel.Text = "Kỹ năng bị động và nội tại không cần gắn vào slot chủ động.";
+			}
+			else if (view.IsEquipped)
+			{
+				_skillDetailActionHintLabel.Text = $"Đang trang bị ở slot {view.EquippedSlot + 1}.";
+			}
+			else
+			{
+				_skillDetailActionHintLabel.Text = "Trang bị vào slot 1 sẽ thay kỹ năng đang chiếm slot đó, nếu có.";
+			}
 		}
 
-		private string GetSkillCategoryLabel(SkillData skill)
+		private void EquipSelectedSkillToSlotOne()
 		{
-			if (skill == null)
+			Player player = ResolvePlayer();
+			if (_selectedSkill == null || player == null || !player.TryEquipSkill(_selectedSkill, 0))
 			{
-				return "Chủ động";
+				return;
 			}
 
-			string id = skill.SkillId?.ToLowerInvariant() ?? string.Empty;
-			string name = skill.SkillName?.ToLowerInvariant() ?? string.Empty;
-			if (id.Contains("racial") || id.Contains("innate") || name.Contains("nội tại"))
+			RefreshSkillsList();
+		}
+
+		private void UpgradeSelectedSkill()
+		{
+			Player player = ResolvePlayer();
+			if (_selectedSkill == null || player == null || !player.TryUpgradeSkill(_selectedSkill))
 			{
-				return "Nội tại";
+				return;
 			}
 
-			if (skill.ManaCost <= 0 && skill.StaminaCost <= 0 && skill.Cooldown <= 0 && skill.ExecutionType == SkillExecutionType.TimedBuff)
+			RefreshSkillsList();
+		}
+
+		private void ClearSkillDetailBadges()
+		{
+			if (_skillDetailBadgeContainer == null)
 			{
-				return "Bị động";
+				return;
 			}
 
-			return "Chủ động";
+			foreach (Node child in _skillDetailBadgeContainer.GetChildren())
+			{
+				_skillDetailBadgeContainer.RemoveChild(child);
+				child.QueueFree();
+			}
+		}
+
+		private void PopulateSkillDetailBadges(SkillViewModel view)
+		{
+			ClearSkillDetailBadges();
+			foreach (string badgeText in view.GetBadges())
+			{
+				_skillDetailBadgeContainer.AddChild(CreateSkillBadge(badgeText));
+			}
+		}
+
+		private Control CreateSkillBadge(string text)
+		{
+			var badge = new PanelContainer();
+			badge.AddThemeStyleboxOverride("panel", CreateSkillBadgeStyle());
+			var margin = new MarginContainer();
+			margin.AddThemeConstantOverride("margin_left", 8);
+			margin.AddThemeConstantOverride("margin_top", 3);
+			margin.AddThemeConstantOverride("margin_right", 8);
+			margin.AddThemeConstantOverride("margin_bottom", 3);
+			badge.AddChild(margin);
+			margin.AddChild(CreateLabel(text, 11, _mainTextColor));
+			return badge;
+		}
+
+		private StyleBoxFlat CreateSkillFilterChipStyle(bool active)
+		{
+			Color accent = GetCharacterAccentColor();
+			return InventoryPanelChrome.CreateButtonStyle(
+				active ? new Color(accent.R, accent.G, accent.B, 0.18f) : InventoryPanelChrome.ButtonNormalColor,
+				active ? accent : _borderColor,
+				active ? 2 : 1);
+		}
+
+		private StyleBoxFlat CreateSkillFilterChipHoverStyle(bool active)
+		{
+			Color accent = GetCharacterAccentColor();
+			return InventoryPanelChrome.CreateButtonStyle(
+				InventoryPanelChrome.ButtonHoverColor,
+				active ? accent : InventoryPanelChrome.StrongBorderColor,
+				active ? 2 : 1);
+		}
+
+		private StyleBoxFlat CreateSkillCardStyle(bool selected)
+		{
+			Color accent = GetCharacterAccentColor();
+			var style = new StyleBoxFlat();
+			style.BgColor = selected
+				? new Color(accent.R, accent.G, accent.B, 0.12f)
+				: InventoryPanelChrome.SlotSurfaceColor;
+			style.BorderColor = selected ? accent : _borderColor.Darkened(0.05f);
+			style.SetBorderWidthAll(selected ? 2 : 1);
+			style.SetCornerRadiusAll(3);
+			if (selected)
+			{
+				style.ShadowColor = new Color(accent.R, accent.G, accent.B, 0.20f);
+				style.ShadowSize = 4;
+			}
+			return style;
+		}
+
+		private StyleBoxFlat CreateSkillBadgeStyle()
+		{
+			Color accent = GetCharacterAccentColor();
+			var style = new StyleBoxFlat();
+			style.BgColor = new Color(accent.R, accent.G, accent.B, 0.14f);
+			style.BorderColor = new Color(accent.R, accent.G, accent.B, 0.55f);
+			style.SetBorderWidthAll(1);
+			style.SetCornerRadiusAll(99);
+			return style;
+		}
+
+		private Color GetCharacterAccentColor()
+		{
+			bool themeIsReadable = _currentThemeColor.A > 0.1f
+				&& Mathf.Max(_currentThemeColor.R, Mathf.Max(_currentThemeColor.G, _currentThemeColor.B)) > 0.22f;
+			return themeIsReadable ? _currentThemeColor : _accentColor;
 		}
 
 		private Button CreateActionButton(string text, System.Action onPressed)
@@ -1633,13 +1920,14 @@ namespace AshesofaDyingWorld.UI.HUD
 		// Cập nhật style của các panel với màu theme mới
 		private void UpdatePanelStyles()
 		{
-			// Một vài CharacterConfig đang để ThemeColor = đen. Dùng thẳng màu đó
-			// sẽ khiến chữ cấp độ biến mất trên nền tối, một màn ảo thuật không ai cần.
-			bool themeIsReadable = _currentThemeColor.A > 0.1f
-				&& Mathf.Max(_currentThemeColor.R, Mathf.Max(_currentThemeColor.G, _currentThemeColor.B)) > 0.22f;
-			Color characterAccent = themeIsReadable ? _currentThemeColor : _accentColor;
+			Color characterAccent = GetCharacterAccentColor();
 			_levelLabel?.AddThemeColorOverride("font_color", characterAccent);
 			ResetTabButtonColors();
+
+			// Theme nhân vật cũng được dùng cho chip, badge và card đang chọn.
+			RefreshSkillCategoryStyles();
+			UpdateSkillEntrySelectionVisuals();
+			UpdateSkillDetailPanel();
 		}
 
 		private void LoadCharacterList()
