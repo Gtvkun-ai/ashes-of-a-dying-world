@@ -19,16 +19,22 @@ namespace AshesofaDyingWorld.UI.HUD
         private TextureRect frameBackground;
         private ShaderMaterial shaderMaterial;
         private const string ShaderPath = "res://assets/shaders/outline.gdshader";
+        private const string StatusEffectFrameTexturePath = "res://assets/graphics/ui/hud/status_effects/status_effect_icon_frame.png";
+        private const float StatusEffectBadgeSize = 28.0f;
+        private const float StatusEffectIconInset = 4.0f;
+        private const float StatusEffectBadgeSpacing = 4.0f;
         private Control _activeSkillStrip;
+        private Texture2D _statusEffectFrameTexture;
         private readonly List<SkillBadgeView> _skillBadgeViews = new();
 
         private sealed class SkillBadgeView
         {
             public SkillData Skill;
-            public PanelContainer Holder;
+            public Control Holder;
             public TextureRect Icon;
             public ColorRect Overlay;
             public ColorRect OverlayEdge;
+            public TextureRect Frame;
         }
 
         public override void _Ready()
@@ -57,6 +63,7 @@ namespace AshesofaDyingWorld.UI.HUD
                 GD.PrintErr($"[CharacterUnitHUD] Shader or frameBackground not found");
             }
 
+            LoadStatusEffectFrameTexture();
             SetupActiveSkillStrip();
             if (frameBackground != null)
             {
@@ -148,6 +155,12 @@ namespace AshesofaDyingWorld.UI.HUD
                 frameBackground.Resized -= OnFrameBackgroundResized;
         }
 
+        private void LoadStatusEffectFrameTexture()
+        {
+            // Khung icon effect load mềm; nếu thiếu file thì HUD vẫn chạy, chỉ mất viền đẹp.
+            _statusEffectFrameTexture = GD.Load<Texture2D>(StatusEffectFrameTexturePath);
+        }
+
         private void SetupActiveSkillStrip()
         {
             if (_activeSkillStrip != null)
@@ -188,57 +201,69 @@ namespace AshesofaDyingWorld.UI.HUD
                     continue;
                 }
 
-                var badge = new PanelContainer();
+                // Khung icon effect dùng texture riêng để cùng ngôn ngữ thiết kế với HUD.
+                var badge = new Control();
                 badge.Visible = false;
-                badge.CustomMinimumSize = new Vector2(30, 24);
+                badge.CustomMinimumSize = new Vector2(StatusEffectBadgeSize, StatusEffectBadgeSize);
                 badge.MouseFilter = MouseFilterEnum.Ignore;
                 badge.SetAnchorsPreset(LayoutPreset.TopLeft);
-                badge.Size = new Vector2(30.0f, 24.0f);
-
-                var badgeStyle = new StyleBoxFlat();
-                badgeStyle.BgColor = new Color(0.03f, 0.05f, 0.08f, 0.96f);
-                badgeStyle.BorderColor = new Color(0.67f, 0.78f, 0.89f, 0.55f);
-                badgeStyle.SetBorderWidthAll(1);
-                badgeStyle.SetCornerRadiusAll(3);
-                badge.AddThemeStyleboxOverride("panel", badgeStyle);
+                badge.Size = new Vector2(StatusEffectBadgeSize, StatusEffectBadgeSize);
                 _activeSkillStrip.AddChild(badge);
 
                 var clipRoot = new Control();
+                clipRoot.Name = "ClipRoot";
                 clipRoot.SetAnchorsPreset(LayoutPreset.FullRect);
+                clipRoot.OffsetLeft = StatusEffectIconInset;
+                clipRoot.OffsetTop = StatusEffectIconInset;
+                clipRoot.OffsetRight = -StatusEffectIconInset;
+                clipRoot.OffsetBottom = -StatusEffectIconInset;
                 clipRoot.MouseFilter = MouseFilterEnum.Ignore;
                 clipRoot.ClipContents = true;
                 badge.AddChild(clipRoot);
 
+                var iconBackground = new ColorRect();
+                iconBackground.MouseFilter = MouseFilterEnum.Ignore;
+                iconBackground.Color = new Color(0.10f, 0.05f, 0.02f, 0.92f);
+                iconBackground.SetAnchorsPreset(LayoutPreset.FullRect);
+                clipRoot.AddChild(iconBackground);
+
                 var iconCenter = new CenterContainer();
                 iconCenter.SetAnchorsPreset(LayoutPreset.FullRect);
-                iconCenter.OffsetLeft = 1.0f;
-                iconCenter.OffsetTop = 1.0f;
-                iconCenter.OffsetRight = -1.0f;
-                iconCenter.OffsetBottom = -1.0f;
                 iconCenter.MouseFilter = MouseFilterEnum.Ignore;
                 clipRoot.AddChild(iconCenter);
 
-                var icon = CreateAutoSizedSkillIcon(skill.Icon, 21.0f, 18.0f);
+                var icon = CreateAutoSizedSkillIcon(skill.Icon, 16.0f, 16.0f);
                 iconCenter.AddChild(icon);
 
+                // Overlay tối chạy từ trên xuống, biểu diễn phần thời gian đã trôi qua.
                 var overlay = new ColorRect();
                 overlay.MouseFilter = MouseFilterEnum.Ignore;
-                overlay.Color = new Color(0.01f, 0.03f, 0.08f, 0.82f);
+                overlay.Color = new Color(0.02f, 0.01f, 0.00f, 0.58f);
                 clipRoot.AddChild(overlay);
 
+                // Viền mảnh màu vàng ở mép overlay để nhìn rõ nhịp tụt thời gian.
                 var overlayEdge = new ColorRect();
                 overlayEdge.MouseFilter = MouseFilterEnum.Ignore;
-                overlayEdge.Color = new Color(0.55f, 0.81f, 1.0f, 0.95f);
+                overlayEdge.Color = new Color(0.90f, 0.73f, 0.36f, 0.95f);
                 clipRoot.AddChild(overlayEdge);
 
-                badge.TooltipText = string.IsNullOrWhiteSpace(skill.SkillName) ? "Skill" : skill.SkillName;
+                var frame = new TextureRect();
+                frame.MouseFilter = MouseFilterEnum.Ignore;
+                frame.Texture = _statusEffectFrameTexture;
+                frame.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
+                frame.StretchMode = TextureRect.StretchModeEnum.Scale;
+                frame.SetAnchorsPreset(LayoutPreset.FullRect);
+                badge.AddChild(frame);
+
+                badge.TooltipText = string.IsNullOrWhiteSpace(skill.SkillName) ? "Hiệu ứng kỹ năng" : skill.SkillName;
                 _skillBadgeViews.Add(new SkillBadgeView
                 {
                     Skill = skill,
                     Holder = badge,
                     Icon = icon,
                     Overlay = overlay,
-                    OverlayEdge = overlayEdge
+                    OverlayEdge = overlayEdge,
+                    Frame = frame
                 });
             }
         }
@@ -268,7 +293,7 @@ namespace AshesofaDyingWorld.UI.HUD
                     continue;
                 }
 
-                bool isVisible = badgeView.Skill == activeSkill && overlayRatio > 0.0f;
+                bool isVisible = badgeView.Skill == activeSkill && activeSkill != null && remaining > 0.0f;
                 badgeView.Holder.Visible = isVisible;
                 if (!isVisible)
                 {
@@ -278,7 +303,7 @@ namespace AshesofaDyingWorld.UI.HUD
                 }
 
                 hasVisibleBadge = true;
-                badgeView.Holder.Position = new Vector2(visibleIndex * 34.0f, 0.0f);
+                badgeView.Holder.Position = new Vector2(visibleIndex * (StatusEffectBadgeSize + StatusEffectBadgeSpacing), 0.0f);
                 visibleIndex++;
 
                 Vector2 badgeSize = badgeView.Overlay.GetParent<Control>().Size;
@@ -288,7 +313,7 @@ namespace AshesofaDyingWorld.UI.HUD
                 badgeView.Overlay.Position = Vector2.Zero;
                 badgeView.Overlay.Size = new Vector2(badgeSize.X, overlayHeight);
 
-                bool showEdge = overlayRatio > 0.0f && overlayRatio < 1.0f;
+                bool showEdge = overlayRatio > 0.02f && overlayRatio < 1.0f;
                 badgeView.OverlayEdge.Visible = showEdge;
                 if (showEdge)
                 {
@@ -312,7 +337,7 @@ namespace AshesofaDyingWorld.UI.HUD
             _activeSkillStrip.OffsetLeft = 8.0f;
             _activeSkillStrip.OffsetTop = top;
             _activeSkillStrip.OffsetRight = 180.0f;
-            _activeSkillStrip.OffsetBottom = top + 26.0f;
+            _activeSkillStrip.OffsetBottom = top + StatusEffectBadgeSize + 2.0f;
         }
 
         private void OnFrameBackgroundResized()
