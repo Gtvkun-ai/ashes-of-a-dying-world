@@ -16,6 +16,16 @@
 [ext_resource type="PackedScene" uid="uid://didkkxo61jbss" path="res://scenes/characters/companions/hyou.tscn" id="14_6n8e1"]
 [ext_resource type="PackedScene" uid="uid://bw0xlnjpp75sv" path="res://scenes/world/props/trees/apple_tree.tscn" id="15_3drur"]
 [ext_resource type="PackedScene" uid="uid://bry35o5o8jdxs" path="res://scenes/world/props/flora/grass_patch.tscn" id="16_85bg5"]
+[ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/00_ground_base.png" id="20_ground_base"]
+[ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/01_ground_variation.png" id="21_ground_variation"]
+[ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/02_canopy_shadow.png" id="22_canopy_shadow"]
+[ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/03_dirt_path.png" id="23_dirt_path"]
+[ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/04_cliff_top.png" id="24_cliff_top"]
+[ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/05_cliff_wall.png" id="25_cliff_wall"]
+[ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/06_stairs.png" id="26_stairs"]
+[ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/07_ground_details.png" id="27_ground_details"]
+[ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/08_wet_ground.png" id="28_wet_ground"]
+[ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/09_mud_puddles.png" id="29_mud_puddles"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ey7of"]
 texture = ExtResource("1_ey7of")
@@ -943,1522 +953,1632 @@ z_index = -10
 y_sort_enabled = true
 script = ExtResource("13_gamelevel")
 
-[node name="field1" type="TileMapLayer" parent="." unique_id=2135139217]
+[node name="CollisionMap" type="Node2D" parent="."]
+
+[node name="VisualGround" type="Node2D" parent="."]
+texture_filter = 1
+
+[node name="GroundBase" type="Sprite2D" parent="VisualGround"]
 z_index = -10
+texture_filter = 1
+scale = Vector2(4, 4)
+texture = ExtResource("20_ground_base")
+centered = false
+
+[node name="GroundVariation" type="Sprite2D" parent="VisualGround"]
+z_index = -9
+texture_filter = 1
+scale = Vector2(4, 4)
+texture = ExtResource("21_ground_variation")
+centered = false
+
+[node name="GroundCanopyShadow" type="Sprite2D" parent="VisualGround"]
+z_index = -8
+texture_filter = 1
+scale = Vector2(4, 4)
+texture = ExtResource("22_canopy_shadow")
+centered = false
+
+[node name="DirtPath" type="Sprite2D" parent="VisualGround"]
+z_index = -7
+texture_filter = 1
+scale = Vector2(4, 4)
+texture = ExtResource("23_dirt_path")
+centered = false
+
+[node name="CliffTop" type="Sprite2D" parent="VisualGround"]
+z_index = -6
+texture_filter = 1
+scale = Vector2(4, 4)
+texture = ExtResource("24_cliff_top")
+centered = false
+
+[node name="CliffWall" type="Sprite2D" parent="VisualGround"]
+z_index = -6
+texture_filter = 1
+scale = Vector2(4, 4)
+texture = ExtResource("25_cliff_wall")
+centered = false
+
+[node name="Stairs" type="Sprite2D" parent="VisualGround"]
+z_index = -5
+texture_filter = 1
+scale = Vector2(4, 4)
+texture = ExtResource("26_stairs")
+centered = false
+
+[node name="GroundDetails" type="Sprite2D" parent="VisualGround"]
+z_index = -2
+texture_filter = 1
+scale = Vector2(4, 4)
+texture = ExtResource("27_ground_details")
+centered = false
+
+[node name="WetGround" type="Sprite2D" parent="VisualGround"]
+z_index = -4
+texture_filter = 1
+scale = Vector2(4, 4)
+texture = ExtResource("28_wet_ground")
+centered = false
+
+[node name="MudPuddles" type="Sprite2D" parent="VisualGround"]
+z_index = -3
+texture_filter = 1
+scale = Vector2(4, 4)
+texture = ExtResource("29_mud_puddles")
+centered = false
+
+[node name="GroundInteraction" type="Node2D" parent="."]
+
+[node name="MudAreas" type="Node2D" parent="GroundInteraction"]
+
+[node name="SurfaceAreas" type="Node2D" parent="GroundInteraction"]
+
+[node name="Props" type="Node2D" parent="."]
+y_sort_enabled = true
+
+[node name="Flowers" type="Node2D" parent="Props"]
+y_sort_enabled = true
+
+[node name="Characters" type="Node2D" parent="."]
+y_sort_enabled = true
+
+[node name="field1" type="TileMapLayer" parent="CollisionMap" unique_id=2135139217]
+z_index = -10
+visible = false
 scale = Vector2(4, 4)
 tile_map_data = PackedByteArray("AAAAAAAAAQAAAAAAAAAAAAEAAQAAAAEAAAAAAAIAAQAAAAIAAAAAAAMAAQAAAAMAAAAAAAQAAQAAAAQAAAAAAAUAAQAAAAUAAAAAAAYAAQAAAAYAAAAAAAcAAQAAAAcAAAAAAAgAAQAAAAgAAAAAAAkAAQAAAAkAAAAAAAoAAQAAAAoAAAAAAAsAAQAAAAsAAAAAAAwAAQAAAAwAAAAAAA0AAQAAAA0AAAAAAA4AAQAAAA4AAAAAAA8AAQAAAA8AAAAAABAAAQAAABAAAAAAABEAAQAAABEAAAAAABIAAQAAABIAAAAAABMAAQAAABMAAAAAABQAAQAAABQAAAAAABUAAQAAABUAAAAAABYAAQAAABYAAAAAABcAAQAAABcAAAAAABgAAQAAABgAAAAAABkAAQAAABkAAAAAABoAAQAAABoAAAABAAAAAQABAAAAAAABAAEAAQABAAEAAAABAAIAAQABAAIAAAABAAMAAQABAAMAAAABAAQAAQABAAQAAAABAAUAAQABAAUAAAABAAYAAQABAAYAAAABAAcAAQABAAcAAAABAAgAAQABAAgAAAABAAkAAQABAAkAAAABAAoAAQABAAoAAAABAAsAAQABAAsAAAABAAwAAQABAAwAAAABAA0AAQABAA0AAAABAA4AAQABAA4AAAABAA8AAQABAA8AAAABABAAAQABABAAAAABABEAAQABABEAAAABABIAAQABABIAAAABABMAAQABABMAAAABABQAAQABABQAAAABABUAAQABABUAAAABABYAAQABABYAAAABABcAAQABABcAAAABABgAAQABABgAAAABABkAAQABABkAAAABABoAAQABABoAAAACAAAAAQACAAAAAAACAAEAAQACAAEAAAACAAIAAQACAAIAAAACAAMAAQACAAMAAAACAAQAAQACAAQAAAACAAUAAQACAAUAAAACAAYAAQACAAYAAAACAAcAAQACAAcAAAACAAgAAQACAAgAAAACAAkAAQACAAkAAAACAAoAAQACAAoAAAACAAsAAQACAAsAAAACAAwAAQACAAwAAAACAA0AAQACAA0AAAACAA4AAQACAA4AAAACAA8AAQACAA8AAAACABAAAQACABAAAAACABEAAQACABEAAAACABIAAQACABIAAAACABMAAQACABMAAAACABQAAQACABQAAAACABUAAQACABUAAAACABYAAQACABYAAAACABcAAQACABcAAAACABgAAQACABgAAAACABkAAQACABkAAAACABoAAQACABoAAAADAAAAAQADAAAAAAADAAEAAQADAAEAAAADAAIAAQADAAIAAAADAAMAAQADAAMAAAADAAQAAQADAAQAAAADAAUAAQADAAUAAAADAAYAAQADAAYAAAADAAcAAQADAAcAAAADAAgAAQADAAgAAAADAAkAAQADAAkAAAADAAoAAQADAAoAAAADAAsAAQADAAsAAAADAAwAAQADAAwAAAADAA0AAQADAA0AAAADAA4AAQADAA4AAAADAA8AAQADAA8AAAADABAAAQADABAAAAADABEAAQADABEAAAADABIAAQADABIAAAADABMAAQADABMAAAADABQAAQADABQAAAADABUAAQADABUAAAADABYAAQADABYAAAADABcAAQADABcAAAADABgAAQADABgAAAADABkAAQADABkAAAADABoAAQADABoAAAAEAAAAAQAEAAAAAAAEAAEAAQAEAAEAAAAEAAIAAQAEAAIAAAAEAAMAAQAEAAMAAAAEAAQAAQAEAAQAAAAEAAUAAQAEAAUAAAAEAAYAAQAEAAYAAAAEAAcAAQAEAAcAAAAEAAgAAQAEAAgAAAAEAAkAAQAEAAkAAAAEAAoAAQAEAAoAAAAEAAsAAQAEAAsAAAAEAAwAAQAEAAwAAAAEAA0AAQAEAA0AAAAEAA4AAQAEAA4AAAAEAA8AAQAEAA8AAAAEABAAAQAEABAAAAAEABEAAQAEABEAAAAEABIAAQAEABIAAAAEABMAAQAEABMAAAAEABQAAQAEABQAAAAEABUAAQAEABUAAAAEABYAAQAEABYAAAAEABcAAQAEABcAAAAEABgAAQAEABgAAAAEABkAAQAEABkAAAAEABoAAQAEABoAAAAFAAAAAQAFAAAAAAAFAAEAAQAFAAEAAAAFAAIAAQAFAAIAAAAFAAMAAQAFAAMAAAAFAAQAAQAFAAQAAAAFAAUAAQAFAAUAAAAFAAYAAQAFAAYAAAAFAAcAAQAFAAcAAAAFAAgAAQAFAAgAAAAFAAkAAQAFAAkAAAAFAAoAAQAFAAoAAAAFAAsAAQAFAAsAAAAFAAwAAQAFAAwAAAAFAA0AAQAFAA0AAAAFAA4AAQAFAA4AAAAFAA8AAQAFAA8AAAAFABAAAQAFABAAAAAFABEAAQAFABEAAAAFABIAAQAFABIAAAAFABMAAQAFABMAAAAFABQAAQAFABQAAAAFABUAAQAFABUAAAAFABYAAQAFABYAAAAFABcAAQAFABcAAAAFABgAAQAFABgAAAAFABkAAQAFABkAAAAFABoAAQAFABoAAAAGAAAAAQAGAAAAAAAGAAEAAQAGAAEAAAAGAAIAAQAGAAIAAAAGAAMAAQAGAAMAAAAGAAQAAQAGAAQAAAAGAAUAAQAGAAUAAAAGAAYAAQAGAAYAAAAGAAcAAQAGAAcAAAAGAAgAAQAGAAgAAAAGAAkAAQAGAAkAAAAGAAoAAQAGAAoAAAAGAAsAAQAGAAsAAAAGAAwAAQAGAAwAAAAGAA0AAQAGAA0AAAAGAA4AAQAGAA4AAAAGAA8AAQAGAA8AAAAGABAAAQAGABAAAAAGABEAAQAGABEAAAAGABIAAQAGABIAAAAGABMAAQAGABMAAAAGABQAAQAGABQAAAAGABUAAQAGABUAAAAGABYAAQAGABYAAAAGABcAAQAGABcAAAAGABgAAQAGABgAAAAGABkAAQAGABkAAAAGABoAAQAGABoAAAAHAAAAAQAHAAAAAAAHAAEAAQAHAAEAAAAHAAIAAQAHAAIAAAAHAAMAAQAHAAMAAAAHAAQAAQAHAAQAAAAHAAUAAQAHAAUAAAAHAAYAAQAHAAYAAAAHAAcAAQAHAAcAAAAHAAgAAQAHAAgAAAAHAAkAAQAHAAkAAAAHAAoAAQAHAAoAAAAHAAsAAQAHAAsAAAAHAAwAAQAHAAwAAAAHAA0AAQAHAA0AAAAHAA4AAQAHAA4AAAAHAA8AAQAHAA8AAAAHABAAAQAHABAAAAAHABEAAQAHABEAAAAHABIAAQAHABIAAAAHABMAAQAHABMAAAAHABQAAQAHABQAAAAHABUAAQAHABUAAAAHABYAAQAHABYAAAAHABcAAQAHABcAAAAHABgAAQAHABgAAAAHABkAAQAHABkAAAAHABoAAQAHABoAAAAIAAAAAQAIAAAAAAAIAAEAAQAIAAEAAAAIAAIAAQAIAAIAAAAIAAMAAQAIAAMAAAAIAAQAAQAIAAQAAAAIAAUAAQAIAAUAAAAIAAYAAQAIAAYAAAAIAAcAAQAIAAcAAAAIAAgAAQAIAAgAAAAIAAkAAQAIAAkAAAAIAAoAAQAIAAoAAAAIAAsAAQAIAAsAAAAIAAwAAQAIAAwAAAAIAA0AAQAIAA0AAAAIAA4AAQAIAA4AAAAIAA8AAQAIAA8AAAAIABAAAQAIABAAAAAIABEAAQAIABEAAAAIABIAAQAIABIAAAAIABMAAQAIABMAAAAIABQAAQAIABQAAAAIABUAAQAIABUAAAAIABYAAQAIABYAAAAIABcAAQAIABcAAAAIABgAAQAIABgAAAAIABkAAQAIABkAAAAIABoAAQAIABoAAAAJAAAAAQAJAAAAAAAJAAEAAQAJAAEAAAAJAAIAAQAJAAIAAAAJAAMAAQAJAAMAAAAJAAQAAQAJAAQAAAAJAAUAAQAJAAUAAAAJAAYAAQAJAAYAAAAJAAcAAQAJAAcAAAAJAAgAAQAJAAgAAAAJAAkAAQAJAAkAAAAJAAoAAQAJAAoAAAAJAAsAAQAJAAsAAAAJAAwAAQAJAAwAAAAJAA0AAQAJAA0AAAAJAA4AAQAJAA4AAAAJAA8AAQAJAA8AAAAJABAAAQAJABAAAAAJABEAAQAJABEAAAAJABIAAQAJABIAAAAJABMAAQAJABMAAAAJABQAAQAJABQAAAAJABUAAQAJABUAAAAJABYAAQAJABYAAAAJABcAAQAJABcAAAAJABgAAQAJABgAAAAJABkAAQAJABkAAAAJABoAAQAJABoAAAAKAAAAAQAKAAAAAAAKAAEAAQAKAAEAAAAKAAIAAQAKAAIAAAAKAAMAAQAKAAMAAAAKAAQAAQAKAAQAAAAKAAUAAQAKAAUAAAAKAAYAAQAKAAYAAAAKAAcAAQAKAAcAAAAKAAgAAQAKAAgAAAAKAAkAAQAKAAkAAAAKAAoAAQAKAAoAAAAKAAsAAQAKAAsAAAAKAAwAAQAKAAwAAAAKAA0AAQAKAA0AAAAKAA4AAQAKAA4AAAAKAA8AAQAKAA8AAAAKABAAAQAKABAAAAAKABEAAQAKABEAAAAKABIAAQAKABIAAAAKABMAAQAKABMAAAAKABQAAQAKABQAAAAKABUAAQAKABUAAAAKABYAAQAKABYAAAAKABcAAQAKABcAAAAKABgAAQAKABgAAAAKABkAAQAKABkAAAAKABoAAQAKABoAAAALAAAAAQALAAAAAAALAAEAAQALAAEAAAALAAIAAQALAAIAAAALAAMAAQALAAMAAAALAAQAAQALAAQAAAALAAUAAQALAAUAAAALAAYAAQALAAYAAAALAAcAAQALAAcAAAALAAgAAQALAAgAAAALAAkAAQALAAkAAAALAAoAAQALAAoAAAALAAsAAQALAAsAAAALAAwAAQALAAwAAAALAA0AAQALAA0AAAALAA4AAQALAA4AAAALAA8AAQALAA8AAAALABAAAQALABAAAAALABEAAQALABEAAAALABIAAQALABIAAAALABMAAQALABMAAAALABQAAQALABQAAAALABUAAQALABUAAAALABYAAQALABYAAAALABcAAQALABcAAAALABgAAQALABgAAAALABkAAQALABkAAAALABoAAQALABoAAAAMAAAAAQAMAAAAAAAMAAEAAQAMAAEAAAAMAAIAAQAMAAIAAAAMAAMAAQAMAAMAAAAMAAQAAQAMAAQAAAAMAAUAAQAMAAUAAAAMAAYAAQAMAAYAAAAMAAcAAQAMAAcAAAAMAAgAAQAMAAgAAAAMAAkAAQAMAAkAAAAMAAoAAQAMAAoAAAAMAAsAAQAMAAsAAAAMAAwAAQAMAAwAAAAMAA0AAQAMAA0AAAAMAA4AAQAMAA4AAAAMAA8AAQAMAA8AAAAMABAAAQAMABAAAAAMABEAAQAMABEAAAAMABIAAQAMABIAAAAMABMAAQAMABMAAAAMABQAAQAMABQAAAAMABUAAQAMABUAAAAMABYAAQAMABYAAAAMABcAAQAMABcAAAAMABgAAQAMABgAAAAMABkAAQAMABkAAAAMABoAAQAMABoAAAANAAAAAQANAAAAAAANAAEAAQANAAEAAAANAAIAAQANAAIAAAANAAMAAQANAAMAAAANAAQAAQANAAQAAAANAAUAAQANAAUAAAANAAYAAQANAAYAAAANAAcAAQANAAcAAAANAAgAAQANAAgAAAANAAkAAQANAAkAAAANAAoAAQANAAoAAAANAAsAAQANAAsAAAANAAwAAQANAAwAAAANAA0AAQANAA0AAAANAA4AAQANAA4AAAANAA8AAQANAA8AAAANABAAAQANABAAAAANABEAAQANABEAAAANABIAAQANABIAAAANABMAAQANABMAAAANABQAAQANABQAAAANABUAAQANABUAAAANABYAAQANABYAAAANABcAAQANABcAAAANABgAAQANABgAAAANABkAAQANABkAAAANABoAAQANABoAAAAOAAAAAQAOAAAAAAAOAAEAAQAOAAEAAAAOAAIAAQAOAAIAAAAOAAMAAQAOAAMAAAAOAAQAAQAOAAQAAAAOAAUAAQAOAAUAAAAOAAYAAQAOAAYAAAAOAAcAAQAOAAcAAAAOAAgAAQAOAAgAAAAOAAkAAQAOAAkAAAAOAAoAAQAOAAoAAAAOAAsAAQAOAAsAAAAOAAwAAQAOAAwAAAAOAA0AAQAOAA0AAAAOAA4AAQAOAA4AAAAOAA8AAQAOAA8AAAAOABAAAQAOABAAAAAOABEAAQAOABEAAAAOABIAAQAOABIAAAAOABMAAQAOABMAAAAOABQAAQAOABQAAAAOABUAAQAOABUAAAAOABYAAQAOABYAAAAOABcAAQAOABcAAAAOABgAAQAOABgAAAAOABkAAQAOABkAAAAOABoAAQAOABoAAAAPAAAAAQAPAAAAAAAPAAEAAQAPAAEAAAAPAAIAAQAPAAIAAAAPAAMAAQAPAAMAAAAPAAQAAQAPAAQAAAAPAAUAAQAPAAUAAAAPAAYAAQAPAAYAAAAPAAcAAQAPAAcAAAAPAAgAAQAPAAgAAAAPAAkAAQAPAAkAAAAPAAoAAQAPAAoAAAAPAAsAAQAPAAsAAAAPAAwAAQAPAAwAAAAPAA0AAQAPAA0AAAAPAA4AAQAPAA4AAAAPAA8AAQAPAA8AAAAPABAAAQAPABAAAAAPABEAAQAPABEAAAAPABIAAQAPABIAAAAPABMAAQAPABMAAAAPABQAAQAPABQAAAAPABUAAQAPABUAAAAPABYAAQAPABYAAAAPABcAAQAPABcAAAAPABgAAQAPABgAAAAPABkAAQAPABkAAAAPABoAAQAPABoAAAAQAAAAAQAQAAAAAAAQAAEAAQAQAAEAAAAQAAIAAQAQAAIAAAAQAAMAAQAQAAMAAAAQAAQAAQAQAAQAAAAQAAUAAQAQAAUAAAAQAAYAAQAQAAYAAAAQAAcAAQAQAAcAAAAQAAgAAQAQAAgAAAAQAAkAAQAQAAkAAAAQAAoAAQAQAAoAAAAQAAsAAQAQAAsAAAAQAAwAAQAQAAwAAAAQAA0AAQAQAA0AAAAQAA4AAQAQAA4AAAAQAA8AAQAQAA8AAAAQABAAAQAQABAAAAAQABEAAQAQABEAAAAQABIAAQAQABIAAAAQABMAAQAQABMAAAAQABQAAQAQABQAAAAQABUAAQAQABUAAAAQABYAAQAQABYAAAAQABcAAQAQABcAAAAQABgAAQAQABgAAAAQABkAAQAQABkAAAAQABoAAQAQABoAAAARAAAAAQARAAAAAAARAAEAAQARAAEAAAARAAIAAQARAAIAAAARAAMAAQARAAMAAAARAAQAAQARAAQAAAARAAUAAQARAAUAAAARAAYAAQARAAYAAAARAAcAAQARAAcAAAARAAgAAQARAAgAAAARAAkAAQARAAkAAAARAAoAAQARAAoAAAARAAsAAQARAAsAAAARAAwAAQARAAwAAAARAA0AAQARAA0AAAARAA4AAQARAA4AAAARAA8AAQARAA8AAAARABAAAQARABAAAAARABEAAQARABEAAAARABIAAQARABIAAAARABMAAQARABMAAAARABQAAQARABQAAAARABUAAQARABUAAAARABYAAQARABYAAAARABcAAQARABcAAAARABgAAQARABgAAAARABkAAQARABkAAAARABoAAQARABoAAAASAAAAAQASAAAAAAASAAEAAQASAAEAAAASAAIAAQASAAIAAAASAAMAAQASAAMAAAASAAQAAQASAAQAAAASAAUAAQASAAUAAAASAAYAAQASAAYAAAASAAcAAQASAAcAAAASAAgAAQASAAgAAAASAAkAAQASAAkAAAASAAoAAQASAAoAAAASAAsAAQASAAsAAAASAAwAAQASAAwAAAASAA0AAQASAA0AAAASAA4AAQASAA4AAAASAA8AAQASAA8AAAASABAAAQASABAAAAASABEAAQASABEAAAASABIAAQASABIAAAASABMAAQASABMAAAASABQAAQASABQAAAASABUAAQASABUAAAASABYAAQASABYAAAASABcAAQASABcAAAASABgAAQASABgAAAASABkAAQASABkAAAASABoAAQASABoAAAATAAAAAQATAAAAAAATAAEAAQATAAEAAAATAAIAAQATAAIAAAATAAMAAQATAAMAAAATAAQAAQATAAQAAAATAAUAAQATAAUAAAATAAYAAQATAAYAAAATAAcAAQATAAcAAAATAAgAAQATAAgAAAATAAkAAQATAAkAAAATAAoAAQATAAoAAAATAAsAAQATAAsAAAATAAwAAQATAAwAAAATAA0AAQATAA0AAAATAA4AAQATAA4AAAATAA8AAQATAA8AAAATABAAAQATABAAAAATABEAAQATABEAAAATABIAAQATABIAAAATABMAAQATABMAAAATABQAAQATABQAAAATABUAAQATABUAAAATABYAAQATABYAAAATABcAAQATABcAAAATABgAAQATABgAAAATABkAAQATABkAAAATABoAAQATABoAAAAUAAAAAQAUAAAAAAAUAAEAAQAUAAEAAAAUAAIAAQAUAAIAAAAUAAMAAQAUAAMAAAAUAAQAAQAUAAQAAAAUAAUAAQAUAAUAAAAUAAYAAQAUAAYAAAAUAAcAAQAUAAcAAAAUAAgAAQAUAAgAAAAUAAkAAQAUAAkAAAAUAAoAAQAUAAoAAAAUAAsAAQAUAAsAAAAUAAwAAQAUAAwAAAAUAA0AAQAUAA0AAAAUAA4AAQAUAA4AAAAUAA8AAQAUAA8AAAAUABAAAQAUABAAAAAUABEAAQAUABEAAAAUABIAAQAUABIAAAAUABMAAQAUABMAAAAUABQAAQAUABQAAAAUABUAAQAUABUAAAAUABYAAQAUABYAAAAUABcAAQAUABcAAAAUABgAAQAUABgAAAAUABkAAQAUABkAAAAUABoAAQAUABoAAAAVAAAAAQAVAAAAAAAVAAEAAQAVAAEAAAAVAAIAAQAVAAIAAAAVAAMAAQAVAAMAAAAVAAQAAQAVAAQAAAAVAAUAAQAVAAUAAAAVAAYAAQAVAAYAAAAVAAcAAQAVAAcAAAAVAAgAAQAVAAgAAAAVAAkAAQAVAAkAAAAVAAoAAQAVAAoAAAAVAAsAAQAVAAsAAAAVAAwAAQAVAAwAAAAVAA0AAQAVAA0AAAAVAA4AAQAVAA4AAAAVAA8AAQAVAA8AAAAVABAAAQAVABAAAAAVABEAAQAVABEAAAAVABIAAQAVABIAAAAVABMAAQAVABMAAAAVABQAAQAVABQAAAAVABUAAQAVABUAAAAVABYAAQAVABYAAAAVABcAAQAVABcAAAAVABgAAQAVABgAAAAVABkAAQAVABkAAAAVABoAAQAVABoAAAAWAAAAAQAWAAAAAAAWAAEAAQAWAAEAAAAWAAIAAQAWAAIAAAAWAAMAAQAWAAMAAAAWAAQAAQAWAAQAAAAWAAUAAQAWAAUAAAAWAAYAAQAWAAYAAAAWAAcAAQAWAAcAAAAWAAgAAQAWAAgAAAAWAAkAAQAWAAkAAAAWAAoAAQAWAAoAAAAWAAsAAQAWAAsAAAAWAAwAAQAWAAwAAAAWAA0AAQAWAA0AAAAWAA4AAQAWAA4AAAAWAA8AAQAWAA8AAAAWABAAAQAWABAAAAAWABEAAQAWABEAAAAWABIAAQAWABIAAAAWABMAAQAWABMAAAAWABQAAQAWABQAAAAWABUAAQAWABUAAAAWABYAAQAWABYAAAAWABcAAQAWABcAAAAWABgAAQAWABgAAAAWABkAAQAWABkAAAAWABoAAQAWABoAAAAXAAAAAQAXAAAAAAAXAAEAAQAXAAEAAAAXAAIAAQAXAAIAAAAXAAMAAQAXAAMAAAAXAAQAAQAXAAQAAAAXAAUAAQAXAAUAAAAXAAYAAQAXAAYAAAAXAAcAAQAXAAcAAAAXAAgAAQAXAAgAAAAXAAkAAQAXAAkAAAAXAAoAAQAXAAoAAAAXAAsAAQAXAAsAAAAXAAwAAQAXAAwAAAAXAA0AAQAXAA0AAAAXAA4AAQAXAA4AAAAXAA8AAQAXAA8AAAAXABAAAQAXABAAAAAXABEAAQAXABEAAAAXABIAAQAXABIAAAAXABMAAQAXABMAAAAXABQAAQAXABQAAAAXABUAAQAXABUAAAAXABYAAQAXABYAAAAXABcAAQAXABcAAAAXABgAAQAXABgAAAAXABkAAQAXABkAAAAXABoAAQAXABoAAAAYAAAAAQAYAAAAAAAYAAEAAQAYAAEAAAAYAAIAAQAYAAIAAAAYAAMAAQAYAAMAAAAYAAQAAQAYAAQAAAAYAAUAAQAYAAUAAAAYAAYAAQAYAAYAAAAYAAcAAQAYAAcAAAAYAAgAAQAYAAgAAAAYAAkAAQAYAAkAAAAYAAoAAQAYAAoAAAAYAAsAAQAYAAsAAAAYAAwAAQAYAAwAAAAYAA0AAQAYAA0AAAAYAA4AAQAYAA4AAAAYAA8AAQAYAA8AAAAYABAAAQAYABAAAAAYABEAAQAYABEAAAAYABIAAQAYABIAAAAYABMAAQAYABMAAAAYABQAAQAYABQAAAAYABUAAQAYABUAAAAYABYAAQAYABYAAAAYABcAAQAYABcAAAAYABgAAQAYABgAAAAYABkAAQAYABkAAAAYABoAAQAYABoAAAAZAAAAAQAZAAAAAAAZAAEAAQAZAAEAAAAZAAIAAQAZAAIAAAAZAAMAAQAZAAMAAAAZAAQAAQAZAAQAAAAZAAUAAQAZAAUAAAAZAAYAAQAZAAYAAAAZAAcAAQAZAAcAAAAZAAgAAQAZAAgAAAAZAAkAAQAZAAkAAAAZAAoAAQAZAAoAAAAZAAsAAQAZAAsAAAAZAAwAAQAZAAwAAAAZAA0AAQAZAA0AAAAZAA4AAQAZAA4AAAAZAA8AAQAZAA8AAAAZABAAAQAZABAAAAAZABEAAQAZABEAAAAZABIAAQAZABIAAAAZABMAAQAZABMAAAAZABQAAQAZABQAAAAZABUAAQAZABUAAAAZABYAAQAZABYAAAAZABcAAQAZABcAAAAZABgAAQAZABgAAAAZABkAAQAZABkAAAAZABoAAQAZABoAAAAAABsAAQAAABsAAAAAABwAAQAAABwAAAABABsAAQABABsAAAABABwAAQABABwAAAACABsAAQACABsAAAACABwAAQACABwAAAADABsAAQADABsAAAADABwAAQADABwAAAAEABsAAQAEABsAAAAEABwAAQAEABwAAAAFABsAAQAFABsAAAAFABwAAQAFABwAAAAGABsAAQAGABsAAAAGABwAAQAGABwAAAAHABsAAQAHABsAAAAHABwAAQAHABwAAAAIABsAAQAIABsAAAAIABwAAQAIABwAAAAJABsAAQAJABsAAAAJABwAAQAJABwAAAAKABsAAQAKABsAAAAKABwAAQAKABwAAAALABsAAQALABsAAAALABwAAQALABwAAAAMABsAAQAMABsAAAAMABwAAQAMABwAAAANABsAAQANABsAAAANABwAAQANABwAAAAOABsAAQAOABsAAAAOABwAAQAOABwAAAAPABsAAQAPABsAAAAPABwAAQAPABwAAAAQABsAAQAQABsAAAAQABwAAQAQABwAAAARABsAAQARABsAAAARABwAAQARABwAAAASABsAAQASABsAAAASABwAAQASABwAAAATABsAAQATABsAAAATABwAAQATABwAAAAUABsAAQAUABsAAAAUABwAAQAUABwAAAAVABsAAQAVABsAAAAVABwAAQAVABwAAAAWABsAAQAWABsAAAAWABwAAQAWABwAAAAXABsAAQAXABsAAAAXABwAAQAXABwAAAAYABsAAQAYABsAAAAYABwAAQAYABwAAAAZABsAAQAZABsAAAAZABwAAQAZABwAAAAaAAAAAQAaAAAAAAAaAAEAAQAaAAEAAAAaAAIAAQAaAAIAAAAaAAMAAQAaAAMAAAAaAAQAAQAaAAQAAAAaAAUAAQAaAAUAAAAaAAYAAQAaAAYAAAAaAAcAAQAaAAcAAAAaAAgAAQAaAAgAAAAaAAkAAQAaAAkAAAAaAAoAAQAaAAoAAAAaAAsAAQAaAAsAAAAaAAwAAQAaAAwAAAAaAA0AAQAaAA0AAAAaAA4AAQAaAA4AAAAaAA8AAQAaAA8AAAAaABAAAQAaABAAAAAaABEAAQAaABEAAAAaABIAAQAaABIAAAAaABMAAQAaABMAAAAaABQAAQAaABQAAAAaABUAAQAaABUAAAAaABYAAQAaABYAAAAaABcAAQAaABcAAAAaABgAAQAaABgAAAAaABkAAQAaABkAAAAaABoAAQAaABoAAAAaABsAAQAaABsAAAAaABwAAQAaABwAAAAbAAAAAQAbAAAAAAAbAAEAAQAbAAEAAAAbAAIAAQAbAAIAAAAbAAMAAQAbAAMAAAAbAAQAAQAbAAQAAAAbAAUAAQAbAAUAAAAbAAYAAQAbAAYAAAAbAAcAAQAbAAcAAAAbAAgAAQAbAAgAAAAbAAkAAQAbAAkAAAAbAAoAAQAbAAoAAAAbAAsAAQAbAAsAAAAbAAwAAQAbAAwAAAAbAA0AAQAbAA0AAAAbAA4AAQAbAA4AAAAbAA8AAQAbAA8AAAAbABAAAQAbABAAAAAbABEAAQAbABEAAAAbABIAAQAbABIAAAAbABMAAQAbABMAAAAbABQAAQAbABQAAAAbABUAAQAbABUAAAAbABYAAQAbABYAAAAbABcAAQAbABcAAAAbABgAAQAbABgAAAAbABkAAQAbABkAAAAbABoAAQAbABoAAAAbABsAAQAbABsAAAAbABwAAQAbABwAAAA=")
 tile_set = SubResource("TileSet_vydvg")
 
-[node name="stone for field" type="Node2D" parent="." unique_id=35674447]
+[node name="Rocks" type="Node2D" parent="Props" unique_id=35674447]
 y_sort_enabled = true
 
-[node name="stone5" parent="stone for field" unique_id=1673058089 instance=ExtResource("7_xvu3u")]
+[node name="stone5" parent="Props/Rocks" unique_id=1673058089 instance=ExtResource("7_xvu3u")]
 position = Vector2(1725, 283)
 
-[node name="stone6" parent="stone for field" unique_id=541495835 instance=ExtResource("7_xvu3u")]
+[node name="stone6" parent="Props/Rocks" unique_id=541495835 instance=ExtResource("7_xvu3u")]
 position = Vector2(326, 409)
 
-[node name="Stone3" parent="stone for field" unique_id=1160141481 instance=ExtResource("4_man2x")]
+[node name="Stone3" parent="Props/Rocks" unique_id=1160141481 instance=ExtResource("4_man2x")]
 position = Vector2(388, 253)
 
-[node name="stone17" parent="stone for field" unique_id=239629400 instance=ExtResource("7_xvu3u")]
+[node name="stone17" parent="Props/Rocks" unique_id=239629400 instance=ExtResource("7_xvu3u")]
 position = Vector2(1290, 1657)
 
-[node name="Stone4" parent="stone for field" unique_id=766568538 instance=ExtResource("4_man2x")]
+[node name="Stone4" parent="Props/Rocks" unique_id=766568538 instance=ExtResource("4_man2x")]
 position = Vector2(1653, 1206)
 
-[node name="stone8" parent="stone for field" unique_id=439444256 instance=ExtResource("3_man2x")]
+[node name="stone8" parent="Props/Rocks" unique_id=439444256 instance=ExtResource("3_man2x")]
 position = Vector2(339, 1488)
 
-[node name="stone2" parent="stone for field" unique_id=497371363 instance=ExtResource("3_man2x")]
+[node name="stone2" parent="Props/Rocks" unique_id=497371363 instance=ExtResource("3_man2x")]
 position = Vector2(656, 1191)
 
-[node name="stone7" parent="stone for field" unique_id=285567208 instance=ExtResource("6_qln1y")]
+[node name="stone7" parent="Props/Rocks" unique_id=285567208 instance=ExtResource("6_qln1y")]
 position = Vector2(1083, 1217)
 
-[node name="stone18" parent="stone for field" unique_id=171838551 instance=ExtResource("3_man2x")]
+[node name="stone18" parent="Props/Rocks" unique_id=171838551 instance=ExtResource("3_man2x")]
 position = Vector2(286, 818)
 
-[node name="stone20" parent="stone for field" unique_id=1372537773 instance=ExtResource("3_man2x")]
+[node name="stone20" parent="Props/Rocks" unique_id=1372537773 instance=ExtResource("3_man2x")]
 position = Vector2(1456, 695)
 
-[node name="stone21" parent="stone for field" unique_id=1447128587 instance=ExtResource("3_man2x")]
+[node name="stone21" parent="Props/Rocks" unique_id=1447128587 instance=ExtResource("3_man2x")]
 position = Vector2(1060, 1625)
 
-[node name="stone27" parent="stone for field" unique_id=200554664 instance=ExtResource("3_man2x")]
+[node name="stone27" parent="Props/Rocks" unique_id=200554664 instance=ExtResource("3_man2x")]
 position = Vector2(337, 1130)
 
-[node name="stone28" parent="stone for field" unique_id=986332705 instance=ExtResource("3_man2x")]
+[node name="stone28" parent="Props/Rocks" unique_id=986332705 instance=ExtResource("3_man2x")]
 position = Vector2(1323, 950)
 
-[node name="stone30" parent="stone for field" unique_id=238385589 instance=ExtResource("3_man2x")]
+[node name="stone30" parent="Props/Rocks" unique_id=238385589 instance=ExtResource("3_man2x")]
 position = Vector2(1310, 42)
 
-[node name="stone29" parent="stone for field" unique_id=1760584276 instance=ExtResource("3_man2x")]
+[node name="stone29" parent="Props/Rocks" unique_id=1760584276 instance=ExtResource("3_man2x")]
 position = Vector2(688, 688)
 
-[node name="stone22" parent="stone for field" unique_id=845237087 instance=ExtResource("3_man2x")]
+[node name="stone22" parent="Props/Rocks" unique_id=845237087 instance=ExtResource("3_man2x")]
 position = Vector2(1496, 1220)
 
-[node name="stone23" parent="stone for field" unique_id=161398382 instance=ExtResource("3_man2x")]
+[node name="stone23" parent="Props/Rocks" unique_id=161398382 instance=ExtResource("3_man2x")]
 position = Vector2(1329, 1157)
 
-[node name="stone24" parent="stone for field" unique_id=1725016800 instance=ExtResource("3_man2x")]
+[node name="stone24" parent="Props/Rocks" unique_id=1725016800 instance=ExtResource("3_man2x")]
 position = Vector2(1568, 1072)
 
-[node name="stone19" parent="stone for field" unique_id=438784386 instance=ExtResource("6_qln1y")]
+[node name="stone19" parent="Props/Rocks" unique_id=438784386 instance=ExtResource("6_qln1y")]
 position = Vector2(358, 1112)
 
-[node name="stone25" parent="stone for field" unique_id=1784111299 instance=ExtResource("6_qln1y")]
+[node name="stone25" parent="Props/Rocks" unique_id=1784111299 instance=ExtResource("6_qln1y")]
 position = Vector2(1178, 519)
 
-[node name="stone26" parent="stone for field" unique_id=1753595536 instance=ExtResource("6_qln1y")]
+[node name="stone26" parent="Props/Rocks" unique_id=1753595536 instance=ExtResource("6_qln1y")]
 position = Vector2(676, 687)
 
-[node name="stone4" parent="stone for field" unique_id=2139133011 instance=ExtResource("6_qln1y")]
+[node name="stone4" parent="Props/Rocks" unique_id=2139133011 instance=ExtResource("6_qln1y")]
 position = Vector2(1685, 240)
 
-[node name="stone3" parent="stone for field" unique_id=741021758 instance=ExtResource("5_g0qre")]
+[node name="stone3" parent="Props/Rocks" unique_id=741021758 instance=ExtResource("5_g0qre")]
 position = Vector2(1310, 941)
 
-[node name="Stone2" parent="stone for field" unique_id=1765865561 instance=ExtResource("4_man2x")]
+[node name="Stone2" parent="Props/Rocks" unique_id=1765865561 instance=ExtResource("4_man2x")]
 position = Vector2(1125, 1232)
 
-[node name="Stone5" parent="stone for field" unique_id=1772926890 instance=ExtResource("4_man2x")]
+[node name="Stone5" parent="Props/Rocks" unique_id=1772926890 instance=ExtResource("4_man2x")]
 position = Vector2(599, 1458)
 
-[node name="Stone6" parent="stone for field" unique_id=2092035657 instance=ExtResource("4_man2x")]
+[node name="Stone6" parent="Props/Rocks" unique_id=2092035657 instance=ExtResource("4_man2x")]
 position = Vector2(941, 601)
 
-[node name="Stone10" parent="stone for field" unique_id=1582329805 instance=ExtResource("4_man2x")]
+[node name="Stone10" parent="Props/Rocks" unique_id=1582329805 instance=ExtResource("4_man2x")]
 position = Vector2(1301, 39)
 
-[node name="Stone8" parent="stone for field" unique_id=344129601 instance=ExtResource("4_man2x")]
+[node name="Stone8" parent="Props/Rocks" unique_id=344129601 instance=ExtResource("4_man2x")]
 position = Vector2(1200, 525)
 
-[node name="Stone9" parent="stone for field" unique_id=646659863 instance=ExtResource("4_man2x")]
+[node name="Stone9" parent="Props/Rocks" unique_id=646659863 instance=ExtResource("4_man2x")]
 position = Vector2(1531, 1153)
 
-[node name="Stone7" parent="stone for field" unique_id=1280595753 instance=ExtResource("4_man2x")]
+[node name="Stone7" parent="Props/Rocks" unique_id=1280595753 instance=ExtResource("4_man2x")]
 position = Vector2(1444, 703)
 
-[node name="stone1" parent="stone for field" unique_id=1829240052 instance=ExtResource("3_man2x")]
+[node name="stone1" parent="Props/Rocks" unique_id=1829240052 instance=ExtResource("3_man2x")]
 position = Vector2(136, 493)
 
-[node name="stone9" parent="stone for field" unique_id=1678664312 instance=ExtResource("7_xvu3u")]
+[node name="stone9" parent="Props/Rocks" unique_id=1678664312 instance=ExtResource("7_xvu3u")]
 position = Vector2(-2, 960)
 
-[node name="stone10" parent="stone for field" unique_id=131489049 instance=ExtResource("6_qln1y")]
+[node name="stone10" parent="Props/Rocks" unique_id=131489049 instance=ExtResource("6_qln1y")]
 position = Vector2(505, 1622)
 
-[node name="stone11" parent="stone for field" unique_id=2043856145 instance=ExtResource("3_man2x")]
+[node name="stone11" parent="Props/Rocks" unique_id=2043856145 instance=ExtResource("3_man2x")]
 position = Vector2(897, 903)
 
-[node name="stone12" parent="stone for field" unique_id=463201921 instance=ExtResource("3_man2x")]
+[node name="stone12" parent="Props/Rocks" unique_id=463201921 instance=ExtResource("3_man2x")]
 position = Vector2(971, 267)
 
-[node name="stone13" parent="stone for field" unique_id=267625288 instance=ExtResource("3_man2x")]
+[node name="stone13" parent="Props/Rocks" unique_id=267625288 instance=ExtResource("3_man2x")]
 position = Vector2(1441, 283)
 
-[node name="stone14" parent="stone for field" unique_id=101692340 instance=ExtResource("3_man2x")]
+[node name="stone14" parent="Props/Rocks" unique_id=101692340 instance=ExtResource("3_man2x")]
 position = Vector2(1662, 432)
 
-[node name="stone15" parent="stone for field" unique_id=859544348 instance=ExtResource("3_man2x")]
+[node name="stone15" parent="Props/Rocks" unique_id=859544348 instance=ExtResource("3_man2x")]
 position = Vector2(1225, 85)
 
-[node name="stone16" parent="stone for field" unique_id=876210947 instance=ExtResource("3_man2x")]
+[node name="stone16" parent="Props/Rocks" unique_id=876210947 instance=ExtResource("3_man2x")]
 position = Vector2(1555, 1786)
 
-[node name="stone31" parent="stone for field" unique_id=869678091 instance=ExtResource("7_xvu3u")]
+[node name="stone31" parent="Props/Rocks" unique_id=869678091 instance=ExtResource("7_xvu3u")]
 position = Vector2(979, 169)
 
-[node name="enemy" type="Node2D" parent="." unique_id=307652487]
+[node name="Enemies" type="Node2D" parent="Characters" unique_id=307652487]
 y_sort_enabled = true
 
-[node name="slime1" parent="enemy" unique_id=833575508 instance=ExtResource("7_jnbhc")]
+[node name="slime1" parent="Characters/Enemies" unique_id=833575508 instance=ExtResource("7_jnbhc")]
 position = Vector2(200, 371)
 metadata/_edit_group_ = true
 
-[node name="slime2" parent="enemy" unique_id=1607094322 instance=ExtResource("7_jnbhc")]
+[node name="slime2" parent="Characters/Enemies" unique_id=1607094322 instance=ExtResource("7_jnbhc")]
 position = Vector2(921, 212)
 metadata/_edit_group_ = true
 
-[node name="tree for field" type="Node2D" parent="." unique_id=2028207403]
+[node name="Trees" type="Node2D" parent="Props" unique_id=2028207403]
 y_sort_enabled = true
 
-[node name="Tree" parent="tree for field" unique_id=1112272264 instance=ExtResource("3_vydvg")]
+[node name="Tree" parent="Props/Trees" unique_id=1112272264 instance=ExtResource("3_vydvg")]
 position = Vector2(14, 30)
 
-[node name="Tree2" parent="tree for field" unique_id=1680157348 instance=ExtResource("3_vydvg")]
+[node name="Tree2" parent="Props/Trees" unique_id=1680157348 instance=ExtResource("3_vydvg")]
 position = Vector2(13, 84)
 
-[node name="Tree3" parent="tree for field" unique_id=832380084 instance=ExtResource("3_vydvg")]
+[node name="Tree3" parent="Props/Trees" unique_id=832380084 instance=ExtResource("3_vydvg")]
 position = Vector2(143, -1)
 
-[node name="Tree4" parent="tree for field" unique_id=1348137067 instance=ExtResource("3_vydvg")]
+[node name="Tree4" parent="Props/Trees" unique_id=1348137067 instance=ExtResource("3_vydvg")]
 position = Vector2(60, -2)
 
-[node name="Tree5" parent="tree for field" unique_id=804625250 instance=ExtResource("3_vydvg")]
+[node name="Tree5" parent="Props/Trees" unique_id=804625250 instance=ExtResource("3_vydvg")]
 position = Vector2(225, -2)
 
-[node name="Tree6" parent="tree for field" unique_id=369791756 instance=ExtResource("3_vydvg")]
+[node name="Tree6" parent="Props/Trees" unique_id=369791756 instance=ExtResource("3_vydvg")]
 position = Vector2(306, -1)
 
-[node name="Tree7" parent="tree for field" unique_id=1912044815 instance=ExtResource("3_vydvg")]
+[node name="Tree7" parent="Props/Trees" unique_id=1912044815 instance=ExtResource("3_vydvg")]
 position = Vector2(387, -2)
 
-[node name="Tree8" parent="tree for field" unique_id=1932790568 instance=ExtResource("3_vydvg")]
+[node name="Tree8" parent="Props/Trees" unique_id=1932790568 instance=ExtResource("3_vydvg")]
 position = Vector2(818, 0)
 
-[node name="Tree9" parent="tree for field" unique_id=305645771 instance=ExtResource("3_vydvg")]
+[node name="Tree9" parent="Props/Trees" unique_id=305645771 instance=ExtResource("3_vydvg")]
 position = Vector2(475, -1)
 
-[node name="Tree10" parent="tree for field" unique_id=1204491933 instance=ExtResource("3_vydvg")]
+[node name="Tree10" parent="Props/Trees" unique_id=1204491933 instance=ExtResource("3_vydvg")]
 position = Vector2(561, -2)
 
-[node name="Tree11" parent="tree for field" unique_id=992128871 instance=ExtResource("3_vydvg")]
+[node name="Tree11" parent="Props/Trees" unique_id=992128871 instance=ExtResource("3_vydvg")]
 position = Vector2(646, -1)
 
-[node name="Tree12" parent="tree for field" unique_id=1339697499 instance=ExtResource("3_vydvg")]
+[node name="Tree12" parent="Props/Trees" unique_id=1339697499 instance=ExtResource("3_vydvg")]
 position = Vector2(734, 0)
 
-[node name="Tree13" parent="tree for field" unique_id=2087154391 instance=ExtResource("3_vydvg")]
+[node name="Tree13" parent="Props/Trees" unique_id=2087154391 instance=ExtResource("3_vydvg")]
 position = Vector2(818, -1)
 
-[node name="Tree14" parent="tree for field" unique_id=1666717365 instance=ExtResource("3_vydvg")]
+[node name="Tree14" parent="Props/Trees" unique_id=1666717365 instance=ExtResource("3_vydvg")]
 position = Vector2(904, -2)
 
-[node name="Tree15" parent="tree for field" unique_id=849926701 instance=ExtResource("3_vydvg")]
+[node name="Tree15" parent="Props/Trees" unique_id=849926701 instance=ExtResource("3_vydvg")]
 position = Vector2(989, -1)
 
-[node name="Tree16" parent="tree for field" unique_id=1491926692 instance=ExtResource("3_vydvg")]
+[node name="Tree16" parent="Props/Trees" unique_id=1491926692 instance=ExtResource("3_vydvg")]
 position = Vector2(1077, 0)
 
-[node name="Tree17" parent="tree for field" unique_id=759933828 instance=ExtResource("3_vydvg")]
+[node name="Tree17" parent="Props/Trees" unique_id=759933828 instance=ExtResource("3_vydvg")]
 position = Vector2(187, -27)
 
-[node name="Tree18" parent="tree for field" unique_id=345021776 instance=ExtResource("3_vydvg")]
+[node name="Tree18" parent="Props/Trees" unique_id=345021776 instance=ExtResource("3_vydvg")]
 position = Vector2(104, -28)
 
-[node name="Tree19" parent="tree for field" unique_id=1084801 instance=ExtResource("3_vydvg")]
+[node name="Tree19" parent="Props/Trees" unique_id=1084801 instance=ExtResource("3_vydvg")]
 position = Vector2(269, -28)
 
-[node name="Tree20" parent="tree for field" unique_id=588343652 instance=ExtResource("3_vydvg")]
+[node name="Tree20" parent="Props/Trees" unique_id=588343652 instance=ExtResource("3_vydvg")]
 position = Vector2(350, -27)
 
-[node name="Tree21" parent="tree for field" unique_id=9212244 instance=ExtResource("3_vydvg")]
+[node name="Tree21" parent="Props/Trees" unique_id=9212244 instance=ExtResource("3_vydvg")]
 position = Vector2(431, -28)
 
-[node name="Tree22" parent="tree for field" unique_id=703066713 instance=ExtResource("3_vydvg")]
+[node name="Tree22" parent="Props/Trees" unique_id=703066713 instance=ExtResource("3_vydvg")]
 position = Vector2(862, -26)
 
-[node name="Tree23" parent="tree for field" unique_id=1915719511 instance=ExtResource("3_vydvg")]
+[node name="Tree23" parent="Props/Trees" unique_id=1915719511 instance=ExtResource("3_vydvg")]
 position = Vector2(519, -27)
 
-[node name="Tree24" parent="tree for field" unique_id=1082218056 instance=ExtResource("3_vydvg")]
+[node name="Tree24" parent="Props/Trees" unique_id=1082218056 instance=ExtResource("3_vydvg")]
 position = Vector2(605, -28)
 
-[node name="Tree25" parent="tree for field" unique_id=748252491 instance=ExtResource("3_vydvg")]
+[node name="Tree25" parent="Props/Trees" unique_id=748252491 instance=ExtResource("3_vydvg")]
 position = Vector2(690, -27)
 
-[node name="Tree26" parent="tree for field" unique_id=1728828294 instance=ExtResource("3_vydvg")]
+[node name="Tree26" parent="Props/Trees" unique_id=1728828294 instance=ExtResource("3_vydvg")]
 position = Vector2(778, -26)
 
-[node name="Tree27" parent="tree for field" unique_id=1542530202 instance=ExtResource("3_vydvg")]
+[node name="Tree27" parent="Props/Trees" unique_id=1542530202 instance=ExtResource("3_vydvg")]
 position = Vector2(862, -27)
 
-[node name="Tree28" parent="tree for field" unique_id=226270142 instance=ExtResource("3_vydvg")]
+[node name="Tree28" parent="Props/Trees" unique_id=226270142 instance=ExtResource("3_vydvg")]
 position = Vector2(948, -28)
 
-[node name="Tree29" parent="tree for field" unique_id=410260222 instance=ExtResource("3_vydvg")]
+[node name="Tree29" parent="Props/Trees" unique_id=410260222 instance=ExtResource("3_vydvg")]
 position = Vector2(1033, -27)
 
-[node name="Tree30" parent="tree for field" unique_id=622953179 instance=ExtResource("3_vydvg")]
+[node name="Tree30" parent="Props/Trees" unique_id=622953179 instance=ExtResource("3_vydvg")]
 position = Vector2(1121, -26)
 
-[node name="Tree31" parent="tree for field" unique_id=168235612 instance=ExtResource("3_vydvg")]
+[node name="Tree31" parent="Props/Trees" unique_id=168235612 instance=ExtResource("3_vydvg")]
 position = Vector2(187, 41)
 
-[node name="Tree32" parent="tree for field" unique_id=145583648 instance=ExtResource("3_vydvg")]
+[node name="Tree32" parent="Props/Trees" unique_id=145583648 instance=ExtResource("3_vydvg")]
 position = Vector2(104, 40)
 
-[node name="Tree33" parent="tree for field" unique_id=331415112 instance=ExtResource("3_vydvg")]
+[node name="Tree33" parent="Props/Trees" unique_id=331415112 instance=ExtResource("3_vydvg")]
 position = Vector2(269, 40)
 
-[node name="Tree34" parent="tree for field" unique_id=47914898 instance=ExtResource("3_vydvg")]
+[node name="Tree34" parent="Props/Trees" unique_id=47914898 instance=ExtResource("3_vydvg")]
 position = Vector2(350, 41)
 
-[node name="Tree35" parent="tree for field" unique_id=605478612 instance=ExtResource("3_vydvg")]
+[node name="Tree35" parent="Props/Trees" unique_id=605478612 instance=ExtResource("3_vydvg")]
 position = Vector2(431, 40)
 
-[node name="Tree36" parent="tree for field" unique_id=1246571501 instance=ExtResource("3_vydvg")]
+[node name="Tree36" parent="Props/Trees" unique_id=1246571501 instance=ExtResource("3_vydvg")]
 position = Vector2(862, 42)
 
-[node name="Tree37" parent="tree for field" unique_id=925247414 instance=ExtResource("3_vydvg")]
+[node name="Tree37" parent="Props/Trees" unique_id=925247414 instance=ExtResource("3_vydvg")]
 position = Vector2(519, 41)
 
-[node name="Tree38" parent="tree for field" unique_id=824274053 instance=ExtResource("3_vydvg")]
+[node name="Tree38" parent="Props/Trees" unique_id=824274053 instance=ExtResource("3_vydvg")]
 position = Vector2(605, 40)
 
-[node name="Tree39" parent="tree for field" unique_id=993116102 instance=ExtResource("3_vydvg")]
+[node name="Tree39" parent="Props/Trees" unique_id=993116102 instance=ExtResource("3_vydvg")]
 position = Vector2(690, 41)
 
-[node name="Tree40" parent="tree for field" unique_id=927555532 instance=ExtResource("3_vydvg")]
+[node name="Tree40" parent="Props/Trees" unique_id=927555532 instance=ExtResource("3_vydvg")]
 position = Vector2(778, 42)
 
-[node name="Tree41" parent="tree for field" unique_id=1625044094 instance=ExtResource("3_vydvg")]
+[node name="Tree41" parent="Props/Trees" unique_id=1625044094 instance=ExtResource("3_vydvg")]
 position = Vector2(862, 41)
 
-[node name="Tree42" parent="tree for field" unique_id=1017060834 instance=ExtResource("3_vydvg")]
+[node name="Tree42" parent="Props/Trees" unique_id=1017060834 instance=ExtResource("3_vydvg")]
 position = Vector2(948, 40)
 
-[node name="Tree43" parent="tree for field" unique_id=1327917564 instance=ExtResource("3_vydvg")]
+[node name="Tree43" parent="Props/Trees" unique_id=1327917564 instance=ExtResource("3_vydvg")]
 position = Vector2(1033, 41)
 
-[node name="Tree44" parent="tree for field" unique_id=646394391 instance=ExtResource("3_vydvg")]
+[node name="Tree44" parent="Props/Trees" unique_id=646394391 instance=ExtResource("3_vydvg")]
 position = Vector2(1099, 41)
 
-[node name="Tree45" parent="tree for field" unique_id=716280127 instance=ExtResource("3_vydvg")]
+[node name="Tree45" parent="Props/Trees" unique_id=716280127 instance=ExtResource("3_vydvg")]
 position = Vector2(1170, -20)
 
-[node name="Tree46" parent="tree for field" unique_id=30168757 instance=ExtResource("3_vydvg")]
+[node name="Tree46" parent="Props/Trees" unique_id=30168757 instance=ExtResource("3_vydvg")]
 position = Vector2(1256, -21)
 
-[node name="Tree47" parent="tree for field" unique_id=1746261665 instance=ExtResource("3_vydvg")]
+[node name="Tree47" parent="Props/Trees" unique_id=1746261665 instance=ExtResource("3_vydvg")]
 position = Vector2(1341, -20)
 
-[node name="Tree48" parent="tree for field" unique_id=1310657672 instance=ExtResource("3_vydvg")]
+[node name="Tree48" parent="Props/Trees" unique_id=1310657672 instance=ExtResource("3_vydvg")]
 position = Vector2(1407, -20)
 
-[node name="Tree49" parent="tree for field" unique_id=1644052867 instance=ExtResource("3_vydvg")]
+[node name="Tree49" parent="Props/Trees" unique_id=1644052867 instance=ExtResource("3_vydvg")]
 position = Vector2(1407, -20)
 
-[node name="Tree50" parent="tree for field" unique_id=184468181 instance=ExtResource("3_vydvg")]
+[node name="Tree50" parent="Props/Trees" unique_id=184468181 instance=ExtResource("3_vydvg")]
 position = Vector2(1493, -21)
 
-[node name="Tree51" parent="tree for field" unique_id=1043026541 instance=ExtResource("3_vydvg")]
+[node name="Tree51" parent="Props/Trees" unique_id=1043026541 instance=ExtResource("3_vydvg")]
 position = Vector2(1578, -20)
 
-[node name="Tree52" parent="tree for field" unique_id=91457575 instance=ExtResource("3_vydvg")]
+[node name="Tree52" parent="Props/Trees" unique_id=91457575 instance=ExtResource("3_vydvg")]
 position = Vector2(1644, -20)
 
-[node name="Tree53" parent="tree for field" unique_id=633385524 instance=ExtResource("3_vydvg")]
+[node name="Tree53" parent="Props/Trees" unique_id=633385524 instance=ExtResource("3_vydvg")]
 position = Vector2(1645, -20)
 
-[node name="Tree54" parent="tree for field" unique_id=426734815 instance=ExtResource("3_vydvg")]
+[node name="Tree54" parent="Props/Trees" unique_id=426734815 instance=ExtResource("3_vydvg")]
 position = Vector2(1731, -21)
 
-[node name="Tree55" parent="tree for field" unique_id=185929280 instance=ExtResource("3_vydvg")]
+[node name="Tree55" parent="Props/Trees" unique_id=185929280 instance=ExtResource("3_vydvg")]
 position = Vector2(1816, -20)
 
-[node name="Tree56" parent="tree for field" unique_id=2145726924 instance=ExtResource("3_vydvg")]
+[node name="Tree56" parent="Props/Trees" unique_id=2145726924 instance=ExtResource("3_vydvg")]
 position = Vector2(1882, -20)
 
-[node name="Tree57" parent="tree for field" unique_id=2091054455 instance=ExtResource("3_vydvg")]
+[node name="Tree57" parent="Props/Trees" unique_id=2091054455 instance=ExtResource("3_vydvg")]
 position = Vector2(1215, 4)
 
-[node name="Tree58" parent="tree for field" unique_id=1877412028 instance=ExtResource("3_vydvg")]
+[node name="Tree58" parent="Props/Trees" unique_id=1877412028 instance=ExtResource("3_vydvg")]
 position = Vector2(1301, 3)
 
-[node name="Tree59" parent="tree for field" unique_id=1252843137 instance=ExtResource("3_vydvg")]
+[node name="Tree59" parent="Props/Trees" unique_id=1252843137 instance=ExtResource("3_vydvg")]
 position = Vector2(1386, 4)
 
-[node name="Tree60" parent="tree for field" unique_id=1438401676 instance=ExtResource("3_vydvg")]
+[node name="Tree60" parent="Props/Trees" unique_id=1438401676 instance=ExtResource("3_vydvg")]
 position = Vector2(1452, 4)
 
-[node name="Tree61" parent="tree for field" unique_id=667884640 instance=ExtResource("3_vydvg")]
+[node name="Tree61" parent="Props/Trees" unique_id=667884640 instance=ExtResource("3_vydvg")]
 position = Vector2(1529, 8)
 
-[node name="Tree62" parent="tree for field" unique_id=1554620962 instance=ExtResource("3_vydvg")]
+[node name="Tree62" parent="Props/Trees" unique_id=1554620962 instance=ExtResource("3_vydvg")]
 position = Vector2(1615, 7)
 
-[node name="Tree63" parent="tree for field" unique_id=2076850873 instance=ExtResource("3_vydvg")]
+[node name="Tree63" parent="Props/Trees" unique_id=2076850873 instance=ExtResource("3_vydvg")]
 position = Vector2(1700, 8)
 
-[node name="Tree64" parent="tree for field" unique_id=44138425 instance=ExtResource("3_vydvg")]
+[node name="Tree64" parent="Props/Trees" unique_id=44138425 instance=ExtResource("3_vydvg")]
 position = Vector2(1766, 8)
 
-[node name="Tree65" parent="tree for field" unique_id=205490077 instance=ExtResource("3_vydvg")]
+[node name="Tree65" parent="Props/Trees" unique_id=205490077 instance=ExtResource("3_vydvg")]
 position = Vector2(1173, 31)
 
-[node name="Tree66" parent="tree for field" unique_id=243811315 instance=ExtResource("3_vydvg")]
+[node name="Tree66" parent="Props/Trees" unique_id=243811315 instance=ExtResource("3_vydvg")]
 position = Vector2(1259, 30)
 
-[node name="Tree67" parent="tree for field" unique_id=1978289604 instance=ExtResource("3_vydvg")]
+[node name="Tree67" parent="Props/Trees" unique_id=1978289604 instance=ExtResource("3_vydvg")]
 position = Vector2(1344, 31)
 
-[node name="Tree68" parent="tree for field" unique_id=801596435 instance=ExtResource("3_vydvg")]
+[node name="Tree68" parent="Props/Trees" unique_id=801596435 instance=ExtResource("3_vydvg")]
 position = Vector2(1410, 31)
 
-[node name="Tree69" parent="tree for field" unique_id=1828047857 instance=ExtResource("3_vydvg")]
+[node name="Tree69" parent="Props/Trees" unique_id=1828047857 instance=ExtResource("3_vydvg")]
 position = Vector2(1497, 35)
 
-[node name="Tree70" parent="tree for field" unique_id=1883770723 instance=ExtResource("3_vydvg")]
+[node name="Tree70" parent="Props/Trees" unique_id=1883770723 instance=ExtResource("3_vydvg")]
 position = Vector2(1583, 34)
 
-[node name="Tree71" parent="tree for field" unique_id=1081903956 instance=ExtResource("3_vydvg")]
+[node name="Tree71" parent="Props/Trees" unique_id=1081903956 instance=ExtResource("3_vydvg")]
 position = Vector2(1668, 35)
 
-[node name="Tree72" parent="tree for field" unique_id=1065949750 instance=ExtResource("3_vydvg")]
+[node name="Tree72" parent="Props/Trees" unique_id=1065949750 instance=ExtResource("3_vydvg")]
 position = Vector2(1734, 35)
 
-[node name="Tree73" parent="tree for field" unique_id=496449326 instance=ExtResource("3_vydvg")]
+[node name="Tree73" parent="Props/Trees" unique_id=496449326 instance=ExtResource("3_vydvg")]
 position = Vector2(33, 1839)
 
-[node name="Tree74" parent="tree for field" unique_id=890073774 instance=ExtResource("3_vydvg")]
+[node name="Tree74" parent="Props/Trees" unique_id=890073774 instance=ExtResource("3_vydvg")]
 position = Vector2(119, 1838)
 
-[node name="Tree75" parent="tree for field" unique_id=244017162 instance=ExtResource("3_vydvg")]
+[node name="Tree75" parent="Props/Trees" unique_id=244017162 instance=ExtResource("3_vydvg")]
 position = Vector2(204, 1839)
 
-[node name="Tree76" parent="tree for field" unique_id=1264753862 instance=ExtResource("3_vydvg")]
+[node name="Tree76" parent="Props/Trees" unique_id=1264753862 instance=ExtResource("3_vydvg")]
 position = Vector2(270, 1839)
 
-[node name="Tree78" parent="tree for field" unique_id=1238755731 instance=ExtResource("3_vydvg")]
+[node name="Tree78" parent="Props/Trees" unique_id=1238755731 instance=ExtResource("3_vydvg")]
 position = Vector2(271, 1838)
 
-[node name="Tree79" parent="tree for field" unique_id=1146279256 instance=ExtResource("3_vydvg")]
+[node name="Tree79" parent="Props/Trees" unique_id=1146279256 instance=ExtResource("3_vydvg")]
 position = Vector2(356, 1839)
 
-[node name="Tree80" parent="tree for field" unique_id=2139089844 instance=ExtResource("3_vydvg")]
+[node name="Tree80" parent="Props/Trees" unique_id=2139089844 instance=ExtResource("3_vydvg")]
 position = Vector2(422, 1839)
 
-[node name="Tree77" parent="tree for field" unique_id=510448549 instance=ExtResource("3_vydvg")]
+[node name="Tree77" parent="Props/Trees" unique_id=510448549 instance=ExtResource("3_vydvg")]
 position = Vector2(53, 1806)
 
-[node name="Tree81" parent="tree for field" unique_id=188560684 instance=ExtResource("3_vydvg")]
+[node name="Tree81" parent="Props/Trees" unique_id=188560684 instance=ExtResource("3_vydvg")]
 position = Vector2(139, 1805)
 
-[node name="Tree82" parent="tree for field" unique_id=1061650825 instance=ExtResource("3_vydvg")]
+[node name="Tree82" parent="Props/Trees" unique_id=1061650825 instance=ExtResource("3_vydvg")]
 position = Vector2(224, 1806)
 
-[node name="Tree83" parent="tree for field" unique_id=1539894088 instance=ExtResource("3_vydvg")]
+[node name="Tree83" parent="Props/Trees" unique_id=1539894088 instance=ExtResource("3_vydvg")]
 position = Vector2(290, 1806)
 
-[node name="Tree84" parent="tree for field" unique_id=876327315 instance=ExtResource("3_vydvg")]
+[node name="Tree84" parent="Props/Trees" unique_id=876327315 instance=ExtResource("3_vydvg")]
 position = Vector2(291, 1805)
 
-[node name="Tree85" parent="tree for field" unique_id=1980233904 instance=ExtResource("3_vydvg")]
+[node name="Tree85" parent="Props/Trees" unique_id=1980233904 instance=ExtResource("3_vydvg")]
 position = Vector2(376, 1806)
 
-[node name="Tree86" parent="tree for field" unique_id=337224727 instance=ExtResource("3_vydvg")]
+[node name="Tree86" parent="Props/Trees" unique_id=337224727 instance=ExtResource("3_vydvg")]
 position = Vector2(442, 1806)
 
-[node name="Tree87" parent="tree for field" unique_id=465716010 instance=ExtResource("3_vydvg")]
+[node name="Tree87" parent="Props/Trees" unique_id=465716010 instance=ExtResource("3_vydvg")]
 position = Vector2(732, 1841)
 
-[node name="Tree88" parent="tree for field" unique_id=14923312 instance=ExtResource("3_vydvg")]
+[node name="Tree88" parent="Props/Trees" unique_id=14923312 instance=ExtResource("3_vydvg")]
 position = Vector2(818, 1840)
 
-[node name="Tree89" parent="tree for field" unique_id=335391453 instance=ExtResource("3_vydvg")]
+[node name="Tree89" parent="Props/Trees" unique_id=335391453 instance=ExtResource("3_vydvg")]
 position = Vector2(903, 1841)
 
-[node name="Tree90" parent="tree for field" unique_id=1974959358 instance=ExtResource("3_vydvg")]
+[node name="Tree90" parent="Props/Trees" unique_id=1974959358 instance=ExtResource("3_vydvg")]
 position = Vector2(969, 1841)
 
-[node name="Tree91" parent="tree for field" unique_id=236902264 instance=ExtResource("3_vydvg")]
+[node name="Tree91" parent="Props/Trees" unique_id=236902264 instance=ExtResource("3_vydvg")]
 position = Vector2(970, 1840)
 
-[node name="Tree92" parent="tree for field" unique_id=1505152933 instance=ExtResource("3_vydvg")]
+[node name="Tree92" parent="Props/Trees" unique_id=1505152933 instance=ExtResource("3_vydvg")]
 position = Vector2(1055, 1841)
 
-[node name="Tree93" parent="tree for field" unique_id=804979711 instance=ExtResource("3_vydvg")]
+[node name="Tree93" parent="Props/Trees" unique_id=804979711 instance=ExtResource("3_vydvg")]
 position = Vector2(1121, 1841)
 
-[node name="Tree94" parent="tree for field" unique_id=1175605646 instance=ExtResource("3_vydvg")]
+[node name="Tree94" parent="Props/Trees" unique_id=1175605646 instance=ExtResource("3_vydvg")]
 position = Vector2(1241, 1839)
 
-[node name="Tree95" parent="tree for field" unique_id=854013465 instance=ExtResource("3_vydvg")]
+[node name="Tree95" parent="Props/Trees" unique_id=854013465 instance=ExtResource("3_vydvg")]
 position = Vector2(1327, 1838)
 
-[node name="Tree96" parent="tree for field" unique_id=328871701 instance=ExtResource("3_vydvg")]
+[node name="Tree96" parent="Props/Trees" unique_id=328871701 instance=ExtResource("3_vydvg")]
 position = Vector2(1412, 1839)
 
-[node name="Tree97" parent="tree for field" unique_id=606657076 instance=ExtResource("3_vydvg")]
+[node name="Tree97" parent="Props/Trees" unique_id=606657076 instance=ExtResource("3_vydvg")]
 position = Vector2(1478, 1839)
 
-[node name="Tree98" parent="tree for field" unique_id=1925908151 instance=ExtResource("3_vydvg")]
+[node name="Tree98" parent="Props/Trees" unique_id=1925908151 instance=ExtResource("3_vydvg")]
 position = Vector2(1479, 1838)
 
-[node name="Tree99" parent="tree for field" unique_id=2059410966 instance=ExtResource("3_vydvg")]
+[node name="Tree99" parent="Props/Trees" unique_id=2059410966 instance=ExtResource("3_vydvg")]
 position = Vector2(1564, 1839)
 
-[node name="Tree100" parent="tree for field" unique_id=16498605 instance=ExtResource("3_vydvg")]
+[node name="Tree100" parent="Props/Trees" unique_id=16498605 instance=ExtResource("3_vydvg")]
 position = Vector2(1630, 1839)
 
-[node name="Tree138" parent="tree for field" unique_id=990299221 instance=ExtResource("3_vydvg")]
+[node name="Tree138" parent="Props/Trees" unique_id=990299221 instance=ExtResource("3_vydvg")]
 position = Vector2(1790, 1836)
 
-[node name="Tree139" parent="tree for field" unique_id=270115500 instance=ExtResource("3_vydvg")]
+[node name="Tree139" parent="Props/Trees" unique_id=270115500 instance=ExtResource("3_vydvg")]
 position = Vector2(1787, 1789)
 
-[node name="Tree140" parent="tree for field" unique_id=1185555735 instance=ExtResource("3_vydvg")]
+[node name="Tree140" parent="Props/Trees" unique_id=1185555735 instance=ExtResource("3_vydvg")]
 position = Vector2(1786, 1744)
 
-[node name="Tree141" parent="tree for field" unique_id=799018108 instance=ExtResource("3_vydvg")]
+[node name="Tree141" parent="Props/Trees" unique_id=799018108 instance=ExtResource("3_vydvg")]
 position = Vector2(1787, 1705)
 
-[node name="Tree142" parent="tree for field" unique_id=1882083663 instance=ExtResource("3_vydvg")]
+[node name="Tree142" parent="Props/Trees" unique_id=1882083663 instance=ExtResource("3_vydvg")]
 position = Vector2(1788, 1660)
 
-[node name="Tree143" parent="tree for field" unique_id=1339671830 instance=ExtResource("3_vydvg")]
+[node name="Tree143" parent="Props/Trees" unique_id=1339671830 instance=ExtResource("3_vydvg")]
 position = Vector2(1789, 1621)
 
-[node name="Tree190" parent="tree for field" unique_id=1578761192 instance=ExtResource("3_vydvg")]
+[node name="Tree190" parent="Props/Trees" unique_id=1578761192 instance=ExtResource("3_vydvg")]
 position = Vector2(1806, 939)
 
-[node name="Tree191" parent="tree for field" unique_id=733274941 instance=ExtResource("3_vydvg")]
+[node name="Tree191" parent="Props/Trees" unique_id=733274941 instance=ExtResource("3_vydvg")]
 position = Vector2(1803, 892)
 
-[node name="Tree192" parent="tree for field" unique_id=994834893 instance=ExtResource("3_vydvg")]
+[node name="Tree192" parent="Props/Trees" unique_id=994834893 instance=ExtResource("3_vydvg")]
 position = Vector2(1802, 847)
 
-[node name="Tree193" parent="tree for field" unique_id=45424417 instance=ExtResource("3_vydvg")]
+[node name="Tree193" parent="Props/Trees" unique_id=45424417 instance=ExtResource("3_vydvg")]
 position = Vector2(1803, 808)
 
-[node name="Tree194" parent="tree for field" unique_id=1008804677 instance=ExtResource("3_vydvg")]
+[node name="Tree194" parent="Props/Trees" unique_id=1008804677 instance=ExtResource("3_vydvg")]
 position = Vector2(1804, 763)
 
-[node name="Tree195" parent="tree for field" unique_id=1944532512 instance=ExtResource("3_vydvg")]
+[node name="Tree195" parent="Props/Trees" unique_id=1944532512 instance=ExtResource("3_vydvg")]
 position = Vector2(1805, 724)
 
-[node name="Tree196" parent="tree for field" unique_id=860605159 instance=ExtResource("3_vydvg")]
+[node name="Tree196" parent="Props/Trees" unique_id=860605159 instance=ExtResource("3_vydvg")]
 position = Vector2(1866, 915)
 
-[node name="Tree197" parent="tree for field" unique_id=719348229 instance=ExtResource("3_vydvg")]
+[node name="Tree197" parent="Props/Trees" unique_id=719348229 instance=ExtResource("3_vydvg")]
 position = Vector2(1863, 868)
 
-[node name="Tree198" parent="tree for field" unique_id=1425201314 instance=ExtResource("3_vydvg")]
+[node name="Tree198" parent="Props/Trees" unique_id=1425201314 instance=ExtResource("3_vydvg")]
 position = Vector2(1862, 823)
 
-[node name="Tree199" parent="tree for field" unique_id=1806954423 instance=ExtResource("3_vydvg")]
+[node name="Tree199" parent="Props/Trees" unique_id=1806954423 instance=ExtResource("3_vydvg")]
 position = Vector2(1863, 784)
 
-[node name="Tree200" parent="tree for field" unique_id=2128392853 instance=ExtResource("3_vydvg")]
+[node name="Tree200" parent="Props/Trees" unique_id=2128392853 instance=ExtResource("3_vydvg")]
 position = Vector2(1864, 739)
 
-[node name="Tree201" parent="tree for field" unique_id=1665147150 instance=ExtResource("3_vydvg")]
+[node name="Tree201" parent="Props/Trees" unique_id=1665147150 instance=ExtResource("3_vydvg")]
 position = Vector2(1865, 700)
 
-[node name="Tree202" parent="tree for field" unique_id=950215617 instance=ExtResource("3_vydvg")]
+[node name="Tree202" parent="Props/Trees" unique_id=950215617 instance=ExtResource("3_vydvg")]
 position = Vector2(1800, 233)
 
-[node name="Tree203" parent="tree for field" unique_id=1676129037 instance=ExtResource("3_vydvg")]
+[node name="Tree203" parent="Props/Trees" unique_id=1676129037 instance=ExtResource("3_vydvg")]
 position = Vector2(1797, 186)
 
-[node name="Tree204" parent="tree for field" unique_id=1157994460 instance=ExtResource("3_vydvg")]
+[node name="Tree204" parent="Props/Trees" unique_id=1157994460 instance=ExtResource("3_vydvg")]
 position = Vector2(1796, 141)
 
-[node name="Tree205" parent="tree for field" unique_id=597835983 instance=ExtResource("3_vydvg")]
+[node name="Tree205" parent="Props/Trees" unique_id=597835983 instance=ExtResource("3_vydvg")]
 position = Vector2(1797, 102)
 
-[node name="Tree206" parent="tree for field" unique_id=1860935186 instance=ExtResource("3_vydvg")]
+[node name="Tree206" parent="Props/Trees" unique_id=1860935186 instance=ExtResource("3_vydvg")]
 position = Vector2(1798, 57)
 
-[node name="Tree207" parent="tree for field" unique_id=188327765 instance=ExtResource("3_vydvg")]
+[node name="Tree207" parent="Props/Trees" unique_id=188327765 instance=ExtResource("3_vydvg")]
 position = Vector2(1799, 18)
 
-[node name="Tree208" parent="tree for field" unique_id=216553841 instance=ExtResource("3_vydvg")]
+[node name="Tree208" parent="Props/Trees" unique_id=216553841 instance=ExtResource("3_vydvg")]
 position = Vector2(1807, 535)
 
-[node name="Tree209" parent="tree for field" unique_id=973145857 instance=ExtResource("3_vydvg")]
+[node name="Tree209" parent="Props/Trees" unique_id=973145857 instance=ExtResource("3_vydvg")]
 position = Vector2(1804, 488)
 
-[node name="Tree210" parent="tree for field" unique_id=411442917 instance=ExtResource("3_vydvg")]
+[node name="Tree210" parent="Props/Trees" unique_id=411442917 instance=ExtResource("3_vydvg")]
 position = Vector2(1803, 443)
 
-[node name="Tree211" parent="tree for field" unique_id=2147034084 instance=ExtResource("3_vydvg")]
+[node name="Tree211" parent="Props/Trees" unique_id=2147034084 instance=ExtResource("3_vydvg")]
 position = Vector2(1804, 404)
 
-[node name="Tree212" parent="tree for field" unique_id=2125952006 instance=ExtResource("3_vydvg")]
+[node name="Tree212" parent="Props/Trees" unique_id=2125952006 instance=ExtResource("3_vydvg")]
 position = Vector2(1805, 359)
 
-[node name="Tree213" parent="tree for field" unique_id=257171712 instance=ExtResource("3_vydvg")]
+[node name="Tree213" parent="Props/Trees" unique_id=257171712 instance=ExtResource("3_vydvg")]
 position = Vector2(1806, 320)
 
-[node name="Tree214" parent="tree for field" unique_id=2007591837 instance=ExtResource("3_vydvg")]
+[node name="Tree214" parent="Props/Trees" unique_id=2007591837 instance=ExtResource("3_vydvg")]
 position = Vector2(1883, 245)
 
-[node name="Tree215" parent="tree for field" unique_id=1800767521 instance=ExtResource("3_vydvg")]
+[node name="Tree215" parent="Props/Trees" unique_id=1800767521 instance=ExtResource("3_vydvg")]
 position = Vector2(1880, 198)
 
-[node name="Tree216" parent="tree for field" unique_id=917665610 instance=ExtResource("3_vydvg")]
+[node name="Tree216" parent="Props/Trees" unique_id=917665610 instance=ExtResource("3_vydvg")]
 position = Vector2(1879, 153)
 
-[node name="Tree217" parent="tree for field" unique_id=1919559960 instance=ExtResource("3_vydvg")]
+[node name="Tree217" parent="Props/Trees" unique_id=1919559960 instance=ExtResource("3_vydvg")]
 position = Vector2(1880, 114)
 
-[node name="Tree218" parent="tree for field" unique_id=1936694940 instance=ExtResource("3_vydvg")]
+[node name="Tree218" parent="Props/Trees" unique_id=1936694940 instance=ExtResource("3_vydvg")]
 position = Vector2(1881, 69)
 
-[node name="Tree219" parent="tree for field" unique_id=784350239 instance=ExtResource("3_vydvg")]
+[node name="Tree219" parent="Props/Trees" unique_id=784350239 instance=ExtResource("3_vydvg")]
 position = Vector2(1882, 30)
 
-[node name="Tree220" parent="tree for field" unique_id=1930866611 instance=ExtResource("3_vydvg")]
+[node name="Tree220" parent="Props/Trees" unique_id=1930866611 instance=ExtResource("3_vydvg")]
 position = Vector2(1885, 500)
 
-[node name="Tree221" parent="tree for field" unique_id=944252088 instance=ExtResource("3_vydvg")]
+[node name="Tree221" parent="Props/Trees" unique_id=944252088 instance=ExtResource("3_vydvg")]
 position = Vector2(1882, 453)
 
-[node name="Tree222" parent="tree for field" unique_id=1984725486 instance=ExtResource("3_vydvg")]
+[node name="Tree222" parent="Props/Trees" unique_id=1984725486 instance=ExtResource("3_vydvg")]
 position = Vector2(1881, 408)
 
-[node name="Tree223" parent="tree for field" unique_id=1109891051 instance=ExtResource("3_vydvg")]
+[node name="Tree223" parent="Props/Trees" unique_id=1109891051 instance=ExtResource("3_vydvg")]
 position = Vector2(1882, 369)
 
-[node name="Tree224" parent="tree for field" unique_id=1382681526 instance=ExtResource("3_vydvg")]
+[node name="Tree224" parent="Props/Trees" unique_id=1382681526 instance=ExtResource("3_vydvg")]
 position = Vector2(1883, 324)
 
-[node name="Tree225" parent="tree for field" unique_id=1465630206 instance=ExtResource("3_vydvg")]
+[node name="Tree225" parent="Props/Trees" unique_id=1465630206 instance=ExtResource("3_vydvg")]
 position = Vector2(1884, 285)
 
-[node name="Tree226" parent="tree for field" unique_id=1688066337 instance=ExtResource("3_vydvg")]
+[node name="Tree226" parent="Props/Trees" unique_id=1688066337 instance=ExtResource("3_vydvg")]
 position = Vector2(16, 347)
 
-[node name="Tree227" parent="tree for field" unique_id=366773230 instance=ExtResource("3_vydvg")]
+[node name="Tree227" parent="Props/Trees" unique_id=366773230 instance=ExtResource("3_vydvg")]
 position = Vector2(13, 300)
 
-[node name="Tree228" parent="tree for field" unique_id=1411833837 instance=ExtResource("3_vydvg")]
+[node name="Tree228" parent="Props/Trees" unique_id=1411833837 instance=ExtResource("3_vydvg")]
 position = Vector2(12, 255)
 
-[node name="Tree229" parent="tree for field" unique_id=219952831 instance=ExtResource("3_vydvg")]
+[node name="Tree229" parent="Props/Trees" unique_id=219952831 instance=ExtResource("3_vydvg")]
 position = Vector2(13, 216)
 
-[node name="Tree230" parent="tree for field" unique_id=1039075681 instance=ExtResource("3_vydvg")]
+[node name="Tree230" parent="Props/Trees" unique_id=1039075681 instance=ExtResource("3_vydvg")]
 position = Vector2(14, 171)
 
-[node name="Tree231" parent="tree for field" unique_id=1624019863 instance=ExtResource("3_vydvg")]
+[node name="Tree231" parent="Props/Trees" unique_id=1624019863 instance=ExtResource("3_vydvg")]
 position = Vector2(15, 132)
 
-[node name="Tree232" parent="tree for field" unique_id=1709530525 instance=ExtResource("3_vydvg")]
+[node name="Tree232" parent="Props/Trees" unique_id=1709530525 instance=ExtResource("3_vydvg")]
 position = Vector2(-44, 210)
 
-[node name="Tree233" parent="tree for field" unique_id=708598750 instance=ExtResource("3_vydvg")]
+[node name="Tree233" parent="Props/Trees" unique_id=708598750 instance=ExtResource("3_vydvg")]
 position = Vector2(-47, 163)
 
-[node name="Tree234" parent="tree for field" unique_id=1677259155 instance=ExtResource("3_vydvg")]
+[node name="Tree234" parent="Props/Trees" unique_id=1677259155 instance=ExtResource("3_vydvg")]
 position = Vector2(-48, 118)
 
-[node name="Tree235" parent="tree for field" unique_id=1426497765 instance=ExtResource("3_vydvg")]
+[node name="Tree235" parent="Props/Trees" unique_id=1426497765 instance=ExtResource("3_vydvg")]
 position = Vector2(-47, 79)
 
-[node name="Tree236" parent="tree for field" unique_id=495747966 instance=ExtResource("3_vydvg")]
+[node name="Tree236" parent="Props/Trees" unique_id=495747966 instance=ExtResource("3_vydvg")]
 position = Vector2(-46, 34)
 
-[node name="Tree237" parent="tree for field" unique_id=586180734 instance=ExtResource("3_vydvg")]
+[node name="Tree237" parent="Props/Trees" unique_id=586180734 instance=ExtResource("3_vydvg")]
 position = Vector2(-45, -5)
 
-[node name="Tree238" parent="tree for field" unique_id=1300726130 instance=ExtResource("3_vydvg")]
+[node name="Tree238" parent="Props/Trees" unique_id=1300726130 instance=ExtResource("3_vydvg")]
 position = Vector2(-45, 470)
 
-[node name="Tree239" parent="tree for field" unique_id=1531873809 instance=ExtResource("3_vydvg")]
+[node name="Tree239" parent="Props/Trees" unique_id=1531873809 instance=ExtResource("3_vydvg")]
 position = Vector2(-48, 423)
 
-[node name="Tree240" parent="tree for field" unique_id=1093181325 instance=ExtResource("3_vydvg")]
+[node name="Tree240" parent="Props/Trees" unique_id=1093181325 instance=ExtResource("3_vydvg")]
 position = Vector2(-49, 378)
 
-[node name="Tree241" parent="tree for field" unique_id=849557729 instance=ExtResource("3_vydvg")]
+[node name="Tree241" parent="Props/Trees" unique_id=849557729 instance=ExtResource("3_vydvg")]
 position = Vector2(-48, 339)
 
-[node name="Tree242" parent="tree for field" unique_id=1257753407 instance=ExtResource("3_vydvg")]
+[node name="Tree242" parent="Props/Trees" unique_id=1257753407 instance=ExtResource("3_vydvg")]
 position = Vector2(-47, 294)
 
-[node name="Tree243" parent="tree for field" unique_id=680346176 instance=ExtResource("3_vydvg")]
+[node name="Tree243" parent="Props/Trees" unique_id=680346176 instance=ExtResource("3_vydvg")]
 position = Vector2(-46, 255)
 
-[node name="Tree244" parent="tree for field" unique_id=1165210098 instance=ExtResource("3_vydvg")]
+[node name="Tree244" parent="Props/Trees" unique_id=1165210098 instance=ExtResource("3_vydvg")]
 position = Vector2(11, 578)
 
-[node name="Tree245" parent="tree for field" unique_id=1759667041 instance=ExtResource("3_vydvg")]
+[node name="Tree245" parent="Props/Trees" unique_id=1759667041 instance=ExtResource("3_vydvg")]
 position = Vector2(8, 531)
 
-[node name="Tree246" parent="tree for field" unique_id=1167718563 instance=ExtResource("3_vydvg")]
+[node name="Tree246" parent="Props/Trees" unique_id=1167718563 instance=ExtResource("3_vydvg")]
 position = Vector2(7, 486)
 
-[node name="Tree247" parent="tree for field" unique_id=1411996284 instance=ExtResource("3_vydvg")]
+[node name="Tree247" parent="Props/Trees" unique_id=1411996284 instance=ExtResource("3_vydvg")]
 position = Vector2(8, 447)
 
-[node name="Tree248" parent="tree for field" unique_id=1117381715 instance=ExtResource("3_vydvg")]
+[node name="Tree248" parent="Props/Trees" unique_id=1117381715 instance=ExtResource("3_vydvg")]
 position = Vector2(9, 402)
 
-[node name="Tree249" parent="tree for field" unique_id=911442633 instance=ExtResource("3_vydvg")]
+[node name="Tree249" parent="Props/Trees" unique_id=911442633 instance=ExtResource("3_vydvg")]
 position = Vector2(10, 363)
 
-[node name="Tree254" parent="tree for field" unique_id=1488566431 instance=ExtResource("3_vydvg")]
+[node name="Tree254" parent="Props/Trees" unique_id=1488566431 instance=ExtResource("3_vydvg")]
 position = Vector2(-46, 558)
 
-[node name="Tree255" parent="tree for field" unique_id=984762109 instance=ExtResource("3_vydvg")]
+[node name="Tree255" parent="Props/Trees" unique_id=984762109 instance=ExtResource("3_vydvg")]
 position = Vector2(-45, 519)
 
-[node name="Tree262" parent="tree for field" unique_id=1297460103 instance=ExtResource("3_vydvg")]
+[node name="Tree262" parent="Props/Trees" unique_id=1297460103 instance=ExtResource("3_vydvg")]
 position = Vector2(-36, 1837)
 
-[node name="Tree263" parent="tree for field" unique_id=1542174692 instance=ExtResource("3_vydvg")]
+[node name="Tree263" parent="Props/Trees" unique_id=1542174692 instance=ExtResource("3_vydvg")]
 position = Vector2(-39, 1790)
 
-[node name="Tree264" parent="tree for field" unique_id=2000279913 instance=ExtResource("3_vydvg")]
+[node name="Tree264" parent="Props/Trees" unique_id=2000279913 instance=ExtResource("3_vydvg")]
 position = Vector2(-40, 1745)
 
-[node name="Tree265" parent="tree for field" unique_id=877808641 instance=ExtResource("3_vydvg")]
+[node name="Tree265" parent="Props/Trees" unique_id=877808641 instance=ExtResource("3_vydvg")]
 position = Vector2(-39, 1706)
 
-[node name="Tree266" parent="tree for field" unique_id=51179774 instance=ExtResource("3_vydvg")]
+[node name="Tree266" parent="Props/Trees" unique_id=51179774 instance=ExtResource("3_vydvg")]
 position = Vector2(-38, 1661)
 
-[node name="Tree267" parent="tree for field" unique_id=1326622757 instance=ExtResource("3_vydvg")]
+[node name="Tree267" parent="Props/Trees" unique_id=1326622757 instance=ExtResource("3_vydvg")]
 position = Vector2(-37, 1622)
 
-[node name="Tree268" parent="tree for field" unique_id=2055880994 instance=ExtResource("3_vydvg")]
+[node name="Tree268" parent="Props/Trees" unique_id=2055880994 instance=ExtResource("3_vydvg")]
 position = Vector2(-90, 1817)
 
-[node name="Tree269" parent="tree for field" unique_id=1629935787 instance=ExtResource("3_vydvg")]
+[node name="Tree269" parent="Props/Trees" unique_id=1629935787 instance=ExtResource("3_vydvg")]
 position = Vector2(-91, 1772)
 
-[node name="Tree270" parent="tree for field" unique_id=117598987 instance=ExtResource("3_vydvg")]
+[node name="Tree270" parent="Props/Trees" unique_id=117598987 instance=ExtResource("3_vydvg")]
 position = Vector2(-90, 1733)
 
-[node name="Tree271" parent="tree for field" unique_id=1802886964 instance=ExtResource("3_vydvg")]
+[node name="Tree271" parent="Props/Trees" unique_id=1802886964 instance=ExtResource("3_vydvg")]
 position = Vector2(-89, 1688)
 
-[node name="Tree272" parent="tree for field" unique_id=1743321934 instance=ExtResource("3_vydvg")]
+[node name="Tree272" parent="Props/Trees" unique_id=1743321934 instance=ExtResource("3_vydvg")]
 position = Vector2(-88, 1649)
 
-[node name="Tree273" parent="tree for field" unique_id=590834591 instance=ExtResource("3_vydvg")]
+[node name="Tree273" parent="Props/Trees" unique_id=590834591 instance=ExtResource("3_vydvg")]
 position = Vector2(-92, 1902)
 
-[node name="Tree274" parent="tree for field" unique_id=877917867 instance=ExtResource("3_vydvg")]
+[node name="Tree274" parent="Props/Trees" unique_id=877917867 instance=ExtResource("3_vydvg")]
 position = Vector2(-93, 1857)
 
-[node name="Tree275" parent="tree for field" unique_id=2128419407 instance=ExtResource("3_vydvg")]
+[node name="Tree275" parent="Props/Trees" unique_id=2128419407 instance=ExtResource("3_vydvg")]
 position = Vector2(-92, 1818)
 
-[node name="Tree276" parent="tree for field" unique_id=1993427345 instance=ExtResource("3_vydvg")]
+[node name="Tree276" parent="Props/Trees" unique_id=1993427345 instance=ExtResource("3_vydvg")]
 position = Vector2(-91, 1773)
 
-[node name="Tree277" parent="tree for field" unique_id=811861641 instance=ExtResource("3_vydvg")]
+[node name="Tree277" parent="Props/Trees" unique_id=811861641 instance=ExtResource("3_vydvg")]
 position = Vector2(-90, 1734)
 
-[node name="Tree158" parent="tree for field" unique_id=1948809480 instance=ExtResource("3_vydvg")]
+[node name="Tree158" parent="Props/Trees" unique_id=1948809480 instance=ExtResource("3_vydvg")]
 position = Vector2(1788, 1400)
 
-[node name="Tree159" parent="tree for field" unique_id=76688053 instance=ExtResource("3_vydvg")]
+[node name="Tree159" parent="Props/Trees" unique_id=76688053 instance=ExtResource("3_vydvg")]
 position = Vector2(1785, 1353)
 
-[node name="Tree160" parent="tree for field" unique_id=822705753 instance=ExtResource("3_vydvg")]
+[node name="Tree160" parent="Props/Trees" unique_id=822705753 instance=ExtResource("3_vydvg")]
 position = Vector2(1784, 1308)
 
-[node name="Tree161" parent="tree for field" unique_id=1728638916 instance=ExtResource("3_vydvg")]
+[node name="Tree161" parent="Props/Trees" unique_id=1728638916 instance=ExtResource("3_vydvg")]
 position = Vector2(1785, 1269)
 
-[node name="Tree162" parent="tree for field" unique_id=1543032101 instance=ExtResource("3_vydvg")]
+[node name="Tree162" parent="Props/Trees" unique_id=1543032101 instance=ExtResource("3_vydvg")]
 position = Vector2(1786, 1224)
 
-[node name="Tree163" parent="tree for field" unique_id=1063409910 instance=ExtResource("3_vydvg")]
+[node name="Tree163" parent="Props/Trees" unique_id=1063409910 instance=ExtResource("3_vydvg")]
 position = Vector2(1787, 1185)
 
-[node name="Tree144" parent="tree for field" unique_id=808921063 instance=ExtResource("3_vydvg")]
+[node name="Tree144" parent="Props/Trees" unique_id=808921063 instance=ExtResource("3_vydvg")]
 position = Vector2(1786, 1574)
 
-[node name="Tree145" parent="tree for field" unique_id=226384785 instance=ExtResource("3_vydvg")]
+[node name="Tree145" parent="Props/Trees" unique_id=226384785 instance=ExtResource("3_vydvg")]
 position = Vector2(1785, 1529)
 
-[node name="Tree146" parent="tree for field" unique_id=1049383313 instance=ExtResource("3_vydvg")]
+[node name="Tree146" parent="Props/Trees" unique_id=1049383313 instance=ExtResource("3_vydvg")]
 position = Vector2(1786, 1490)
 
-[node name="Tree147" parent="tree for field" unique_id=1152734982 instance=ExtResource("3_vydvg")]
+[node name="Tree147" parent="Props/Trees" unique_id=1152734982 instance=ExtResource("3_vydvg")]
 position = Vector2(1787, 1445)
 
-[node name="Tree148" parent="tree for field" unique_id=2067810058 instance=ExtResource("3_vydvg")]
+[node name="Tree148" parent="Props/Trees" unique_id=2067810058 instance=ExtResource("3_vydvg")]
 position = Vector2(1790, 1836)
 
-[node name="Tree149" parent="tree for field" unique_id=498296907 instance=ExtResource("3_vydvg")]
+[node name="Tree149" parent="Props/Trees" unique_id=498296907 instance=ExtResource("3_vydvg")]
 position = Vector2(1787, 1789)
 
-[node name="Tree150" parent="tree for field" unique_id=839101834 instance=ExtResource("3_vydvg")]
+[node name="Tree150" parent="Props/Trees" unique_id=839101834 instance=ExtResource("3_vydvg")]
 position = Vector2(1786, 1744)
 
-[node name="Tree151" parent="tree for field" unique_id=2113407363 instance=ExtResource("3_vydvg")]
+[node name="Tree151" parent="Props/Trees" unique_id=2113407363 instance=ExtResource("3_vydvg")]
 position = Vector2(1787, 1705)
 
-[node name="Tree152" parent="tree for field" unique_id=784297783 instance=ExtResource("3_vydvg")]
+[node name="Tree152" parent="Props/Trees" unique_id=784297783 instance=ExtResource("3_vydvg")]
 position = Vector2(1788, 1660)
 
-[node name="Tree153" parent="tree for field" unique_id=1003577015 instance=ExtResource("3_vydvg")]
+[node name="Tree153" parent="Props/Trees" unique_id=1003577015 instance=ExtResource("3_vydvg")]
 position = Vector2(1789, 1621)
 
-[node name="Tree154" parent="tree for field" unique_id=179049037 instance=ExtResource("3_vydvg")]
+[node name="Tree154" parent="Props/Trees" unique_id=179049037 instance=ExtResource("3_vydvg")]
 position = Vector2(1786, 1574)
 
-[node name="Tree155" parent="tree for field" unique_id=737222243 instance=ExtResource("3_vydvg")]
+[node name="Tree155" parent="Props/Trees" unique_id=737222243 instance=ExtResource("3_vydvg")]
 position = Vector2(1785, 1529)
 
-[node name="Tree156" parent="tree for field" unique_id=1525303756 instance=ExtResource("3_vydvg")]
+[node name="Tree156" parent="Props/Trees" unique_id=1525303756 instance=ExtResource("3_vydvg")]
 position = Vector2(1786, 1490)
 
-[node name="Tree157" parent="tree for field" unique_id=2131455047 instance=ExtResource("3_vydvg")]
+[node name="Tree157" parent="Props/Trees" unique_id=2131455047 instance=ExtResource("3_vydvg")]
 position = Vector2(1787, 1445)
 
-[node name="Tree164" parent="tree for field" unique_id=1590376594 instance=ExtResource("3_vydvg")]
+[node name="Tree164" parent="Props/Trees" unique_id=1590376594 instance=ExtResource("3_vydvg")]
 position = Vector2(1857, 1813)
 
-[node name="Tree165" parent="tree for field" unique_id=1098406008 instance=ExtResource("3_vydvg")]
+[node name="Tree165" parent="Props/Trees" unique_id=1098406008 instance=ExtResource("3_vydvg")]
 position = Vector2(1854, 1766)
 
-[node name="Tree166" parent="tree for field" unique_id=1879877509 instance=ExtResource("3_vydvg")]
+[node name="Tree166" parent="Props/Trees" unique_id=1879877509 instance=ExtResource("3_vydvg")]
 position = Vector2(1853, 1721)
 
-[node name="Tree167" parent="tree for field" unique_id=2055887709 instance=ExtResource("3_vydvg")]
+[node name="Tree167" parent="Props/Trees" unique_id=2055887709 instance=ExtResource("3_vydvg")]
 position = Vector2(1854, 1682)
 
-[node name="Tree168" parent="tree for field" unique_id=952151565 instance=ExtResource("3_vydvg")]
+[node name="Tree168" parent="Props/Trees" unique_id=952151565 instance=ExtResource("3_vydvg")]
 position = Vector2(1855, 1637)
 
-[node name="Tree169" parent="tree for field" unique_id=1138886671 instance=ExtResource("3_vydvg")]
+[node name="Tree169" parent="Props/Trees" unique_id=1138886671 instance=ExtResource("3_vydvg")]
 position = Vector2(1856, 1598)
 
-[node name="Tree170" parent="tree for field" unique_id=205947616 instance=ExtResource("3_vydvg")]
+[node name="Tree170" parent="Props/Trees" unique_id=205947616 instance=ExtResource("3_vydvg")]
 position = Vector2(1855, 1377)
 
-[node name="Tree171" parent="tree for field" unique_id=1391450576 instance=ExtResource("3_vydvg")]
+[node name="Tree171" parent="Props/Trees" unique_id=1391450576 instance=ExtResource("3_vydvg")]
 position = Vector2(1852, 1330)
 
-[node name="Tree172" parent="tree for field" unique_id=866014974 instance=ExtResource("3_vydvg")]
+[node name="Tree172" parent="Props/Trees" unique_id=866014974 instance=ExtResource("3_vydvg")]
 position = Vector2(1851, 1285)
 
-[node name="Tree173" parent="tree for field" unique_id=1949379574 instance=ExtResource("3_vydvg")]
+[node name="Tree173" parent="Props/Trees" unique_id=1949379574 instance=ExtResource("3_vydvg")]
 position = Vector2(1852, 1246)
 
-[node name="Tree174" parent="tree for field" unique_id=432080985 instance=ExtResource("3_vydvg")]
+[node name="Tree174" parent="Props/Trees" unique_id=432080985 instance=ExtResource("3_vydvg")]
 position = Vector2(1853, 1201)
 
-[node name="Tree175" parent="tree for field" unique_id=1011486444 instance=ExtResource("3_vydvg")]
+[node name="Tree175" parent="Props/Trees" unique_id=1011486444 instance=ExtResource("3_vydvg")]
 position = Vector2(1854, 1162)
 
-[node name="Tree176" parent="tree for field" unique_id=1056596872 instance=ExtResource("3_vydvg")]
+[node name="Tree176" parent="Props/Trees" unique_id=1056596872 instance=ExtResource("3_vydvg")]
 position = Vector2(1853, 1551)
 
-[node name="Tree177" parent="tree for field" unique_id=1256743884 instance=ExtResource("3_vydvg")]
+[node name="Tree177" parent="Props/Trees" unique_id=1256743884 instance=ExtResource("3_vydvg")]
 position = Vector2(1852, 1506)
 
-[node name="Tree178" parent="tree for field" unique_id=657631928 instance=ExtResource("3_vydvg")]
+[node name="Tree178" parent="Props/Trees" unique_id=657631928 instance=ExtResource("3_vydvg")]
 position = Vector2(1853, 1467)
 
-[node name="Tree179" parent="tree for field" unique_id=799890476 instance=ExtResource("3_vydvg")]
+[node name="Tree179" parent="Props/Trees" unique_id=799890476 instance=ExtResource("3_vydvg")]
 position = Vector2(1854, 1422)
 
-[node name="Tree180" parent="tree for field" unique_id=1283707425 instance=ExtResource("3_vydvg")]
+[node name="Tree180" parent="Props/Trees" unique_id=1283707425 instance=ExtResource("3_vydvg")]
 position = Vector2(1857, 1813)
 
-[node name="Tree181" parent="tree for field" unique_id=1758055011 instance=ExtResource("3_vydvg")]
+[node name="Tree181" parent="Props/Trees" unique_id=1758055011 instance=ExtResource("3_vydvg")]
 position = Vector2(1854, 1766)
 
-[node name="Tree182" parent="tree for field" unique_id=1787687945 instance=ExtResource("3_vydvg")]
+[node name="Tree182" parent="Props/Trees" unique_id=1787687945 instance=ExtResource("3_vydvg")]
 position = Vector2(1853, 1721)
 
-[node name="Tree183" parent="tree for field" unique_id=1811088920 instance=ExtResource("3_vydvg")]
+[node name="Tree183" parent="Props/Trees" unique_id=1811088920 instance=ExtResource("3_vydvg")]
 position = Vector2(1854, 1682)
 
-[node name="Tree184" parent="tree for field" unique_id=778664140 instance=ExtResource("3_vydvg")]
+[node name="Tree184" parent="Props/Trees" unique_id=778664140 instance=ExtResource("3_vydvg")]
 position = Vector2(1855, 1637)
 
-[node name="Tree185" parent="tree for field" unique_id=439883755 instance=ExtResource("3_vydvg")]
+[node name="Tree185" parent="Props/Trees" unique_id=439883755 instance=ExtResource("3_vydvg")]
 position = Vector2(1856, 1598)
 
-[node name="Tree186" parent="tree for field" unique_id=1962205323 instance=ExtResource("3_vydvg")]
+[node name="Tree186" parent="Props/Trees" unique_id=1962205323 instance=ExtResource("3_vydvg")]
 position = Vector2(1853, 1551)
 
-[node name="Tree187" parent="tree for field" unique_id=1038796254 instance=ExtResource("3_vydvg")]
+[node name="Tree187" parent="Props/Trees" unique_id=1038796254 instance=ExtResource("3_vydvg")]
 position = Vector2(1852, 1506)
 
-[node name="Tree188" parent="tree for field" unique_id=448692958 instance=ExtResource("3_vydvg")]
+[node name="Tree188" parent="Props/Trees" unique_id=448692958 instance=ExtResource("3_vydvg")]
 position = Vector2(1853, 1467)
 
-[node name="Tree189" parent="tree for field" unique_id=1230754117 instance=ExtResource("3_vydvg")]
+[node name="Tree189" parent="Props/Trees" unique_id=1230754117 instance=ExtResource("3_vydvg")]
 position = Vector2(1854, 1422)
 
-[node name="Tree101" parent="tree for field" unique_id=1384755044 instance=ExtResource("3_vydvg")]
+[node name="Tree101" parent="Props/Trees" unique_id=1384755044 instance=ExtResource("3_vydvg")]
 position = Vector2(1175, 1883)
 
-[node name="Tree102" parent="tree for field" unique_id=573738107 instance=ExtResource("3_vydvg")]
+[node name="Tree102" parent="Props/Trees" unique_id=573738107 instance=ExtResource("3_vydvg")]
 position = Vector2(1261, 1882)
 
-[node name="Tree103" parent="tree for field" unique_id=2011563892 instance=ExtResource("3_vydvg")]
+[node name="Tree103" parent="Props/Trees" unique_id=2011563892 instance=ExtResource("3_vydvg")]
 position = Vector2(1346, 1883)
 
-[node name="Tree104" parent="tree for field" unique_id=625541023 instance=ExtResource("3_vydvg")]
+[node name="Tree104" parent="Props/Trees" unique_id=625541023 instance=ExtResource("3_vydvg")]
 position = Vector2(1412, 1883)
 
-[node name="Tree105" parent="tree for field" unique_id=535110838 instance=ExtResource("3_vydvg")]
+[node name="Tree105" parent="Props/Trees" unique_id=535110838 instance=ExtResource("3_vydvg")]
 position = Vector2(1413, 1882)
 
-[node name="Tree106" parent="tree for field" unique_id=1567013395 instance=ExtResource("3_vydvg")]
+[node name="Tree106" parent="Props/Trees" unique_id=1567013395 instance=ExtResource("3_vydvg")]
 position = Vector2(1498, 1883)
 
-[node name="Tree107" parent="tree for field" unique_id=1584824303 instance=ExtResource("3_vydvg")]
+[node name="Tree107" parent="Props/Trees" unique_id=1584824303 instance=ExtResource("3_vydvg")]
 position = Vector2(1564, 1883)
 
-[node name="Tree108" parent="tree for field" unique_id=1929822769 instance=ExtResource("3_vydvg")]
+[node name="Tree108" parent="Props/Trees" unique_id=1929822769 instance=ExtResource("3_vydvg")]
 position = Vector2(1394, 1883)
 
-[node name="Tree109" parent="tree for field" unique_id=1761789024 instance=ExtResource("3_vydvg")]
+[node name="Tree109" parent="Props/Trees" unique_id=1761789024 instance=ExtResource("3_vydvg")]
 position = Vector2(1480, 1882)
 
-[node name="Tree110" parent="tree for field" unique_id=1202546836 instance=ExtResource("3_vydvg")]
+[node name="Tree110" parent="Props/Trees" unique_id=1202546836 instance=ExtResource("3_vydvg")]
 position = Vector2(1565, 1883)
 
-[node name="Tree111" parent="tree for field" unique_id=1221104744 instance=ExtResource("3_vydvg")]
+[node name="Tree111" parent="Props/Trees" unique_id=1221104744 instance=ExtResource("3_vydvg")]
 position = Vector2(1631, 1883)
 
-[node name="Tree112" parent="tree for field" unique_id=2015255883 instance=ExtResource("3_vydvg")]
+[node name="Tree112" parent="Props/Trees" unique_id=2015255883 instance=ExtResource("3_vydvg")]
 position = Vector2(1632, 1882)
 
-[node name="Tree113" parent="tree for field" unique_id=624281151 instance=ExtResource("3_vydvg")]
+[node name="Tree113" parent="Props/Trees" unique_id=624281151 instance=ExtResource("3_vydvg")]
 position = Vector2(1717, 1883)
 
-[node name="Tree114" parent="tree for field" unique_id=104495536 instance=ExtResource("3_vydvg")]
+[node name="Tree114" parent="Props/Trees" unique_id=104495536 instance=ExtResource("3_vydvg")]
 position = Vector2(1783, 1883)
 
-[node name="Tree115" parent="tree for field" unique_id=1219928828 instance=ExtResource("3_vydvg")]
+[node name="Tree115" parent="Props/Trees" unique_id=1219928828 instance=ExtResource("3_vydvg")]
 position = Vector2(699, 1891)
 
-[node name="Tree116" parent="tree for field" unique_id=1907705747 instance=ExtResource("3_vydvg")]
+[node name="Tree116" parent="Props/Trees" unique_id=1907705747 instance=ExtResource("3_vydvg")]
 position = Vector2(785, 1890)
 
-[node name="Tree117" parent="tree for field" unique_id=405222587 instance=ExtResource("3_vydvg")]
+[node name="Tree117" parent="Props/Trees" unique_id=405222587 instance=ExtResource("3_vydvg")]
 position = Vector2(870, 1891)
 
-[node name="Tree118" parent="tree for field" unique_id=1963051990 instance=ExtResource("3_vydvg")]
+[node name="Tree118" parent="Props/Trees" unique_id=1963051990 instance=ExtResource("3_vydvg")]
 position = Vector2(936, 1891)
 
-[node name="Tree119" parent="tree for field" unique_id=402103176 instance=ExtResource("3_vydvg")]
+[node name="Tree119" parent="Props/Trees" unique_id=402103176 instance=ExtResource("3_vydvg")]
 position = Vector2(937, 1890)
 
-[node name="Tree120" parent="tree for field" unique_id=1684173986 instance=ExtResource("3_vydvg")]
+[node name="Tree120" parent="Props/Trees" unique_id=1684173986 instance=ExtResource("3_vydvg")]
 position = Vector2(1022, 1891)
 
-[node name="Tree121" parent="tree for field" unique_id=2000491534 instance=ExtResource("3_vydvg")]
+[node name="Tree121" parent="Props/Trees" unique_id=2000491534 instance=ExtResource("3_vydvg")]
 position = Vector2(1088, 1891)
 
-[node name="Tree122" parent="tree for field" unique_id=1012784234 instance=ExtResource("3_vydvg")]
+[node name="Tree122" parent="Props/Trees" unique_id=1012784234 instance=ExtResource("3_vydvg")]
 position = Vector2(219, 1891)
 
-[node name="Tree123" parent="tree for field" unique_id=1431891172 instance=ExtResource("3_vydvg")]
+[node name="Tree123" parent="Props/Trees" unique_id=1431891172 instance=ExtResource("3_vydvg")]
 position = Vector2(305, 1890)
 
-[node name="Tree124" parent="tree for field" unique_id=1960507158 instance=ExtResource("3_vydvg")]
+[node name="Tree124" parent="Props/Trees" unique_id=1960507158 instance=ExtResource("3_vydvg")]
 position = Vector2(390, 1891)
 
-[node name="Tree125" parent="tree for field" unique_id=1952970350 instance=ExtResource("3_vydvg")]
+[node name="Tree125" parent="Props/Trees" unique_id=1952970350 instance=ExtResource("3_vydvg")]
 position = Vector2(456, 1891)
 
-[node name="Tree126" parent="tree for field" unique_id=1095399681 instance=ExtResource("3_vydvg")]
+[node name="Tree126" parent="Props/Trees" unique_id=1095399681 instance=ExtResource("3_vydvg")]
 position = Vector2(457, 1890)
 
-[node name="Tree127" parent="tree for field" unique_id=231177291 instance=ExtResource("3_vydvg")]
+[node name="Tree127" parent="Props/Trees" unique_id=231177291 instance=ExtResource("3_vydvg")]
 position = Vector2(542, 1891)
 
-[node name="Tree136" parent="tree for field" unique_id=1291030218 instance=ExtResource("3_vydvg")]
+[node name="Tree136" parent="Props/Trees" unique_id=1291030218 instance=ExtResource("3_vydvg")]
 position = Vector2(523, 1826)
 
-[node name="Tree137" parent="tree for field" unique_id=1970894630 instance=ExtResource("3_vydvg")]
+[node name="Tree137" parent="Props/Trees" unique_id=1970894630 instance=ExtResource("3_vydvg")]
 position = Vector2(625, 1828)
 
-[node name="Tree128" parent="tree for field" unique_id=246352099 instance=ExtResource("3_vydvg")]
+[node name="Tree128" parent="Props/Trees" unique_id=246352099 instance=ExtResource("3_vydvg")]
 position = Vector2(608, 1891)
 
-[node name="Tree129" parent="tree for field" unique_id=761455113 instance=ExtResource("3_vydvg")]
+[node name="Tree129" parent="Props/Trees" unique_id=761455113 instance=ExtResource("3_vydvg")]
 position = Vector2(-16, 1891)
 
-[node name="Tree130" parent="tree for field" unique_id=146803307 instance=ExtResource("3_vydvg")]
+[node name="Tree130" parent="Props/Trees" unique_id=146803307 instance=ExtResource("3_vydvg")]
 position = Vector2(70, 1890)
 
-[node name="Tree131" parent="tree for field" unique_id=1171822465 instance=ExtResource("3_vydvg")]
+[node name="Tree131" parent="Props/Trees" unique_id=1171822465 instance=ExtResource("3_vydvg")]
 position = Vector2(155, 1891)
 
-[node name="Tree132" parent="tree for field" unique_id=381883069 instance=ExtResource("3_vydvg")]
+[node name="Tree132" parent="Props/Trees" unique_id=381883069 instance=ExtResource("3_vydvg")]
 position = Vector2(221, 1891)
 
-[node name="Tree133" parent="tree for field" unique_id=1300103349 instance=ExtResource("3_vydvg")]
+[node name="Tree133" parent="Props/Trees" unique_id=1300103349 instance=ExtResource("3_vydvg")]
 position = Vector2(222, 1890)
 
-[node name="Tree134" parent="tree for field" unique_id=1556922696 instance=ExtResource("3_vydvg")]
+[node name="Tree134" parent="Props/Trees" unique_id=1556922696 instance=ExtResource("3_vydvg")]
 position = Vector2(307, 1891)
 
-[node name="Tree135" parent="tree for field" unique_id=40090436 instance=ExtResource("3_vydvg")]
+[node name="Tree135" parent="Props/Trees" unique_id=40090436 instance=ExtResource("3_vydvg")]
 position = Vector2(553, 1809)
 
-[node name="grass" type="Node2D" parent="." unique_id=1279222477]
+[node name="Grass" type="Node2D" parent="Props" unique_id=1279222477]
 y_sort_enabled = true
 
-[node name="grass2" parent="grass" unique_id=827478536 instance=ExtResource("9_ndsxw")]
+[node name="grass2" parent="Props/Grass" unique_id=827478536 instance=ExtResource("9_ndsxw")]
 position = Vector2(439, 992)
 
-[node name="grass34" parent="grass" unique_id=1526430798 instance=ExtResource("9_ndsxw")]
+[node name="grass34" parent="Props/Grass" unique_id=1526430798 instance=ExtResource("9_ndsxw")]
 position = Vector2(645, 1628)
 
-[node name="grass35" parent="grass" unique_id=308245703 instance=ExtResource("9_ndsxw")]
+[node name="grass35" parent="Props/Grass" unique_id=308245703 instance=ExtResource("9_ndsxw")]
 position = Vector2(255, 1008)
 
-[node name="grass36" parent="grass" unique_id=1780264277 instance=ExtResource("9_ndsxw")]
+[node name="grass36" parent="Props/Grass" unique_id=1780264277 instance=ExtResource("9_ndsxw")]
 position = Vector2(252, 1225)
 
-[node name="grass37" parent="grass" unique_id=1653795830 instance=ExtResource("9_ndsxw")]
+[node name="grass37" parent="Props/Grass" unique_id=1653795830 instance=ExtResource("9_ndsxw")]
 position = Vector2(189, 1041)
 
-[node name="grass38" parent="grass" unique_id=2006476549 instance=ExtResource("9_ndsxw")]
+[node name="grass38" parent="Props/Grass" unique_id=2006476549 instance=ExtResource("9_ndsxw")]
 position = Vector2(1762, 513)
 
-[node name="grass6" parent="grass" unique_id=1069669439 instance=ExtResource("9_ndsxw")]
+[node name="grass6" parent="Props/Grass" unique_id=1069669439 instance=ExtResource("9_ndsxw")]
 position = Vector2(1710, 54)
 
-[node name="grass7" parent="grass" unique_id=227232329 instance=ExtResource("9_ndsxw")]
+[node name="grass7" parent="Props/Grass" unique_id=227232329 instance=ExtResource("9_ndsxw")]
 position = Vector2(1551, 1530)
 
-[node name="grass8" parent="grass" unique_id=349164196 instance=ExtResource("9_ndsxw")]
+[node name="grass8" parent="Props/Grass" unique_id=349164196 instance=ExtResource("9_ndsxw")]
 position = Vector2(1494, 1320)
 
-[node name="grass9" parent="grass" unique_id=402945933 instance=ExtResource("9_ndsxw")]
+[node name="grass9" parent="Props/Grass" unique_id=402945933 instance=ExtResource("9_ndsxw")]
 position = Vector2(681, 1723)
 
-[node name="grass10" parent="grass" unique_id=1663591805 instance=ExtResource("9_ndsxw")]
+[node name="grass10" parent="Props/Grass" unique_id=1663591805 instance=ExtResource("9_ndsxw")]
 position = Vector2(139, 1600)
 
-[node name="grass11" parent="grass" unique_id=1579015454 instance=ExtResource("9_ndsxw")]
+[node name="grass11" parent="Props/Grass" unique_id=1579015454 instance=ExtResource("9_ndsxw")]
 position = Vector2(345, 1614)
 
-[node name="grass12" parent="grass" unique_id=34428563 instance=ExtResource("9_ndsxw")]
+[node name="grass12" parent="Props/Grass" unique_id=34428563 instance=ExtResource("9_ndsxw")]
 position = Vector2(529, 1639)
 
-[node name="grass13" parent="grass" unique_id=1943528896 instance=ExtResource("9_ndsxw")]
+[node name="grass13" parent="Props/Grass" unique_id=1943528896 instance=ExtResource("9_ndsxw")]
 position = Vector2(1572, 1148)
 
-[node name="grass14" parent="grass" unique_id=972901873 instance=ExtResource("9_ndsxw")]
+[node name="grass14" parent="Props/Grass" unique_id=972901873 instance=ExtResource("9_ndsxw")]
 position = Vector2(1552, 1270)
 
-[node name="grass15" parent="grass" unique_id=2104088684 instance=ExtResource("9_ndsxw")]
+[node name="grass15" parent="Props/Grass" unique_id=2104088684 instance=ExtResource("9_ndsxw")]
 position = Vector2(1266, 1363)
 
-[node name="grass39" parent="grass" unique_id=579520332 instance=ExtResource("9_ndsxw")]
+[node name="grass39" parent="Props/Grass" unique_id=579520332 instance=ExtResource("9_ndsxw")]
 position = Vector2(1384, 1245)
 
-[node name="grass16" parent="grass" unique_id=1440670416 instance=ExtResource("9_ndsxw")]
+[node name="grass16" parent="Props/Grass" unique_id=1440670416 instance=ExtResource("9_ndsxw")]
 position = Vector2(1227, 1496)
 
-[node name="grass17" parent="grass" unique_id=1017864842 instance=ExtResource("9_ndsxw")]
+[node name="grass17" parent="Props/Grass" unique_id=1017864842 instance=ExtResource("9_ndsxw")]
 position = Vector2(1271, 1535)
 
-[node name="grass18" parent="grass" unique_id=485677377 instance=ExtResource("9_ndsxw")]
+[node name="grass18" parent="Props/Grass" unique_id=485677377 instance=ExtResource("9_ndsxw")]
 position = Vector2(1439, 1511)
 
-[node name="grass19" parent="grass" unique_id=1619734417 instance=ExtResource("9_ndsxw")]
+[node name="grass19" parent="Props/Grass" unique_id=1619734417 instance=ExtResource("9_ndsxw")]
 position = Vector2(1674, 1266)
 
-[node name="grass20" parent="grass" unique_id=1113324169 instance=ExtResource("9_ndsxw")]
+[node name="grass20" parent="Props/Grass" unique_id=1113324169 instance=ExtResource("9_ndsxw")]
 position = Vector2(583, 1572)
 
-[node name="grass21" parent="grass" unique_id=1420579794 instance=ExtResource("9_ndsxw")]
+[node name="grass21" parent="Props/Grass" unique_id=1420579794 instance=ExtResource("9_ndsxw")]
 position = Vector2(1361, 569)
 
-[node name="grass22" parent="grass" unique_id=1466575241 instance=ExtResource("9_ndsxw")]
+[node name="grass22" parent="Props/Grass" unique_id=1466575241 instance=ExtResource("9_ndsxw")]
 position = Vector2(1254, 517)
 
-[node name="grass23" parent="grass" unique_id=745647780 instance=ExtResource("9_ndsxw")]
+[node name="grass23" parent="Props/Grass" unique_id=745647780 instance=ExtResource("9_ndsxw")]
 position = Vector2(1421, 556)
 
-[node name="grass24" parent="grass" unique_id=1743903717 instance=ExtResource("9_ndsxw")]
+[node name="grass24" parent="Props/Grass" unique_id=1743903717 instance=ExtResource("9_ndsxw")]
 position = Vector2(1622, 700)
 
-[node name="grass25" parent="grass" unique_id=317888969 instance=ExtResource("9_ndsxw")]
+[node name="grass25" parent="Props/Grass" unique_id=317888969 instance=ExtResource("9_ndsxw")]
 position = Vector2(207, 860)
 
-[node name="grass26" parent="grass" unique_id=679091544 instance=ExtResource("9_ndsxw")]
+[node name="grass26" parent="Props/Grass" unique_id=679091544 instance=ExtResource("9_ndsxw")]
 position = Vector2(1121, 178)
 
-[node name="grass27" parent="grass" unique_id=163873796 instance=ExtResource("9_ndsxw")]
+[node name="grass27" parent="Props/Grass" unique_id=163873796 instance=ExtResource("9_ndsxw")]
 position = Vector2(823, 49)
 
-[node name="grass28" parent="grass" unique_id=443956801 instance=ExtResource("9_ndsxw")]
+[node name="grass28" parent="Props/Grass" unique_id=443956801 instance=ExtResource("9_ndsxw")]
 position = Vector2(1484, 664)
 
-[node name="grass29" parent="grass" unique_id=1083582567 instance=ExtResource("9_ndsxw")]
+[node name="grass29" parent="Props/Grass" unique_id=1083582567 instance=ExtResource("9_ndsxw")]
 position = Vector2(116, 1244)
 
-[node name="grass30" parent="grass" unique_id=2024323307 instance=ExtResource("9_ndsxw")]
+[node name="grass30" parent="Props/Grass" unique_id=2024323307 instance=ExtResource("9_ndsxw")]
 position = Vector2(1131, 380)
 
-[node name="grass3" parent="grass" unique_id=429743493 instance=ExtResource("9_ndsxw")]
+[node name="grass3" parent="Props/Grass" unique_id=429743493 instance=ExtResource("9_ndsxw")]
 position = Vector2(1669, 1526)
 
-[node name="grass5" parent="grass" unique_id=1164566488 instance=ExtResource("9_ndsxw")]
+[node name="grass5" parent="Props/Grass" unique_id=1164566488 instance=ExtResource("9_ndsxw")]
 position = Vector2(161, 680)
 
-[node name="grass4" parent="grass" unique_id=1238205134 instance=ExtResource("9_ndsxw")]
+[node name="grass4" parent="Props/Grass" unique_id=1238205134 instance=ExtResource("9_ndsxw")]
 position = Vector2(396, 873)
 
-[node name="grass31" parent="grass" unique_id=1668183868 instance=ExtResource("9_ndsxw")]
+[node name="grass31" parent="Props/Grass" unique_id=1668183868 instance=ExtResource("9_ndsxw")]
 position = Vector2(51, 580)
 
-[node name="grass32" parent="grass" unique_id=390688641 instance=ExtResource("9_ndsxw")]
+[node name="grass32" parent="Props/Grass" unique_id=390688641 instance=ExtResource("9_ndsxw")]
 position = Vector2(208, 717)
 
-[node name="grass33" parent="grass" unique_id=934947679 instance=ExtResource("9_ndsxw")]
+[node name="grass33" parent="Props/Grass" unique_id=934947679 instance=ExtResource("9_ndsxw")]
 position = Vector2(211, 708)
 
-[node name="red_flower" type="Node2D" parent="." unique_id=1652285376]
+[node name="red_flower" type="Node2D" parent="Props/Flowers" unique_id=1652285376]
 y_sort_enabled = true
 position = Vector2(-102, -6)
 
-[node name="red_flower" parent="red_flower" unique_id=1562177316 instance=ExtResource("10_bytlt")]
+[node name="red_flower" parent="Props/Flowers/red_flower" unique_id=1562177316 instance=ExtResource("10_bytlt")]
 position = Vector2(462, 116)
 
-[node name="red_flower2" parent="red_flower" unique_id=2080116596 instance=ExtResource("10_bytlt")]
+[node name="red_flower2" parent="Props/Flowers/red_flower" unique_id=2080116596 instance=ExtResource("10_bytlt")]
 position = Vector2(398, 617)
 
-[node name="red_flower3" parent="red_flower" unique_id=1771007583 instance=ExtResource("10_bytlt")]
+[node name="red_flower3" parent="Props/Flowers/red_flower" unique_id=1771007583 instance=ExtResource("10_bytlt")]
 position = Vector2(1123, 520)
 
-[node name="red_flower4" parent="red_flower" unique_id=722645467 instance=ExtResource("10_bytlt")]
+[node name="red_flower4" parent="Props/Flowers/red_flower" unique_id=722645467 instance=ExtResource("10_bytlt")]
 position = Vector2(911, 801)
 
-[node name="red_flower5" parent="red_flower" unique_id=649806039 instance=ExtResource("10_bytlt")]
+[node name="red_flower5" parent="Props/Flowers/red_flower" unique_id=649806039 instance=ExtResource("10_bytlt")]
 position = Vector2(1448, 800)
 
-[node name="red_flower6" parent="red_flower" unique_id=966214048 instance=ExtResource("10_bytlt")]
+[node name="red_flower6" parent="Props/Flowers/red_flower" unique_id=966214048 instance=ExtResource("10_bytlt")]
 position = Vector2(912, 1288)
 
-[node name="red_flower7" parent="red_flower" unique_id=1156034585 instance=ExtResource("10_bytlt")]
+[node name="red_flower7" parent="Props/Flowers/red_flower" unique_id=1156034585 instance=ExtResource("10_bytlt")]
 position = Vector2(691, 1095)
 
-[node name="red_flower8" parent="red_flower" unique_id=233014790 instance=ExtResource("10_bytlt")]
+[node name="red_flower8" parent="Props/Flowers/red_flower" unique_id=233014790 instance=ExtResource("10_bytlt")]
 position = Vector2(1683, 1147)
 
-[node name="red_flower9" parent="red_flower" unique_id=1328087320 instance=ExtResource("10_bytlt")]
+[node name="red_flower9" parent="Props/Flowers/red_flower" unique_id=1328087320 instance=ExtResource("10_bytlt")]
 position = Vector2(1791, 1099)
 
-[node name="red_flower10" parent="red_flower" unique_id=48682335 instance=ExtResource("10_bytlt")]
+[node name="red_flower10" parent="Props/Flowers/red_flower" unique_id=48682335 instance=ExtResource("10_bytlt")]
 position = Vector2(1235, 1134)
 
-[node name="red_flower11" parent="red_flower" unique_id=1588781949 instance=ExtResource("10_bytlt")]
+[node name="red_flower11" parent="Props/Flowers/red_flower" unique_id=1588781949 instance=ExtResource("10_bytlt")]
 position = Vector2(1215, 1384)
 
-[node name="red_flower12" parent="red_flower" unique_id=2013723578 instance=ExtResource("10_bytlt")]
+[node name="red_flower12" parent="Props/Flowers/red_flower" unique_id=2013723578 instance=ExtResource("10_bytlt")]
 position = Vector2(930, 1583)
 
-[node name="red_flower13" parent="red_flower" unique_id=1267586031 instance=ExtResource("10_bytlt")]
+[node name="red_flower13" parent="Props/Flowers/red_flower" unique_id=1267586031 instance=ExtResource("10_bytlt")]
 position = Vector2(603, 1478)
 
-[node name="red_flower14" parent="red_flower" unique_id=963417327 instance=ExtResource("10_bytlt")]
+[node name="red_flower14" parent="Props/Flowers/red_flower" unique_id=963417327 instance=ExtResource("10_bytlt")]
 position = Vector2(273, 1451)
 
-[node name="red_flower15" parent="red_flower" unique_id=1035343124 instance=ExtResource("10_bytlt")]
+[node name="red_flower15" parent="Props/Flowers/red_flower" unique_id=1035343124 instance=ExtResource("10_bytlt")]
 position = Vector2(524, 1291)
 
-[node name="red_flower16" parent="red_flower" unique_id=1493038831 instance=ExtResource("10_bytlt")]
+[node name="red_flower16" parent="Props/Flowers/red_flower" unique_id=1493038831 instance=ExtResource("10_bytlt")]
 position = Vector2(735, 187)
 
-[node name="red_flower17" parent="red_flower" unique_id=74946459 instance=ExtResource("10_bytlt")]
+[node name="red_flower17" parent="Props/Flowers/red_flower" unique_id=74946459 instance=ExtResource("10_bytlt")]
 position = Vector2(1218, 111)
 
-[node name="red_flower18" parent="red_flower" unique_id=1362278824 instance=ExtResource("10_bytlt")]
+[node name="red_flower18" parent="Props/Flowers/red_flower" unique_id=1362278824 instance=ExtResource("10_bytlt")]
 position = Vector2(194, 233)
 
-[node name="red_flower19" parent="red_flower" unique_id=100301344 instance=ExtResource("10_bytlt")]
+[node name="red_flower19" parent="Props/Flowers/red_flower" unique_id=100301344 instance=ExtResource("10_bytlt")]
 position = Vector2(629, 381)
 
-[node name="purple_flower" type="Node2D" parent="." unique_id=730546875]
+[node name="purple_flower" type="Node2D" parent="Props/Flowers" unique_id=730546875]
 y_sort_enabled = true
 position = Vector2(238, 121)
 
-[node name="purple_flower" parent="purple_flower" unique_id=1855339995 instance=ExtResource("11_bw5vd")]
+[node name="purple_flower" parent="Props/Flowers/purple_flower" unique_id=1855339995 instance=ExtResource("11_bw5vd")]
 position = Vector2(933, 47)
 
-[node name="purple_flower7" parent="purple_flower" unique_id=794902436 instance=ExtResource("11_bw5vd")]
+[node name="purple_flower7" parent="Props/Flowers/purple_flower" unique_id=794902436 instance=ExtResource("11_bw5vd")]
 position = Vector2(-193, 537)
 
-[node name="purple_flower8" parent="purple_flower" unique_id=113456408 instance=ExtResource("11_bw5vd")]
+[node name="purple_flower8" parent="Props/Flowers/purple_flower" unique_id=113456408 instance=ExtResource("11_bw5vd")]
 position = Vector2(-119, 663)
 
-[node name="purple_flower9" parent="purple_flower" unique_id=510574950 instance=ExtResource("11_bw5vd")]
+[node name="purple_flower9" parent="Props/Flowers/purple_flower" unique_id=510574950 instance=ExtResource("11_bw5vd")]
 position = Vector2(-149, 676)
 
-[node name="purple_flower10" parent="purple_flower" unique_id=1532359134 instance=ExtResource("11_bw5vd")]
+[node name="purple_flower10" parent="Props/Flowers/purple_flower" unique_id=1532359134 instance=ExtResource("11_bw5vd")]
 position = Vector2(-119, 819)
 
-[node name="purple_flower11" parent="purple_flower" unique_id=667977169 instance=ExtResource("11_bw5vd")]
+[node name="purple_flower11" parent="Props/Flowers/purple_flower" unique_id=667977169 instance=ExtResource("11_bw5vd")]
 position = Vector2(-212, 747)
 
-[node name="purple_flower12" parent="purple_flower" unique_id=2051040931 instance=ExtResource("11_bw5vd")]
+[node name="purple_flower12" parent="Props/Flowers/purple_flower" unique_id=2051040931 instance=ExtResource("11_bw5vd")]
 position = Vector2(1490, 1553)
 
-[node name="purple_flower13" parent="purple_flower" unique_id=670598297 instance=ExtResource("11_bw5vd")]
+[node name="purple_flower13" parent="Props/Flowers/purple_flower" unique_id=670598297 instance=ExtResource("11_bw5vd")]
 position = Vector2(1427, 1570)
 
-[node name="purple_flower14" parent="purple_flower" unique_id=1707295792 instance=ExtResource("11_bw5vd")]
+[node name="purple_flower14" parent="Props/Flowers/purple_flower" unique_id=1707295792 instance=ExtResource("11_bw5vd")]
 position = Vector2(1491, 336)
 
-[node name="purple_flower16" parent="purple_flower" unique_id=1433481178 instance=ExtResource("11_bw5vd")]
+[node name="purple_flower16" parent="Props/Flowers/purple_flower" unique_id=1433481178 instance=ExtResource("11_bw5vd")]
 position = Vector2(1189, 50)
 
-[node name="purple_flower17" parent="purple_flower" unique_id=1869113558 instance=ExtResource("11_bw5vd")]
+[node name="purple_flower17" parent="Props/Flowers/purple_flower" unique_id=1869113558 instance=ExtResource("11_bw5vd")]
 position = Vector2(997, 214)
 
-[node name="purple_flower2" parent="purple_flower" unique_id=1561856799 instance=ExtResource("11_bw5vd")]
+[node name="purple_flower2" parent="Props/Flowers/purple_flower" unique_id=1561856799 instance=ExtResource("11_bw5vd")]
 position = Vector2(1403, -87)
 
-[node name="purple_flower3" parent="purple_flower" unique_id=2064335499 instance=ExtResource("11_bw5vd")]
+[node name="purple_flower3" parent="Props/Flowers/purple_flower" unique_id=2064335499 instance=ExtResource("11_bw5vd")]
 position = Vector2(1213, -39)
 
-[node name="purple_flower4" parent="purple_flower" unique_id=835854609 instance=ExtResource("11_bw5vd")]
+[node name="purple_flower4" parent="Props/Flowers/purple_flower" unique_id=835854609 instance=ExtResource("11_bw5vd")]
 position = Vector2(1235, 218)
 
-[node name="purple_flower5" parent="purple_flower" unique_id=1513229853 instance=ExtResource("11_bw5vd")]
+[node name="purple_flower5" parent="Props/Flowers/purple_flower" unique_id=1513229853 instance=ExtResource("11_bw5vd")]
 position = Vector2(980, -71)
 
-[node name="blue_flower" type="Node2D" parent="." unique_id=1914636787]
+[node name="blue_flower" type="Node2D" parent="Props/Flowers" unique_id=1914636787]
 y_sort_enabled = true
 position = Vector2(263, 194)
 
-[node name="blue_flower" parent="blue_flower" unique_id=653262869 instance=ExtResource("12_rcymj")]
+[node name="blue_flower" parent="Props/Flowers/blue_flower" unique_id=653262869 instance=ExtResource("12_rcymj")]
 position = Vector2(1073, 1273)
 
-[node name="blue_flower2" parent="blue_flower" unique_id=1958212192 instance=ExtResource("12_rcymj")]
+[node name="blue_flower2" parent="Props/Flowers/blue_flower" unique_id=1958212192 instance=ExtResource("12_rcymj")]
 position = Vector2(1191, 1181)
 
-[node name="blue_flower34" parent="blue_flower" unique_id=1653474124 instance=ExtResource("12_rcymj")]
+[node name="blue_flower34" parent="Props/Flowers/blue_flower" unique_id=1653474124 instance=ExtResource("12_rcymj")]
 position = Vector2(-24, 943)
 
-[node name="blue_flower35" parent="blue_flower" unique_id=883029916 instance=ExtResource("12_rcymj")]
+[node name="blue_flower35" parent="Props/Flowers/blue_flower" unique_id=883029916 instance=ExtResource("12_rcymj")]
 position = Vector2(-208.99998, 1048)
 
-[node name="blue_flower28" parent="blue_flower" unique_id=945714352 instance=ExtResource("12_rcymj")]
+[node name="blue_flower28" parent="Props/Flowers/blue_flower" unique_id=945714352 instance=ExtResource("12_rcymj")]
 position = Vector2(-116.000015, 1002)
 
-[node name="blue_flower29" parent="blue_flower" unique_id=417418863 instance=ExtResource("12_rcymj")]
+[node name="blue_flower29" parent="Props/Flowers/blue_flower" unique_id=417418863 instance=ExtResource("12_rcymj")]
 position = Vector2(-51, 773)
 
-[node name="blue_flower30" parent="blue_flower" unique_id=1285386074 instance=ExtResource("12_rcymj")]
+[node name="blue_flower30" parent="Props/Flowers/blue_flower" unique_id=1285386074 instance=ExtResource("12_rcymj")]
 position = Vector2(-81, 609.00006)
 
-[node name="blue_flower31" parent="blue_flower" unique_id=942767845 instance=ExtResource("12_rcymj")]
+[node name="blue_flower31" parent="Props/Flowers/blue_flower" unique_id=942767845 instance=ExtResource("12_rcymj")]
 position = Vector2(42.999985, 778)
 
-[node name="blue_flower33" parent="blue_flower" unique_id=1975798255 instance=ExtResource("12_rcymj")]
+[node name="blue_flower33" parent="Props/Flowers/blue_flower" unique_id=1975798255 instance=ExtResource("12_rcymj")]
 position = Vector2(10, 686)
 
-[node name="blue_flower3" parent="blue_flower" unique_id=1861507017 instance=ExtResource("12_rcymj")]
+[node name="blue_flower3" parent="Props/Flowers/blue_flower" unique_id=1861507017 instance=ExtResource("12_rcymj")]
 position = Vector2(1264.0001, 1016)
 
-[node name="blue_flower4" parent="blue_flower" unique_id=56875822 instance=ExtResource("12_rcymj")]
+[node name="blue_flower4" parent="Props/Flowers/blue_flower" unique_id=56875822 instance=ExtResource("12_rcymj")]
 position = Vector2(1388, 993)
 
-[node name="blue_flower5" parent="blue_flower" unique_id=86571022 instance=ExtResource("12_rcymj")]
+[node name="blue_flower5" parent="Props/Flowers/blue_flower" unique_id=86571022 instance=ExtResource("12_rcymj")]
 position = Vector2(1459, 1056)
 
-[node name="blue_flower6" parent="blue_flower" unique_id=1148447216 instance=ExtResource("12_rcymj")]
+[node name="blue_flower6" parent="Props/Flowers/blue_flower" unique_id=1148447216 instance=ExtResource("12_rcymj")]
 position = Vector2(1424, 1212)
 
-[node name="blue_flower8" parent="blue_flower" unique_id=1357100029 instance=ExtResource("12_rcymj")]
+[node name="blue_flower8" parent="Props/Flowers/blue_flower" unique_id=1357100029 instance=ExtResource("12_rcymj")]
 position = Vector2(1336, 1131)
 
-[node name="blue_flower9" parent="blue_flower" unique_id=1634298080 instance=ExtResource("12_rcymj")]
+[node name="blue_flower9" parent="Props/Flowers/blue_flower" unique_id=1634298080 instance=ExtResource("12_rcymj")]
 position = Vector2(1323, 1301)
 
-[node name="blue_flower11" parent="blue_flower" unique_id=1293965060 instance=ExtResource("12_rcymj")]
+[node name="blue_flower11" parent="Props/Flowers/blue_flower" unique_id=1293965060 instance=ExtResource("12_rcymj")]
 position = Vector2(1250, 1473)
 
-[node name="blue_flower12" parent="blue_flower" unique_id=953361415 instance=ExtResource("12_rcymj")]
+[node name="blue_flower12" parent="Props/Flowers/blue_flower" unique_id=953361415 instance=ExtResource("12_rcymj")]
 position = Vector2(1146, 1449)
 
-[node name="blue_flower13" parent="blue_flower" unique_id=273229575 instance=ExtResource("12_rcymj")]
+[node name="blue_flower13" parent="Props/Flowers/blue_flower" unique_id=273229575 instance=ExtResource("12_rcymj")]
 position = Vector2(1100, 1343)
 
-[node name="blue_flower14" parent="blue_flower" unique_id=1251818863 instance=ExtResource("12_rcymj")]
+[node name="blue_flower14" parent="Props/Flowers/blue_flower" unique_id=1251818863 instance=ExtResource("12_rcymj")]
 position = Vector2(878, 1346)
 
-[node name="blue_flower16" parent="blue_flower" unique_id=196101356 instance=ExtResource("12_rcymj")]
+[node name="blue_flower16" parent="Props/Flowers/blue_flower" unique_id=196101356 instance=ExtResource("12_rcymj")]
 position = Vector2(960, 1455)
 
-[node name="blue_flower17" parent="blue_flower" unique_id=1957714847 instance=ExtResource("12_rcymj")]
+[node name="blue_flower17" parent="Props/Flowers/blue_flower" unique_id=1957714847 instance=ExtResource("12_rcymj")]
 position = Vector2(950, 1270)
 
-[node name="blue_flower18" parent="blue_flower" unique_id=1215934552 instance=ExtResource("12_rcymj")]
+[node name="blue_flower18" parent="Props/Flowers/blue_flower" unique_id=1215934552 instance=ExtResource("12_rcymj")]
 position = Vector2(33, 1364)
 
-[node name="blue_flower19" parent="blue_flower" unique_id=798290055 instance=ExtResource("12_rcymj")]
+[node name="blue_flower19" parent="Props/Flowers/blue_flower" unique_id=798290055 instance=ExtResource("12_rcymj")]
 position = Vector2(239, 1385)
 
-[node name="blue_flower20" parent="blue_flower" unique_id=1086197784 instance=ExtResource("12_rcymj")]
+[node name="blue_flower20" parent="Props/Flowers/blue_flower" unique_id=1086197784 instance=ExtResource("12_rcymj")]
 position = Vector2(301, 1444)
 
-[node name="blue_flower21" parent="blue_flower" unique_id=874315492 instance=ExtResource("12_rcymj")]
+[node name="blue_flower21" parent="Props/Flowers/blue_flower" unique_id=874315492 instance=ExtResource("12_rcymj")]
 position = Vector2(138, 1432)
 
-[node name="blue_flower22" parent="blue_flower" unique_id=1273277087 instance=ExtResource("12_rcymj")]
+[node name="blue_flower22" parent="Props/Flowers/blue_flower" unique_id=1273277087 instance=ExtResource("12_rcymj")]
 position = Vector2(-234.00002, 1407)
 
-[node name="blue_flower24" parent="blue_flower" unique_id=1551619101 instance=ExtResource("12_rcymj")]
+[node name="blue_flower24" parent="Props/Flowers/blue_flower" unique_id=1551619101 instance=ExtResource("12_rcymj")]
 position = Vector2(70, 1462)
 
-[node name="blue_flower25" parent="blue_flower" unique_id=1837019230 instance=ExtResource("12_rcymj")]
+[node name="blue_flower25" parent="Props/Flowers/blue_flower" unique_id=1837019230 instance=ExtResource("12_rcymj")]
 position = Vector2(-157, 1450)
 
-[node name="blue_flower26" parent="blue_flower" unique_id=990951938 instance=ExtResource("12_rcymj")]
+[node name="blue_flower26" parent="Props/Flowers/blue_flower" unique_id=990951938 instance=ExtResource("12_rcymj")]
 position = Vector2(1167, 362)
 
-[node name="blue_flower27" parent="blue_flower" unique_id=1383794055 instance=ExtResource("12_rcymj")]
+[node name="blue_flower27" parent="Props/Flowers/blue_flower" unique_id=1383794055 instance=ExtResource("12_rcymj")]
 position = Vector2(1141.0001, 382)
 
-[node name="Hyou" parent="." unique_id=881301954 instance=ExtResource("14_6n8e1")]
+[node name="Hyou" parent="Characters" unique_id=881301954 instance=ExtResource("14_6n8e1")]
 position = Vector2(1717, 929)
 
-[node name="apple tree" type="Node2D" parent="." unique_id=1905064916]
+[node name="AppleTrees" type="Node2D" parent="Props" unique_id=1905064916]
 y_sort_enabled = true
 
-[node name="apple tree3" parent="apple tree" unique_id=488442372 instance=ExtResource("15_3drur")]
+[node name="apple tree3" parent="Props/AppleTrees" unique_id=488442372 instance=ExtResource("15_3drur")]
 position = Vector2(1023.00006, 403.00003)
 
-[node name="apple tree4" parent="apple tree" unique_id=1067109698 instance=ExtResource("15_3drur")]
+[node name="apple tree4" parent="Props/AppleTrees" unique_id=1067109698 instance=ExtResource("15_3drur")]
 position = Vector2(481, 591)
 
-[node name="apple tree5" parent="apple tree" unique_id=1349584770 instance=ExtResource("15_3drur")]
+[node name="apple tree5" parent="Props/AppleTrees" unique_id=1349584770 instance=ExtResource("15_3drur")]
 position = Vector2(1566, 147.00006)
 
-[node name="apple tree6" parent="apple tree" unique_id=160828015 instance=ExtResource("15_3drur")]
+[node name="apple tree6" parent="Props/AppleTrees" unique_id=160828015 instance=ExtResource("15_3drur")]
 position = Vector2(506, 741)
 
-[node name="apple tree7" parent="apple tree" unique_id=1642383568 instance=ExtResource("15_3drur")]
+[node name="apple tree7" parent="Props/AppleTrees" unique_id=1642383568 instance=ExtResource("15_3drur")]
 position = Vector2(1060, 1475)
 
-[node name="apple tree8" parent="apple tree" unique_id=2047199006 instance=ExtResource("15_3drur")]
+[node name="apple tree8" parent="Props/AppleTrees" unique_id=2047199006 instance=ExtResource("15_3drur")]
 position = Vector2(1196, 1522)
 
-[node name="apple tree9" parent="apple tree" unique_id=518306047 instance=ExtResource("15_3drur")]
+[node name="apple tree9" parent="Props/AppleTrees" unique_id=518306047 instance=ExtResource("15_3drur")]
 position = Vector2(1618, 1173)
 
-[node name="apple tree10" parent="apple tree" unique_id=635236943 instance=ExtResource("15_3drur")]
+[node name="apple tree10" parent="Props/AppleTrees" unique_id=635236943 instance=ExtResource("15_3drur")]
 position = Vector2(1572, 1671)
 
-[node name="apple tree11" parent="apple tree" unique_id=128236019 instance=ExtResource("15_3drur")]
+[node name="apple tree11" parent="Props/AppleTrees" unique_id=128236019 instance=ExtResource("15_3drur")]
 position = Vector2(1333, 575)
 
-[node name="apple tree12" parent="apple tree" unique_id=1447796961 instance=ExtResource("15_3drur")]
+[node name="apple tree12" parent="Props/AppleTrees" unique_id=1447796961 instance=ExtResource("15_3drur")]
 position = Vector2(1517, 1642)
 
-[node name="apple tree13" parent="apple tree" unique_id=80851416 instance=ExtResource("15_3drur")]
+[node name="apple tree13" parent="Props/AppleTrees" unique_id=80851416 instance=ExtResource("15_3drur")]
 position = Vector2(923, 1595)
 
-[node name="apple tree14" parent="apple tree" unique_id=1278396139 instance=ExtResource("15_3drur")]
+[node name="apple tree14" parent="Props/AppleTrees" unique_id=1278396139 instance=ExtResource("15_3drur")]
 position = Vector2(433.00003, 1188)
 
-[node name="apple tree15" parent="apple tree" unique_id=16329030 instance=ExtResource("15_3drur")]
+[node name="apple tree15" parent="Props/AppleTrees" unique_id=16329030 instance=ExtResource("15_3drur")]
 position = Vector2(423.00003, 712)
 
-[node name="apple tree17" parent="apple tree" unique_id=241798456 instance=ExtResource("15_3drur")]
+[node name="apple tree17" parent="Props/AppleTrees" unique_id=241798456 instance=ExtResource("15_3drur")]
 position = Vector2(234, 256)
 
-[node name="apple tree18" parent="apple tree" unique_id=1541807172 instance=ExtResource("15_3drur")]
+[node name="apple tree18" parent="Props/AppleTrees" unique_id=1541807172 instance=ExtResource("15_3drur")]
 position = Vector2(1026, 978)
 
-[node name="apple tree19" parent="apple tree" unique_id=1136407401 instance=ExtResource("15_3drur")]
+[node name="apple tree19" parent="Props/AppleTrees" unique_id=1136407401 instance=ExtResource("15_3drur")]
 position = Vector2(1409, 798)
 
-[node name="apple tree20" parent="apple tree" unique_id=1147650677 instance=ExtResource("15_3drur")]
+[node name="apple tree20" parent="Props/AppleTrees" unique_id=1147650677 instance=ExtResource("15_3drur")]
 position = Vector2(564.00006, 698)
 
-[node name="dry grass" type="Node2D" parent="." unique_id=991785347]
+[node name="DryGrass" type="Node2D" parent="Props" unique_id=991785347]
 y_sort_enabled = true
 position = Vector2(714, 307)
 
-[node name="Node2D4" parent="dry grass" unique_id=1873226436 instance=ExtResource("16_85bg5")]
+[node name="Node2D4" parent="Props/DryGrass" unique_id=1873226436 instance=ExtResource("16_85bg5")]
 position = Vector2(-25.000004, 509.99997)
 
-[node name="Node2D20" parent="dry grass" unique_id=691982325 instance=ExtResource("16_85bg5")]
+[node name="Node2D20" parent="Props/DryGrass" unique_id=691982325 instance=ExtResource("16_85bg5")]
 position = Vector2(-327, 112)
 
-[node name="Node2D24" parent="dry grass" unique_id=155084079 instance=ExtResource("16_85bg5")]
+[node name="Node2D24" parent="Props/DryGrass" unique_id=155084079 instance=ExtResource("16_85bg5")]
 position = Vector2(577.99994, -103.999985)
 
-[node name="Node2D25" parent="dry grass" unique_id=1422972267 instance=ExtResource("16_85bg5")]
+[node name="Node2D25" parent="Props/DryGrass" unique_id=1422972267 instance=ExtResource("16_85bg5")]
 position = Vector2(800.99994, -184)
 
-[node name="Node2D26" parent="dry grass" unique_id=673133842 instance=ExtResource("16_85bg5")]
+[node name="Node2D26" parent="Props/DryGrass" unique_id=673133842 instance=ExtResource("16_85bg5")]
 position = Vector2(780.99994, -13.0000305)
 
-[node name="Node2D27" parent="dry grass" unique_id=1697986756 instance=ExtResource("16_85bg5")]
+[node name="Node2D27" parent="Props/DryGrass" unique_id=1697986756 instance=ExtResource("16_85bg5")]
 position = Vector2(513.99994, 31.999996)
 
-[node name="Node2D28" parent="dry grass" unique_id=1762553421 instance=ExtResource("16_85bg5")]
+[node name="Node2D28" parent="Props/DryGrass" unique_id=1762553421 instance=ExtResource("16_85bg5")]
 position = Vector2(-83, -226.99997)
 
-[node name="Node2D29" parent="dry grass" unique_id=1198485395 instance=ExtResource("16_85bg5")]
+[node name="Node2D29" parent="Props/DryGrass" unique_id=1198485395 instance=ExtResource("16_85bg5")]
 position = Vector2(-83, -226.99997)
 
-[node name="Node2D30" parent="dry grass" unique_id=219803217 instance=ExtResource("16_85bg5")]
+[node name="Node2D30" parent="Props/DryGrass" unique_id=219803217 instance=ExtResource("16_85bg5")]
 position = Vector2(-228.00003, 363.99997)
 
-[node name="Node2D31" parent="dry grass" unique_id=1394551402 instance=ExtResource("16_85bg5")]
+[node name="Node2D31" parent="Props/DryGrass" unique_id=1394551402 instance=ExtResource("16_85bg5")]
 position = Vector2(-228.00003, 761.99994)
 
-[node name="Node2D32" parent="dry grass" unique_id=1569576865 instance=ExtResource("16_85bg5")]
+[node name="Node2D32" parent="Props/DryGrass" unique_id=1569576865 instance=ExtResource("16_85bg5")]
 position = Vector2(-228.00003, 982.99994)
 
-[node name="Node2D33" parent="dry grass" unique_id=1872952948 instance=ExtResource("16_85bg5")]
+[node name="Node2D33" parent="Props/DryGrass" unique_id=1872952948 instance=ExtResource("16_85bg5")]
 position = Vector2(184.99994, 845.99994)
 
-[node name="Node2D34" parent="dry grass" unique_id=1709730805 instance=ExtResource("16_85bg5")]
+[node name="Node2D34" parent="Props/DryGrass" unique_id=1709730805 instance=ExtResource("16_85bg5")]
 position = Vector2(243, 1046.9999)
 
-[node name="Node2D35" parent="dry grass" unique_id=2104321648 instance=ExtResource("16_85bg5")]
+[node name="Node2D35" parent="Props/DryGrass" unique_id=2104321648 instance=ExtResource("16_85bg5")]
 position = Vector2(547, 903.0001)
 
-[node name="Node2D36" parent="dry grass" unique_id=1833700163 instance=ExtResource("16_85bg5")]
+[node name="Node2D36" parent="Props/DryGrass" unique_id=1833700163 instance=ExtResource("16_85bg5")]
 position = Vector2(779, 801.9999)
 
-[node name="Node2D37" parent="dry grass" unique_id=1472432224 instance=ExtResource("16_85bg5")]
+[node name="Node2D37" parent="Props/DryGrass" unique_id=1472432224 instance=ExtResource("16_85bg5")]
 position = Vector2(310.00003, 825)
 
-[node name="Node2D38" parent="dry grass" unique_id=1649848435 instance=ExtResource("16_85bg5")]
+[node name="Node2D38" parent="Props/DryGrass" unique_id=1649848435 instance=ExtResource("16_85bg5")]
 position = Vector2(128.00005, 1156)
 
-[node name="Node2D39" parent="dry grass" unique_id=658290041 instance=ExtResource("16_85bg5")]
+[node name="Node2D39" parent="Props/DryGrass" unique_id=658290041 instance=ExtResource("16_85bg5")]
 position = Vector2(254.00003, 1213)
 
-[node name="Node2D40" parent="dry grass" unique_id=1369997995 instance=ExtResource("16_85bg5")]
+[node name="Node2D40" parent="Props/DryGrass" unique_id=1369997995 instance=ExtResource("16_85bg5")]
 position = Vector2(-293.9999, 1199)
 
-[node name="Node2D41" parent="dry grass" unique_id=1297652975 instance=ExtResource("16_85bg5")]
+[node name="Node2D41" parent="Props/DryGrass" unique_id=1297652975 instance=ExtResource("16_85bg5")]
 position = Vector2(-570, 1193)
 
-[node name="Node2D42" parent="dry grass" unique_id=2111038744 instance=ExtResource("16_85bg5")]
+[node name="Node2D42" parent="Props/DryGrass" unique_id=2111038744 instance=ExtResource("16_85bg5")]
 position = Vector2(-607, 992)
 
-[node name="Node2D43" parent="dry grass" unique_id=1262766603 instance=ExtResource("16_85bg5")]
+[node name="Node2D43" parent="Props/DryGrass" unique_id=1262766603 instance=ExtResource("16_85bg5")]
 position = Vector2(337.99997, 581)
 
-[node name="Node2D44" parent="dry grass" unique_id=991043719 instance=ExtResource("16_85bg5")]
+[node name="Node2D44" parent="Props/DryGrass" unique_id=991043719 instance=ExtResource("16_85bg5")]
 position = Vector2(276.99997, 448)
 
-[node name="Node2D21" parent="dry grass" unique_id=722411393 instance=ExtResource("16_85bg5")]
+[node name="Node2D21" parent="Props/DryGrass" unique_id=722411393 instance=ExtResource("16_85bg5")]
 position = Vector2(-21.000061, -50.999985)
 
-[node name="Node2D22" parent="dry grass" unique_id=2109380683 instance=ExtResource("16_85bg5")]
+[node name="Node2D22" parent="Props/DryGrass" unique_id=2109380683 instance=ExtResource("16_85bg5")]
 position = Vector2(-222.99998, -162.99997)
 
-[node name="Node2D23" parent="dry grass" unique_id=1019395189 instance=ExtResource("16_85bg5")]
+[node name="Node2D23" parent="Props/DryGrass" unique_id=1019395189 instance=ExtResource("16_85bg5")]
 position = Vector2(463.99994, 440.00003)
 
-[node name="6x3" type="Node2D" parent="dry grass" unique_id=1906289797]
+[node name="6x3" type="Node2D" parent="Props/DryGrass" unique_id=1906289797]
 y_sort_enabled = true
 position = Vector2(-21, -89)
 
-[node name="Node2D" parent="dry grass/6x3" unique_id=1299902543 instance=ExtResource("16_85bg5")]
+[node name="Node2D" parent="Props/DryGrass/6x3" unique_id=1299902543 instance=ExtResource("16_85bg5")]
 position = Vector2(58, 232)
 
-[node name="Node2D2" parent="dry grass/6x3" unique_id=443017031 instance=ExtResource("16_85bg5")]
+[node name="Node2D2" parent="Props/DryGrass/6x3" unique_id=443017031 instance=ExtResource("16_85bg5")]
 position = Vector2(77, 232)
 
-[node name="Node2D3" parent="dry grass/6x3" unique_id=1355380243 instance=ExtResource("16_85bg5")]
+[node name="Node2D3" parent="Props/DryGrass/6x3" unique_id=1355380243 instance=ExtResource("16_85bg5")]
 position = Vector2(909.99994, 1178)
 
-[node name="Node2D6" parent="dry grass/6x3" unique_id=388557842 instance=ExtResource("16_85bg5")]
+[node name="Node2D6" parent="Props/DryGrass/6x3" unique_id=388557842 instance=ExtResource("16_85bg5")]
 position = Vector2(892.99994, 1190)
 
-[node name="Node2D7" parent="dry grass/6x3" unique_id=1955710931 instance=ExtResource("16_85bg5")]
+[node name="Node2D7" parent="Props/DryGrass/6x3" unique_id=1955710931 instance=ExtResource("16_85bg5")]
 position = Vector2(908.99994, 1190)
 
-[node name="Node2D5" parent="dry grass/6x3" unique_id=1580349889 instance=ExtResource("16_85bg5")]
+[node name="Node2D5" parent="Props/DryGrass/6x3" unique_id=1580349889 instance=ExtResource("16_85bg5")]
 position = Vector2(75, 219)
 
-[node name="Node2D8" parent="dry grass/6x3" unique_id=1174216320 instance=ExtResource("16_85bg5")]
+[node name="Node2D8" parent="Props/DryGrass/6x3" unique_id=1174216320 instance=ExtResource("16_85bg5")]
 position = Vector2(92, 232)
 
-[node name="Node2D9" parent="dry grass/6x3" unique_id=1932706481 instance=ExtResource("16_85bg5")]
+[node name="Node2D9" parent="Props/DryGrass/6x3" unique_id=1932706481 instance=ExtResource("16_85bg5")]
 position = Vector2(111, 232)
 
-[node name="Node2D10" parent="dry grass/6x3" unique_id=1220872820 instance=ExtResource("16_85bg5")]
+[node name="Node2D10" parent="Props/DryGrass/6x3" unique_id=1220872820 instance=ExtResource("16_85bg5")]
 position = Vector2(91, 220)
 
-[node name="Node2D11" parent="dry grass/6x3" unique_id=373245913 instance=ExtResource("16_85bg5")]
+[node name="Node2D11" parent="Props/DryGrass/6x3" unique_id=373245913 instance=ExtResource("16_85bg5")]
 position = Vector2(91, 208)
 
-[node name="Node2D12" parent="dry grass/6x3" unique_id=1531799732 instance=ExtResource("16_85bg5")]
+[node name="Node2D12" parent="Props/DryGrass/6x3" unique_id=1531799732 instance=ExtResource("16_85bg5")]
 position = Vector2(109, 207)
 
-[node name="Node2D13" parent="dry grass/6x3" unique_id=1000625183 instance=ExtResource("16_85bg5")]
+[node name="Node2D13" parent="Props/DryGrass/6x3" unique_id=1000625183 instance=ExtResource("16_85bg5")]
 position = Vector2(109, 219)
 
-[node name="Node2D14" parent="dry grass/6x3" unique_id=814576257 instance=ExtResource("16_85bg5")]
+[node name="Node2D14" parent="Props/DryGrass/6x3" unique_id=814576257 instance=ExtResource("16_85bg5")]
 position = Vector2(128, 232)
 
-[node name="Node2D15" parent="dry grass/6x3" unique_id=544418172 instance=ExtResource("16_85bg5")]
+[node name="Node2D15" parent="Props/DryGrass/6x3" unique_id=544418172 instance=ExtResource("16_85bg5")]
 position = Vector2(147, 232)
 
-[node name="Node2D16" parent="dry grass/6x3" unique_id=956580137 instance=ExtResource("16_85bg5")]
+[node name="Node2D16" parent="Props/DryGrass/6x3" unique_id=956580137 instance=ExtResource("16_85bg5")]
 position = Vector2(127, 220)
 
-[node name="Node2D17" parent="dry grass/6x3" unique_id=1149096007 instance=ExtResource("16_85bg5")]
+[node name="Node2D17" parent="Props/DryGrass/6x3" unique_id=1149096007 instance=ExtResource("16_85bg5")]
 position = Vector2(127, 208)
 
-[node name="Node2D18" parent="dry grass/6x3" unique_id=692354466 instance=ExtResource("16_85bg5")]
+[node name="Node2D18" parent="Props/DryGrass/6x3" unique_id=692354466 instance=ExtResource("16_85bg5")]
 position = Vector2(145, 207)
 
-[node name="Node2D19" parent="dry grass/6x3" unique_id=1951862512 instance=ExtResource("16_85bg5")]
+[node name="Node2D19" parent="Props/DryGrass/6x3" unique_id=1951862512 instance=ExtResource("16_85bg5")]
 position = Vector2(145, 219)
 
-[node name="6x4" type="Node2D" parent="dry grass" unique_id=442548669]
+[node name="6x4" type="Node2D" parent="Props/DryGrass" unique_id=442548669]
 y_sort_enabled = true
 position = Vector2(-20, -54)
 
-[node name="Node2D" parent="dry grass/6x4" unique_id=1852662421 instance=ExtResource("16_85bg5")]
+[node name="Node2D" parent="Props/DryGrass/6x4" unique_id=1852662421 instance=ExtResource("16_85bg5")]
 position = Vector2(58, 232)
 
-[node name="Node2D2" parent="dry grass/6x4" unique_id=802064826 instance=ExtResource("16_85bg5")]
+[node name="Node2D2" parent="Props/DryGrass/6x4" unique_id=802064826 instance=ExtResource("16_85bg5")]
 position = Vector2(77, 232)
 
-[node name="Node2D3" parent="dry grass/6x4" unique_id=1259666697 instance=ExtResource("16_85bg5")]
+[node name="Node2D3" parent="Props/DryGrass/6x4" unique_id=1259666697 instance=ExtResource("16_85bg5")]
 position = Vector2(57, 220)
 
-[node name="Node2D6" parent="dry grass/6x4" unique_id=1263976392 instance=ExtResource("16_85bg5")]
+[node name="Node2D6" parent="Props/DryGrass/6x4" unique_id=1263976392 instance=ExtResource("16_85bg5")]
 position = Vector2(57, 208)
 
-[node name="Node2D7" parent="dry grass/6x4" unique_id=761712761 instance=ExtResource("16_85bg5")]
+[node name="Node2D7" parent="Props/DryGrass/6x4" unique_id=761712761 instance=ExtResource("16_85bg5")]
 position = Vector2(75, 207)
 
-[node name="Node2D5" parent="dry grass/6x4" unique_id=1658315846 instance=ExtResource("16_85bg5")]
+[node name="Node2D5" parent="Props/DryGrass/6x4" unique_id=1658315846 instance=ExtResource("16_85bg5")]
 position = Vector2(75, 219)
 
-[node name="Node2D8" parent="dry grass/6x4" unique_id=1817790926 instance=ExtResource("16_85bg5")]
+[node name="Node2D8" parent="Props/DryGrass/6x4" unique_id=1817790926 instance=ExtResource("16_85bg5")]
 position = Vector2(92, 232)
 
-[node name="Node2D9" parent="dry grass/6x4" unique_id=630263069 instance=ExtResource("16_85bg5")]
+[node name="Node2D9" parent="Props/DryGrass/6x4" unique_id=630263069 instance=ExtResource("16_85bg5")]
 position = Vector2(111, 232)
 
-[node name="Node2D10" parent="dry grass/6x4" unique_id=1046463911 instance=ExtResource("16_85bg5")]
+[node name="Node2D10" parent="Props/DryGrass/6x4" unique_id=1046463911 instance=ExtResource("16_85bg5")]
 position = Vector2(91, 220)
 
-[node name="Node2D11" parent="dry grass/6x4" unique_id=745106965 instance=ExtResource("16_85bg5")]
+[node name="Node2D11" parent="Props/DryGrass/6x4" unique_id=745106965 instance=ExtResource("16_85bg5")]
 position = Vector2(91, 208)
 
-[node name="Node2D12" parent="dry grass/6x4" unique_id=259942919 instance=ExtResource("16_85bg5")]
+[node name="Node2D12" parent="Props/DryGrass/6x4" unique_id=259942919 instance=ExtResource("16_85bg5")]
 position = Vector2(109, 207)
 
-[node name="Node2D13" parent="dry grass/6x4" unique_id=8385582 instance=ExtResource("16_85bg5")]
+[node name="Node2D13" parent="Props/DryGrass/6x4" unique_id=8385582 instance=ExtResource("16_85bg5")]
 position = Vector2(109, 219)
 
-[node name="Node2D14" parent="dry grass/6x4" unique_id=1176555560 instance=ExtResource("16_85bg5")]
+[node name="Node2D14" parent="Props/DryGrass/6x4" unique_id=1176555560 instance=ExtResource("16_85bg5")]
 position = Vector2(128, 232)
 
-[node name="Node2D15" parent="dry grass/6x4" unique_id=803532296 instance=ExtResource("16_85bg5")]
+[node name="Node2D15" parent="Props/DryGrass/6x4" unique_id=803532296 instance=ExtResource("16_85bg5")]
 position = Vector2(147, 232)
 
-[node name="Node2D16" parent="dry grass/6x4" unique_id=1581773995 instance=ExtResource("16_85bg5")]
+[node name="Node2D16" parent="Props/DryGrass/6x4" unique_id=1581773995 instance=ExtResource("16_85bg5")]
 position = Vector2(127, 220)
 
-[node name="Node2D17" parent="dry grass/6x4" unique_id=340344809 instance=ExtResource("16_85bg5")]
+[node name="Node2D17" parent="Props/DryGrass/6x4" unique_id=340344809 instance=ExtResource("16_85bg5")]
 position = Vector2(127, 208)
 
-[node name="Node2D18" parent="dry grass/6x4" unique_id=2127721132 instance=ExtResource("16_85bg5")]
+[node name="Node2D18" parent="Props/DryGrass/6x4" unique_id=2127721132 instance=ExtResource("16_85bg5")]
 position = Vector2(145, 207)
 
-[node name="Node2D19" parent="dry grass/6x4" unique_id=767617637 instance=ExtResource("16_85bg5")]
+[node name="Node2D19" parent="Props/DryGrass/6x4" unique_id=767617637 instance=ExtResource("16_85bg5")]
 position = Vector2(145, 219)
+
+[node name="EnvironmentFX" type="Node2D" parent="."]
+
+[node name="WorldFxController" type="Node2D" parent="EnvironmentFX"]
+
+[node name="AmbientMotes" type="Node2D" parent="EnvironmentFX"]
+
+[node name="FallingLeaves" type="Node2D" parent="EnvironmentFX"]
+
+[node name="PuddleInteractionFX" type="Node2D" parent="EnvironmentFX"]
+z_index = 2
+
+[node name="WorldPostFX" type="CanvasLayer" parent="."]
+
+[node name="CanvasModulate" type="CanvasModulate" parent="WorldPostFX"]
+
+[node name="ColorGrade" type="ColorRect" parent="WorldPostFX"]
+visible = false
+mouse_filter = 2

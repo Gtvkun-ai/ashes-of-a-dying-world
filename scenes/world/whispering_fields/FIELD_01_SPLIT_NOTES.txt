@@ -1,0 +1,72 @@
+FIELD_01 — MAP SCENE SPLIT NOTES
+================================
+
+Scope completed
+---------------
+1. Backed up the original scene as:
+   scenes/world/whispering_fields/field_01_before_shader.tscn
+
+2. Kept the original TileMapLayer for collision only:
+   Fields1/CollisionMap/field1
+   - visible = false
+   - existing tile_map_data and TileSet physics are unchanged
+
+3. Split the original 456x474 background into aligned PNG layers:
+   assets/graphics/world/whispering_fields/field_01_layers/
+
+   00_ground_base.png
+   01_ground_variation.png
+   02_canopy_shadow.png
+   03_dirt_path.png
+   04_cliff_top.png
+   05_cliff_wall.png
+   06_stairs.png
+   07_ground_details.png
+   08_wet_ground.png          (transparent placeholder)
+   09_mud_puddles.png         (transparent placeholder)
+   10_puddle_depth_mask.png   (black placeholder mask)
+
+   All visible layers are 456x474 and use transparent backgrounds.
+   The non-empty layers partition the source pixels exactly; recompositing
+   them reproduces field_01.png pixel-for-pixel.
+
+4. Added VisualGround Sprite2D nodes:
+   - scale = Vector2(4, 4)
+   - centered = false
+   - texture_filter = nearest
+   - z_index values follow the supplied field guide
+
+5. Regrouped existing map content without changing local transforms:
+   Props/Rocks
+   Props/Grass
+   Props/DryGrass
+   Props/Flowers/(red_flower, purple_flower, blue_flower)
+   Props/Trees
+   Props/AppleTrees
+
+   Characters/Hyou
+   Characters/Enemies
+
+6. Added empty structural nodes for the next passes:
+   GroundInteraction/MudAreas
+   GroundInteraction/SurfaceAreas
+
+   EnvironmentFX/WorldFxController
+   EnvironmentFX/AmbientMotes
+   EnvironmentFX/FallingLeaves
+   EnvironmentFX/PuddleInteractionFX
+
+   WorldPostFX/CanvasModulate
+   WorldPostFX/ColorGrade (disabled placeholder)
+
+Not included in this split-only pass
+------------------------------------
+- Shader implementation/materials
+- Puddle artwork/ripple interaction
+- WorldFxController C# implementation
+- Contact-shadow art
+- Refactoring prop sub-scenes from AnimatedSprite2D to Sprite2D
+- Border-collider consolidation
+
+These are intentionally left for later passes instead of silently changing
+runtime behavior while restructuring the map.
