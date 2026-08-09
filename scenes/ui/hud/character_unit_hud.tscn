@@ -1,45 +1,66 @@
 [gd_scene format=3 uid="uid://dhof418sft343"]
 
-[ext_resource type="Script" uid="uid://dysvqu457ghpp" path="res://scripts/UI/HUD/CharacterUnitHUD.cs" id="1_xxxxx"]
-[ext_resource type="Texture2D" uid="uid://hvqt42ryuyvo" path="res://assets/graphics/ui/status/resource_frame_hp.png" id="3_cv7wn"]
-[ext_resource type="Texture2D" uid="uid://duee8x77lgo6v" path="res://assets/graphics/ui/status/resource_frame_mana.png" id="4_y4c6t"]
-[ext_resource type="Texture2D" uid="uid://cgh3ephybees7" path="res://assets/graphics/ui/status/resource_frame_stamina.png" id="5_o7qnh"]
-[ext_resource type="Texture2D" uid="uid://bh1k32urqxnj0" path="res://assets/graphics/ui/status/resource_panel_frame.png" id="6_frame"]
+[ext_resource type="Script" uid="uid://dysvqu457ghpp" path="res://scripts/UI/HUD/CharacterUnitHUD.cs" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/graphics/ui/hud/redesign/unit_hud_frame.png" id="2_frame"]
+[ext_resource type="Texture2D" path="res://assets/graphics/ui/hud/redesign/unit_hud_portrait_frame.png" id="3_portrait_frame"]
+[ext_resource type="Texture2D" path="res://assets/graphics/ui/hud/redesign/unit_hud_hp_fill.png" id="4_hp"]
+[ext_resource type="Texture2D" path="res://assets/graphics/ui/hud/redesign/unit_hud_mp_fill.png" id="5_mp"]
+[ext_resource type="Texture2D" path="res://assets/graphics/ui/hud/redesign/unit_hud_stamina_fill.png" id="6_sta"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_1"]
 
-[node name="CharacterUnitHUD" type="PanelContainer" unique_id=441943603 node_paths=PackedStringArray("HealthBar", "ManaBar", "StaminaBar", "NameLabel")]
-custom_minimum_size = Vector2(240, 100)
+[node name="CharacterUnitHUD" type="PanelContainer" unique_id=441943603 node_paths=PackedStringArray("HealthBar", "ManaBar", "StaminaBar", "NameLabel", "Portrait")]
+custom_minimum_size = Vector2(300, 97)
 theme_override_styles/panel = SubResource("StyleBoxEmpty_1")
-script = ExtResource("1_xxxxx")
+script = ExtResource("1_script")
 HealthBar = NodePath("TextureRect/BarsContainer/HPBar")
 ManaBar = NodePath("TextureRect/BarsContainer/MPBar")
 StaminaBar = NodePath("TextureRect/BarsContainer/StaminaBar")
 NameLabel = NodePath("TextureRect/NameLabel")
+Portrait = NodePath("TextureRect/Portrait")
 
 [node name="TextureRect" type="TextureRect" parent="." unique_id=715616795]
 layout_mode = 2
-texture = ExtResource("6_frame")
+texture = ExtResource("2_frame")
 expand_mode = 1
 stretch_mode = 6
 
 [node name="Portrait" type="TextureRect" parent="TextureRect" unique_id=913581316]
 layout_mode = 0
-offset_left = 11.0
-offset_top = 1.0
-offset_right = 68.0
-offset_bottom = 99.0
+offset_left = 12.0
+offset_top = 9.0
+offset_right = 77.0
+offset_bottom = 77.0
 expand_mode = 1
 stretch_mode = 5
+mouse_filter = 2
+
+[node name="PortraitFrame" type="TextureRect" parent="TextureRect"]
+layout_mode = 0
+offset_left = 7.0
+offset_top = 5.0
+offset_right = 83.0
+offset_bottom = 79.0
+texture = ExtResource("3_portrait_frame")
+expand_mode = 1
+stretch_mode = 6
+mouse_filter = 2
 
 [node name="NameLabel" type="Label" parent="TextureRect" unique_id=633488482]
 layout_mode = 0
-offset_left = 85.0
-offset_top = 5.0
-offset_right = 230.0
+offset_left = 89.0
+offset_top = 6.0
+offset_right = 289.0
 offset_bottom = 28.0
+theme_override_colors/font_color = Color(0.92, 0.84, 0.70, 1)
+theme_override_colors/font_shadow_color = Color(0.05, 0.025, 0.01, 0.9)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 13
 text = "Character Name"
+vertical_alignment = 1
 clip_text = true
+mouse_filter = 2
 
 [node name="BarsContainer" type="Control" parent="TextureRect" unique_id=140682410]
 layout_mode = 1
@@ -48,33 +69,37 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 
 [node name="HPBar" type="TextureProgressBar" parent="TextureRect/BarsContainer" unique_id=717410387]
 layout_mode = 0
-offset_left = 73.0
-offset_top = 29.0
-offset_right = 226.0
-offset_bottom = 41.0
+offset_left = 113.0
+offset_top = 31.0
+offset_right = 289.0
+offset_bottom = 46.0
 value = 100.0
 nine_patch_stretch = true
-texture_progress = ExtResource("3_cv7wn")
+texture_progress = ExtResource("4_hp")
+mouse_filter = 2
 
 [node name="MPBar" type="TextureProgressBar" parent="TextureRect/BarsContainer" unique_id=1493351887]
 layout_mode = 0
-offset_left = 72.0
-offset_top = 44.0
-offset_right = 217.0
-offset_bottom = 56.0
+offset_left = 113.0
+offset_top = 51.0
+offset_right = 289.0
+offset_bottom = 66.0
 value = 100.0
 nine_patch_stretch = true
-texture_progress = ExtResource("4_y4c6t")
+texture_progress = ExtResource("5_mp")
+mouse_filter = 2
 
 [node name="StaminaBar" type="TextureProgressBar" parent="TextureRect/BarsContainer" unique_id=1463706157]
 layout_mode = 0
-offset_left = 72.0
-offset_top = 59.0
-offset_right = 209.0
-offset_bottom = 71.0
+offset_left = 113.0
+offset_top = 71.0
+offset_right = 289.0
+offset_bottom = 86.0
 value = 100.0
 nine_patch_stretch = true
-texture_progress = ExtResource("5_o7qnh")
+texture_progress = ExtResource("6_sta")
+mouse_filter = 2
