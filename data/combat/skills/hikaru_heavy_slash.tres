@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="SkillData" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/Combat/Abilities/SkillData.cs" id="1_skill"]
-[ext_resource type="Resource" path="res://data/combat/actions/wood_sword_light_2.tres" id="2_action"]
+[ext_resource type="Resource" path="res://data/combat/actions/wood_sword_heavy.tres" id="2_action"]
 [ext_resource type="Texture2D" path="res://data/icons/str.tres" id="3_icon"]
 
 [resource]

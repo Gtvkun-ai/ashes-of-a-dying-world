@@ -1,11 +1,15 @@
 using Godot;
 using AshesofaDyingWorld.Combat.Actors;
+using AshesofaDyingWorld.Combat.Data;
+using AshesofaDyingWorld.Combat.Model;
+using AshesofaDyingWorld.Combat.Runtime;
 using AshesofaDyingWorld.Combat.Decision.Execution;
 using AshesofaDyingWorld.Combat.Decision.Model;
 using AshesofaDyingWorld.Combat.Decision.Movement;
 using AshesofaDyingWorld.Combat.Decision.Party;
 using AshesofaDyingWorld.Combat.Decision.Profiles;
 using AshesofaDyingWorld.Combat.Decision.Scheduling;
+using AshesofaDyingWorld.UI.HUD;
 
 namespace AshesofaDyingWorld.Combat.Decision.Runtime
 {
@@ -142,6 +146,12 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                     _elapsedSeconds);
                 _lastSnapshot = snapshot;
                 _hasSnapshot = true;
+                UpdateCompanionTargetIndicator(snapshot);
+
+                if (liveControl)
+                {
+                    CancelInvalidProjectileCast();
+                }
 
                 CombatEmotionState emotion = BuildEmotion(snapshot);
                 LastTrace = _evaluator.Evaluate(
@@ -332,6 +342,64 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             }
         }
 
+        private void UpdateCompanionTargetIndicator(in CombatSnapshot snapshot)
+        {
+            if (_self == null || _self.Faction != CombatFaction.Companion)
+            {
+                return;
+            }
+
+            CombatCharacter target = null;
+            if (snapshot.TargetId.HasValue && GetTree() != null)
+            {
+                foreach (Node node in GetTree().GetNodesInGroup("Combatant"))
+                {
+                    if (node is CombatCharacter combatant
+                        && combatant.GetInstanceId() == snapshot.TargetId.Value)
+                    {
+                        target = combatant;
+                        break;
+                    }
+                }
+            }
+
+            CompanionTargetIndicatorService.GetOrCreate(GetTree())?
+                .SetTarget(_self, target, snapshot.HasLineOfSight);
+        }
+
+        private void CancelInvalidProjectileCast()
+        {
+            CombatActionData action = _self?.Actions?.CurrentAction;
+            if (action == null || action.DeliveryMode != CombatDeliveryMode.Projectile)
+            {
+                return;
+            }
+
+            CombatCharacter aimTarget = _self.Actions.CurrentAimTarget;
+            bool targetValid = aimTarget != null
+                && GodotObject.IsInstanceValid(aimTarget)
+                && !aimTarget.IsQueuedForDeletion()
+                && aimTarget.IsAlive
+                && FactionRules.CanDamage(_self.Faction, aimTarget.Faction);
+            bool inRange = targetValid
+                && _self.CombatCenter.DistanceTo(aimTarget.CombatCenter) <= EnemySearchRadius * 1.5f;
+            bool clearShot = inRange && _perception.HasLineOfSight(_self, aimTarget);
+            if (clearShot)
+            {
+                return;
+            }
+
+            string targetId = aimTarget?.CombatantId ?? "none";
+            _self.Actions.Cancel();
+            _blackboard.RecentCastInterruptsWindow = Mathf.Max(
+                _blackboard.RecentCastInterruptsWindow,
+                0.8f);
+            if (DebugLogging)
+            {
+                GD.Print($"[CombatDecisionAgent] CANCEL_CAST actor={_self.CombatantId} target={targetId} reason=shot_blocked_or_invalid");
+            }
+        }
+
         private CombatCharacter ResolveCharacter()
         {
             CombatCharacter configured = ResolveOptionalNode<CombatCharacter>(CharacterPath);
@@ -394,6 +462,10 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
         private void ReleaseLiveCommands()
         {
             _executor?.ReleaseCommands();
+            if (_self != null && _self.Faction == CombatFaction.Companion)
+            {
+                CompanionTargetIndicatorService.Instance?.ClearTarget(_self);
+            }
         }
     }
 }

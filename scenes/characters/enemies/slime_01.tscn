@@ -350,8 +350,8 @@ GuardRegenRate = 0.0
 
 [node name="SlimeBrain" type="Node" parent="."]
 script = ExtResource("3_brain")
-AttackRange = 37.0
-PreferredAttackDistance = 31.0
-MinimumAttackDistance = 24.0
+AttackRange = 40.0
+PreferredAttackDistance = 30.0
+MinimumAttackDistance = 21.0
 TargetSeparationExitMargin = 7.0
-AttackLaneTolerance = 11.0
+AttackLaneTolerance = 17.0

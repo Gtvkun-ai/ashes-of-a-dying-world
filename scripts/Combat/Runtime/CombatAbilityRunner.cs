@@ -71,6 +71,11 @@ namespace AshesofaDyingWorld.Combat.Runtime
         /// </summary>
         public bool TryActivate(SkillData skill, Vector2 aimDirection)
         {
+            return TryActivate(skill, aimDirection, null);
+        }
+
+        public bool TryActivate(SkillData skill, Vector2 aimDirection, CombatCharacter aimTarget)
+        {
             if (skill == null || _owner == null || !_owner.IsAlive || _owner.Stats == null)
             {
                 return false;
@@ -97,7 +102,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
 
             bool executed = skill.ExecutionType switch
             {
-                SkillExecutionType.CombatAction => ExecuteCombatAction(skill, aimDirection),
+                SkillExecutionType.CombatAction => ExecuteCombatAction(skill, aimDirection, aimTarget),
                 SkillExecutionType.Heal => ExecuteHeal(skill),
                 SkillExecutionType.RestoreResources => ExecuteResourceRestore(skill),
                 _ => ExecuteTimedBuff(skill)
@@ -160,7 +165,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
             _cooldowns.Clear();
         }
 
-        private bool ExecuteCombatAction(SkillData skill, Vector2 aimDirection)
+        private bool ExecuteCombatAction(SkillData skill, Vector2 aimDirection, CombatCharacter aimTarget)
         {
             if (skill.CombatAction == null || _owner.Actions == null)
             {
@@ -172,7 +177,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
                 _owner.ReleaseBlock();
             }
 
-            return _owner.Actions.TryStartAbilityAction(skill.CombatAction, aimDirection);
+            return _owner.Actions.TryStartAbilityAction(skill.CombatAction, aimDirection, aimTarget);
         }
 
         private bool ExecuteHeal(SkillData skill)

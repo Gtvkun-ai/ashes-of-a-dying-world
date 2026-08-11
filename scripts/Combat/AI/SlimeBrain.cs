@@ -11,7 +11,7 @@ namespace AshesofaDyingWorld.Combat.AI
     /// </summary>
     public partial class SlimeBrain : Node
     {
-        private const string RuntimeBuild = "v6-soft-pursuit";
+        private const string RuntimeBuild = "v7-smoother-melee";
         private enum EnemyState
         {
             Wander,
@@ -135,7 +135,7 @@ namespace AshesofaDyingWorld.Combat.AI
             if (DebugTargeting)
             {
                 GD.Print(
-                    $"[SlimeBrain] READY build={RuntimeBuild} slime={_character.CombatantId} "
+                    $"[SlimeBrain] READY build={RuntimeBuild} slime={_character.CombatantId} instance={_character.GetInstanceId()} "
                     + $"combat_spawn_leash={UseCombatSpawnLeash} forget={TargetForgetRadius:0.0} "
                     + $"provoked_forget={ProvokedForgetRadius:0.0}");
             }
@@ -167,6 +167,21 @@ namespace AshesofaDyingWorld.Combat.AI
             float separationExit = Mathf.Max(
                 MinimumAttackDistance + 1f,
                 MinimumAttackDistance + TargetSeparationExitMargin);
+
+            bool canPointBlankBite = approach.DirectDistance <= Mathf.Max(10f, MinimumAttackDistance + 4f)
+                && approach.ForwardDistance > 0f
+                && approach.LateralDistance <= AttackLaneTolerance + 8f;
+            if (canPointBlankBite && _attackCooldownRemaining <= 0f)
+            {
+                _escapingTargetOverlap = false;
+                _state = EnemyState.Attack;
+                _character.StopMoveInput();
+                if (_character.RequestAttack())
+                {
+                    _attackCooldownRemaining = AttackCooldown;
+                }
+                return;
+            }
 
             if (!_escapingTargetOverlap && approach.TooClose)
             {
@@ -354,10 +369,11 @@ namespace AshesofaDyingWorld.Combat.AI
             if (DebugTargeting)
             {
                 string targetId = _target?.CombatantId ?? "none";
+                string targetInstance = _target == null ? "none" : _target.GetInstanceId().ToString();
                 float distance = _target == null
                     ? 0f
                     : _character.CombatCenter.DistanceTo(_target.CombatCenter);
-                GD.Print($"[SlimeBrain] TARGET slime={_character.CombatantId} target={targetId} reason={reason} distance={distance:0.0}");
+                GD.Print($"[SlimeBrain] TARGET slime={_character.CombatantId} instance={_character.GetInstanceId()} target={targetId} target_instance={targetInstance} reason={reason} distance={distance:0.0}");
             }
         }
 

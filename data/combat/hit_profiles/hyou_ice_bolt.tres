@@ -4,13 +4,23 @@
 
 [resource]
 script = ExtResource("1_hit")
-DamageType = 4
+DamageType = 6
 BaseDamage = 8.0
 AttackPowerScale = 0.65
 ArmorPenetration = 0.10
 GuardDamage = 8.0
-PoiseDamage = 11.0
-HitstunSeconds = 0.16
-KnockbackForce = 52.0
+PoiseDamage = 12.0
+HitstunSeconds = 0.18
+KnockbackForce = 62.0
+SlowPercent = 18.0
+SlowSeconds = 2.4
+ChillStacks = 1
+ChillSeconds = 6.0
+FreezeAtChillStacks = 3
+FreezeSeconds = 0.95
+HitStopSeconds = 0.055
+HitFlashSeconds = 0.10
+CameraShakeStrength = 0.72
+ImpactVfxScale = 1.15
 HitboxSize = Vector2(14, 14)
 Reach = 0.0

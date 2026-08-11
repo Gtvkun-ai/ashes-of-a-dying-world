@@ -6,10 +6,10 @@
 [resource]
 script = ExtResource("1_spec")
 ProjectileId = "hyou_ice_bolt"
-Speed = 260.0
+Speed = 320.0
 Lifetime = 1.6
-Radius = 7.0
-SpawnOffset = 18.0
+Radius = 10.0
+SpawnOffset = 20.0
 PierceTargets = false
 MaxTargetHits = 1
 HurtboxCollisionMask = 16

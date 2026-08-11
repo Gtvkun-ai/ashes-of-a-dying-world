@@ -51,6 +51,8 @@ namespace AshesofaDyingWorld.Combat.Actors
         public CombatStateMachine StateMachine { get; private set; }
         public CombatActionRunner Actions { get; private set; }
         public CombatAbilityRunner Abilities { get; private set; }
+        public CombatStatusController Statuses { get; private set; }
+        public float RuntimeAttackSpeedMultiplier => Statuses?.AttackSpeedMultiplier ?? 1f;
         public AnimatedSprite2D BodySprite => _body;
         public bool IsAlive => Stats == null || Stats.CurrentHP > 0f;
         public bool IsBlocking => StateMachine?.Current == CombatStateId.Blocking;
@@ -94,6 +96,15 @@ namespace AshesofaDyingWorld.Combat.Actors
         private int _lastFootstepPhase = -1;
         private bool _isResolvingHit;
         private bool _defeatHandled;
+        private float _impactFreezeRemaining;
+        private float _storedBodySpeedScale = 1f;
+        private bool _bodySpeedFrozen;
+        private float _hitFlashRemaining;
+        private Color _baseBodySelfModulate = Colors.White;
+        private Vector2 _baseBodyPosition = Vector2.Zero;
+        private float _launchRemaining;
+        private float _launchDuration;
+        private float _launchHeight;
 
         private const string FootstepCueAPath = "res://data/audio/footsteps/normal_step_01.tres";
         private const string FootstepCueBPath = "res://data/audio/footsteps/normal_step_02.tres";
@@ -115,9 +126,12 @@ namespace AshesofaDyingWorld.Combat.Actors
             Actions.ActionReleased += OnActionReleased;
             Actions.ActionEventTriggered += OnActionEventTriggered;
             Abilities = new CombatAbilityRunner(this);
+            Statuses = new CombatStatusController();
 
             if (_body != null)
             {
+                _baseBodySelfModulate = _body.SelfModulate;
+                _baseBodyPosition = _body.Position;
                 _body.FrameChanged += OnBodyFrameChanged;
                 PlayIdleFrame();
             }
@@ -141,6 +155,14 @@ namespace AshesofaDyingWorld.Combat.Actors
             float dt = (float)delta;
             if (StateMachine == null)
             {
+                return;
+            }
+
+            Statuses?.Update(dt);
+            UpdateImpactPresentation(dt);
+            if (_impactFreezeRemaining > 0f)
+            {
+                Velocity = Vector2.Zero;
                 return;
             }
 
@@ -223,7 +245,7 @@ namespace AshesofaDyingWorld.Combat.Actors
 
         public void SetBlocking(bool value)
         {
-            _blockCommand = value;
+            _blockCommand = value && Statuses?.IsFrozen != true;
         }
 
         public void ReleaseBlock()
@@ -234,7 +256,7 @@ namespace AshesofaDyingWorld.Combat.Actors
 
         public bool RequestAttack()
         {
-            if (!IsAlive)
+            if (!IsAlive || Statuses?.IsFrozen == true)
             {
                 return false;
             }
@@ -344,11 +366,28 @@ namespace AshesofaDyingWorld.Combat.Actors
                 return result;
             }
 
+            if (result.Shattered)
+            {
+                Statuses?.ConsumeFrozenForShatter();
+            }
+
+            bool canApplyStatus = !result.WasBlocked || result.GuardBroken;
+            CombatStatusController.ApplicationResult statusResult = request?.Profile != null && canApplyStatus
+                ? Statuses?.Apply(request.Profile) ?? default
+                : default;
+
             if (result.Killed)
             {
                 Actions?.Cancel();
                 Abilities?.CancelActiveEffects();
+                Statuses?.Clear();
                 StateMachine.EnterDead();
+            }
+            else if (statusResult.FreezeStarted)
+            {
+                Actions?.Cancel();
+                _blockCommand = false;
+                StateMachine.EnterHitstun(Mathf.Max(0.05f, request.Profile.FreezeSeconds));
             }
             else if (result.GuardBroken)
             {
@@ -359,7 +398,10 @@ namespace AshesofaDyingWorld.Combat.Actors
             else if (result.Staggered)
             {
                 Actions?.Cancel();
-                StateMachine.EnterStagger(0.42f);
+                float staggerSeconds = result.ForcedStaggerSeconds > 0f
+                    ? result.ForcedStaggerSeconds
+                    : 0.42f;
+                StateMachine.EnterStagger(staggerSeconds);
             }
             else if (result.WasBlocked)
             {
@@ -376,10 +418,39 @@ namespace AshesofaDyingWorld.Combat.Actors
                 _externalVelocity += result.Knockback;
             }
 
+            if (result.LaunchHeight > 0f && !result.Killed && (!result.WasBlocked || result.GuardBroken))
+            {
+                StartVisualLaunch(result.LaunchHeight, result.LaunchDuration);
+            }
+
+            if (result.HitFlashSeconds > 0f && !result.Killed)
+            {
+                BeginHitFlash(result.HitFlashSeconds);
+            }
+
+            if (result.HitStopSeconds > 0f)
+            {
+                BeginImpactFreeze(result.HitStopSeconds);
+                if (request?.Action?.DeliveryMode == CombatDeliveryMode.MeleeHitbox)
+                {
+                    request.Attacker?.BeginImpactFreeze(result.HitStopSeconds * 0.82f);
+                }
+            }
+
             if (result.HpDamage > 0f)
             {
-                DamageNumberService.GetOrCreate(GetTree())?.ShowDamage(this, result.HpDamage);
+                bool ice = request?.Profile?.DamageType == DamageType.Ice
+                    || (request?.Profile?.ChillStacks ?? 0) > 0;
+                DamageNumberService.GetOrCreate(GetTree())?.ShowDamage(
+                    this,
+                    result.HpDamage,
+                    result.Shattered,
+                    ice,
+                    result.WasBlocked);
+                EnemyHealthBarService.Instance?.NotifyDamaged(this);
             }
+
+            CombatFeedbackService.GetOrCreate(GetTree())?.PlayHit(request?.Attacker, this, request, result);
 
             EmitSignal(SignalName.HitResolved, result.HpDamage, result.WasBlocked, result.GuardBroken);
             OnHitReceived(request, result);
@@ -390,6 +461,22 @@ namespace AshesofaDyingWorld.Combat.Actors
             }
 
             return result;
+        }
+
+        public void BeginImpactFreeze(float seconds)
+        {
+            if (seconds <= 0f || StateMachine?.Current == CombatStateId.Dead)
+            {
+                return;
+            }
+
+            _impactFreezeRemaining = Mathf.Max(_impactFreezeRemaining, seconds);
+            if (_body != null && !_bodySpeedFrozen)
+            {
+                _storedBodySpeedScale = _body.SpeedScale;
+                _body.SpeedScale = 0f;
+                _bodySpeedFrozen = true;
+            }
         }
 
         public void ResetCombatRuntime()
@@ -406,6 +493,11 @@ namespace AshesofaDyingWorld.Combat.Actors
             _locomotionVelocity = Vector2.Zero;
             _externalVelocity = Vector2.Zero;
             Velocity = Vector2.Zero;
+            Statuses?.Clear();
+            _impactFreezeRemaining = 0f;
+            _hitFlashRemaining = 0f;
+            _launchRemaining = 0f;
+            RestoreBodyPresentation();
 
             bool alive = Stats == null || Stats.CurrentHP > 0f;
             _defeatHandled = !alive;
@@ -574,6 +666,11 @@ namespace AshesofaDyingWorld.Combat.Actors
         {
             bool hasInput = _moveCommand != Vector2.Zero;
             bool canRun = false;
+            float actionMoveMultiplier = Actions?.IsRunning == true
+                ? Mathf.Clamp(Actions.CurrentAction?.MovementInputMultiplier ?? 0f, 0f, 1f)
+                : 0f;
+            bool canUseActionMovement = StateMachine.IsAttackState && actionMoveMultiplier > 0.001f;
+            bool canUseMovementInput = StateMachine.CanMove || canUseActionMovement;
 
             if (Stats != null)
             {
@@ -595,15 +692,20 @@ namespace AshesofaDyingWorld.Combat.Actors
             _isActuallyRunning = canRun;
 
             Vector2 targetVelocity = Vector2.Zero;
-            if (StateMachine.CanMove && hasInput)
+            if (canUseMovementInput && hasInput)
             {
                 float moveSpeed = canRun ? RunSpeed : Speed;
+                if (canUseActionMovement)
+                {
+                    moveSpeed *= actionMoveMultiplier;
+                }
                 if (StateMachine.Current == CombatStateId.Blocking)
                 {
                     moveSpeed *= ActiveMoveset?.GuardMoveSpeedMultiplier ?? 0.35f;
                 }
 
                 moveSpeed *= Abilities?.MoveSpeedMultiplier ?? 1f;
+                moveSpeed *= Statuses?.MoveSpeedMultiplier ?? 1f;
                 moveSpeed *= GetRuntimeMoveSpeedMultiplier();
                 moveSpeed *= _moveSpeedScale;
                 targetVelocity = _moveCommand * moveSpeed;
@@ -624,6 +726,107 @@ namespace AshesofaDyingWorld.Combat.Actors
 
             Vector2 actionVelocity = Actions?.MovementVelocity ?? Vector2.Zero;
             Velocity = _locomotionVelocity + actionVelocity + _externalVelocity;
+        }
+
+        private void UpdateImpactPresentation(float delta)
+        {
+            float dt = Mathf.Max(0f, delta);
+
+            if (_impactFreezeRemaining > 0f)
+            {
+                _impactFreezeRemaining -= dt;
+                if (_impactFreezeRemaining <= 0f)
+                {
+                    _impactFreezeRemaining = 0f;
+                    if (_body != null && _bodySpeedFrozen)
+                    {
+                        _body.SpeedScale = Mathf.Max(0.01f, _storedBodySpeedScale);
+                    }
+                    _bodySpeedFrozen = false;
+                }
+            }
+
+            if (_hitFlashRemaining > 0f)
+            {
+                _hitFlashRemaining -= dt;
+            }
+
+            if (_launchRemaining > 0f && _body != null)
+            {
+                _launchRemaining -= dt;
+                float progress = 1f - Mathf.Clamp(
+                    _launchRemaining / Mathf.Max(0.05f, _launchDuration),
+                    0f,
+                    1f);
+                float height = Mathf.Sin(progress * Mathf.Pi) * _launchHeight;
+                _body.Position = _baseBodyPosition + new Vector2(0f, -height);
+                if (_launchRemaining <= 0f)
+                {
+                    _launchRemaining = 0f;
+                    _body.Position = _baseBodyPosition;
+                }
+            }
+
+            UpdateBodyTint();
+        }
+
+        private void BeginHitFlash(float seconds)
+        {
+            _hitFlashRemaining = Mathf.Max(_hitFlashRemaining, Mathf.Max(0.02f, seconds));
+            UpdateBodyTint();
+        }
+
+        private void StartVisualLaunch(float height, float duration)
+        {
+            if (_body == null)
+            {
+                return;
+            }
+
+            _launchHeight = Mathf.Max(_launchHeight, height);
+            _launchDuration = Mathf.Max(0.08f, duration);
+            _launchRemaining = _launchDuration;
+        }
+
+        private void UpdateBodyTint()
+        {
+            if (_body == null)
+            {
+                return;
+            }
+
+            if (_hitFlashRemaining > 0f)
+            {
+                _body.SelfModulate = new Color(1.7f, 1.7f, 1.7f, _baseBodySelfModulate.A);
+            }
+            else if (Statuses?.IsFrozen == true)
+            {
+                _body.SelfModulate = new Color(0.58f, 0.88f, 1f, _baseBodySelfModulate.A);
+            }
+            else if (Statuses?.HasChill == true)
+            {
+                _body.SelfModulate = new Color(0.82f, 0.94f, 1f, _baseBodySelfModulate.A);
+            }
+            else
+            {
+                _body.SelfModulate = _baseBodySelfModulate;
+            }
+        }
+
+        private void RestoreBodyPresentation()
+        {
+            if (_body == null)
+            {
+                return;
+            }
+
+            if (_bodySpeedFrozen)
+            {
+                _body.SpeedScale = Mathf.Max(0.01f, _storedBodySpeedScale);
+            }
+            _bodySpeedFrozen = false;
+            _body.Position = _baseBodyPosition;
+            _body.SelfModulate = _baseBodySelfModulate;
         }
 
         private void UpdateAnimation()

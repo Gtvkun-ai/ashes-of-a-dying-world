@@ -29,6 +29,7 @@ namespace AshesofaDyingWorld.Combat.Data
         [ExportGroup("Costs and Motion")]
         [Export] public float StaminaCost { get; set; } = 12f;
         [Export] public float LungeSpeed { get; set; } = 45f;
+        [Export(PropertyHint.Range, "0,1,0.05")] public float MovementInputMultiplier { get; set; } = 0f;
 
         [ExportGroup("Delivery")]
         [Export] public CombatDeliveryMode DeliveryMode { get; set; } = CombatDeliveryMode.MeleeHitbox;

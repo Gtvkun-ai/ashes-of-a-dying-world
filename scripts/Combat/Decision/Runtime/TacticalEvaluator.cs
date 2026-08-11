@@ -339,7 +339,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             bool afterPrimaryAction = primarySkill != null && blackboard.IsFreshAction(skillKey);
             bool currentlyRepositioning = blackboard.CurrentIntent.HasValue
                 && blackboard.CurrentIntent.Value.Type == CombatIntentType.Reposition;
-            bool feasible = (afterPrimaryAction || currentlyRepositioning)
+            bool needsClearShot = snapshot.HasTarget && !snapshot.HasLineOfSight;
+            bool feasible = (needsClearShot || afterPrimaryAction || currentlyRepositioning)
                 && snapshot.CanMove
                 && !insidePanic
                 && !snapshot.ThreatDodgeable;
@@ -350,13 +351,14 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             float recentPenalty = blackboard.GetRecentIntentMultiplier(CombatIntentType.Reposition);
             float score = Mathf.Clamp(
                 (0.52f
+                    + (needsClearShot ? 0.34f : 0f)
                     + (currentlyRepositioning ? 0.08f : 0f)
                     + 0.26f * repetitionPressure
                     + 0.08f * facingPressure
                     + 0.08f * doctrine.MobilityPreference)
                 * recentPenalty,
                 0f,
-                0.86f);
+                0.94f);
 
             candidates.Add(BuildCandidate(
                 MakeIntent(
@@ -367,7 +369,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                     preferredMin,
                     preferredMax,
                     0.34f,
-                    "break_action_repetition"),
+                    needsClearShot ? "clear_line_of_fire" : "break_action_repetition"),
                 feasible,
                 score,
                 feasible ? string.Empty : "no_recent_action_or_movement_unavailable",
@@ -375,6 +377,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 new Dictionary<string, float>
                 {
                     ["after_primary"] = afterPrimaryAction ? 1f : 0f,
+                    ["needs_clear_shot"] = needsClearShot ? 1f : 0f,
                     ["currently_repositioning"] = currentlyRepositioning ? 1f : 0f,
                     ["repetition_pressure"] = repetitionPressure,
                     ["target_facing"] = facingPressure,

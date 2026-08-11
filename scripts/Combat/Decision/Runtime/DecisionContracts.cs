@@ -12,6 +12,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             CombatRoleAssignment? assignment,
             CombatBlackboard blackboard,
             float timeSeconds);
+
+        bool HasLineOfSight(CombatCharacter self, CombatCharacter target);
     }
 
     public interface IThreatPredictor
