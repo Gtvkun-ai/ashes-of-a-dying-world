@@ -3,6 +3,7 @@ using AshesofaDyingWorld.Combat.Data;
 using AshesofaDyingWorld.Combat.Model;
 using AshesofaDyingWorld.Combat.Projectiles;
 using AshesofaDyingWorld.Combat.Runtime;
+using AshesofaDyingWorld.Combat.Visuals;
 using AshesofaDyingWorld.Core.Data;
 using AshesofaDyingWorld.Core.Managers;
 using AshesofaDyingWorld.Entities.Player;
@@ -105,6 +106,7 @@ namespace AshesofaDyingWorld.Combat.Actors
         private float _launchRemaining;
         private float _launchDuration;
         private float _launchHeight;
+        private CombatFreezeVfx2D _freezeStatusVfx;
 
         private const string FootstepCueAPath = "res://data/audio/footsteps/normal_step_01.tres";
         private const string FootstepCueBPath = "res://data/audio/footsteps/normal_step_02.tres";
@@ -159,6 +161,7 @@ namespace AshesofaDyingWorld.Combat.Actors
             }
 
             Statuses?.Update(dt);
+            UpdateStatusVisualEffects();
             UpdateImpactPresentation(dt);
             if (_impactFreezeRemaining > 0f)
             {
@@ -214,6 +217,11 @@ namespace AshesofaDyingWorld.Combat.Actors
             }
 
             Abilities?.Clear();
+            if (_freezeStatusVfx != null && GodotObject.IsInstanceValid(_freezeStatusVfx))
+            {
+                _freezeStatusVfx.QueueFree();
+                _freezeStatusVfx = null;
+            }
             OnCombatExitTree();
         }
 
@@ -726,6 +734,25 @@ namespace AshesofaDyingWorld.Combat.Actors
 
             Vector2 actionVelocity = Actions?.MovementVelocity ?? Vector2.Zero;
             Velocity = _locomotionVelocity + actionVelocity + _externalVelocity;
+        }
+
+        private void UpdateStatusVisualEffects()
+        {
+            bool shouldShowFreeze = IsAlive && Statuses?.IsFrozen == true;
+            bool hasFreezeVfx = _freezeStatusVfx != null && GodotObject.IsInstanceValid(_freezeStatusVfx);
+
+            if (shouldShowFreeze && !hasFreezeVfx)
+            {
+                var freezeVfx = new CombatFreezeVfx2D();
+                freezeVfx.Initialize(this);
+                AddChild(freezeVfx);
+                _freezeStatusVfx = freezeVfx;
+            }
+            else if (!shouldShowFreeze && hasFreezeVfx)
+            {
+                _freezeStatusVfx.QueueFree();
+                _freezeStatusVfx = null;
+            }
         }
 
         private void UpdateImpactPresentation(float delta)

@@ -9,12 +9,18 @@ using AshesofaDyingWorld.Core.Managers;
 namespace AshesofaDyingWorld.Combat.Runtime
 {
     /// <summary>
-    /// Presentation-only feedback: camera impulse, procedural impact VFX, impact SFX
+    /// Presentation-only feedback: camera impulse, asset-backed combat VFX, impact SFX
     /// và flash màn hình khi Player nhận damage.
     /// </summary>
     public partial class CombatFeedbackService : CanvasLayer
     {
         public static CombatFeedbackService Instance { get; private set; }
+
+        private const string PhysicalLightImpactPath = "res://assets/graphics/vfx/combat/hit/physical_hit_light.png";
+        private const string IceImpactPath = "res://assets/graphics/vfx/combat/ice/ice_impact.png";
+        private const string BlockSparkFramesPath = "res://assets/graphics/vfx/combat/defense/block_spark_frames.tres";
+        private const string ParryFlashFramesPath = "res://assets/graphics/vfx/combat/defense/parry_flash_frames.tres";
+        private const string ParryRingFramesPath = "res://assets/graphics/vfx/combat/defense/parry_ring_frames.tres";
 
         private readonly RandomNumberGenerator _rng = new();
         private float _shakeRemaining;
@@ -88,12 +94,22 @@ namespace AshesofaDyingWorld.Combat.Runtime
                 ? request.AttackDirection.Normalized()
                 : (target.CombatCenter - (attacker?.CombatCenter ?? request.HitOrigin)).Normalized();
             bool ice = profile.DamageType == DamageType.Ice || profile.ChillStacks > 0 || profile.FreezeOnHit;
+            bool heavy = request.Action != null
+                && (request.Action.Tags & CombatActionTag.Heavy) != CombatActionTag.None;
             bool strong = result.Shattered
-                || (request.Action != null && (request.Action.Tags & CombatActionTag.Heavy) != CombatActionTag.None)
+                || heavy
                 || profile.LaunchHeight > 0f
                 || result.GuardBroken;
 
-            SpawnImpact(target.CombatCenter, direction, profile.ImpactVfxScale * (strong ? 1.25f : 1f), ice, result.WasBlocked, result.Shattered);
+            SpawnImpact(
+                target.CombatCenter,
+                direction,
+                profile.ImpactVfxScale * (strong ? 1.25f : 1f),
+                ice,
+                result.WasBlocked,
+                result.Shattered,
+                heavy,
+                result.GuardBroken);
             AddCameraShake(profile.CameraShakeStrength * (strong ? 1.3f : 1f), strong ? 0.16f : 0.10f);
             PlayImpactAudio(ice, strong);
 
@@ -136,6 +152,27 @@ namespace AshesofaDyingWorld.Combat.Runtime
             }
         }
 
+        /// <summary>
+        /// Asset parry đã được nối sẵn. Hiện combat core chưa có perfect-parry window,
+        /// nên method này chỉ được gọi khi/ nếu gameplay layer xác nhận một parry thật.
+        /// Không dùng guard-break giả làm parry.
+        /// </summary>
+        public void PlayParry(Vector2 worldPosition, Vector2 incomingDirection)
+        {
+            Node parent = GetTree()?.CurrentScene ?? GetTree()?.Root;
+            if (parent == null)
+            {
+                return;
+            }
+
+            float rotation = incomingDirection.LengthSquared() > 0.001f
+                ? incomingDirection.Angle()
+                : 0f;
+            SpawnFramesVfx(parent, worldPosition, ParryFlashFramesPath, "parry_flash", 0.72f, rotation, "ParryFlash");
+            SpawnFramesVfx(parent, worldPosition, ParryRingFramesPath, "parry_ring", 0.78f, 0f, "ParryRing");
+            AddCameraShake(1.2f, 0.12f);
+        }
+
         public override void _Process(double delta)
         {
             float dt = Mathf.Max(0f, (float)delta);
@@ -144,7 +181,15 @@ namespace AshesofaDyingWorld.Combat.Runtime
             UpdateDamageDirection(dt);
         }
 
-        private void SpawnImpact(Vector2 worldPosition, Vector2 direction, float strength, bool ice, bool blocked, bool shattered)
+        private void SpawnImpact(
+            Vector2 worldPosition,
+            Vector2 direction,
+            float strength,
+            bool ice,
+            bool blocked,
+            bool shattered,
+            bool heavy,
+            bool guardBroken)
         {
             Node parent = GetTree()?.CurrentScene ?? GetTree()?.Root;
             if (parent == null)
@@ -152,9 +197,152 @@ namespace AshesofaDyingWorld.Combat.Runtime
                 return;
             }
 
+            // Guard feedback có asset riêng. Guard break vẫn thêm burst procedural để đọc được độ nặng.
+            if (blocked)
+            {
+                Vector2 contact = worldPosition - direction * 5f;
+                bool spawnedBlock = SpawnFramesVfx(
+                    parent,
+                    contact,
+                    BlockSparkFramesPath,
+                    "block",
+                    Mathf.Clamp(0.58f * strength, 0.48f, 0.88f),
+                    direction.Angle(),
+                    "BlockSpark");
+
+                if (!spawnedBlock || guardBroken)
+                {
+                    SpawnProceduralImpact(parent, contact, direction, strength, false, true, false);
+                }
+                return;
+            }
+
+            // Shatter chưa có art riêng trong asset hiện tại: dùng Ice Impact + burst procedural,
+            // thay vì giả vờ physical-light là shatter.
+            if (shattered)
+            {
+                SpawnSheetVfx(
+                    parent,
+                    worldPosition,
+                    IceImpactPath,
+                    48,
+                    48,
+                    6,
+                    30f,
+                    Mathf.Clamp(0.72f * strength, 0.72f, 1.25f),
+                    0f,
+                    "ShatterIceImpact");
+                SpawnProceduralImpact(parent, worldPosition, direction, strength, true, false, true);
+                return;
+            }
+
+            if (ice)
+            {
+                bool spawnedIce = SpawnSheetVfx(
+                    parent,
+                    worldPosition,
+                    IceImpactPath,
+                    48,
+                    48,
+                    6,
+                    30f,
+                    Mathf.Clamp(0.62f * strength, 0.56f, 1.08f),
+                    0f,
+                    "IceImpact");
+                if (spawnedIce)
+                {
+                    return;
+                }
+            }
+
+            // Hiện asset mới chỉ có physical hit light. Heavy giữ fallback procedural
+            // cho tới khi có physical_hit_heavy thật, tránh phóng to light rồi gọi đó là heavy.
+            if (!heavy)
+            {
+                bool spawnedPhysical = SpawnSheetVfx(
+                    parent,
+                    worldPosition,
+                    PhysicalLightImpactPath,
+                    48,
+                    48,
+                    5,
+                    30f,
+                    Mathf.Clamp(0.62f * strength, 0.52f, 0.92f),
+                    direction.Angle(),
+                    "PhysicalLightImpact");
+                if (spawnedPhysical)
+                {
+                    return;
+                }
+            }
+
+            SpawnProceduralImpact(parent, worldPosition, direction, strength, ice, false, shattered);
+        }
+
+        private static bool SpawnSheetVfx(
+            Node parent,
+            Vector2 worldPosition,
+            string texturePath,
+            int frameWidth,
+            int frameHeight,
+            int frameCount,
+            float fps,
+            float scale,
+            float rotation,
+            string nodeName)
+        {
+            var fx = new CombatSpriteVfx2D { Name = nodeName };
+            if (!fx.InitializeFromHorizontalSheet(
+                texturePath,
+                frameWidth,
+                frameHeight,
+                frameCount,
+                fps,
+                scale,
+                rotation))
+            {
+                fx.Free();
+                return false;
+            }
+
+            parent.AddChild(fx);
+            fx.GlobalPosition = worldPosition;
+            return true;
+        }
+
+        private static bool SpawnFramesVfx(
+            Node parent,
+            Vector2 worldPosition,
+            string framesPath,
+            StringName animation,
+            float scale,
+            float rotation,
+            string nodeName)
+        {
+            var fx = new CombatSpriteVfx2D { Name = nodeName };
+            if (!fx.InitializeFromSpriteFrames(framesPath, animation, scale, rotation))
+            {
+                fx.Free();
+                return false;
+            }
+
+            parent.AddChild(fx);
+            fx.GlobalPosition = worldPosition;
+            return true;
+        }
+
+        private static void SpawnProceduralImpact(
+            Node parent,
+            Vector2 worldPosition,
+            Vector2 direction,
+            float strength,
+            bool ice,
+            bool blocked,
+            bool shattered)
+        {
             var burst = new CombatImpactBurst2D
             {
-                Name = shattered ? "ShatterImpact" : ice ? "IceImpact" : "CombatImpact"
+                Name = shattered ? "ShatterImpactFallback" : ice ? "IceImpactFallback" : "CombatImpactFallback"
             };
             burst.Initialize(direction, strength, ice, blocked, shattered);
             parent.AddChild(burst);
