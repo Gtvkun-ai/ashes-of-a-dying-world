@@ -2,11 +2,19 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using AshesofaDyingWorld.Combat.Actors;
+using AshesofaDyingWorld.Combat.Runtime;
 
 namespace AshesofaDyingWorld.UI.HUD
 {
     public partial class EnemyHealthBarService : CanvasLayer
     {
+        private sealed class StatusBadge
+        {
+            public Control Holder;
+            public TextureRect Icon;
+            public Label StackLabel;
+        }
+
         private class TrackedEnemy
         {
             public Node2D EnemyNode;
@@ -16,7 +24,10 @@ namespace AshesofaDyingWorld.UI.HUD
             public Control Widget;
             public TextureProgressBar Bar;
             public Label LevelLabel;
-            public Label StatusLabel;
+            public Control StatusRow;
+            public StatusBadge ChillBadge;
+            public StatusBadge SlowBadge;
+            public StatusBadge FrozenBadge;
             public float LastHp;
             public float RevealRemaining;
         }
@@ -37,6 +48,17 @@ namespace AshesofaDyingWorld.UI.HUD
         [Export] public Texture2D HpTextureOver { get; set; }
 
         private const string DefaultEnemyHpTexturePath = "res://assets/graphics/ui/status/enemy_hp_bar.png";
+        private const string StatusFrameTexturePath = "res://assets/graphics/ui/hud/status_effects/status_effect_icon_frame.png";
+        private const string ChillIconPath = "res://assets/graphics/ui/hud/status_effects/icons/chill.png";
+        private const string SlowIconPath = "res://assets/graphics/ui/hud/status_effects/icons/slow.png";
+        private const string FrozenIconPath = "res://assets/graphics/ui/hud/status_effects/icons/frozen.png";
+        private const float StatusBadgeSize = 16f;
+        private const float StatusBadgeSpacing = 1f;
+
+        private Texture2D _statusFrameTexture;
+        private Texture2D _chillIconTexture;
+        private Texture2D _slowIconTexture;
+        private Texture2D _frozenIconTexture;
 
         public override void _Ready()
         {
@@ -81,6 +103,11 @@ namespace AshesofaDyingWorld.UI.HUD
             {
                 HpTextureProgress = GD.Load<Texture2D>(DefaultEnemyHpTexturePath);
             }
+
+            _statusFrameTexture ??= GD.Load<Texture2D>(StatusFrameTexturePath);
+            _chillIconTexture ??= GD.Load<Texture2D>(ChillIconPath);
+            _slowIconTexture ??= GD.Load<Texture2D>(SlowIconPath);
+            _frozenIconTexture ??= GD.Load<Texture2D>(FrozenIconPath);
         }
 
         public void RegisterEnemy(Node2D enemy, Func<float> getCurrentHp, Func<float> getMaxHp, Func<int> getLevel)
@@ -127,16 +154,18 @@ namespace AshesofaDyingWorld.UI.HUD
             if (HpTextureOver != null) hpBar.TextureOver = HpTextureOver;
             widget.AddChild(hpBar);
 
-            var statusLabel = new Label
+            var statusRow = new Control
             {
-                HorizontalAlignment = HorizontalAlignment.Center,
-                MouseFilter = Control.MouseFilterEnum.Ignore
+                Name = "StatusRow",
+                MouseFilter = Control.MouseFilterEnum.Ignore,
+                Visible = false
             };
-            statusLabel.AddThemeFontSizeOverride("font_size", 9);
-            statusLabel.AddThemeColorOverride("font_color", new Color(0.58f, 0.90f, 1f));
-            statusLabel.AddThemeColorOverride("font_outline_color", Colors.Black);
-            statusLabel.AddThemeConstantOverride("outline_size", 2);
-            widget.AddChild(statusLabel);
+            widget.AddChild(statusRow);
+
+            StatusBadge chillBadge = CreateStatusBadge(statusRow, _chillIconTexture, true, "Chill");
+            StatusBadge slowBadge = CreateStatusBadge(statusRow, _slowIconTexture, false, "Slow");
+            StatusBadge frozenBadge = CreateStatusBadge(statusRow, _frozenIconTexture, false, "Frozen");
+
             AddChild(widget);
 
             float currentHp = getCurrentHp();
@@ -149,7 +178,10 @@ namespace AshesofaDyingWorld.UI.HUD
                 Widget = widget,
                 Bar = hpBar,
                 LevelLabel = levelLabel,
-                StatusLabel = statusLabel,
+                StatusRow = statusRow,
+                ChillBadge = chillBadge,
+                SlowBadge = slowBadge,
+                FrozenBadge = frozenBadge,
                 LastHp = currentHp,
                 RevealRemaining = 0f
             });
@@ -220,10 +252,9 @@ namespace AshesofaDyingWorld.UI.HUD
                 trackedEnemy.LastHp = curHp;
                 trackedEnemy.RevealRemaining = Mathf.Max(0f, trackedEnemy.RevealRemaining - dt);
 
-                string statusText = (trackedEnemy.EnemyNode as CombatCharacter)?.Statuses?.GetCompactLabel() ?? string.Empty;
-                trackedEnemy.StatusLabel.Text = statusText;
-                trackedEnemy.StatusLabel.Visible = !string.IsNullOrWhiteSpace(statusText);
-                if (trackedEnemy.StatusLabel.Visible)
+                var statuses = (trackedEnemy.EnemyNode as CombatCharacter)?.Statuses;
+                int visibleStatusCount = UpdateStatusBadges(trackedEnemy, statuses);
+                if (visibleStatusCount > 0)
                 {
                     trackedEnemy.RevealRemaining = Mathf.Max(trackedEnemy.RevealRemaining, 0.25f);
                 }
@@ -247,11 +278,15 @@ namespace AshesofaDyingWorld.UI.HUD
 
                 trackedEnemy.LevelLabel.Position = levelPos;
                 trackedEnemy.Bar.Position = barPos;
-                if (trackedEnemy.StatusLabel.Visible)
+                if (trackedEnemy.StatusRow.Visible && visibleStatusCount > 0)
                 {
-                    trackedEnemy.StatusLabel.Position = new Vector2(0f, rowHeight + 1f);
-                    trackedEnemy.StatusLabel.Size = new Vector2(rowWidth, 12f);
-                    rowHeight += 13f;
+                    float statusWidth = visibleStatusCount * StatusBadgeSize
+                        + Mathf.Max(0, visibleStatusCount - 1) * StatusBadgeSpacing;
+                    trackedEnemy.StatusRow.Position = new Vector2(
+                        Mathf.Round((rowWidth - statusWidth) * 0.5f),
+                        rowHeight + 1f);
+                    trackedEnemy.StatusRow.Size = new Vector2(statusWidth, StatusBadgeSize);
+                    rowHeight += StatusBadgeSize + 2f;
                 }
                 trackedEnemy.Widget.CustomMinimumSize = new Vector2(rowWidth, rowHeight);
 
@@ -264,5 +299,116 @@ namespace AshesofaDyingWorld.UI.HUD
                 trackedEnemy.Widget.Modulate = new Color(1f, 1f, 1f, alpha);
             }
         }
+        private StatusBadge CreateStatusBadge(
+            Control parent,
+            Texture2D iconTexture,
+            bool showStack,
+            string tooltip)
+        {
+            var holder = new Control
+            {
+                CustomMinimumSize = new Vector2(StatusBadgeSize, StatusBadgeSize),
+                Size = new Vector2(StatusBadgeSize, StatusBadgeSize),
+                MouseFilter = Control.MouseFilterEnum.Ignore,
+                Visible = false,
+                TooltipText = tooltip
+            };
+            parent.AddChild(holder);
+
+            var icon = new TextureRect
+            {
+                Texture = iconTexture,
+                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+                MouseFilter = Control.MouseFilterEnum.Ignore,
+                Position = new Vector2(2f, 2f),
+                Size = new Vector2(StatusBadgeSize - 4f, StatusBadgeSize - 4f)
+            };
+            holder.AddChild(icon);
+
+            if (_statusFrameTexture != null)
+            {
+                var frame = new TextureRect
+                {
+                    Texture = _statusFrameTexture,
+                    ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                    StretchMode = TextureRect.StretchModeEnum.Scale,
+                    MouseFilter = Control.MouseFilterEnum.Ignore,
+                    Size = new Vector2(StatusBadgeSize, StatusBadgeSize)
+                };
+                holder.AddChild(frame);
+            }
+
+            Label stackLabel = null;
+            if (showStack)
+            {
+                stackLabel = new Label
+                {
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    MouseFilter = Control.MouseFilterEnum.Ignore,
+                    Position = Vector2.Zero,
+                    Size = new Vector2(StatusBadgeSize - 1f, StatusBadgeSize - 1f),
+                    Visible = false
+                };
+                stackLabel.AddThemeFontSizeOverride("font_size", 8);
+                stackLabel.AddThemeColorOverride("font_color", Colors.White);
+                stackLabel.AddThemeColorOverride("font_outline_color", Colors.Black);
+                stackLabel.AddThemeConstantOverride("outline_size", 2);
+                holder.AddChild(stackLabel);
+            }
+
+            return new StatusBadge
+            {
+                Holder = holder,
+                Icon = icon,
+                StackLabel = stackLabel
+            };
+        }
+
+        private int UpdateStatusBadges(TrackedEnemy tracked, CombatStatusController statuses)
+        {
+            if (tracked?.StatusRow == null)
+            {
+                return 0;
+            }
+
+            bool frozen = statuses?.IsFrozen == true;
+            bool chill = !frozen && statuses?.HasChill == true;
+            bool slow = !frozen && statuses?.IsSlowed == true;
+
+            int index = 0;
+            SetBadgeVisible(tracked.ChillBadge, chill, ref index);
+            SetBadgeVisible(tracked.SlowBadge, slow, ref index);
+            SetBadgeVisible(tracked.FrozenBadge, frozen, ref index);
+
+            if (tracked.ChillBadge?.StackLabel != null)
+            {
+                int stacks = statuses?.ChillStacks ?? 0;
+                tracked.ChillBadge.StackLabel.Text = stacks > 1 ? stacks.ToString() : string.Empty;
+                tracked.ChillBadge.StackLabel.Visible = chill && stacks > 1;
+            }
+
+            tracked.StatusRow.Visible = index > 0;
+            return index;
+        }
+
+        private static void SetBadgeVisible(StatusBadge badge, bool visible, ref int index)
+        {
+            if (badge?.Holder == null)
+            {
+                return;
+            }
+
+            badge.Holder.Visible = visible;
+            if (!visible)
+            {
+                return;
+            }
+
+            badge.Holder.Position = new Vector2(index * (StatusBadgeSize + StatusBadgeSpacing), 0f);
+            index++;
+        }
+
     }
 }
