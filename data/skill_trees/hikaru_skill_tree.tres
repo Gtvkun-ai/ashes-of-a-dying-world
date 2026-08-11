@@ -43,7 +43,7 @@ BranchId = "hikaru_sword"
 BranchName = "Kiếm thuật"
 Description = "Nhánh tấn công trực diện, ưu tiên nhịp chém và khả năng nối đòn."
 Icon = ExtResource("10_sword_icon")
-Nodes = Array[ExtResource("3_node")]([SubResource("Node_quick"), SubResource("Node_heavy"), SubResource("Node_relentless")])
+Nodes = [SubResource("Node_quick"), SubResource("Node_heavy"), SubResource("Node_relentless")]
 
 [sub_resource type="Resource" id="Node_focus"]
 script = ExtResource("3_node")
@@ -76,9 +76,9 @@ BranchId = "hikaru_discipline"
 BranchName = "Kỷ luật"
 Description = "Nhánh duy trì thể lực và tăng cường khả năng chiến đấu trong thời gian ngắn."
 Icon = ExtResource("11_discipline_icon")
-Nodes = Array[ExtResource("3_node")]([SubResource("Node_focus"), SubResource("Node_second_wind"), SubResource("Node_trance")])
+Nodes = [SubResource("Node_focus"), SubResource("Node_second_wind"), SubResource("Node_trance")]
 
 [resource]
 script = ExtResource("1_tree")
 CharacterId = "001"
-Branches = Array[ExtResource("2_branch")]([SubResource("Branch_sword"), SubResource("Branch_discipline")])
+Branches = [SubResource("Branch_sword"), SubResource("Branch_discipline")]

@@ -30,4 +30,4 @@ StaminaCost = 0.0
 LungeSpeed = 0.0
 DeliveryMode = 1
 HitProfile = ExtResource("2_hit")
-Events = Array[ExtResource("4_event")]([SubResource("Resource_spawn_ice_bolt")])
+Events = [SubResource("Resource_spawn_ice_bolt")]

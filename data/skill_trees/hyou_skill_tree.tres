@@ -43,7 +43,7 @@ BranchId = "hyou_cryomancy"
 BranchName = "Băng thuật"
 Description = "Nhánh phép tầm xa và điều khiển hàn khí của Hyou."
 Icon = ExtResource("10_ice_icon")
-Nodes = Array[ExtResource("3_node")]([SubResource("Node_ice_bolt"), SubResource("Node_frost_focus"), SubResource("Node_ice_lance")])
+Nodes = [SubResource("Node_ice_bolt"), SubResource("Node_frost_focus"), SubResource("Node_ice_lance")]
 
 [sub_resource type="Resource" id="Node_recovery"]
 script = ExtResource("3_node")
@@ -75,9 +75,9 @@ BranchId = "hyou_ice_spirit"
 BranchName = "Tinh linh băng"
 Description = "Nhánh hồi phục tài nguyên, duy trì nhịp chiến đấu và cơ động."
 Icon = ExtResource("11_spirit_icon")
-Nodes = Array[ExtResource("3_node")]([SubResource("Node_recovery"), SubResource("Node_will"), SubResource("Node_step")])
+Nodes = [SubResource("Node_recovery"), SubResource("Node_will"), SubResource("Node_step")]
 
 [resource]
 script = ExtResource("1_tree")
 CharacterId = "villain_001"
-Branches = Array[ExtResource("2_branch")]([SubResource("Branch_ice"), SubResource("Branch_spirit")])
+Branches = [SubResource("Branch_ice"), SubResource("Branch_spirit")]
