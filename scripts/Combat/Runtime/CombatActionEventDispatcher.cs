@@ -38,7 +38,8 @@ namespace AshesofaDyingWorld.Combat.Runtime
                         action,
                         actionEvent.ProjectileSpec,
                         direction,
-                        actionEvent.OriginSocketPath) != null;
+                        actionEvent.OriginSocketPath,
+                        owner.Actions?.CurrentAimTarget) != null;
                     if (spawned)
                     {
                         GD.Print(
@@ -89,7 +90,8 @@ namespace AshesofaDyingWorld.Combat.Runtime
                 action,
                 action.ProjectileSpec,
                 direction,
-                new NodePath("CastOrigin")) != null;
+                new NodePath("CastOrigin"),
+                owner.Actions?.CurrentAimTarget) != null;
         }
     }
 }

@@ -3,6 +3,7 @@ using AshesofaDyingWorld.Combat.Actors;
 using AshesofaDyingWorld.Combat.Model;
 using AshesofaDyingWorld.Core.Data;
 using AshesofaDyingWorld.Core.Managers;
+using AshesofaDyingWorld.UI.HUD;
 
 /// <summary>
 /// Adapter người chơi: chỉ đọc input và giữ các API inventory/save.
@@ -13,7 +14,7 @@ public partial class Player : CombatCharacter
     [Export] public bool UsePlayerInput { get; set; } = true;
 
     private InventoryManager _inventory;
-    private const string SkillSlot1Action = "skill_1";
+    private static readonly string[] SkillSlotActions = { "skill_1", "skill_2", "skill_3", "skill_4" };
 
     protected override void OnCombatReady()
     {
@@ -29,6 +30,7 @@ public partial class Player : CombatCharacter
 
         // Dựng trạng thái kỹ năng runtime sau khi các component combat đã sẵn sàng.
         InitializeSkillCollection();
+        SkillCooldownHudService.GetOrCreate(GetTree());
     }
 
     protected override void UpdateControlSource(float delta)
@@ -52,9 +54,13 @@ public partial class Player : CombatCharacter
             RequestAttack();
         }
 
-        if (InputMap.HasAction(SkillSlot1Action) && Input.IsActionJustPressed(SkillSlot1Action))
+        for (int slot = 0; slot < SkillSlotActions.Length; slot++)
         {
-            TryActivateSkillSlot(0);
+            string actionName = SkillSlotActions[slot];
+            if (InputMap.HasAction(actionName) && Input.IsActionJustPressed(actionName))
+            {
+                TryActivateSkillSlot(slot);
+            }
         }
     }
 

@@ -50,7 +50,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 ? toTarget / targetDistance
                 : Vector2.Zero;
 
-            bool hasLineOfSight = hasTarget && EvaluateLineOfSight(target);
+            bool hasLineOfSight = hasTarget && HasLineOfSight(self, target);
             bool targetFacingSelf = hasTarget
                 && directionToTarget != Vector2.Zero
                 && target.FacingDirection.Dot(-directionToTarget) >= 0.35f;
@@ -259,12 +259,30 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             return false;
         }
 
-        private bool EvaluateLineOfSight(CombatCharacter target)
+        public bool HasLineOfSight(CombatCharacter self, CombatCharacter target)
         {
-            if (_lineOfSightRay == null || !GodotObject.IsInstanceValid(_lineOfSightRay))
+            if (_lineOfSightRay == null
+                || !GodotObject.IsInstanceValid(_lineOfSightRay)
+                || !IsUsable(self)
+                || !IsUsable(target))
             {
                 // Không có sensor thì không được giả định nhìn xuyên tường.
                 return false;
+            }
+
+            // Projectile bỏ qua đồng minh, nên LOS cũng phải bỏ qua đồng minh. Nếu không Player
+            // đứng sát slime sẽ vô tình làm Hyou tưởng cả thế giới là một bức tường.
+            _lineOfSightRay.ClearExceptions();
+            foreach (Node node in _tree.GetNodesInGroup("Combatant"))
+            {
+                if (node is CombatCharacter ally
+                    && ally != self
+                    && ally != target
+                    && IsUsable(ally)
+                    && FactionRules.AreAllies(self.Faction, ally.Faction))
+                {
+                    _lineOfSightRay.AddException(ally);
+                }
             }
 
             _lineOfSightRay.TargetPosition = _lineOfSightRay.ToLocal(target.CombatCenter);

@@ -62,7 +62,7 @@ public partial class Slime1 : CombatCharacter
 
     private void RegisterHealthBar()
     {
-        EnemyHealthBarService.Instance?.RegisterEnemy(
+        EnemyHealthBarService.GetOrCreate(GetTree())?.RegisterEnemy(
             this,
             () => Stats?.CurrentHP ?? 0f,
             () => Stats?.MaxHP ?? 1f,

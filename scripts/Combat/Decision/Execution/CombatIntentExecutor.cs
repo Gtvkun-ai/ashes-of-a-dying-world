@@ -142,7 +142,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Execution
                 Vector2 aimDirection = snapshot.DirectionToTarget.LengthSquared() <= 0.001f
                     ? _self.FacingDirection
                     : snapshot.DirectionToTarget;
-                bool activated = _self.Abilities.TryActivate(skill, aimDirection);
+                CombatCharacter aimTarget = ResolveCombatant(snapshot.TargetId);
+                bool activated = _self.Abilities.TryActivate(skill, aimDirection, aimTarget);
                 StringName skillKey = new(skill.SkillId ?? "skill");
                 if (activated)
                 {
@@ -360,6 +361,27 @@ namespace AshesofaDyingWorld.Combat.Decision.Execution
 
             return string.IsNullOrWhiteSpace(wanted)
                 || string.Equals(skill.SkillId, wanted, System.StringComparison.OrdinalIgnoreCase);
+        }
+
+        private CombatCharacter ResolveCombatant(ulong? instanceId)
+        {
+            if (!instanceId.HasValue || _self?.GetTree() == null)
+            {
+                return null;
+            }
+
+            foreach (Node node in _self.GetTree().GetNodesInGroup("Combatant"))
+            {
+                if (node is CombatCharacter combatant
+                    && combatant.GetInstanceId() == instanceId.Value
+                    && combatant.IsAlive
+                    && !combatant.IsQueuedForDeletion())
+                {
+                    return combatant;
+                }
+            }
+
+            return null;
         }
 
         private static bool IsCastIntent(CombatIntentType type)

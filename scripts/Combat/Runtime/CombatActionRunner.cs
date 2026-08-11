@@ -35,6 +35,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
         private bool _deliveryOpened;
         private Vector2 _actionFacing = Vector2.Down;
         private string _actionFacingCardinal = "down";
+        private CombatCharacter _aimTarget;
         private FallbackPhase _fallbackPhase;
         private float _fallbackRemaining;
         private float _actionElapsedSeconds;
@@ -50,6 +51,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
         public bool IsRunning => _currentAction != null;
         public bool IsHitboxActive => _hitbox?.IsActive == true;
         public Vector2 ActionFacing => _actionFacing;
+        public CombatCharacter CurrentAimTarget => IsUsableAimTarget(_aimTarget) ? _aimTarget : null;
 
         public Vector2 MovementVelocity
         {
@@ -108,6 +110,18 @@ namespace AshesofaDyingWorld.Combat.Runtime
         /// </summary>
         public bool TryStartAbilityAction(CombatActionData action, Vector2 aimDirection)
         {
+            return TryStartAbilityAction(action, aimDirection, null);
+        }
+
+        /// <summary>
+        /// Giữ target thật của projectile trong suốt cast. Hướng animation vẫn khóa lúc bắt đầu,
+        /// nhưng delivery có thể ngắm lại target ở frame release thay vì bắn vào vị trí cũ.
+        /// </summary>
+        public bool TryStartAbilityAction(
+            CombatActionData action,
+            Vector2 aimDirection,
+            CombatCharacter aimTarget)
+        {
             if (action == null || _currentAction != null)
             {
                 return false;
@@ -116,7 +130,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
             Vector2? forcedFacing = aimDirection.LengthSquared() > 0.001f
                 ? aimDirection.Normalized()
                 : null;
-            return TryStartResolvedAction(action, -1, false, forcedFacing);
+            return TryStartResolvedAction(action, -1, false, forcedFacing, aimTarget);
         }
 
         public void Update(float delta)
@@ -170,14 +184,15 @@ namespace AshesofaDyingWorld.Combat.Runtime
         {
             WeaponMovesetData moveset = _owner.ActiveMoveset;
             CombatActionData action = moveset?.GetLightAction(comboIndex);
-            return TryStartResolvedAction(action, comboIndex, allowChain, null);
+            return TryStartResolvedAction(action, comboIndex, allowChain, null, null);
         }
 
         private bool TryStartResolvedAction(
             CombatActionData action,
             int comboIndex,
             bool allowChain,
-            Vector2? forcedFacing)
+            Vector2? forcedFacing,
+            CombatCharacter aimTarget)
         {
             if (action == null)
             {
@@ -203,6 +218,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
             }
 
             _currentAction = action;
+            _aimTarget = IsUsableAimTarget(aimTarget) ? aimTarget : null;
             _comboIndex = comboIndex;
             _bufferRemaining = 0f;
             _deliveryOpened = false;
@@ -234,7 +250,9 @@ namespace AshesofaDyingWorld.Combat.Runtime
             if (_usingFrameAnimation)
             {
                 float attackSpeedScale = action.ScalePlaybackWithAttackSpeed
-                    ? Mathf.Max(0.1f, _owner.Stats?.AttackSpeed ?? 1f)
+                    ? Mathf.Max(
+                        0.1f,
+                        (_owner.Stats?.AttackSpeed ?? 1f) * _owner.RuntimeAttackSpeedMultiplier)
                     : 1f;
 
                 // Quan trọng: chuẩn bị body hoàn chỉnh TRƯỚC khi phát ActionStarted.
@@ -395,6 +413,8 @@ namespace AshesofaDyingWorld.Combat.Runtime
             _state.EnterAttackActive();
             if (_currentAction.DeliveryMode == CombatDeliveryMode.MeleeHitbox)
             {
+                CombatFeedbackService.GetOrCreate(_owner.GetTree())?
+                    .PlaySwing(_owner, _currentAction, _actionFacing);
                 _hitbox.EnableHitbox(_currentAction, _actionFacing);
             }
             else
@@ -431,6 +451,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
                 _hitbox.DisableHitbox();
                 CombatActionData completedAction = _currentAction;
                 _currentAction = null;
+                _aimTarget = null;
                 ActionFinished?.Invoke(completedAction, true);
                 if (!TryStartAction(nextIndex, true))
                 {
@@ -456,6 +477,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
             _initializingFrameAnimation = false;
             _actionFacing = Vector2.Down;
             _actionFacingCardinal = "down";
+            _aimTarget = null;
             _fallbackPhase = FallbackPhase.None;
             _fallbackRemaining = 0f;
             _actionElapsedSeconds = 0f;
@@ -476,6 +498,14 @@ namespace AshesofaDyingWorld.Combat.Runtime
             {
                 ActionFinished?.Invoke(finishedAction, completed);
             }
+        }
+
+        private static bool IsUsableAimTarget(CombatCharacter target)
+        {
+            return target != null
+                && GodotObject.IsInstanceValid(target)
+                && !target.IsQueuedForDeletion()
+                && target.IsAlive;
         }
     }
 }

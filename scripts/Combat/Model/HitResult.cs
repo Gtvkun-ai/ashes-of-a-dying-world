@@ -14,7 +14,13 @@ namespace AshesofaDyingWorld.Combat.Model
         public bool GuardBroken { get; init; }
         public bool Staggered { get; init; }
         public bool Killed { get; init; }
+        public bool Shattered { get; init; }
         public float HitstunSeconds { get; init; }
+        public float ForcedStaggerSeconds { get; init; }
+        public float HitStopSeconds { get; init; }
+        public float HitFlashSeconds { get; init; }
+        public float LaunchHeight { get; init; }
+        public float LaunchDuration { get; init; }
         public Vector2 Knockback { get; init; }
 
         public static HitResult Rejected(HitRejectionReason reason)

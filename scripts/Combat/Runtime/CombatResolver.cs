@@ -30,14 +30,22 @@ namespace AshesofaDyingWorld.Combat.Runtime
             }
 
             HitProfileData profile = request.Profile;
+            bool wasBlocked = target.IsBlockingAttackFrom(request.HitOrigin);
+            bool shattered = profile.ShatterFrozen
+                && target.Statuses?.IsFrozen == true
+                && !wasBlocked;
             float attackPower = attacker.Stats?.AttackDamage ?? 1f;
             float rawDamage = Mathf.Max(0f, profile.BaseDamage + attackPower * profile.AttackPowerScale);
+            if (shattered)
+            {
+                rawDamage += Mathf.Max(0f, profile.ShatterBonusDamage);
+            }
+
             float armor = Mathf.Max(0f, (target.Stats?.Armor ?? 0f) - profile.ArmorPenetration);
             float mitigatedDamage = profile.DamageType == DamageType.True
                 ? rawDamage
                 : rawDamage * (1f - armor / (armor + ArmorCurveConstant));
 
-            bool wasBlocked = target.IsBlockingAttackFrom(request.HitOrigin);
             bool guardBroken = false;
             float guardDamage = 0f;
             float hpDamage = mitigatedDamage;
@@ -93,8 +101,15 @@ namespace AshesofaDyingWorld.Combat.Runtime
             }
 
             float resistance = target.Stats?.GetKnockbackResistance() ?? 0f;
-            Vector2 knockback = direction.Normalized() * profile.KnockbackForce * (1f - resistance);
+            float knockbackMultiplier = shattered
+                ? Mathf.Max(1f, profile.ShatterKnockbackMultiplier)
+                : 1f;
+            Vector2 knockback = direction.Normalized()
+                * profile.KnockbackForce
+                * knockbackMultiplier
+                * (1f - resistance);
             bool killed = target.Stats != null && target.Stats.CurrentHP <= 0f;
+            bool forceStagger = profile.ForceStagger || shattered;
 
             return new HitResult
             {
@@ -106,9 +121,15 @@ namespace AshesofaDyingWorld.Combat.Runtime
                 PoiseDamage = poiseDamage,
                 WasBlocked = wasBlocked,
                 GuardBroken = guardBroken,
-                Staggered = staggered,
+                Staggered = staggered || forceStagger,
                 Killed = killed,
+                Shattered = shattered,
                 HitstunSeconds = profile.HitstunSeconds,
+                ForcedStaggerSeconds = forceStagger ? Mathf.Max(0.08f, profile.ForcedStaggerSeconds) : 0f,
+                HitStopSeconds = Mathf.Max(0f, profile.HitStopSeconds),
+                HitFlashSeconds = Mathf.Max(0f, profile.HitFlashSeconds),
+                LaunchHeight = Mathf.Max(0f, profile.LaunchHeight),
+                LaunchDuration = Mathf.Max(0.05f, profile.LaunchDuration),
                 Knockback = knockback
             };
         }

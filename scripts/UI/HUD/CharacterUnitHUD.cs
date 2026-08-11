@@ -1,5 +1,7 @@
 using Godot;
 using AshesofaDyingWorld.Entities.Player;
+using AshesofaDyingWorld.Combat.Actors;
+using AshesofaDyingWorld.Combat.Runtime;
 using AshesofaDyingWorld.Core.Data;
 using System.Collections.Generic;
 
@@ -20,11 +22,22 @@ namespace AshesofaDyingWorld.UI.HUD
         private ShaderMaterial shaderMaterial;
         private const string ShaderPath = "res://assets/shaders/outline.gdshader";
         private const string StatusEffectFrameTexturePath = "res://assets/graphics/ui/hud/status_effects/status_effect_icon_frame.png";
+        private const string ChillStatusIconPath = "res://assets/graphics/ui/hud/status_effects/icons/chill.png";
+        private const string SlowStatusIconPath = "res://assets/graphics/ui/hud/status_effects/icons/slow.png";
+        private const string FrozenStatusIconPath = "res://assets/graphics/ui/hud/status_effects/icons/frozen.png";
         private const float StatusEffectBadgeSize = 28.0f;
         private const float StatusEffectIconInset = 4.0f;
         private const float StatusEffectBadgeSpacing = 4.0f;
         private Control _activeSkillStrip;
+        private Control _combatStatusStrip;
         private Texture2D _statusEffectFrameTexture;
+        private Texture2D _chillStatusIconTexture;
+        private Texture2D _slowStatusIconTexture;
+        private Texture2D _frozenStatusIconTexture;
+        private CombatCharacter _targetCombatant;
+        private CombatStatusBadgeView _chillStatusBadge;
+        private CombatStatusBadgeView _slowStatusBadge;
+        private CombatStatusBadgeView _frozenStatusBadge;
         private readonly List<SkillBadgeView> _skillBadgeViews = new();
 
         private sealed class SkillBadgeView
@@ -37,6 +50,12 @@ namespace AshesofaDyingWorld.UI.HUD
             public TextureRect Frame;
         }
 
+
+        private sealed class CombatStatusBadgeView
+        {
+            public Control Holder;
+            public Label StackLabel;
+        }
         public override void _Ready()
         {
             if(Portrait == null)
@@ -65,16 +84,19 @@ namespace AshesofaDyingWorld.UI.HUD
 
             LoadStatusEffectFrameTexture();
             SetupActiveSkillStrip();
+            SetupCombatStatusStrip();
             if (frameBackground != null)
             {
                 frameBackground.Resized += OnFrameBackgroundResized;
             }
             UpdateActiveSkillStripPlacement();
+            UpdateCombatStatusStripPlacement();
         }
 
         public override void _Process(double delta)
         {
             UpdateActiveSkillStripPlacement();
+            UpdateCombatStatusStripPlacement();
 
             if (!Visible || _targetStats == null)
             {
@@ -82,6 +104,7 @@ namespace AshesofaDyingWorld.UI.HUD
             }
 
             UpdateSkillOverlayState();
+            UpdateCombatStatusState();
         }
 
         public void SetTarget(PlayerStats stats)
@@ -91,6 +114,7 @@ namespace AshesofaDyingWorld.UI.HUD
 
             _targetStats = stats;
             _targetPlayer = null;
+            _targetCombatant = null;
             if (_targetStats != null)
             {
                 _targetStats.StatsChanged += UpdateUI;
@@ -105,11 +129,13 @@ namespace AshesofaDyingWorld.UI.HUD
                 }
 
                 RebuildActiveSkillStrip();
+                UpdateCombatStatusState();
                 UpdateUI();
             }
             else
             {
                 RebuildActiveSkillStrip();
+                UpdateCombatStatusState();
             }
         }
 
@@ -136,6 +162,7 @@ namespace AshesofaDyingWorld.UI.HUD
             }
 
             UpdateSkillOverlayState();
+            UpdateCombatStatusState();
         }
 
         public void ApplyHighlight(bool isSelected)
@@ -157,8 +184,152 @@ namespace AshesofaDyingWorld.UI.HUD
 
         private void LoadStatusEffectFrameTexture()
         {
-            // Khung icon effect load mềm; nếu thiếu file thì HUD vẫn chạy, chỉ mất viền đẹp.
+            // Khung/icon effect load mềm; thiếu asset thì HUD vẫn chạy, chỉ mất phần trang trí tương ứng.
             _statusEffectFrameTexture = GD.Load<Texture2D>(StatusEffectFrameTexturePath);
+            _chillStatusIconTexture = GD.Load<Texture2D>(ChillStatusIconPath);
+            _slowStatusIconTexture = GD.Load<Texture2D>(SlowStatusIconPath);
+            _frozenStatusIconTexture = GD.Load<Texture2D>(FrozenStatusIconPath);
+        }
+
+        private void SetupCombatStatusStrip()
+        {
+            if (_combatStatusStrip != null)
+            {
+                return;
+            }
+
+            _combatStatusStrip = new Control
+            {
+                Name = "CombatStatusStrip",
+                Visible = false,
+                MouseFilter = MouseFilterEnum.Ignore
+            };
+            _combatStatusStrip.SetAnchorsPreset(LayoutPreset.TopLeft);
+            AddChild(_combatStatusStrip);
+
+            _chillStatusBadge = CreateCombatStatusBadge(_chillStatusIconTexture, true, "Chill");
+            _slowStatusBadge = CreateCombatStatusBadge(_slowStatusIconTexture, false, "Slow");
+            _frozenStatusBadge = CreateCombatStatusBadge(_frozenStatusIconTexture, false, "Frozen");
+        }
+
+        private CombatStatusBadgeView CreateCombatStatusBadge(Texture2D iconTexture, bool showStack, string tooltip)
+        {
+            var holder = new Control
+            {
+                Visible = false,
+                CustomMinimumSize = new Vector2(StatusEffectBadgeSize, StatusEffectBadgeSize),
+                Size = new Vector2(StatusEffectBadgeSize, StatusEffectBadgeSize),
+                MouseFilter = MouseFilterEnum.Ignore,
+                TooltipText = tooltip
+            };
+            _combatStatusStrip.AddChild(holder);
+
+            var background = new ColorRect
+            {
+                Color = new Color(0.06f, 0.04f, 0.03f, 0.86f),
+                MouseFilter = MouseFilterEnum.Ignore,
+                Position = new Vector2(StatusEffectIconInset, StatusEffectIconInset),
+                Size = new Vector2(
+                    StatusEffectBadgeSize - StatusEffectIconInset * 2f,
+                    StatusEffectBadgeSize - StatusEffectIconInset * 2f)
+            };
+            holder.AddChild(background);
+
+            var icon = new TextureRect
+            {
+                Texture = iconTexture,
+                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+                MouseFilter = MouseFilterEnum.Ignore,
+                Position = new Vector2(StatusEffectIconInset - 1f, StatusEffectIconInset - 1f),
+                Size = new Vector2(
+                    StatusEffectBadgeSize - (StatusEffectIconInset - 1f) * 2f,
+                    StatusEffectBadgeSize - (StatusEffectIconInset - 1f) * 2f)
+            };
+            holder.AddChild(icon);
+
+            if (_statusEffectFrameTexture != null)
+            {
+                var frame = new TextureRect
+                {
+                    Texture = _statusEffectFrameTexture,
+                    ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                    StretchMode = TextureRect.StretchModeEnum.Scale,
+                    MouseFilter = MouseFilterEnum.Ignore,
+                    Size = new Vector2(StatusEffectBadgeSize, StatusEffectBadgeSize)
+                };
+                holder.AddChild(frame);
+            }
+
+            Label stackLabel = null;
+            if (showStack)
+            {
+                stackLabel = new Label
+                {
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    MouseFilter = MouseFilterEnum.Ignore,
+                    Size = new Vector2(StatusEffectBadgeSize - 2f, StatusEffectBadgeSize - 2f),
+                    Visible = false
+                };
+                stackLabel.AddThemeFontSizeOverride("font_size", 9);
+                stackLabel.AddThemeColorOverride("font_color", Colors.White);
+                stackLabel.AddThemeColorOverride("font_outline_color", Colors.Black);
+                stackLabel.AddThemeConstantOverride("outline_size", 2);
+                holder.AddChild(stackLabel);
+            }
+
+            return new CombatStatusBadgeView
+            {
+                Holder = holder,
+                StackLabel = stackLabel
+            };
+        }
+
+        private void UpdateCombatStatusState()
+        {
+            if (_combatStatusStrip == null)
+            {
+                return;
+            }
+
+            _targetCombatant ??= ResolveCombatantForStats(_targetStats);
+            CombatStatusController statuses = _targetCombatant?.Statuses;
+
+            bool frozen = statuses?.IsFrozen == true;
+            bool chill = !frozen && statuses?.HasChill == true;
+            bool slow = !frozen && statuses?.IsSlowed == true;
+
+            int visibleIndex = 0;
+            SetCombatStatusBadgeVisible(_chillStatusBadge, chill, ref visibleIndex);
+            SetCombatStatusBadgeVisible(_slowStatusBadge, slow, ref visibleIndex);
+            SetCombatStatusBadgeVisible(_frozenStatusBadge, frozen, ref visibleIndex);
+
+            if (_chillStatusBadge?.StackLabel != null)
+            {
+                int stacks = statuses?.ChillStacks ?? 0;
+                _chillStatusBadge.StackLabel.Text = stacks > 1 ? stacks.ToString() : string.Empty;
+                _chillStatusBadge.StackLabel.Visible = chill && stacks > 1;
+            }
+
+            _combatStatusStrip.Visible = visibleIndex > 0;
+        }
+
+        private static void SetCombatStatusBadgeVisible(CombatStatusBadgeView badge, bool visible, ref int index)
+        {
+            if (badge?.Holder == null)
+            {
+                return;
+            }
+
+            badge.Holder.Visible = visible;
+            if (!visible)
+            {
+                return;
+            }
+
+            badge.Holder.Position = new Vector2(index * (StatusEffectBadgeSize + StatusEffectBadgeSpacing), 0f);
+            index++;
         }
 
         private void SetupActiveSkillStrip()
@@ -340,9 +511,42 @@ namespace AshesofaDyingWorld.UI.HUD
             _activeSkillStrip.OffsetBottom = top + StatusEffectBadgeSize + 2.0f;
         }
 
+        private void UpdateCombatStatusStripPlacement()
+        {
+            if (_combatStatusStrip == null)
+            {
+                return;
+            }
+
+            float top = frameBackground != null ? frameBackground.Size.Y - 2.0f : 98.0f;
+            _combatStatusStrip.OffsetLeft = 196.0f;
+            _combatStatusStrip.OffsetTop = top;
+            _combatStatusStrip.OffsetRight = 292.0f;
+            _combatStatusStrip.OffsetBottom = top + StatusEffectBadgeSize + 2.0f;
+        }
+
         private void OnFrameBackgroundResized()
         {
             UpdateActiveSkillStripPlacement();
+            UpdateCombatStatusStripPlacement();
+        }
+
+        private CombatCharacter ResolveCombatantForStats(PlayerStats stats)
+        {
+            if (stats == null || GetTree() == null)
+            {
+                return null;
+            }
+
+            foreach (Node node in GetTree().GetNodesInGroup("Combatant"))
+            {
+                if (node is CombatCharacter combatant && combatant.Stats == stats)
+                {
+                    return combatant;
+                }
+            }
+
+            return null;
         }
 
         private Player ResolvePlayerForStats(PlayerStats stats)

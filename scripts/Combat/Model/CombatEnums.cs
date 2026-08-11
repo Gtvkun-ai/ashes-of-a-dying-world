@@ -31,7 +31,8 @@ namespace AshesofaDyingWorld.Combat.Model
         Blunt = 2,
         Pierce = 3,
         Magic = 4,
-        True = 5
+        True = 5,
+        Ice = 6
     }
 
     public enum HitRejectionReason

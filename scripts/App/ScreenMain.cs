@@ -2,6 +2,7 @@ using Godot;
 using AshesofaDyingWorld.UI.HUD;
 using AshesofaDyingWorld.Core.Managers;
 using AshesofaDyingWorld.Core.Save;
+using AshesofaDyingWorld.Combat.Runtime;
 
 public partial class ScreenMain : Node2D
 {
@@ -54,6 +55,10 @@ public partial class ScreenMain : Node2D
                 var enemyHpService = new EnemyHealthBarService();
                 tree.Root.AddChild(enemyHpService);
             }
+            CombatFeedbackService.GetOrCreate(tree);
+            DamageNumberService.GetOrCreate(tree);
+            CompanionTargetIndicatorService.GetOrCreate(tree);
+            SkillCooldownHudService.GetOrCreate(tree);
 
             var playerScene = GD.Load<PackedScene>(PlayerPath);
             if (playerScene == null)
