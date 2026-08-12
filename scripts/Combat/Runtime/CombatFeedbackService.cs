@@ -36,6 +36,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
         private AudioCueData _physicalImpactCue;
         private AudioCueData _iceImpactCue;
         private AudioCueData _swingCue;
+        private AudioCueData _parryCue;
 
         public override void _Ready()
         {
@@ -153,9 +154,8 @@ namespace AshesofaDyingWorld.Combat.Runtime
         }
 
         /// <summary>
-        /// Asset parry đã được nối sẵn. Hiện combat core chưa có perfect-parry window,
-        /// nên method này chỉ được gọi khi/ nếu gameplay layer xác nhận một parry thật.
-        /// Không dùng guard-break giả làm parry.
+        /// Feedback riêng cho perfect parry thật đã được gameplay layer xác nhận.
+        /// Không dùng guard-break hay block thường giả làm parry.
         /// </summary>
         public void PlayParry(Vector2 worldPosition, Vector2 incomingDirection)
         {
@@ -171,6 +171,11 @@ namespace AshesofaDyingWorld.Combat.Runtime
             SpawnFramesVfx(parent, worldPosition, ParryFlashFramesPath, "parry_flash", 0.72f, rotation, "ParryFlash");
             SpawnFramesVfx(parent, worldPosition, ParryRingFramesPath, "parry_ring", 0.78f, 0f, "ParryRing");
             AddCameraShake(1.2f, 0.12f);
+
+            if (_parryCue != null && AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlaySfx(_parryCue);
+            }
         }
 
         public override void _Process(double delta)
@@ -508,6 +513,14 @@ namespace AshesofaDyingWorld.Combat.Runtime
                     VolumeDb = -12f,
                     MinPitch = 1.18f,
                     MaxPitch = 1.36f
+                };
+                _parryCue = new AudioCueData
+                {
+                    Stream = slash,
+                    BusType = AudioBusType.Sfx,
+                    VolumeDb = -5f,
+                    MinPitch = 1.48f,
+                    MaxPitch = 1.62f
                 };
             }
         }

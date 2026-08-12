@@ -21,6 +21,15 @@ namespace AshesofaDyingWorld.Combat.Data
         [Export] public float GuardStaminaPerDamage { get; set; } = 0.5f;
         [Export] public float GuardRecoveryDelay { get; set; } = 0.8f;
 
+        [ExportGroup("Perfect Parry")]
+        [Export] public bool PerfectParryEnabled { get; set; } = false;
+        [Export(PropertyHint.Range, "0.10,0.16,0.01")]
+        public float PerfectParryWindowSeconds { get; set; } = 0.12f;
+        [Export] public float ParryStaggerSeconds { get; set; } = 0.55f;
+        [Export] public float ParryStaminaReward { get; set; } = 18f;
+        [Export] public float ParryHitStopSeconds { get; set; } = 0.09f;
+        [Export] public float CounterAttackWindowSeconds { get; set; } = 0.65f;
+
         public string ResolveGuardAnimation(string direction)
         {
             string safeDirection = string.IsNullOrWhiteSpace(direction) ? "down" : direction;
