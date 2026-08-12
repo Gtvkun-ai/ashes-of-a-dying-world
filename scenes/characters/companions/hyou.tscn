@@ -29,6 +29,7 @@ script = ExtResource("2_npc")
 CombatantId = "companion_hyou"
 Faction = 2
 RemoveFromWorldOnDeath = true
+StartRecruited = true
 Speed = 100.0
 RunSpeed = 205.0
 RunStaminaCost = 28.0
@@ -86,6 +87,9 @@ z_index = 6
 
 [node name="CastOrigin" type="Marker2D" parent="."]
 position = Vector2(0, -8)
+
+[node name="follow" type="Camera2D" parent="."]
+enabled = false
 
 [node name="PlayerStats" type="Node" parent="." unique_id=1536723479 node_paths=PackedStringArray("EquipmentMgr")]
 script = ExtResource("3_stats")

@@ -472,7 +472,8 @@ namespace AshesofaDyingWorld.Combat.Actors
                 BeginHitFlash(result.HitFlashSeconds);
             }
 
-            if (result.HitStopSeconds > 0f)
+            bool hitStopEnabled = SettingsManager.Instance?.CurrentSettings?.HitStopEnabled ?? true;
+            if (hitStopEnabled && result.HitStopSeconds > 0f)
             {
                 BeginImpactFreeze(result.HitStopSeconds);
                 if (request?.Action?.DeliveryMode == CombatDeliveryMode.MeleeHitbox)
@@ -483,14 +484,18 @@ namespace AshesofaDyingWorld.Combat.Actors
 
             if (result.HpDamage > 0f)
             {
-                bool ice = request?.Profile?.DamageType == DamageType.Ice
-                    || (request?.Profile?.ChillStacks ?? 0) > 0;
-                DamageNumberService.GetOrCreate(GetTree())?.ShowDamage(
-                    this,
-                    result.HpDamage,
-                    result.Shattered,
-                    ice,
-                    result.WasBlocked);
+                bool damageNumbersEnabled = SettingsManager.Instance?.CurrentSettings?.DamageNumbersEnabled ?? true;
+                if (damageNumbersEnabled)
+                {
+                    bool ice = request?.Profile?.DamageType == DamageType.Ice
+                        || (request?.Profile?.ChillStacks ?? 0) > 0;
+                    DamageNumberService.GetOrCreate(GetTree())?.ShowDamage(
+                        this,
+                        result.HpDamage,
+                        result.Shattered,
+                        ice,
+                        result.WasBlocked);
+                }
                 EnemyHealthBarService.Instance?.NotifyDamaged(this);
             }
 
@@ -547,10 +552,15 @@ namespace AshesofaDyingWorld.Combat.Actors
             }
 
             float hitStop = Mathf.Max(0f, moveset.ParryHitStopSeconds);
-            if (hitStop > 0f)
+            bool hitStopEnabled = SettingsManager.Instance?.CurrentSettings?.HitStopEnabled ?? true;
+            if (hitStopEnabled && hitStop > 0f)
             {
                 BeginImpactFreeze(hitStop);
                 attacker.BeginImpactFreeze(hitStop);
+            }
+            else if (!hitStopEnabled)
+            {
+                hitStop = 0f;
             }
 
             Vector2 incomingDirection = request.AttackDirection.LengthSquared() > 0.001f

@@ -1,5 +1,7 @@
 using Godot;
 using System.Collections.Generic;
+using AshesofaDyingWorld.Combat.Actors;
+using AshesofaDyingWorld.Entities.NPC;
 using AshesofaDyingWorld.Entities.Player;
 
 namespace AshesofaDyingWorld.Core.Managers
@@ -12,24 +14,72 @@ namespace AshesofaDyingWorld.Core.Managers
         public List<PlayerStats> PartyMembers = new List<PlayerStats>();
 
         [Signal] public delegate void PartyUpdatedEventHandler();
-        // Signal mới: Thông báo khi nhân vật đang hoạt động thay đổi
         [Signal] public delegate void ActiveCharacterChangedEventHandler(int index);
 
         public int ActiveCharacterIndex { get; private set; } = 0;
 
-        public override void _Ready()
+        public static PlayerManager GetOrCreate(SceneTree tree)
         {
-            Instance = this;
+            if (Instance != null && GodotObject.IsInstanceValid(Instance))
+            {
+                return Instance;
+            }
 
-            
+            if (tree?.Root == null)
+            {
+                return null;
+            }
+
+            PlayerManager existing = tree.Root.GetNodeOrNull<PlayerManager>("PlayerManager");
+            if (existing != null && GodotObject.IsInstanceValid(existing))
+            {
+                Instance = existing;
+                return existing;
+            }
+
+            var manager = new PlayerManager { Name = "PlayerManager" };
+            tree.Root.AddChild(manager);
+            GD.Print("[PlayerManager] Created runtime fallback at /root/PlayerManager");
+            return manager;
         }
 
-        public override void _Input(InputEvent @event)
+        public override void _EnterTree()
         {
-            // Xử lý phím tắt 1, 2, 3 để đổi nhân vật
-            if (@event.IsActionPressed("digit1")) SwitchToCharacter(0);
-            if (@event.IsActionPressed("digit2")) SwitchToCharacter(1);
-            if (@event.IsActionPressed("digit3")) SwitchToCharacter(2);
+            Instance = this;
+        }
+
+        public override void _Ready()
+        {
+            ApplyControlOwnership();
+        }
+
+        public override void _ExitTree()
+        {
+            if (Instance == this)
+            {
+                Instance = null;
+            }
+        }
+
+        public override void _UnhandledKeyInput(InputEvent @event)
+        {
+            if (@event is not InputEventKey key || !key.Pressed || key.Echo)
+            {
+                return;
+            }
+
+            int targetIndex = key.Unicode switch
+            {
+                (uint)'1' => 0,
+                (uint)'2' => 1,
+                (uint)'3' => 2,
+                _ => -1
+            };
+
+            if (targetIndex >= 0 && SwitchToCharacter(targetIndex))
+            {
+                GetViewport()?.SetInputAsHandled();
+            }
         }
 
         private bool SwitchToCharacter(int index)
@@ -40,20 +90,21 @@ namespace AshesofaDyingWorld.Core.Managers
             }
 
             ActiveCharacterIndex = index;
+            ApplyControlOwnership();
             EmitSignal(SignalName.ActiveCharacterChanged, index);
             return true;
         }
 
-        /// <summary>Đổi nhân vật đang điều khiển từ gameplay hoặc UI.</summary>
         public void SetActiveCharacter(int index)
         {
+            if (index == ActiveCharacterIndex)
+            {
+                ApplyControlOwnership();
+                return;
+            }
             SwitchToCharacter(index);
         }
 
-        /// <summary>
-        /// Đội trưởng hiện chính là nhân vật đang điều khiển. Dùng chung một state
-        /// giúp HUD, phím tắt và panel Tổ đội không tự hiểu "leader" theo ba cách khác nhau.
-        /// </summary>
         public bool SetPartyLeader(int index)
         {
             if (index < 0 || index >= PartyMembers.Count)
@@ -63,15 +114,27 @@ namespace AshesofaDyingWorld.Core.Managers
 
             if (index == ActiveCharacterIndex)
             {
+                ApplyControlOwnership();
                 return true;
             }
 
             return SwitchToCharacter(index);
         }
 
-        /// <summary>
-        /// Di chuyển thành viên trong đội hình và giữ nguyên người đang được điều khiển.
-        /// </summary>
+        public CombatCharacter GetActiveCombatCharacter()
+        {
+            if (ActiveCharacterIndex < 0 || ActiveCharacterIndex >= PartyMembers.Count)
+            {
+                return null;
+            }
+            return ResolveCombatCharacter(PartyMembers[ActiveCharacterIndex]);
+        }
+
+        public CombatCharacter GetCombatCharacter(PlayerStats stats)
+        {
+            return ResolveCombatCharacter(stats);
+        }
+
         public bool MoveMember(int fromIndex, int toIndex)
         {
             if (fromIndex < 0 || fromIndex >= PartyMembers.Count
@@ -94,6 +157,7 @@ namespace AshesofaDyingWorld.Core.Managers
                 ? Mathf.Max(0, PartyMembers.IndexOf(activeMember))
                 : 0;
 
+            ApplyControlOwnership();
             EmitSignal(SignalName.PartyUpdated);
             if (previousActiveIndex != ActiveCharacterIndex)
             {
@@ -102,7 +166,6 @@ namespace AshesofaDyingWorld.Core.Managers
             return true;
         }
 
-        /// <summary>Lưu thứ tự party bằng ID ổn định thay vì vị trí node trong scene.</summary>
         public List<string> CapturePartyOrder()
         {
             var result = new List<string>();
@@ -117,10 +180,50 @@ namespace AshesofaDyingWorld.Core.Managers
             return result;
         }
 
-        /// <summary>
-        /// Khôi phục thứ tự party từ save. ID không còn tồn tại sẽ bị bỏ qua;
-        /// thành viên mới chưa có trong save được nối vào cuối đội hình.
-        /// </summary>
+        public Dictionary<string, int> CaptureCompanionCommands()
+        {
+            var result = new Dictionary<string, int>();
+            foreach (PlayerStats member in PartyMembers)
+            {
+                if (ResolveCombatCharacter(member) is not NpcCharacter companion)
+                {
+                    continue;
+                }
+
+                string id = member?.ConfigData?.ID;
+                if (!string.IsNullOrWhiteSpace(id))
+                {
+                    result[id] = (int)companion.CommandMode;
+                }
+            }
+            return result;
+        }
+
+        public void RestoreCompanionCommands(IReadOnlyDictionary<string, int> savedModes)
+        {
+            if (savedModes == null || savedModes.Count == 0)
+            {
+                return;
+            }
+
+            foreach (PlayerStats member in PartyMembers)
+            {
+                string id = member?.ConfigData?.ID;
+                if (string.IsNullOrWhiteSpace(id)
+                    || !savedModes.TryGetValue(id, out int rawMode)
+                    || ResolveCombatCharacter(member) is not NpcCharacter companion)
+                {
+                    continue;
+                }
+
+                CompanionCommandMode mode = rawMode >= (int)CompanionCommandMode.Follow
+                    && rawMode <= (int)CompanionCommandMode.Wander
+                        ? (CompanionCommandMode)rawMode
+                        : CompanionCommandMode.Follow;
+                companion.SetCommandMode(mode);
+            }
+        }
+
         public void RestorePartyOrder(IReadOnlyList<string> characterIds)
         {
             if (characterIds == null || characterIds.Count == 0 || PartyMembers.Count <= 1)
@@ -162,21 +265,32 @@ namespace AshesofaDyingWorld.Core.Managers
             PartyMembers.Clear();
             PartyMembers.AddRange(reordered);
             ActiveCharacterIndex = Mathf.Clamp(ActiveCharacterIndex, 0, PartyMembers.Count - 1);
+            ApplyControlOwnership();
             EmitSignal(SignalName.PartyUpdated);
         }
 
         public void RegisterMember(PlayerStats member)
         {
-            if (member == null)
+            if (member == null || PartyMembers.Contains(member) || PartyMembers.Count >= MaxPartySize)
             {
                 return;
             }
 
-            if (!PartyMembers.Contains(member) && PartyMembers.Count < MaxPartySize)
+            // Nhân vật Player thật luôn đứng đầu party. Hyou có thể enter tree trước vì nằm sẵn
+            // trong world scene, nếu chỉ Add() thì game sẽ tự chọn Hyou làm leader lúc boot.
+            if (member.GetParent() is global::Player)
+            {
+                PartyMembers.Insert(0, member);
+                ActiveCharacterIndex = 0;
+            }
+            else
             {
                 PartyMembers.Add(member);
-                EmitSignal(SignalName.PartyUpdated);
             }
+
+            ApplyControlOwnership();
+            EmitSignal(SignalName.PartyUpdated);
+            EmitSignal(SignalName.ActiveCharacterChanged, ActiveCharacterIndex);
         }
 
         public void UnregisterMember(PlayerStats member)
@@ -186,7 +300,8 @@ namespace AshesofaDyingWorld.Core.Managers
                 return;
             }
 
-            if (!PartyMembers.Remove(member))
+            int removedIndex = PartyMembers.IndexOf(member);
+            if (removedIndex < 0 || !PartyMembers.Remove(member))
             {
                 return;
             }
@@ -195,21 +310,109 @@ namespace AshesofaDyingWorld.Core.Managers
             {
                 ActiveCharacterIndex = 0;
             }
+            else if (removedIndex < ActiveCharacterIndex)
+            {
+                ActiveCharacterIndex--;
+            }
             else if (ActiveCharacterIndex >= PartyMembers.Count)
             {
                 ActiveCharacterIndex = PartyMembers.Count - 1;
             }
 
+            ApplyControlOwnership();
             EmitSignal(SignalName.PartyUpdated);
             EmitSignal(SignalName.ActiveCharacterChanged, ActiveCharacterIndex);
         }
 
         public void ResetParty()
         {
+            foreach (PlayerStats stats in PartyMembers)
+            {
+                CombatCharacter actor = ResolveCombatCharacter(stats);
+                if (actor is global::Player player)
+                {
+                    player.UsePlayerInput = false;
+                }
+                else if (actor is NpcCharacter npc)
+                {
+                    npc.SetPlayerControlled(false);
+                }
+            }
+
             PartyMembers.Clear();
             ActiveCharacterIndex = 0;
             EmitSignal(SignalName.PartyUpdated);
             EmitSignal(SignalName.ActiveCharacterChanged, ActiveCharacterIndex);
+        }
+
+        private void ApplyControlOwnership()
+        {
+            if (PartyMembers.Count == 0)
+            {
+                return;
+            }
+
+            ActiveCharacterIndex = Mathf.Clamp(ActiveCharacterIndex, 0, PartyMembers.Count - 1);
+            Camera2D sourceCamera = null;
+            foreach (PlayerStats stats in PartyMembers)
+            {
+                if (ResolveCombatCharacter(stats) is global::Player main)
+                {
+                    sourceCamera = main.GetNodeOrNull<Camera2D>("follow");
+                    if (sourceCamera != null) break;
+                }
+            }
+
+            for (int i = 0; i < PartyMembers.Count; i++)
+            {
+                CombatCharacter actor = ResolveCombatCharacter(PartyMembers[i]);
+                if (actor == null)
+                {
+                    continue;
+                }
+
+                bool active = i == ActiveCharacterIndex;
+                if (actor is global::Player player)
+                {
+                    player.UsePlayerInput = active;
+                    if (!active)
+                    {
+                        player.StopMoveInput();
+                        player.SetBlocking(false);
+                    }
+                }
+                else if (actor is NpcCharacter npc)
+                {
+                    npc.SetPlayerControlled(active);
+                }
+
+                Camera2D camera = actor.GetNodeOrNull<Camera2D>("follow");
+                if (camera == null)
+                {
+                    continue;
+                }
+
+                camera.Enabled = active;
+                if (!active)
+                {
+                    continue;
+                }
+
+                if (sourceCamera != null && sourceCamera != camera)
+                {
+                    camera.Zoom = sourceCamera.Zoom;
+                    camera.LimitLeft = sourceCamera.LimitLeft;
+                    camera.LimitTop = sourceCamera.LimitTop;
+                    camera.LimitRight = sourceCamera.LimitRight;
+                    camera.LimitBottom = sourceCamera.LimitBottom;
+                }
+                camera.CallDeferred("make_current");
+            }
+        }
+
+        private static CombatCharacter ResolveCombatCharacter(PlayerStats stats)
+        {
+            return stats?.GetParent() as CombatCharacter;
         }
     }
 }

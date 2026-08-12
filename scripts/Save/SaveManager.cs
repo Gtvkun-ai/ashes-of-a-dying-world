@@ -371,6 +371,7 @@ namespace AshesofaDyingWorld.Core.Managers
             // Khôi phục thứ tự trước, sau đó mới áp dụng index đội trưởng đã lưu.
             // Làm ngược lại sẽ khiến index trỏ sang người khác sau khi reorder.
             PlayerManager.Instance?.RestorePartyOrder(snapshot.PartyOrderCharacterIds);
+            PlayerManager.Instance?.RestoreCompanionCommands(snapshot.CompanionCommandModes);
             PlayerManager.Instance?.SetActiveCharacter(snapshot.ActiveCharacterIndex);
 
             // Đảm bảo người chơi không bị kẹt trạng thái sau khi load (đang attack/knockback/pause).
@@ -536,12 +537,13 @@ namespace AshesofaDyingWorld.Core.Managers
 
             return new SaveGameData
             {
-                Version = 5,
+                Version = 6,
                 SavedAtUtc = DateTime.UtcNow.ToString("O"),
                 ScenePath = GetTree().CurrentScene?.SceneFilePath ?? string.Empty,
                 PlayerPosition = Vector2SaveData.FromVector2(player.GlobalPosition),
                 ActiveCharacterIndex = PlayerManager.Instance?.ActiveCharacterIndex ?? 0,
                 PartyOrderCharacterIds = PlayerManager.Instance?.CapturePartyOrder() ?? new List<string>(),
+                CompanionCommandModes = PlayerManager.Instance?.CaptureCompanionCommands() ?? new Dictionary<string, int>(),
                 PartySkillProgress = CapturePartySkillProgress(player),
                 QuestProgress = CaptureQuestProgress(gameMenu),
                 TrackedQuestId = gameMenu?.CaptureTrackedQuestId() ?? string.Empty,

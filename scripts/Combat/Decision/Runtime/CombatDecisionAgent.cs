@@ -10,6 +10,8 @@ using AshesofaDyingWorld.Combat.Decision.Party;
 using AshesofaDyingWorld.Combat.Decision.Profiles;
 using AshesofaDyingWorld.Combat.Decision.Scheduling;
 using AshesofaDyingWorld.UI.HUD;
+using AshesofaDyingWorld.Core.Managers;
+using AshesofaDyingWorld.Entities.NPC;
 
 namespace AshesofaDyingWorld.Combat.Decision.Runtime
 {
@@ -137,6 +139,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 _decisionRemaining = Mathf.Max(0.05f, DecisionIntervalSeconds);
                 RefreshLeaderIfNeeded();
                 LastRoleAssignment = _director.GetAssignment(_self, _leader, _blackboard);
+                LastRoleAssignment = ApplyCompanionCommandRoleOverride(LastRoleAssignment);
 
                 CombatSnapshot snapshot = _perception.BuildSnapshot(
                     _self,
@@ -414,9 +417,15 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 return configured;
             }
 
+            CombatCharacter activePartyCharacter = PlayerManager.Instance?.GetActiveCombatCharacter();
+            if (activePartyCharacter != null && activePartyCharacter != _self && activePartyCharacter.IsAlive)
+            {
+                return activePartyCharacter;
+            }
+
             foreach (Node node in GetTree().GetNodesInGroup("Player"))
             {
-                if (node is CombatCharacter player && player.IsAlive)
+                if (node is CombatCharacter player && player != _self && player.IsAlive)
                 {
                     return player;
                 }
@@ -425,8 +434,39 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             return null;
         }
 
+        private CombatRoleAssignment? ApplyCompanionCommandRoleOverride(CombatRoleAssignment? assignment)
+        {
+            if (_self is not NpcCharacter companion
+                || companion.CommandMode != CompanionCommandMode.Protect
+                || !assignment.HasValue
+                || _leader == null)
+            {
+                return assignment;
+            }
+
+            CombatRoleAssignment current = assignment.Value;
+            Vector2 protectAnchor = _leader.CombatCenter - _leader.FacingDirection * 28f;
+            return new CombatRoleAssignment(
+                CombatRoleId.Protector,
+                CombatRoleId.BacklineController,
+                current.PriorityTarget,
+                _leader,
+                protectAnchor,
+                Mathf.Max(0.65f, current.HoldSeconds));
+        }
+
         private void RefreshLeaderIfNeeded()
         {
+            CombatCharacter activePartyCharacter = PlayerManager.Instance?.GetActiveCombatCharacter();
+            if (activePartyCharacter != null
+                && activePartyCharacter != _self
+                && activePartyCharacter.IsAlive
+                && activePartyCharacter != _leader)
+            {
+                _leader = activePartyCharacter;
+                return;
+            }
+
             if (_leader == null
                 || !GodotObject.IsInstanceValid(_leader)
                 || _leader.IsQueuedForDeletion()

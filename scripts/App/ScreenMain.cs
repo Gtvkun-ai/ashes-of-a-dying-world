@@ -20,8 +20,9 @@ public partial class ScreenMain : Node2D
 
     public override void _Ready()
     {
-        // Bảo đảm audio luôn tồn tại kể cả khi AudioManager chưa được khai báo Autoload.
-        // AudioManager tự phát bg_02 theo cấu hình mặc định sau khi được tạo.
+        // Runtime fallback: project zip không cần phụ thuộc autoload để settings/audio hoạt động.
+        SettingsManager.GetOrCreate(GetTree());
+        PlayerManager.GetOrCreate(GetTree());
         AudioManager.GetOrCreate(GetTree());
     }
 
@@ -41,6 +42,7 @@ public partial class ScreenMain : Node2D
         try
         {
             var tree = GetTree();
+            PlayerManager.GetOrCreate(tree);
             AudioManager.GetOrCreate(tree);
             if (tree?.Root == null || tree.CurrentScene == null)
             {

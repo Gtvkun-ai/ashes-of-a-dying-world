@@ -442,6 +442,9 @@ namespace AshesofaDyingWorld.Combat.Runtime
 
         private void AddCameraShake(float strength, float duration)
         {
+            float shakeScale = SettingsManager.Instance?.CurrentSettings?.ScreenShakeIntensity ?? 1f;
+            strength *= Mathf.Clamp(shakeScale, 0f, 1f);
+
             if (strength <= 0.01f || duration <= 0.01f)
             {
                 return;

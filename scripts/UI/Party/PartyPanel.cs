@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using AshesofaDyingWorld.Core.Data;
 using AshesofaDyingWorld.Core.Managers;
 using AshesofaDyingWorld.Entities.Player;
+using AshesofaDyingWorld.Entities.NPC;
 using AshesofaDyingWorld.UI.Shared;
 
 namespace AshesofaDyingWorld.UI.Party
@@ -48,6 +49,9 @@ namespace AshesofaDyingWorld.UI.Party
         private Button _moveLeftButton;
         private Button _moveRightButton;
         private Label _actionHintLabel;
+        private VBoxContainer _commandSection;
+        private Label _commandHintLabel;
+        private readonly Dictionary<CompanionCommandMode, Button> _commandButtons = new();
 
         private int _selectedIndex = -1;
 
@@ -284,6 +288,10 @@ namespace AshesofaDyingWorld.UI.Party
             column.AddChild(CreateStatRow("Công", out _detailAttackValue));
             column.AddChild(CreateStatRow("Giáp", out _detailArmorValue));
             column.AddChild(CreateStatRow("Tốc độ đánh", out _detailSpeedValue));
+
+            column.AddChild(CreateSpacer(2));
+            _commandSection = BuildCompanionCommandSection();
+            column.AddChild(_commandSection);
 
             Control actionSpacer = new();
             actionSpacer.SizeFlagsVertical = SizeFlags.ExpandFill;
@@ -541,6 +549,7 @@ namespace AshesofaDyingWorld.UI.Party
                 _leaderButton.Disabled = true;
                 _moveLeftButton.Disabled = true;
                 _moveRightButton.Disabled = true;
+                if (_commandSection != null) _commandSection.Visible = false;
                 _actionHintLabel.Text = "Đội chưa có thành viên để quản lý.";
                 return;
             }
@@ -574,6 +583,99 @@ namespace AshesofaDyingWorld.UI.Party
             _actionHintLabel.Text = isLeader
                 ? "Nhân vật này đang dẫn đội và nhận điều khiển trực tiếp."
                 : "Đổi đội trưởng sẽ chuyển nhân vật đang điều khiển.";
+
+            RefreshCompanionCommandSection(member, isLeader);
+        }
+
+        private VBoxContainer BuildCompanionCommandSection()
+        {
+            var section = new VBoxContainer();
+            section.AddThemeConstantOverride("separation", 5);
+            section.Visible = false;
+
+            section.AddChild(InventoryPanelChrome.CreateDivider(true));
+            Label title = CreateLabel("MỆNH LỆNH ĐỒNG ĐỘI", 11, Accent);
+            section.AddChild(title);
+
+            var grid = new GridContainer { Columns = 2, SizeFlagsHorizontal = SizeFlags.ExpandFill };
+            grid.AddThemeConstantOverride("h_separation", 6);
+            grid.AddThemeConstantOverride("v_separation", 6);
+            section.AddChild(grid);
+
+            AddCommandButton(grid, CompanionCommandMode.Follow, "THEO SAU");
+            AddCommandButton(grid, CompanionCommandMode.Stay, "ĐỨNG YÊN");
+            AddCommandButton(grid, CompanionCommandMode.Protect, "BẢO VỆ");
+            AddCommandButton(grid, CompanionCommandMode.Wander, "ĐI DẠO");
+
+            _commandHintLabel = CreateLabel("", 10, MutedText);
+            _commandHintLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            _commandHintLabel.HorizontalAlignment = HorizontalAlignment.Center;
+            section.AddChild(_commandHintLabel);
+            return section;
+        }
+
+        private void AddCommandButton(GridContainer grid, CompanionCommandMode mode, string label)
+        {
+            Button button = CreateActionButton(label, () => SetSelectedCompanionCommand(mode));
+            button.CustomMinimumSize = new Vector2(0, 32);
+            button.AddThemeFontSizeOverride("font_size", 11);
+            grid.AddChild(button);
+            _commandButtons[mode] = button;
+        }
+
+        private void SetSelectedCompanionCommand(CompanionCommandMode mode)
+        {
+            PlayerManager manager = PlayerManager.Instance;
+            if (manager == null || _selectedIndex < 0 || _selectedIndex >= manager.PartyMembers.Count)
+            {
+                return;
+            }
+
+            if (manager.GetCombatCharacter(manager.PartyMembers[_selectedIndex]) is not NpcCharacter companion)
+            {
+                return;
+            }
+
+            companion.SetCommandMode(mode);
+            RefreshCompanionCommandSection(manager.PartyMembers[_selectedIndex], _selectedIndex == manager.ActiveCharacterIndex);
+        }
+
+        private void RefreshCompanionCommandSection(PlayerStats member, bool isActiveCharacter)
+        {
+            if (_commandSection == null)
+            {
+                return;
+            }
+
+            NpcCharacter companion = PlayerManager.Instance?.GetCombatCharacter(member) as NpcCharacter;
+            _commandSection.Visible = companion != null && companion.IsRecruited;
+            if (!_commandSection.Visible)
+            {
+                return;
+            }
+
+            foreach (KeyValuePair<CompanionCommandMode, Button> pair in _commandButtons)
+            {
+                bool selected = pair.Key == companion.CommandMode;
+                pair.Value.AddThemeStyleboxOverride(
+                    "normal",
+                    InventoryPanelChrome.CreateButtonStyle(
+                        selected ? DeepSurface : InventoryPanelChrome.ButtonNormalColor,
+                        selected ? Accent : Border,
+                        selected ? 2 : 1));
+                pair.Value.AddThemeColorOverride("font_color", selected ? Accent : MainText);
+            }
+
+            _commandHintLabel.Text = isActiveCharacter
+                ? "Đang điều khiển trực tiếp. Mệnh lệnh này sẽ có hiệu lực khi chuyển sang nhân vật khác."
+                : companion.CommandMode switch
+                {
+                    CompanionCommandMode.Follow => "Theo đội trưởng và tự chiến đấu theo Decision Core.",
+                    CompanionCommandMode.Stay => "Giữ nguyên vị trí, không tự đi theo hoặc truy đuổi.",
+                    CompanionCommandMode.Protect => "Bám gần đội trưởng hơn và ưu tiên mối đe dọa quanh người được bảo vệ.",
+                    CompanionCommandMode.Wander => "Đi dạo quanh vị trí được ra lệnh, không tự chạy theo đội trưởng.",
+                    _ => string.Empty
+                };
         }
 
         /// <summary>

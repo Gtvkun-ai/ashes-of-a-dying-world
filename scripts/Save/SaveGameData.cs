@@ -6,8 +6,8 @@ namespace AshesofaDyingWorld.Core.Save
 {
     public sealed class SaveGameData
     {
-        // Version 5 bổ sung thứ tự đội hình; save version 4 vẫn tải bình thường vì field mới có mặc định rỗng.
-        public int Version { get; set; } = 5;
+        // Version 6 bổ sung mệnh lệnh companion; save cũ vẫn tải vì field mới có mặc định rỗng.
+        public int Version { get; set; } = 6;
         public string SavedAtUtc { get; set; } = "";
         public string ScenePath { get; set; } = "";
         public Vector2SaveData PlayerPosition { get; set; } = new();
@@ -18,6 +18,7 @@ namespace AshesofaDyingWorld.Core.Save
         /// Không lưu NodePath vì node có thể thay đổi khi chuyển scene.
         /// </summary>
         public List<string> PartyOrderCharacterIds { get; set; } = new();
+        public Dictionary<string, int> CompanionCommandModes { get; set; } = new();
 
         public PlayerSaveData Player { get; set; } = new();
         public List<PartySkillProgressSaveData> PartySkillProgress { get; set; } = new();

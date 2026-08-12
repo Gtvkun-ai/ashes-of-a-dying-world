@@ -1,14 +1,16 @@
 using Godot;
 using System.Collections.Generic;
+using AshesofaDyingWorld.Combat.Actors;
 using AshesofaDyingWorld.Combat.Data;
 using AshesofaDyingWorld.Core.Data;
+using AshesofaDyingWorld.Core.Managers;
 using AshesofaDyingWorld.Core.Skills;
 
 namespace AshesofaDyingWorld.UI.HUD
 {
     /// <summary>
-    /// HUD cooldown nhẹ cho 4 slot runtime. Dùng overlay + số giây; khi vừa ready icon pop nhẹ.
-    /// Không phụ thuộc menu kỹ năng nên vẫn thấy được giữa combat.
+    /// HUD cooldown cho 4 slot của nhân vật đang được điều khiển. Không còn khóa cứng vào Hikaru,
+    /// nên switch sang Hyou sẽ đổi icon/cooldown theo loadout của Hyou ngay lập tức.
     /// </summary>
     public partial class SkillCooldownHudService : CanvasLayer
     {
@@ -28,8 +30,6 @@ namespace AshesofaDyingWorld.UI.HUD
 
         private readonly List<SlotView> _slots = new();
         private HBoxContainer _row;
-        private global::Player _player;
-        private float _resolvePlayerRemaining;
 
         public override void _Ready()
         {
@@ -69,28 +69,29 @@ namespace AshesofaDyingWorld.UI.HUD
 
         public override void _Process(double delta)
         {
-            float dt = Mathf.Max(0f, (float)delta);
-            _resolvePlayerRemaining -= dt;
-            if (_player == null || !GodotObject.IsInstanceValid(_player) || _player.IsQueuedForDeletion())
-            {
-                if (_resolvePlayerRemaining <= 0f)
-                {
-                    _resolvePlayerRemaining = 0.4f;
-                    ResolvePlayer();
-                }
-            }
-
-            if (_player == null)
+            CombatCharacter actor = PlayerManager.Instance?.GetActiveCombatCharacter();
+            if (actor == null || !actor.IsAlive)
             {
                 _row.Visible = false;
                 return;
             }
 
+            var collection = SkillCollectionResolver.Resolve(actor.Stats);
+            if (collection == null)
+            {
+                _row.Visible = false;
+                return;
+            }
+
+            float dt = Mathf.Max(0f, (float)delta);
             bool any = false;
             for (int i = 0; i < _slots.Count; i++)
             {
                 SlotView view = _slots[i];
-                SkillData skill = _player.GetEquippedSkill(i);
+                Key boundKey = SettingsManager.Instance?.GetSkillKey(i) ?? Key.None;
+                view.SlotLabel.Text = boundKey == Key.None ? "?" : boundKey.ToString().ToUpperInvariant();
+
+                SkillData skill = collection.GetEquippedSkill(i);
                 if (view.Skill != skill)
                 {
                     view.Skill = skill;
@@ -106,7 +107,7 @@ namespace AshesofaDyingWorld.UI.HUD
                 }
                 any = true;
 
-                float remaining = _player.Abilities?.GetCooldownRemaining(skill) ?? 0f;
+                float remaining = actor.Abilities?.GetCooldownRemaining(skill) ?? 0f;
                 float duration = Mathf.Max(0.01f, skill.Cooldown);
                 float ratio = Mathf.Clamp(remaining / duration, 0f, 1f);
                 float size = 38f;
@@ -207,9 +208,9 @@ namespace AshesofaDyingWorld.UI.HUD
 
                 var slotLabel = new Label
                 {
-                    Text = (i + 1).ToString(),
+                    Text = i switch { 0 => "Q", 1 => "E", 2 => "R", _ => "F" },
                     Position = new Vector2(2f, 20f),
-                    Size = new Vector2(12f, 14f),
+                    Size = new Vector2(16f, 14f),
                     MouseFilter = Control.MouseFilterEnum.Ignore
                 };
                 slotLabel.AddThemeFontSizeOverride("font_size", 8);
@@ -226,23 +227,6 @@ namespace AshesofaDyingWorld.UI.HUD
                     CooldownLabel = cooldown,
                     SlotLabel = slotLabel
                 });
-            }
-        }
-
-        private void ResolvePlayer()
-        {
-            _player = null;
-            if (GetTree() == null)
-            {
-                return;
-            }
-            foreach (Node node in GetTree().GetNodesInGroup("Player"))
-            {
-                if (node is global::Player player)
-                {
-                    _player = player;
-                    return;
-                }
             }
         }
     }
