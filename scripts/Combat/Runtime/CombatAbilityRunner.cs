@@ -115,6 +115,8 @@ namespace AshesofaDyingWorld.Combat.Runtime
 
             ConsumeSkillCosts(skill);
             _cooldowns[skill] = Mathf.Max(0f, skill.Cooldown);
+            CombatFeedbackService.GetOrCreate(_owner.GetTree())?
+                .PlaySkillActivated(_owner, skill);
             return true;
         }
 

@@ -18,6 +18,13 @@ public partial class ScreenMain : Node2D
     private static readonly Vector2 DefaultSpawn = new(105f, 120f);
     private bool _isStartingGame = false;
 
+    public override void _Ready()
+    {
+        // Bảo đảm audio luôn tồn tại kể cả khi AudioManager chưa được khai báo Autoload.
+        // AudioManager tự phát bg_02 theo cấu hình mặc định sau khi được tạo.
+        AudioManager.GetOrCreate(GetTree());
+    }
+
     private async void _on_login_pressed()
     {
         await StartGameFromSnapshotAsync(SaveManager.Instance?.LoadSnapshot());
@@ -34,6 +41,7 @@ public partial class ScreenMain : Node2D
         try
         {
             var tree = GetTree();
+            AudioManager.GetOrCreate(tree);
             if (tree?.Root == null || tree.CurrentScene == null)
             {
                 return Error.DoesNotExist;

@@ -1,9 +1,0 @@
-[gd_resource type="Resource" script_class="AudioCueData" format=3 uid="uid://t5an76q8t144"]
-
-[ext_resource type="Script" uid="uid://3v0318pn6b7p" path="res://scripts/Audio/AudioCueData.cs" id="1_2ekg4"]
-[ext_resource type="AudioStream" uid="uid://pr6lgd681wly" path="res://assets/audio/sfx/footsteps/normal_step_02.mp3" id="1_smv5k"]
-
-[resource]
-script = ExtResource("1_2ekg4")
-Stream = ExtResource("1_smv5k")
-metadata/_custom_type_script = "uid://3v0318pn6b7p"

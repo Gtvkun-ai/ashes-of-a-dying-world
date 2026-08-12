@@ -44,9 +44,6 @@ namespace AshesofaDyingWorld.Combat.Actors
         [Export] public float ActionLungeMultiplier { get; set; } = 1f;
         [Export] public int StopFrameIndex { get; set; } = 0;
 
-        [ExportGroup("Footstep Audio")]
-        [Export] public float FootstepMinSpeed { get; set; } = 12f;
-
         public PlayerStats Stats { get; private set; }
         public EquipmentManager Equipment { get; private set; }
         public CombatStateMachine StateMachine { get; private set; }
@@ -95,10 +92,6 @@ namespace AshesofaDyingWorld.Combat.Actors
         private string _facingCardinal = "down";
         private string _lastMoveAnimation = "go_down";
         private bool _wasMoving;
-        private AudioCueData _footstepCueA;
-        private AudioCueData _footstepCueB;
-        private string _lastFootstepAnimation = string.Empty;
-        private int _lastFootstepPhase = -1;
         private bool _isResolvingHit;
         private bool _defeatHandled;
         private float _impactFreezeRemaining;
@@ -111,9 +104,6 @@ namespace AshesofaDyingWorld.Combat.Actors
         private float _launchDuration;
         private float _launchHeight;
         private CombatFreezeVfx2D _freezeStatusVfx;
-
-        private const string FootstepCueAPath = "res://data/audio/footsteps/normal_step_01.tres";
-        private const string FootstepCueBPath = "res://data/audio/footsteps/normal_step_02.tres";
 
         public override void _Ready()
         {
@@ -152,7 +142,6 @@ namespace AshesofaDyingWorld.Combat.Actors
                 Stats.Defeated += OnStatsDefeated;
             }
 
-            LoadFootstepCues();
             OnCombatReady();
         }
 
@@ -505,7 +494,7 @@ namespace AshesofaDyingWorld.Combat.Actors
                 EnemyHealthBarService.Instance?.NotifyDamaged(this);
             }
 
-            CombatFeedbackService.GetOrCreate(GetTree())?.PlayHit(request?.Attacker, this, request, result);
+            CombatFeedbackService.GetOrCreate(GetTree())?.PlayHit(request?.Attacker, this, request, result, statusResult.FreezeStarted);
 
             EmitSignal(SignalName.HitResolved, result.HpDamage, result.WasBlocked, result.GuardBroken);
             OnHitReceived(request, result);
@@ -1108,7 +1097,6 @@ namespace AshesofaDyingWorld.Combat.Actors
         private void OnBodyFrameChanged()
         {
             Actions?.HandleBodyFrameChanged();
-            TryPlayFootstep();
         }
 
         private void OnCombatStateChanged(CombatStateId previous, CombatStateId current)
@@ -1169,62 +1157,6 @@ namespace AshesofaDyingWorld.Combat.Actors
                     AddToGroup("Enemy");
                     break;
             }
-        }
-
-        private void LoadFootstepCues()
-        {
-            _footstepCueA = GD.Load<AudioCueData>(FootstepCueAPath);
-            _footstepCueB = GD.Load<AudioCueData>(FootstepCueBPath);
-        }
-
-        private void TryPlayFootstep()
-        {
-            if (_body == null || AudioManager.Instance == null || Actions?.IsRunning == true)
-            {
-                return;
-            }
-
-            string animation = _body.Animation.ToString();
-            if (!_body.IsPlaying()
-                || Velocity.Length() < FootstepMinSpeed
-                || (!animation.StartsWith("go_") && !animation.StartsWith("run_")))
-            {
-                ResetFootstepCycle();
-                return;
-            }
-
-            bool running = animation.StartsWith("run_");
-            int phase = running
-                ? (_body.Frame <= 2 ? 0 : (_body.Frame <= 5 ? 1 : -1))
-                : (_body.Frame <= 1 ? 0 : (_body.Frame <= 3 ? 1 : -1));
-            if (phase < 0)
-            {
-                return;
-            }
-
-            if (_lastFootstepAnimation != animation)
-            {
-                _lastFootstepAnimation = animation;
-                _lastFootstepPhase = -1;
-            }
-
-            if (phase == _lastFootstepPhase)
-            {
-                return;
-            }
-
-            AudioCueData cue = phase == 0 ? _footstepCueA : _footstepCueB;
-            if (cue?.Stream != null)
-            {
-                AudioManager.Instance.PlaySfx(cue);
-                _lastFootstepPhase = phase;
-            }
-        }
-
-        private void ResetFootstepCycle()
-        {
-            _lastFootstepAnimation = string.Empty;
-            _lastFootstepPhase = -1;
         }
 
         private static string ResolveCardinalDirection(Vector2 direction)
