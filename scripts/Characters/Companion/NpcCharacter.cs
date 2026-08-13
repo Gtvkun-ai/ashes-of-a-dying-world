@@ -2,6 +2,7 @@ using Godot;
 using AshesofaDyingWorld.Combat.Actors;
 using AshesofaDyingWorld.Combat.Decision.Runtime;
 using AshesofaDyingWorld.Combat.Model;
+using AshesofaDyingWorld.Combat.Runtime;
 using AshesofaDyingWorld.Core.Managers;
 using AshesofaDyingWorld.Core.Skills;
 
@@ -18,6 +19,11 @@ namespace AshesofaDyingWorld.Entities.NPC
         [Export] public float WanderRadius { get; set; } = 66f;
         [Export] public float WanderRetargetMinSeconds { get; set; } = 1.8f;
         [Export] public float WanderRetargetMaxSeconds { get; set; } = 4.2f;
+
+        [ExportGroup("Manual Aim Assist")]
+        [Export] public float ManualAimAssistRadius { get; set; } = 250f;
+        [Export(PropertyHint.Range, "5,60,1")] public float ManualAimAssistConeDegrees { get; set; } = 42f;
+        [Export(PropertyHint.Range, "0,0.65,0.05")] public float ManualAimAssistStrength { get; set; } = 0.38f;
 
         public CompanionCommandMode CommandMode { get; private set; } = CompanionCommandMode.Follow;
         public bool IsRecruited => _isRecruited;
@@ -146,9 +152,81 @@ namespace AshesofaDyingWorld.Entities.NPC
                 var skill = collection?.GetEquippedSkill(slot);
                 if (skill != null)
                 {
-                    Abilities?.TryActivate(skill, FacingDirection);
+                    Vector2 assistedAim = ResolveManualAimAssist(FacingDirection);
+                    Abilities?.TryActivate(skill, assistedAim);
                 }
             }
+        }
+
+
+        private Vector2 ResolveManualAimAssist(Vector2 requestedDirection)
+        {
+            Vector2 baseDirection = requestedDirection.LengthSquared() > 0.001f
+                ? requestedDirection.Normalized()
+                : Vector2.Down;
+
+            CombatCharacter target = FindManualAimAssistTarget(baseDirection);
+            if (target == null)
+            {
+                return baseDirection;
+            }
+
+            Vector2 towardTarget = target.CombatCenter - CombatCenter;
+            if (towardTarget.LengthSquared() <= 0.001f)
+            {
+                return baseDirection;
+            }
+
+            // Chỉ bẻ nhẹ quỹ đạo lúc cast. Không truyền aimTarget sang projectile để tránh
+            // biến assist thành auto-lock/predictive homing hoàn chỉnh.
+            float strength = Mathf.Clamp(ManualAimAssistStrength, 0f, 0.65f);
+            return baseDirection.Lerp(towardTarget.Normalized(), strength).Normalized();
+        }
+
+        private CombatCharacter FindManualAimAssistTarget(Vector2 baseDirection)
+        {
+            float radius = Mathf.Max(24f, ManualAimAssistRadius);
+            float minimumDot = Mathf.Cos(Mathf.DegToRad(Mathf.Clamp(ManualAimAssistConeDegrees, 5f, 60f)));
+            CombatCharacter best = null;
+            float bestScore = float.PositiveInfinity;
+
+            foreach (Node node in GetTree().GetNodesInGroup("Combatant"))
+            {
+                CombatCharacter candidate = node as CombatCharacter;
+                if (candidate == null
+                    || candidate == this
+                    || !candidate.IsAlive
+                    || !FactionRules.CanDamage(Faction, candidate.Faction))
+                {
+                    continue;
+                }
+
+                Vector2 toCandidate = candidate.CombatCenter - CombatCenter;
+                float distance = toCandidate.Length();
+                if (distance <= 0.001f || distance > radius)
+                {
+                    continue;
+                }
+
+                float dot = baseDirection.Dot(toCandidate / distance);
+                if (dot < minimumDot)
+                {
+                    continue;
+                }
+
+                // Góc quan trọng hơn khoảng cách: aim assist chỉ bắt mục tiêu người chơi đang
+                // thật sự hướng tới, không giật viên đạn sang con slime gần nhưng lệch hẳn bên.
+                float angularPenalty = 1f - dot;
+                float distancePenalty = distance / radius;
+                float score = angularPenalty * 3.2f + distancePenalty * 0.35f;
+                if (score < bestScore)
+                {
+                    bestScore = score;
+                    best = candidate;
+                }
+            }
+
+            return best;
         }
 
         private void UpdateWander(float delta)

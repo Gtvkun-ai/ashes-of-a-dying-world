@@ -4,11 +4,14 @@ using AshesofaDyingWorld.Combat.Actors;
 using AshesofaDyingWorld.Combat.Runtime;
 using AshesofaDyingWorld.Core.Data;
 using System.Collections.Generic;
+using System;
 
 namespace AshesofaDyingWorld.UI.HUD
 {
     public partial class CharacterUnitHUD : PanelContainer
     {
+        public event Action<PlayerStats> ContextMenuRequested;
+
         private PlayerStats _targetStats;
         private Player _targetPlayer;
 
@@ -39,6 +42,9 @@ namespace AshesofaDyingWorld.UI.HUD
         private CombatStatusBadgeView _slowStatusBadge;
         private CombatStatusBadgeView _frozenStatusBadge;
         private readonly List<SkillBadgeView> _skillBadgeViews = new();
+        private Control _contextHitTarget;
+
+        public PlayerStats TargetStats => _targetStats;
 
         private sealed class SkillBadgeView
         {
@@ -91,6 +97,7 @@ namespace AshesofaDyingWorld.UI.HUD
             }
             UpdateActiveSkillStripPlacement();
             UpdateCombatStatusStripPlacement();
+            SetupContextHitTarget();
         }
 
         public override void _Process(double delta)
@@ -180,6 +187,43 @@ namespace AshesofaDyingWorld.UI.HUD
 
             if (frameBackground != null)
                 frameBackground.Resized -= OnFrameBackgroundResized;
+
+            if (_contextHitTarget != null)
+                _contextHitTarget.GuiInput -= OnContextGuiInput;
+        }
+
+
+        private void SetupContextHitTarget()
+        {
+            if (_contextHitTarget != null)
+            {
+                return;
+            }
+
+            _contextHitTarget = new Control
+            {
+                Name = "ContextHitTarget",
+                MouseFilter = MouseFilterEnum.Pass,
+                MouseDefaultCursorShape = CursorShape.PointingHand
+            };
+            _contextHitTarget.GuiInput += OnContextGuiInput;
+            AddChild(_contextHitTarget);
+            _contextHitTarget.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+            MoveChild(_contextHitTarget, GetChildCount() - 1);
+        }
+
+        private void OnContextGuiInput(InputEvent inputEvent)
+        {
+            if (inputEvent is not InputEventMouseButton mouse
+                || mouse.ButtonIndex != MouseButton.Right
+                || !mouse.Pressed
+                || _targetStats == null)
+            {
+                return;
+            }
+
+            ContextMenuRequested?.Invoke(_targetStats);
+            GetViewport()?.SetInputAsHandled();
         }
 
         private void LoadStatusEffectFrameTexture()

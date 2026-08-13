@@ -290,8 +290,13 @@ namespace AshesofaDyingWorld.UI.Party
             column.AddChild(CreateStatRow("Tốc độ đánh", out _detailSpeedValue));
 
             column.AddChild(CreateSpacer(2));
-            _commandSection = BuildCompanionCommandSection();
-            column.AddChild(_commandSection);
+            Label commandHudHint = CreateLabel(
+                "Mệnh lệnh đồng đội: chuột phải vào Character HUD của Hyou khi đang chơi.",
+                10,
+                MutedText);
+            commandHudHint.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            commandHudHint.HorizontalAlignment = HorizontalAlignment.Center;
+            column.AddChild(commandHudHint);
 
             Control actionSpacer = new();
             actionSpacer.SizeFlagsVertical = SizeFlags.ExpandFill;
@@ -584,7 +589,6 @@ namespace AshesofaDyingWorld.UI.Party
                 ? "Nhân vật này đang dẫn đội và nhận điều khiển trực tiếp."
                 : "Đổi đội trưởng sẽ chuyển nhân vật đang điều khiển.";
 
-            RefreshCompanionCommandSection(member, isLeader);
         }
 
         private VBoxContainer BuildCompanionCommandSection()
