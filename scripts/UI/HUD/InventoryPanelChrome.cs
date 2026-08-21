@@ -176,7 +176,7 @@ namespace AshesofaDyingWorld.UI.Shared
         {
             var button = new Button();
             button.Text = "X";
-            button.CustomMinimumSize = new Vector2(38, 36);
+            button.CustomMinimumSize = new Vector2(42, 38);
             button.FocusMode = Control.FocusModeEnum.None;
             button.MouseDefaultCursorShape = Control.CursorShape.PointingHand;
             if (onPressed != null)
@@ -184,38 +184,24 @@ namespace AshesofaDyingWorld.UI.Shared
                 button.Pressed += onPressed;
             }
 
-            button.AddThemeStyleboxOverride("normal", CreateButtonStyle(DangerColor, StrongBorderColor, 2));
-            button.AddThemeStyleboxOverride("hover", CreateButtonStyle(DangerColor.Lightened(0.08f), AccentColor, 2));
-            button.AddThemeStyleboxOverride("pressed", CreateButtonStyle(DangerColor.Darkened(0.08f), StrongBorderColor, 2));
-            button.AddThemeColorOverride("font_color", MainTextColor);
-            button.AddThemeColorOverride("font_hover_color", Colors.White);
+            // Nút đóng dùng chung skin danger. 9-slice giữ góc/viền sắc dù nút nhỏ.
+            PixelButtonSkin.ApplyDanger(button, PixelButtonSkin.RegularHeight, 42f);
             button.AddThemeFontSizeOverride("font_size", 16);
             return button;
         }
 
         /// <summary>
-        /// Đúng trạng thái tab của InventoryPanel: tab active là inset panel viền đồng,
-        /// tab thường trong suốt, không dùng kiểu navbar xanh của panel cũ.
+        /// Tab/filter dùng cùng bộ button asset: active = primary, inactive = secondary.
         /// </summary>
         public static void ApplyTabStyle(Button button, bool selected)
         {
             if (button == null) return;
 
-            button.AddThemeStyleboxOverride("normal", CreateTabStyle(
-                selected ? RaisedSurfaceColor.Lightened(0.025f) : new Color(0f, 0f, 0f, 0f),
-                selected ? AccentColor.Darkened(0.16f) : new Color(0f, 0f, 0f, 0f),
-                selected ? 1 : 0));
-            button.AddThemeStyleboxOverride("hover", CreateTabStyle(
-                RaisedSurfaceColor.Lightened(0.07f),
-                StrongBorderColor,
-                1));
-            button.AddThemeStyleboxOverride("pressed", CreateTabStyle(
-                DeepSurfaceColor,
-                AccentColor,
-                1));
+            // Tab/filter không cần thêm bộ asset riêng: inactive = secondary, active = primary.
+            PixelButtonSkin.ApplyTab(button, selected, PixelButtonSkin.TabHeight);
             button.AddThemeColorOverride("font_color", selected ? MainTextColor : MutedTextColor);
             button.AddThemeColorOverride("font_hover_color", MainTextColor);
-            button.AddThemeColorOverride("font_pressed_color", AccentColor.Lightened(0.08f));
+            button.AddThemeColorOverride("font_pressed_color", Colors.White);
             button.AddThemeFontSizeOverride("font_size", 14);
         }
 

@@ -8,6 +8,7 @@ using AshesofaDyingWorld.Core.Data;
 using AshesofaDyingWorld.Core.Managers;
 using AshesofaDyingWorld.Entities.Player;
 using AshesofaDyingWorld.UI.HUD;
+using AshesofaDyingWorld.World.Maps;
 
 namespace AshesofaDyingWorld.Combat.Actors
 {
@@ -43,6 +44,11 @@ namespace AshesofaDyingWorld.Combat.Actors
         [Export] public float ExternalForceDecay { get; set; } = 900f;
         [Export] public float ActionLungeMultiplier { get; set; } = 1f;
         [Export] public int StopFrameIndex { get; set; } = 0;
+
+        [ExportGroup("World Safety")]
+        [Export] public bool KeepInsideLevelBounds { get; set; } = true;
+        [Export] public float LevelBoundsInset { get; set; } = 18f;
+        [Export] public float LevelBoundsRefreshSeconds { get; set; } = 0.5f;
 
         public PlayerStats Stats { get; private set; }
         public EquipmentManager Equipment { get; private set; }
@@ -104,6 +110,10 @@ namespace AshesofaDyingWorld.Combat.Actors
         private float _launchDuration;
         private float _launchHeight;
         private CombatFreezeVfx2D _freezeStatusVfx;
+        private Rect2 _levelBounds;
+        private bool _hasLevelBounds;
+        private float _levelBoundsRefreshRemaining;
+        private ulong _levelBoundsSceneId;
 
         public override void _Ready()
         {
@@ -115,8 +125,10 @@ namespace AshesofaDyingWorld.Combat.Actors
             StateMachine.StateChanged += OnCombatStateChanged;
 
             _combatHitbox = new CombatHitbox();
-            AddChild(_combatHitbox);
             _combatHitbox.Initialize(this);
+            // _Ready của CharacterBody2D vẫn có thể nằm trong pha Godot đang dựng child.
+            // Attach runtime node ở deferred frame để tránh "Parent node is busy setting up children".
+            CallDeferred("add_child", _combatHitbox);
 
             Actions = new CombatActionRunner(this, _body, _combatHitbox, StateMachine);
             Actions.ActionReleased += OnActionReleased;
@@ -129,6 +141,7 @@ namespace AshesofaDyingWorld.Combat.Actors
                 _baseBodySelfModulate = _body.SelfModulate;
                 _baseBodyPosition = _body.Position;
                 _body.FrameChanged += OnBodyFrameChanged;
+                _body.AnimationFinished += OnBodyAnimationFinished;
                 PlayIdleFrame();
             }
 
@@ -153,12 +166,14 @@ namespace AshesofaDyingWorld.Combat.Actors
                 return;
             }
 
+            UpdateLevelBoundsCache(dt);
             Statuses?.Update(dt);
             UpdateStatusVisualEffects();
             UpdateImpactPresentation(dt);
             if (_impactFreezeRemaining > 0f)
             {
                 Velocity = Vector2.Zero;
+                EnforceLevelBounds();
                 return;
             }
 
@@ -179,6 +194,7 @@ namespace AshesofaDyingWorld.Combat.Actors
                 StateMachine.CanRegenerateMana);
 
             MoveAndSlide();
+            EnforceLevelBounds();
             _wasMoving = _locomotionVelocity.LengthSquared() > 1f;
         }
 
@@ -197,6 +213,7 @@ namespace AshesofaDyingWorld.Combat.Actors
             if (_body != null)
             {
                 _body.FrameChanged -= OnBodyFrameChanged;
+                _body.AnimationFinished -= OnBodyAnimationFinished;
             }
 
             if (StateMachine != null)
@@ -243,6 +260,33 @@ namespace AshesofaDyingWorld.Combat.Actors
         public void StopMoveInput()
         {
             SetMoveInput(Vector2.Zero, false, false);
+        }
+
+        /// <summary>
+        /// Giữ target/anchor AI trong hình chữ nhật playable của level.
+        /// Navigation vẫn xử lý vật cản bên trong map; đây chỉ là safety rail ở mép ngoài.
+        /// </summary>
+        public Vector2 ClampWorldPointToLevelBounds(Vector2 worldPoint, float extraInset = 0f)
+        {
+            if (!KeepInsideLevelBounds || !_hasLevelBounds)
+            {
+                return worldPoint;
+            }
+
+            float inset = Mathf.Max(0f, LevelBoundsInset + extraInset);
+            float minX = _levelBounds.Position.X + inset;
+            float minY = _levelBounds.Position.Y + inset;
+            float maxX = _levelBounds.End.X - inset;
+            float maxY = _levelBounds.End.Y - inset;
+
+            if (maxX < minX || maxY < minY)
+            {
+                return worldPoint;
+            }
+
+            return new Vector2(
+                Mathf.Clamp(worldPoint.X, minX, maxX),
+                Mathf.Clamp(worldPoint.Y, minY, maxY));
         }
 
         public void SetBlocking(bool value)
@@ -777,9 +821,11 @@ namespace AshesofaDyingWorld.Combat.Actors
             }
 
             bodySprite.Name = "Body";
-            AddChild(bodySprite);
             _body = bodySprite;
             BodyPath = new NodePath("Body");
+            // Player có thể phải dựng BodyScene ngay trong _Ready. AddChild trực tiếp lúc này
+            // đôi khi bị Godot từ chối vì parent đang setup children.
+            CallDeferred("add_child", bodySprite);
         }
 
         private void SynchronizeBlocking()
@@ -871,6 +917,87 @@ namespace AshesofaDyingWorld.Combat.Actors
 
             Vector2 actionVelocity = Actions?.MovementVelocity ?? Vector2.Zero;
             Velocity = _locomotionVelocity + actionVelocity + _externalVelocity;
+        }
+
+        private void UpdateLevelBoundsCache(float delta)
+        {
+            if (!KeepInsideLevelBounds || GetTree() == null)
+            {
+                _hasLevelBounds = false;
+                return;
+            }
+
+            _levelBoundsRefreshRemaining -= Mathf.Max(0f, delta);
+            Node sceneRoot = GetTree().CurrentScene;
+            ulong sceneId = sceneRoot != null && GodotObject.IsInstanceValid(sceneRoot)
+                ? sceneRoot.GetInstanceId()
+                : 0UL;
+
+            if (_levelBoundsRefreshRemaining > 0f && sceneId == _levelBoundsSceneId)
+            {
+                return;
+            }
+
+            _levelBoundsRefreshRemaining = Mathf.Max(0.1f, LevelBoundsRefreshSeconds);
+            _levelBoundsSceneId = sceneId;
+
+            GameLevel level = sceneRoot as GameLevel ?? FindGameLevel(sceneRoot);
+            _hasLevelBounds = level != null && level.TryGetCameraBounds(out _levelBounds);
+        }
+
+        private void EnforceLevelBounds()
+        {
+            if (!KeepInsideLevelBounds || !_hasLevelBounds)
+            {
+                return;
+            }
+
+            Vector2 before = GlobalPosition;
+            Vector2 clamped = ClampWorldPointToLevelBounds(before);
+            if (clamped.IsEqualApprox(before))
+            {
+                return;
+            }
+
+            GlobalPosition = clamped;
+
+            // Chỉ xóa velocity theo trục bị chặn để actor vẫn trượt dọc mép map tự nhiên.
+            if (!Mathf.IsEqualApprox(clamped.X, before.X))
+            {
+                _locomotionVelocity.X = 0f;
+                _externalVelocity.X = 0f;
+                Velocity = new Vector2(0f, Velocity.Y);
+            }
+            if (!Mathf.IsEqualApprox(clamped.Y, before.Y))
+            {
+                _locomotionVelocity.Y = 0f;
+                _externalVelocity.Y = 0f;
+                Velocity = new Vector2(Velocity.X, 0f);
+            }
+        }
+
+        private static GameLevel FindGameLevel(Node node)
+        {
+            if (node == null)
+            {
+                return null;
+            }
+
+            if (node is GameLevel level)
+            {
+                return level;
+            }
+
+            foreach (Node child in node.GetChildren())
+            {
+                GameLevel found = FindGameLevel(child);
+                if (found != null)
+                {
+                    return found;
+                }
+            }
+
+            return null;
         }
 
         private void UpdateStatusVisualEffects()
@@ -1111,6 +1238,11 @@ namespace AshesofaDyingWorld.Combat.Actors
             Actions?.HandleBodyFrameChanged();
         }
 
+        private void OnBodyAnimationFinished()
+        {
+            Actions?.HandleBodyAnimationFinished();
+        }
+
         private void OnCombatStateChanged(CombatStateId previous, CombatStateId current)
         {
             if (current == CombatStateId.Dead)
@@ -1151,7 +1283,7 @@ namespace AshesofaDyingWorld.Combat.Actors
             OnDefeated(attacker);
             if (RemoveFromWorldOnDeath)
             {
-                CallDeferred(nameof(QueueFree));
+                CallDeferred("queue_free");
             }
         }
 

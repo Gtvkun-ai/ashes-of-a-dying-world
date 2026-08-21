@@ -159,13 +159,19 @@ namespace AshesofaDyingWorld.Combat.Runtime
                 return;
             }
 
-            _actionElapsedSeconds = Mathf.Min(
-                Mathf.Max(0.01f, _actionDurationSeconds),
-                _actionElapsedSeconds + dt);
+            _actionElapsedSeconds += dt;
 
             if (_usingFrameAnimation)
             {
                 EvaluateAnimationFrame();
+
+                // Safety watchdog: nếu animation/signal bị dừng ngoài ý muốn, action không được
+                // giữ actor ở AttackRecovery vô hạn. Khoảng timeout rất rộng để không cắt animation bình thường.
+                if (_currentAction != null
+                    && _actionElapsedSeconds >= Mathf.Max(2.5f, _actionDurationSeconds * 4f))
+                {
+                    ForceFinishFrameAction();
+                }
                 return;
             }
 
@@ -189,6 +195,22 @@ namespace AshesofaDyingWorld.Combat.Runtime
             if (_currentAction != null && _usingFrameAnimation)
             {
                 EvaluateAnimationFrame();
+            }
+        }
+
+        public void HandleBodyAnimationFinished()
+        {
+            if (_initializingFrameAnimation || _currentAction == null || !_usingFrameAnimation)
+            {
+                return;
+            }
+
+            // AnimationFinished là nguồn sự thật cuối cùng. Nếu resource EndFrame lệch một frame
+            // hoặc FrameChanged cuối bị miss, vẫn đóng action và trả locomotion cho actor ngay.
+            EvaluateAnimationFrame();
+            if (_currentAction != null)
+            {
+                ForceFinishFrameAction();
             }
         }
 
@@ -324,27 +346,48 @@ namespace AshesofaDyingWorld.Combat.Runtime
 
         private void EvaluateAnimationFrame()
         {
-            if (_currentAction == null || _body == null)
+            if (_currentAction == null || _body == null || _body.SpriteFrames == null)
             {
                 return;
             }
 
-            int frame = _body.Frame;
+            int frameCount = _body.SpriteFrames.GetFrameCount(_body.Animation);
+            int lastFrame = Mathf.Max(0, frameCount - 1);
+            int activeStart = Mathf.Clamp(_currentAction.ActiveStartFrame, 0, lastFrame);
+            int activeEnd = Mathf.Clamp(_currentAction.ActiveEndFrame, activeStart, lastFrame);
+            int endFrame = Mathf.Clamp(_currentAction.EndFrame, activeEnd, lastFrame);
+            int frame = Mathf.Clamp(_body.Frame, 0, lastFrame);
+
             EvaluateActionEventsFrame(frame);
-            if (!_deliveryOpened && frame >= _currentAction.ActiveStartFrame)
+            if (!_deliveryOpened && frame >= activeStart)
             {
                 BeginActiveWindow();
             }
 
-            if (_deliveryOpened && frame > _currentAction.ActiveEndFrame)
+            if (_deliveryOpened && frame > activeEnd)
             {
                 EndActiveWindow();
             }
 
-            if (frame >= _currentAction.EndFrame)
+            if (frame >= endFrame)
             {
                 CompleteAction();
             }
+        }
+
+        private void ForceFinishFrameAction()
+        {
+            if (_currentAction == null)
+            {
+                return;
+            }
+
+            if (_deliveryOpened)
+            {
+                EndActiveWindow();
+            }
+
+            CompleteAction();
         }
 
         private void UpdateFallback(float delta)

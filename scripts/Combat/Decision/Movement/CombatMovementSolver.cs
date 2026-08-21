@@ -56,7 +56,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
                 return MovementCommand.Stop(snapshot.TargetPosition);
             }
 
-            Vector2 toAnchor = pose.Anchor - snapshot.SelfPosition;
+            Vector2 safeAnchor = _self.ClampWorldPointToLevelBounds(pose.Anchor, 6f);
+            Vector2 toAnchor = safeAnchor - snapshot.SelfPosition;
             float anchorDistance = toAnchor.Length();
             bool rangeSatisfied = !snapshot.HasTarget
                 || (snapshot.TargetDistance >= pose.DesiredRangeMin
@@ -76,7 +77,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
                 return MovementCommand.Stop(snapshot.TargetPosition);
             }
 
-            desiredDirection = BlendNavigationDirection(snapshot, pose, desiredDirection, anchorDistance);
+            desiredDirection = BlendNavigationDirection(snapshot, pose, desiredDirection, anchorDistance, safeAnchor);
             int bestSlot = -1;
             float bestScore = -1f;
             Vector2 bestDirection = Vector2.Zero;
@@ -157,7 +158,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             in CombatSnapshot snapshot,
             in CombatPose pose,
             Vector2 desiredDirection,
-            float anchorDistance)
+            float anchorDistance,
+            Vector2 navigationTarget)
         {
             if (_navigationAgent == null
                 || !_navigationAgent.IsInsideTree()
@@ -166,10 +168,10 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
                 return desiredDirection;
             }
 
-            if (_lastNavigationTarget.DistanceSquaredTo(pose.Anchor) > 64f)
+            if (_lastNavigationTarget.DistanceSquaredTo(navigationTarget) > 64f)
             {
-                _lastNavigationTarget = pose.Anchor;
-                _navigationAgent.TargetPosition = pose.Anchor;
+                _lastNavigationTarget = navigationTarget;
+                _navigationAgent.TargetPosition = navigationTarget;
             }
 
             if (_navigationAgent.IsNavigationFinished())
@@ -195,7 +197,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
         {
             float danger = 0f;
             RayCast2D ray = _dangerRays[slot];
-            if (ray != null && GodotObject.IsInstanceValid(ray))
+            if (ray != null && GodotObject.IsInstanceValid(ray) && ray.IsInsideTree())
             {
                 ray.ForceRaycastUpdate();
                 if (ray.IsColliding())
@@ -244,7 +246,6 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             }
 
             var rig = new Node2D { Name = "CombatMovementSensorsRuntime" };
-            _self.AddChild(rig);
 
             for (int slot = 0; slot < DirectionCount; slot++)
             {
@@ -264,6 +265,10 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
                 ray.AddException(_self);
                 _dangerRays[slot] = ray;
             }
+
+            // Solver thường được dựng từ một deferred Initialize, nhưng không giả định lifecycle đó.
+            // Gắn cả rig một lần ở deferred frame để không đụng pha parent đang setup children.
+            _self.CallDeferred("add_child", rig);
         }
     }
 }

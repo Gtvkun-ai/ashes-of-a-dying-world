@@ -77,6 +77,14 @@ namespace AshesofaDyingWorld.Combat.Runtime
 
         public override void _Ready()
         {
+            if (_shapeCast == null)
+            {
+                CallDeferred(nameof(PrepareRuntime));
+            }
+        }
+
+        public void PrepareRuntime()
+        {
             EnsureSensor();
         }
 
@@ -111,7 +119,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
             }
 
             EnsureSensor();
-            if (_shapeCast == null || _shape == null)
+            if (_shapeCast == null || _shape == null || !_shapeCast.IsInsideTree())
             {
                 return LineOfFireResult.Invalid;
             }
@@ -260,6 +268,8 @@ namespace AshesofaDyingWorld.Combat.Runtime
                 CollisionMask = DefaultHurtboxMask | DefaultWorldMask,
                 TargetPosition = Vector2.Zero
             };
+            // Khi sensor còn detached (đường chuẩn từ CombatDecisionAgent), AddChild ở đây an toàn.
+            // Nếu PrepareRuntime được gọi sau _Ready thì cũng đã qua pha parent setup children.
             AddChild(_shapeCast);
         }
 
