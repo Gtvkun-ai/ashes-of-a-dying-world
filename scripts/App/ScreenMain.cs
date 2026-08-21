@@ -18,6 +18,14 @@ public partial class ScreenMain : Node2D
     private static readonly Vector2 DefaultSpawn = new(105f, 120f);
     private bool _isStartingGame = false;
 
+    public override void _Ready()
+    {
+        // Runtime fallback: project zip không cần phụ thuộc autoload để settings/audio hoạt động.
+        SettingsManager.GetOrCreate(GetTree());
+        PlayerManager.GetOrCreate(GetTree());
+        AudioManager.GetOrCreate(GetTree());
+    }
+
     private async void _on_login_pressed()
     {
         await StartGameFromSnapshotAsync(SaveManager.Instance?.LoadSnapshot());
@@ -34,6 +42,8 @@ public partial class ScreenMain : Node2D
         try
         {
             var tree = GetTree();
+            PlayerManager.GetOrCreate(tree);
+            AudioManager.GetOrCreate(tree);
             if (tree?.Root == null || tree.CurrentScene == null)
             {
                 return Error.DoesNotExist;

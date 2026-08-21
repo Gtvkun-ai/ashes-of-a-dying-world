@@ -11,6 +11,7 @@ namespace AshesofaDyingWorld.Combat.Model
         public float GuardDamage { get; init; }
         public float PoiseDamage { get; init; }
         public bool WasBlocked { get; init; }
+        public bool WasParried { get; init; }
         public bool GuardBroken { get; init; }
         public bool Staggered { get; init; }
         public bool Killed { get; init; }

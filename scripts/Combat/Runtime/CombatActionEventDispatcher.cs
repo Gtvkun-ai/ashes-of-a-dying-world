@@ -42,6 +42,8 @@ namespace AshesofaDyingWorld.Combat.Runtime
                         owner.Actions?.CurrentAimTarget) != null;
                     if (spawned)
                     {
+                        CombatFeedbackService.GetOrCreate(owner.GetTree())?
+                            .PlayActionEvent(owner, action, actionEvent);
                         GD.Print(
                             $"[CombatActionEvent] FIRED build=v8-action-event-spine "
                             + $"actor={owner.CombatantId} action={action.ActionId} "

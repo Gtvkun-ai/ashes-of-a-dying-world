@@ -4,6 +4,8 @@
 [ext_resource type="Script" uid="uid://cqcbhn0crt0fx" path="res://scripts/Characters/Stats/PlayerStats.cs" id="6_kimch"]
 [ext_resource type="Resource" uid="uid://btue7yvcpa6pm" path="res://data/characters/main.tres" id="7_owkge"]
 [ext_resource type="Script" uid="uid://bmhf2l4kgx1rl" path="res://scripts/Inventory/Runtime/EquipmentManager.cs" id="8_4rh2k"]
+[ext_resource type="Script" path="res://scripts/Characters/Player/PartyFollowerBrain.cs" id="9_party_follower"]
+
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_6685u"]
 size = Vector2(9, 2.5)
@@ -51,3 +53,6 @@ EquipmentMgr = NodePath("../EquipmentManager")
 [node name="EquipmentManager" type="Node" parent="." unique_id=307736108 node_paths=PackedStringArray("_playerStats")]
 script = ExtResource("8_4rh2k")
 _playerStats = NodePath("../PlayerStats")
+
+[node name="PartyFollowerBrain" type="Node" parent="."]
+script = ExtResource("9_party_follower")

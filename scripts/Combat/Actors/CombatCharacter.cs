@@ -44,9 +44,6 @@ namespace AshesofaDyingWorld.Combat.Actors
         [Export] public float ActionLungeMultiplier { get; set; } = 1f;
         [Export] public int StopFrameIndex { get; set; } = 0;
 
-        [ExportGroup("Footstep Audio")]
-        [Export] public float FootstepMinSpeed { get; set; } = 12f;
-
         public PlayerStats Stats { get; private set; }
         public EquipmentManager Equipment { get; private set; }
         public CombatStateMachine StateMachine { get; private set; }
@@ -57,6 +54,8 @@ namespace AshesofaDyingWorld.Combat.Actors
         public AnimatedSprite2D BodySprite => _body;
         public bool IsAlive => Stats == null || Stats.CurrentHP > 0f;
         public bool IsBlocking => StateMachine?.Current == CombatStateId.Blocking;
+        public bool IsPerfectParryWindowActive => _parryWindowRemaining > 0f;
+        public bool IsCounterAttackReady => _counterAttackWindowRemaining > 0f;
         public bool IsPerformingAttack => Actions?.IsRunning == true;
         public Vector2 FacingDirection => DirectionToVector(_facingCardinal);
         public string FacingCardinal => _facingCardinal;
@@ -85,16 +84,14 @@ namespace AshesofaDyingWorld.Combat.Actors
         private float _moveSpeedScale = 1f;
         private bool _preserveFacingWhileMoving;
         private bool _blockCommand;
+        private float _parryWindowRemaining;
+        private float _counterAttackWindowRemaining;
         private bool _isExhausted;
         private Vector2 _locomotionVelocity;
         private Vector2 _externalVelocity;
         private string _facingCardinal = "down";
         private string _lastMoveAnimation = "go_down";
         private bool _wasMoving;
-        private AudioCueData _footstepCueA;
-        private AudioCueData _footstepCueB;
-        private string _lastFootstepAnimation = string.Empty;
-        private int _lastFootstepPhase = -1;
         private bool _isResolvingHit;
         private bool _defeatHandled;
         private float _impactFreezeRemaining;
@@ -107,9 +104,6 @@ namespace AshesofaDyingWorld.Combat.Actors
         private float _launchDuration;
         private float _launchHeight;
         private CombatFreezeVfx2D _freezeStatusVfx;
-
-        private const string FootstepCueAPath = "res://data/audio/footsteps/normal_step_01.tres";
-        private const string FootstepCueBPath = "res://data/audio/footsteps/normal_step_02.tres";
 
         public override void _Ready()
         {
@@ -148,7 +142,6 @@ namespace AshesofaDyingWorld.Combat.Actors
                 Stats.Defeated += OnStatsDefeated;
             }
 
-            LoadFootstepCues();
             OnCombatReady();
         }
 
@@ -170,6 +163,7 @@ namespace AshesofaDyingWorld.Combat.Actors
             }
 
             Abilities?.Update(dt);
+            UpdateDefenseWindows(dt);
             UpdateControlSource(dt);
             StateMachine.Tick(dt);
             Actions?.Update(dt);
@@ -253,12 +247,27 @@ namespace AshesofaDyingWorld.Combat.Actors
 
         public void SetBlocking(bool value)
         {
-            _blockCommand = value && Statuses?.IsFrozen != true;
+            bool wantsBlock = value && Statuses?.IsFrozen != true;
+            bool blockPressed = wantsBlock && !_blockCommand;
+            _blockCommand = wantsBlock;
+
+            if (blockPressed)
+            {
+                WeaponMovesetData moveset = ActiveMoveset;
+                _parryWindowRemaining = moveset?.PerfectParryEnabled == true
+                    ? Mathf.Clamp(moveset.PerfectParryWindowSeconds, 0.10f, 0.16f)
+                    : 0f;
+            }
+            else if (!wantsBlock)
+            {
+                _parryWindowRemaining = 0f;
+            }
         }
 
         public void ReleaseBlock()
         {
             _blockCommand = false;
+            _parryWindowRemaining = 0f;
             StateMachine?.EndBlock();
         }
 
@@ -269,7 +278,29 @@ namespace AshesofaDyingWorld.Combat.Actors
                 return false;
             }
 
-            return Actions?.RequestLightAttack() == true;
+            bool counterReady = _counterAttackWindowRemaining > 0f;
+            bool restoreBlockOnFailure = counterReady && _blockCommand;
+            if (counterReady && StateMachine?.Current == CombatStateId.Blocking)
+            {
+                // Perfect parry mở một cancel thật từ guard sang light attack. Không cần thả
+                // nút block trước rồi bấm attack ở frame kế tiếp như đang điền biểu mẫu hành chính.
+                _blockCommand = false;
+                _parryWindowRemaining = 0f;
+                StateMachine.EndBlock();
+            }
+
+            bool accepted = Actions?.RequestLightAttack() == true;
+            if (accepted && counterReady)
+            {
+                _counterAttackWindowRemaining = 0f;
+                _blockCommand = false;
+            }
+            else if (!accepted && restoreBlockOnFailure)
+            {
+                _blockCommand = true;
+            }
+
+            return accepted;
         }
 
         public void FaceToward(Vector2 worldPosition)
@@ -358,6 +389,11 @@ namespace AshesofaDyingWorld.Combat.Actors
 
         public virtual HitResult ReceiveHit(HitRequest request)
         {
+            if (TryPerfectParry(request, out HitResult parryResult))
+            {
+                return parryResult;
+            }
+
             _isResolvingHit = true;
             HitResult result;
             try
@@ -436,7 +472,8 @@ namespace AshesofaDyingWorld.Combat.Actors
                 BeginHitFlash(result.HitFlashSeconds);
             }
 
-            if (result.HitStopSeconds > 0f)
+            bool hitStopEnabled = SettingsManager.Instance?.CurrentSettings?.HitStopEnabled ?? true;
+            if (hitStopEnabled && result.HitStopSeconds > 0f)
             {
                 BeginImpactFreeze(result.HitStopSeconds);
                 if (request?.Action?.DeliveryMode == CombatDeliveryMode.MeleeHitbox)
@@ -447,18 +484,22 @@ namespace AshesofaDyingWorld.Combat.Actors
 
             if (result.HpDamage > 0f)
             {
-                bool ice = request?.Profile?.DamageType == DamageType.Ice
-                    || (request?.Profile?.ChillStacks ?? 0) > 0;
-                DamageNumberService.GetOrCreate(GetTree())?.ShowDamage(
-                    this,
-                    result.HpDamage,
-                    result.Shattered,
-                    ice,
-                    result.WasBlocked);
+                bool damageNumbersEnabled = SettingsManager.Instance?.CurrentSettings?.DamageNumbersEnabled ?? true;
+                if (damageNumbersEnabled)
+                {
+                    bool ice = request?.Profile?.DamageType == DamageType.Ice
+                        || (request?.Profile?.ChillStacks ?? 0) > 0;
+                    DamageNumberService.GetOrCreate(GetTree())?.ShowDamage(
+                        this,
+                        result.HpDamage,
+                        result.Shattered,
+                        ice,
+                        result.WasBlocked);
+                }
                 EnemyHealthBarService.Instance?.NotifyDamaged(this);
             }
 
-            CombatFeedbackService.GetOrCreate(GetTree())?.PlayHit(request?.Attacker, this, request, result);
+            CombatFeedbackService.GetOrCreate(GetTree())?.PlayHit(request?.Attacker, this, request, result, statusResult.FreezeStarted);
 
             EmitSignal(SignalName.HitResolved, result.HpDamage, result.WasBlocked, result.GuardBroken);
             OnHitReceived(request, result);
@@ -469,6 +510,91 @@ namespace AshesofaDyingWorld.Combat.Actors
             }
 
             return result;
+        }
+
+        private bool TryPerfectParry(HitRequest request, out HitResult result)
+        {
+            result = null;
+            WeaponMovesetData moveset = ActiveMoveset;
+            CombatCharacter attacker = request?.Attacker;
+            CombatActionData action = request?.Action;
+
+            bool parryableMelee = action != null
+                && action.DeliveryMode == CombatDeliveryMode.MeleeHitbox
+                && (action.Tags & CombatActionTag.Uninterruptible) == CombatActionTag.None;
+            if (request?.Target != this
+                || request.Profile == null
+                || moveset?.PerfectParryEnabled != true
+                || _parryWindowRemaining <= 0f
+                || !parryableMelee
+                || attacker == null
+                || !attacker.IsAlive
+                || !FactionRules.CanDamage(attacker.Faction, Faction)
+                || !IsBlockingAttackFrom(request.HitOrigin))
+            {
+                return false;
+            }
+
+            _parryWindowRemaining = 0f;
+            _counterAttackWindowRemaining = Mathf.Max(
+                _counterAttackWindowRemaining,
+                Mathf.Max(0f, moveset.CounterAttackWindowSeconds));
+
+            if (Stats != null && moveset.ParryStaminaReward > 0f)
+            {
+                Stats.ChangeStamina(moveset.ParryStaminaReward);
+            }
+
+            attacker.Actions?.Cancel();
+            if (attacker.StateMachine?.Current != CombatStateId.Dead)
+            {
+                attacker.StateMachine?.EnterStagger(Mathf.Max(0.08f, moveset.ParryStaggerSeconds));
+            }
+
+            float hitStop = Mathf.Max(0f, moveset.ParryHitStopSeconds);
+            bool hitStopEnabled = SettingsManager.Instance?.CurrentSettings?.HitStopEnabled ?? true;
+            if (hitStopEnabled && hitStop > 0f)
+            {
+                BeginImpactFreeze(hitStop);
+                attacker.BeginImpactFreeze(hitStop);
+            }
+            else if (!hitStopEnabled)
+            {
+                hitStop = 0f;
+            }
+
+            Vector2 incomingDirection = request.AttackDirection.LengthSquared() > 0.001f
+                ? request.AttackDirection.Normalized()
+                : (CombatCenter - attacker.CombatCenter).Normalized();
+            CombatFeedbackService.GetOrCreate(GetTree())?
+                .PlayParry(CombatCenter, incomingDirection);
+
+            result = new HitResult
+            {
+                Applied = true,
+                RejectionReason = HitRejectionReason.None,
+                RawDamage = 0f,
+                HpDamage = 0f,
+                GuardDamage = 0f,
+                PoiseDamage = 0f,
+                WasBlocked = true,
+                WasParried = true,
+                GuardBroken = false,
+                Staggered = false,
+                Killed = false,
+                Shattered = false,
+                HitstunSeconds = 0f,
+                ForcedStaggerSeconds = 0f,
+                HitStopSeconds = hitStop,
+                HitFlashSeconds = 0f,
+                LaunchHeight = 0f,
+                LaunchDuration = 0.05f,
+                Knockback = Vector2.Zero
+            };
+
+            EmitSignal(SignalName.HitResolved, 0f, true, false);
+            OnHitReceived(request, result);
+            return true;
         }
 
         public void BeginImpactFreeze(float seconds)
@@ -497,6 +623,8 @@ namespace AshesofaDyingWorld.Combat.Actors
             _moveSpeedScale = 1f;
             _preserveFacingWhileMoving = false;
             _blockCommand = false;
+            _parryWindowRemaining = 0f;
+            _counterAttackWindowRemaining = 0f;
             _isExhausted = false;
             _locomotionVelocity = Vector2.Zero;
             _externalVelocity = Vector2.Zero;
@@ -668,6 +796,13 @@ namespace AshesofaDyingWorld.Combat.Actors
             {
                 StateMachine.EndBlock();
             }
+        }
+
+        private void UpdateDefenseWindows(float delta)
+        {
+            float dt = Mathf.Max(0f, delta);
+            _parryWindowRemaining = Mathf.Max(0f, _parryWindowRemaining - dt);
+            _counterAttackWindowRemaining = Mathf.Max(0f, _counterAttackWindowRemaining - dt);
         }
 
         private void UpdateMovement(float delta)
@@ -972,7 +1107,6 @@ namespace AshesofaDyingWorld.Combat.Actors
         private void OnBodyFrameChanged()
         {
             Actions?.HandleBodyFrameChanged();
-            TryPlayFootstep();
         }
 
         private void OnCombatStateChanged(CombatStateId previous, CombatStateId current)
@@ -1033,62 +1167,6 @@ namespace AshesofaDyingWorld.Combat.Actors
                     AddToGroup("Enemy");
                     break;
             }
-        }
-
-        private void LoadFootstepCues()
-        {
-            _footstepCueA = GD.Load<AudioCueData>(FootstepCueAPath);
-            _footstepCueB = GD.Load<AudioCueData>(FootstepCueBPath);
-        }
-
-        private void TryPlayFootstep()
-        {
-            if (_body == null || AudioManager.Instance == null || Actions?.IsRunning == true)
-            {
-                return;
-            }
-
-            string animation = _body.Animation.ToString();
-            if (!_body.IsPlaying()
-                || Velocity.Length() < FootstepMinSpeed
-                || (!animation.StartsWith("go_") && !animation.StartsWith("run_")))
-            {
-                ResetFootstepCycle();
-                return;
-            }
-
-            bool running = animation.StartsWith("run_");
-            int phase = running
-                ? (_body.Frame <= 2 ? 0 : (_body.Frame <= 5 ? 1 : -1))
-                : (_body.Frame <= 1 ? 0 : (_body.Frame <= 3 ? 1 : -1));
-            if (phase < 0)
-            {
-                return;
-            }
-
-            if (_lastFootstepAnimation != animation)
-            {
-                _lastFootstepAnimation = animation;
-                _lastFootstepPhase = -1;
-            }
-
-            if (phase == _lastFootstepPhase)
-            {
-                return;
-            }
-
-            AudioCueData cue = phase == 0 ? _footstepCueA : _footstepCueB;
-            if (cue?.Stream != null)
-            {
-                AudioManager.Instance.PlaySfx(cue);
-                _lastFootstepPhase = phase;
-            }
-        }
-
-        private void ResetFootstepCycle()
-        {
-            _lastFootstepAnimation = string.Empty;
-            _lastFootstepPhase = -1;
         }
 
         private static string ResolveCardinalDirection(Vector2 direction)

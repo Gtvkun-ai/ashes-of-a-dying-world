@@ -6,9 +6,39 @@ namespace AshesofaDyingWorld.Core.Managers
 {
     public partial class AudioManager : Node
     {
-        private const string DefaultBgmPath = "res://assets/audio/music/bgm/bg_01.mp3";
+        private const string DefaultBgmPath = "res://assets/audio/music/bgm/bg_02.mp3";
 
         public static AudioManager Instance { get; private set; }
+
+        /// <summary>
+        /// Trả về AudioManager đang sống trong SceneTree, hoặc tự tạo một instance ở /root.
+        /// Không phụ thuộc project.godot/autoload để audio vẫn hoạt động khi project config
+        /// không khai báo AudioManager.
+        /// </summary>
+        public static AudioManager GetOrCreate(SceneTree tree)
+        {
+            if (Instance != null && GodotObject.IsInstanceValid(Instance))
+            {
+                return Instance;
+            }
+
+            if (tree?.Root == null)
+            {
+                return null;
+            }
+
+            var existing = tree.Root.GetNodeOrNull<AudioManager>("AudioManager");
+            if (existing != null && GodotObject.IsInstanceValid(existing))
+            {
+                Instance = existing;
+                return existing;
+            }
+
+            var manager = new AudioManager { Name = "AudioManager" };
+            tree.Root.AddChild(manager);
+            GD.Print("[AudioManager] Created runtime fallback at /root/AudioManager");
+            return manager;
+        }
 
         [ExportGroup("poolling")]
         [Export] public int InitialSfxPoolSize { get; set; } = 12;
@@ -45,6 +75,7 @@ namespace AshesofaDyingWorld.Core.Managers
             SetUiVolumeDb(UiVolumeDb);
             SetVoiceVolumeDb(VoiceVolumeDb);
 
+            GD.Print($"[AudioManager] READY sfx_pool={_sfxPlayers.Count} bgm={DefaultBgmResourcePath}");
             CallDeferred(nameof(FinalizeStartupAudioState));
         }
 
@@ -149,7 +180,8 @@ namespace AshesofaDyingWorld.Core.Managers
                 {
                     Stream = stream,
                     BusType = AudioBusType.Bgm,
-                    VolumeDb = 0f,
+                    // Chừa headroom cho combat SFX. bg_02 vẫn rõ nhưng không che transient ngắn như sword swing.
+                    VolumeDb = -6f,
                     MinPitch = 1f,
                     MaxPitch = 1f,
                     Loop = true
@@ -157,6 +189,10 @@ namespace AshesofaDyingWorld.Core.Managers
             }
 
             PlayBgm(_defaultBgmCue);
+            if (_bgmPlayer != null && _bgmPlayer.Playing)
+            {
+                GD.Print($"[AudioManager] BGM playing: {DefaultBgmResourcePath}");
+            }
         }
 
         public void StopBgm()

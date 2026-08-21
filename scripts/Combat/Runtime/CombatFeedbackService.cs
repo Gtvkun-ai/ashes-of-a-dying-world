@@ -33,9 +33,24 @@ namespace AshesofaDyingWorld.Combat.Runtime
         private Label _damageDirectionMarker;
         private float _damageDirectionRemaining;
         private Vector2 _lastIncomingDirection;
-        private AudioCueData _physicalImpactCue;
+        private AudioCueData _physicalLightImpactCue;
+        private AudioCueData _physicalHeavyImpactCue;
+        private AudioCueData _blockImpactCue;
+        private AudioCueData _guardBreakCue;
         private AudioCueData _iceImpactCue;
-        private AudioCueData _swingCue;
+        private AudioCueData _freezeProcCue;
+        private AudioCueData _iceShatterCue;
+        private AudioCueData _swingLight1Cue;
+        private AudioCueData _swingLight2Cue;
+        private AudioCueData _swingHeavyCue;
+        private AudioCueData _parryCue;
+        private AudioCueData _iceCastCue;
+        private AudioCueData _iceReleaseCue;
+        private AudioCueData _slimeAttackCue;
+        private AudioCueData _slimeHurtCue;
+        private AudioCueData _slimeDeathCue;
+        private AudioCueData _buffActivateCue;
+        private AudioCueData _iceBuffActivateCue;
 
         public override void _Ready()
         {
@@ -46,6 +61,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
             }
 
             Instance = this;
+            AudioManager.GetOrCreate(GetTree());
             Layer = 70;
             _rng.Randomize();
             BuildDamageFlash();
@@ -63,6 +79,10 @@ namespace AshesofaDyingWorld.Combat.Runtime
 
         public static CombatFeedbackService GetOrCreate(SceneTree tree)
         {
+            // Combat feedback phụ thuộc audio, nên tự bảo đảm manager tồn tại thay vì
+            // yêu cầu project.godot phải có Autoload.
+            AudioManager.GetOrCreate(tree);
+
             if (Instance != null && GodotObject.IsInstanceValid(Instance))
             {
                 return Instance;
@@ -82,7 +102,8 @@ namespace AshesofaDyingWorld.Combat.Runtime
             CombatCharacter attacker,
             CombatCharacter target,
             HitRequest request,
-            HitResult result)
+            HitResult result,
+            bool freezeStarted = false)
         {
             if (target == null || request?.Profile == null || result == null || !result.Applied)
             {
@@ -111,7 +132,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
                 heavy,
                 result.GuardBroken);
             AddCameraShake(profile.CameraShakeStrength * (strong ? 1.3f : 1f), strong ? 0.16f : 0.10f);
-            PlayImpactAudio(ice, strong);
+            PlayImpactAudio(target, ice, heavy, result, freezeStarted);
 
             if (target.Faction == CombatFaction.Player && result.HpDamage > 0f)
             {
@@ -146,16 +167,81 @@ namespace AshesofaDyingWorld.Combat.Runtime
                 trail.GlobalPosition = actor.CombatCenter;
             }
 
-            if (_swingCue != null && AudioManager.Instance != null)
+            AudioCueData cue = action.ActionId switch
             {
-                AudioManager.Instance.PlaySfx(_swingCue);
+                "wood_sword_light_1" => _swingLight1Cue,
+                "wood_sword_light_2" => _swingLight2Cue,
+                "wood_sword_heavy" => _swingHeavyCue,
+                "slime_bite" => _slimeAttackCue,
+                _ => null
+            };
+
+            if (cue != null && AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlaySfx(cue);
             }
         }
 
         /// <summary>
-        /// Asset parry đã được nối sẵn. Hiện combat core chưa có perfect-parry window,
-        /// nên method này chỉ được gọi khi/ nếu gameplay layer xác nhận một parry thật.
-        /// Không dùng guard-break giả làm parry.
+        /// Cue ở thời điểm bắt đầu action. Swing melee được phát ở active window để khớp frame chém;
+        /// riêng Ice Bolt có cast cue ngay từ startup.
+        /// </summary>
+        public void PlayActionStarted(CombatCharacter actor, CombatActionData action)
+        {
+            if (actor == null || action == null || AudioManager.Instance == null)
+            {
+                return;
+            }
+
+            if (action.ActionId == "hyou_ice_bolt" && _iceCastCue != null)
+            {
+                AudioManager.Instance.PlaySfx(_iceCastCue);
+            }
+        }
+
+        /// <summary>
+        /// Cue gắn với authored action event. Ice release phải nổ đúng lúc projectile thật sự spawn,
+        /// không phát từ startup để âm thanh không đi trước viên đạn.
+        /// </summary>
+        public void PlayActionEvent(CombatCharacter actor, CombatActionData action, CombatActionEventData actionEvent)
+        {
+            if (actor == null || action == null || actionEvent == null || AudioManager.Instance == null)
+            {
+                return;
+            }
+
+            if (action.ActionId == "hyou_ice_bolt"
+                && actionEvent.EventType == CombatActionEventType.SpawnProjectile
+                && _iceReleaseCue != null)
+            {
+                AudioManager.Instance.PlaySfx(_iceReleaseCue);
+            }
+        }
+
+        /// <summary>
+        /// Skill utility/buff dùng cue riêng sau khi kích hoạt thành công. CombatAction đã có swing/cast riêng
+        /// nên không layer thêm buff cue lên cùng input.
+        /// </summary>
+        public void PlaySkillActivated(CombatCharacter actor, SkillData skill)
+        {
+            if (actor == null || skill == null || AudioManager.Instance == null
+                || skill.ExecutionType == SkillExecutionType.CombatAction)
+            {
+                return;
+            }
+
+            AudioCueData cue = skill.Element == SkillElement.Ice
+                ? _iceBuffActivateCue
+                : _buffActivateCue;
+            if (cue != null)
+            {
+                AudioManager.Instance.PlaySfx(cue);
+            }
+        }
+
+        /// <summary>
+        /// Feedback riêng cho perfect parry thật đã được gameplay layer xác nhận.
+        /// Không dùng guard-break hay block thường giả làm parry.
         /// </summary>
         public void PlayParry(Vector2 worldPosition, Vector2 incomingDirection)
         {
@@ -171,6 +257,11 @@ namespace AshesofaDyingWorld.Combat.Runtime
             SpawnFramesVfx(parent, worldPosition, ParryFlashFramesPath, "parry_flash", 0.72f, rotation, "ParryFlash");
             SpawnFramesVfx(parent, worldPosition, ParryRingFramesPath, "parry_ring", 0.78f, 0f, "ParryRing");
             AddCameraShake(1.2f, 0.12f);
+
+            if (_parryCue != null && AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlaySfx(_parryCue);
+            }
         }
 
         public override void _Process(double delta)
@@ -351,6 +442,9 @@ namespace AshesofaDyingWorld.Combat.Runtime
 
         private void AddCameraShake(float strength, float duration)
         {
+            float shakeScale = SettingsManager.Instance?.CurrentSettings?.ScreenShakeIntensity ?? 1f;
+            strength *= Mathf.Clamp(shakeScale, 0f, 1f);
+
             if (strength <= 0.01f || duration <= 0.01f)
             {
                 return;
@@ -477,56 +571,121 @@ namespace AshesofaDyingWorld.Combat.Runtime
 
         private void LoadAudioCues()
         {
-            AudioStream physical = GD.Load<AudioStream>("res://assets/audio/sfx/tools/hammer/hammer_slash_01.mp3");
-            if (physical != null)
-            {
-                _physicalImpactCue = new AudioCueData
-                {
-                    Stream = physical,
-                    BusType = AudioBusType.Sfx,
-                    VolumeDb = -10f,
-                    MinPitch = 0.88f,
-                    MaxPitch = 1.08f
-                };
-            }
+            _swingLight1Cue = CreateCue(
+                "res://assets/audio/sfx/combat/sword/sword_swing_light_01.wav", -1f, 0.98f, 1.03f);
+            _swingLight2Cue = CreateCue(
+                "res://assets/audio/sfx/combat/sword/sword_swing_light_02.wav", -1f, 0.98f, 1.03f);
+            _swingHeavyCue = CreateCue(
+                "res://assets/audio/sfx/combat/sword/sword_swing_heavy.wav", 0f, 0.98f, 1.02f);
 
-            AudioStream slash = GD.Load<AudioStream>("res://assets/audio/sfx/weapons/sword/wooden_slash_01.mp3");
-            if (slash != null)
-            {
-                _swingCue = new AudioCueData
-                {
-                    Stream = slash,
-                    BusType = AudioBusType.Sfx,
-                    VolumeDb = -9f,
-                    MinPitch = 0.94f,
-                    MaxPitch = 1.08f
-                };
-                _iceImpactCue = new AudioCueData
-                {
-                    Stream = slash,
-                    BusType = AudioBusType.Sfx,
-                    VolumeDb = -12f,
-                    MinPitch = 1.18f,
-                    MaxPitch = 1.36f
-                };
-            }
+            _physicalLightImpactCue = CreateCue(
+                "res://assets/audio/sfx/combat/impact/physical_hit_light.wav", -2f, 0.98f, 1.03f);
+            _physicalHeavyImpactCue = CreateCue(
+                "res://assets/audio/sfx/combat/impact/physical_hit_heavy.wav", -1f, 0.98f, 1.02f);
+            _blockImpactCue = CreateCue(
+                "res://assets/audio/sfx/combat/defense/block_impact.wav", -1f, 0.98f, 1.02f);
+            _guardBreakCue = CreateCue(
+                "res://assets/audio/sfx/combat/defense/guard_break.wav", 0f, 0.99f, 1.01f);
+            _parryCue = CreateCue(
+                "res://assets/audio/sfx/combat/defense/perfect_parry.wav", 0f, 0.99f, 1.01f);
+
+            _iceCastCue = CreateCue(
+                "res://assets/audio/sfx/combat/ice/ice_cast.wav", -7f, 1f, 1f);
+            _iceReleaseCue = CreateCue(
+                "res://assets/audio/sfx/combat/ice/ice_release.wav", -6f, 1f, 1f);
+            _iceImpactCue = CreateCue(
+                "res://assets/audio/sfx/combat/ice/ice_impact.wav", -5f, 0.99f, 1.02f);
+            _freezeProcCue = CreateCue(
+                "res://assets/audio/sfx/combat/ice/freeze_proc.wav", -4f, 1f, 1f);
+            _iceShatterCue = CreateCue(
+                "res://assets/audio/sfx/combat/ice/ice_shatter.wav", -3f, 0.99f, 1.01f);
+
+            _slimeAttackCue = CreateCue(
+                "res://assets/audio/sfx/combat/slime/slime_attack.wav", 3f, 0.98f, 1.03f);
+            _slimeHurtCue = CreateCue(
+                "res://assets/audio/sfx/combat/slime/slime_hurt.wav", 3f, 0.98f, 1.03f);
+            _slimeDeathCue = CreateCue(
+                "res://assets/audio/sfx/combat/slime/slime_death.wav", -1f, 0.99f, 1.01f);
+
+            _buffActivateCue = CreateCue(
+                "res://assets/audio/sfx/combat/buff/buff_activate.wav", 0f, 0.99f, 1.01f);
+            _iceBuffActivateCue = CreateCue(
+                "res://assets/audio/sfx/combat/buff/ice_buff_activate.wav", 3f, 0.99f, 1.01f);
         }
 
-        private void PlayImpactAudio(bool ice, bool strong)
+        private static AudioCueData CreateCue(
+            string path,
+            float volumeDb,
+            float minPitch = 1f,
+            float maxPitch = 1f)
         {
-            AudioCueData cue = ice ? _iceImpactCue : _physicalImpactCue;
-            if (cue == null || AudioManager.Instance == null)
+            AudioStream stream = GD.Load<AudioStream>(path);
+            if (stream == null)
+            {
+                GD.PrintErr($"[CombatFeedback] Failed to load SFX: {path}");
+                return null;
+            }
+
+            return new AudioCueData
+            {
+                Stream = stream,
+                BusType = AudioBusType.Sfx,
+                VolumeDb = volumeDb,
+                MinPitch = minPitch,
+                MaxPitch = maxPitch
+            };
+        }
+
+        private void PlayImpactAudio(
+            CombatCharacter target,
+            bool ice,
+            bool heavy,
+            HitResult result,
+            bool freezeStarted)
+        {
+            if (result == null || AudioManager.Instance == null)
             {
                 return;
             }
 
-            float originalVolume = cue.VolumeDb;
-            if (strong)
+            // Mỗi hit chỉ chọn MỘT cue chính. Không layer block + impact + enemy hurt cùng lúc.
+            AudioCueData cue;
+            if (result.GuardBroken)
             {
-                cue.VolumeDb += 2f;
+                cue = _guardBreakCue;
             }
-            AudioManager.Instance.PlaySfx(cue);
-            cue.VolumeDb = originalVolume;
+            else if (result.WasBlocked)
+            {
+                cue = _blockImpactCue;
+            }
+            else if (result.Shattered)
+            {
+                cue = _iceShatterCue;
+            }
+            else if (freezeStarted)
+            {
+                cue = _freezeProcCue;
+            }
+            else if (target is global::Slime1)
+            {
+                cue = result.Killed
+                    ? _slimeDeathCue
+                    : ice ? _iceImpactCue : _slimeHurtCue;
+            }
+            else if (ice)
+            {
+                cue = _iceImpactCue;
+            }
+            else
+            {
+                cue = heavy ? _physicalHeavyImpactCue : _physicalLightImpactCue;
+            }
+
+            if (cue != null)
+            {
+                AudioManager.Instance.PlaySfx(cue);
+            }
         }
+
     }
 }

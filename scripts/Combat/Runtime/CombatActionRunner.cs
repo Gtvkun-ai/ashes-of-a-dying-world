@@ -288,6 +288,8 @@ namespace AshesofaDyingWorld.Combat.Runtime
             // Listener presentation chỉ được thấy action sau khi runtime đã ở trạng thái
             // nhất quán. Đây là ranh giới ownership, không phải nghi lễ phát signal cho vui.
             ActionStarted?.Invoke(_currentAction, _actionFacing);
+            CombatFeedbackService.GetOrCreate(_owner.GetTree())?
+                .PlayActionStarted(_owner, _currentAction);
 
             if (_usingFrameAnimation)
             {
