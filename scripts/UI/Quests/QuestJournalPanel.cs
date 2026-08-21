@@ -296,6 +296,7 @@ namespace AshesofaDyingWorld.UI.Quests
             actionRow.AddChild(_primaryActionButton);
 
             _mapButton = CreateActionButton("XEM BẢN ĐỒ");
+            PixelButtonSkin.ApplySecondary(_mapButton, PixelButtonSkin.RegularHeight);
             _mapButton.Pressed += OnMapButtonPressed;
             actionRow.AddChild(_mapButton);
 
@@ -369,11 +370,8 @@ namespace AshesofaDyingWorld.UI.Quests
             foreach (var pair in _typeButtons)
             {
                 bool selected = pair.Key == _typeFilter;
-                pair.Value.AddThemeStyleboxOverride("normal", CreateFilterStyle(selected));
-                pair.Value.AddThemeStyleboxOverride("hover", CreateFilterStyle(true));
-                pair.Value.AddThemeStyleboxOverride("pressed", CreateFilterStyle(true));
+                PixelButtonSkin.ApplyTab(pair.Value, selected, PixelButtonSkin.CompactHeight);
                 pair.Value.AddThemeColorOverride("font_color", selected ? MainText : MutedText);
-                pair.Value.AddThemeColorOverride("font_hover_color", MainText);
             }
         }
 
@@ -880,14 +878,7 @@ namespace AshesofaDyingWorld.UI.Quests
                 FocusMode = FocusModeEnum.None,
                 MouseDefaultCursorShape = CursorShape.PointingHand
             };
-            button.AddThemeStyleboxOverride("normal", InventoryPanelChrome.CreateButtonStyle(
-                InventoryPanelChrome.ButtonNormalColor, Border, 1));
-            button.AddThemeStyleboxOverride("hover", InventoryPanelChrome.CreateButtonStyle(
-                InventoryPanelChrome.ButtonHoverColor, Accent, 1));
-            button.AddThemeStyleboxOverride("pressed", InventoryPanelChrome.CreateButtonStyle(
-                DeepSurface, Accent, 1));
-            button.AddThemeColorOverride("font_color", MainText);
-            button.AddThemeColorOverride("font_hover_color", Colors.White);
+            PixelButtonSkin.ApplyPrimary(button, PixelButtonSkin.RegularHeight);
             return button;
         }
 

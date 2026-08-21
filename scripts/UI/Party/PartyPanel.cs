@@ -309,8 +309,10 @@ namespace AshesofaDyingWorld.UI.Party
             moveRow.AddThemeConstantOverride("separation", 8);
             column.AddChild(moveRow);
             _moveLeftButton = CreateActionButton("← DỜI TRÁI", () => MoveSelected(-1));
+            PixelButtonSkin.ApplySecondary(_moveLeftButton, PixelButtonSkin.RegularHeight);
             moveRow.AddChild(_moveLeftButton);
             _moveRightButton = CreateActionButton("DỜI PHẢI →", () => MoveSelected(1));
+            PixelButtonSkin.ApplySecondary(_moveRightButton, PixelButtonSkin.RegularHeight);
             moveRow.AddChild(_moveRightButton);
 
             _actionHintLabel = CreateLabel("", 11, MutedText);
@@ -661,12 +663,7 @@ namespace AshesofaDyingWorld.UI.Party
             foreach (KeyValuePair<CompanionCommandMode, Button> pair in _commandButtons)
             {
                 bool selected = pair.Key == companion.CommandMode;
-                pair.Value.AddThemeStyleboxOverride(
-                    "normal",
-                    InventoryPanelChrome.CreateButtonStyle(
-                        selected ? DeepSurface : InventoryPanelChrome.ButtonNormalColor,
-                        selected ? Accent : Border,
-                        selected ? 2 : 1));
+                PixelButtonSkin.ApplyTab(pair.Value, selected, PixelButtonSkin.CompactHeight);
                 pair.Value.AddThemeColorOverride("font_color", selected ? Accent : MainText);
             }
 
@@ -862,17 +859,7 @@ namespace AshesofaDyingWorld.UI.Party
             button.SizeFlagsHorizontal = SizeFlags.ExpandFill;
             button.FocusMode = FocusModeEnum.None;
             button.MouseDefaultCursorShape = CursorShape.PointingHand;
-            button.AddThemeStyleboxOverride(
-                "normal",
-                InventoryPanelChrome.CreateButtonStyle(InventoryPanelChrome.ButtonNormalColor, Border, 1));
-            button.AddThemeStyleboxOverride(
-                "hover",
-                InventoryPanelChrome.CreateButtonStyle(InventoryPanelChrome.ButtonHoverColor, Accent, 1));
-            button.AddThemeStyleboxOverride(
-                "pressed",
-                InventoryPanelChrome.CreateButtonStyle(DeepSurface, Accent, 1));
-            button.AddThemeColorOverride("font_color", MainText);
-            button.AddThemeColorOverride("font_hover_color", Colors.White);
+            PixelButtonSkin.ApplyPrimary(button, PixelButtonSkin.RegularHeight);
             if (action != null) button.Pressed += action;
             return button;
         }

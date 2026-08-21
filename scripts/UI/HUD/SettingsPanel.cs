@@ -805,76 +805,19 @@ namespace AshesofaDyingWorld.UI.HUD
 
         private void StylePrimaryButton(Button button)
         {
-            button.AddThemeStyleboxOverride(
-                "normal",
-                InventoryPanelChrome.CreateButtonStyle(
-                    InventoryPanelChrome.RaisedSurfaceColor,
-                    InventoryPanelChrome.AccentColor.Darkened(0.1f),
-                    1));
-            button.AddThemeStyleboxOverride(
-                "hover",
-                InventoryPanelChrome.CreateButtonStyle(
-                    InventoryPanelChrome.RaisedSurfaceColor.Lightened(0.08f),
-                    InventoryPanelChrome.AccentColor,
-                    1));
-            button.AddThemeStyleboxOverride(
-                "pressed",
-                InventoryPanelChrome.CreateButtonStyle(
-                    InventoryPanelChrome.DeepSurfaceColor,
-                    InventoryPanelChrome.AccentColor,
-                    2));
-            button.AddThemeColorOverride("font_color", InventoryPanelChrome.MainTextColor);
-            button.AddThemeColorOverride("font_hover_color", Colors.White);
+            PixelButtonSkin.ApplyPrimary(button, PixelButtonSkin.RegularHeight);
         }
 
         private void StyleSecondaryButton(Button button)
         {
-            button.AddThemeStyleboxOverride(
-                "normal",
-                InventoryPanelChrome.CreateButtonStyle(
-                    InventoryPanelChrome.ButtonNormalColor,
-                    InventoryPanelChrome.BorderColor,
-                    1));
-            button.AddThemeStyleboxOverride(
-                "hover",
-                InventoryPanelChrome.CreateButtonStyle(
-                    InventoryPanelChrome.ButtonHoverColor,
-                    InventoryPanelChrome.StrongBorderColor,
-                    1));
-            button.AddThemeStyleboxOverride(
-                "pressed",
-                InventoryPanelChrome.CreateButtonStyle(
-                    InventoryPanelChrome.DeepSurfaceColor,
-                    InventoryPanelChrome.AccentColor,
-                    1));
-            button.AddThemeColorOverride("font_color", InventoryPanelChrome.MutedTextColor);
-            button.AddThemeColorOverride("font_hover_color", InventoryPanelChrome.MainTextColor);
+            PixelButtonSkin.ApplySecondary(button, PixelButtonSkin.RegularHeight);
         }
 
         private void StyleOptionButton(OptionButton option)
         {
             option.MouseDefaultCursorShape = CursorShape.PointingHand;
-            option.AddThemeStyleboxOverride(
-                "normal",
-                InventoryPanelChrome.CreateButtonStyle(
-                    InventoryPanelChrome.DeepSurfaceColor,
-                    InventoryPanelChrome.BorderColor,
-                    1));
-            option.AddThemeStyleboxOverride(
-                "hover",
-                InventoryPanelChrome.CreateButtonStyle(
-                    InventoryPanelChrome.RaisedSurfaceColor,
-                    InventoryPanelChrome.StrongBorderColor,
-                    1));
-            option.AddThemeStyleboxOverride(
-                "pressed",
-                InventoryPanelChrome.CreateButtonStyle(
-                    InventoryPanelChrome.DeepSurfaceColor,
-                    InventoryPanelChrome.AccentColor,
-                    1));
+            PixelButtonSkin.ApplySecondary(option, PixelButtonSkin.TabHeight);
             option.AddThemeColorOverride("font_color", InventoryPanelChrome.MainTextColor);
-            option.AddThemeColorOverride("font_hover_color", Colors.White);
-            option.AddThemeColorOverride("font_disabled_color", new Color(1f, 1f, 1f, 0.34f));
         }
 
         private static StyleBoxFlat MakeRowStyle()

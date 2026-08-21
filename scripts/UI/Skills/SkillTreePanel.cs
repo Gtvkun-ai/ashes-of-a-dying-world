@@ -633,15 +633,8 @@ namespace AshesofaDyingWorld.UI.Skills
                 return;
             }
 
-            Color background = selected
-                ? new Color(accent.R, accent.G, accent.B, 0.20f)
-                : InventoryPanelChrome.ButtonNormalColor;
-            Color border = selected ? accent : InventoryPanelChrome.BorderColor;
-            button.AddThemeStyleboxOverride("normal", InventoryPanelChrome.CreateButtonStyle(background, border, selected ? 2 : 1));
-            button.AddThemeStyleboxOverride("hover", InventoryPanelChrome.CreateButtonStyle(InventoryPanelChrome.ButtonHoverColor, accent, 1));
-            button.AddThemeStyleboxOverride("pressed", InventoryPanelChrome.CreateButtonStyle(InventoryPanelChrome.DeepSurfaceColor, accent, 2));
+            PixelButtonSkin.ApplyTab(button, selected, PixelButtonSkin.CompactHeight, 126f);
             button.AddThemeColorOverride("font_color", selected ? InventoryPanelChrome.MainTextColor : InventoryPanelChrome.MutedTextColor);
-            button.AddThemeColorOverride("font_hover_color", InventoryPanelChrome.MainTextColor);
         }
 
         private Button CreatePrimaryButton(string text)
@@ -654,11 +647,7 @@ namespace AshesofaDyingWorld.UI.Skills
                 FocusMode = FocusModeEnum.None,
                 MouseDefaultCursorShape = CursorShape.PointingHand
             };
-            button.AddThemeStyleboxOverride("normal", InventoryPanelChrome.CreateButtonStyle(InventoryPanelChrome.ButtonNormalColor, InventoryPanelChrome.AccentColor, 2));
-            button.AddThemeStyleboxOverride("hover", InventoryPanelChrome.CreateButtonStyle(InventoryPanelChrome.ButtonHoverColor, InventoryPanelChrome.AccentColor.Lightened(0.15f), 2));
-            button.AddThemeStyleboxOverride("pressed", InventoryPanelChrome.CreateButtonStyle(InventoryPanelChrome.DeepSurfaceColor, InventoryPanelChrome.AccentColor, 2));
-            button.AddThemeColorOverride("font_color", InventoryPanelChrome.MainTextColor);
-            button.AddThemeColorOverride("font_hover_color", Colors.White);
+            PixelButtonSkin.ApplyPrimary(button, PixelButtonSkin.RegularHeight);
             return button;
         }
 

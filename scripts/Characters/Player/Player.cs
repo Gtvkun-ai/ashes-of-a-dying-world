@@ -25,7 +25,9 @@ public partial class Player : CombatCharacter
         if (_inventory == null)
         {
             _inventory = new InventoryManager { Name = "InventoryManager" };
-            AddChild(_inventory);
+            // OnCombatReady được gọi từ _Ready của CharacterBody2D; attach deferred để
+            // không va vào pha Godot đang dựng children.
+            CallDeferred("add_child", _inventory);
         }
 
         // Dựng trạng thái kỹ năng runtime sau khi các component combat đã sẵn sàng.

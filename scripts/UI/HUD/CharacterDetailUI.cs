@@ -1353,12 +1353,8 @@ namespace AshesofaDyingWorld.UI.HUD
 			{
 				bool active = pair.Key == _currentSkillFilter;
 				pair.Value.Text = GetSkillFilterCaption(pair.Key);
-				pair.Value.AddThemeStyleboxOverride("normal", CreateSkillFilterChipStyle(active));
-				pair.Value.AddThemeStyleboxOverride("hover", CreateSkillFilterChipHoverStyle(active));
-				pair.Value.AddThemeStyleboxOverride("pressed", CreateSkillFilterChipHoverStyle(true));
+				PixelButtonSkin.ApplyTab(pair.Value, active, PixelButtonSkin.CompactHeight);
 				pair.Value.AddThemeColorOverride("font_color", active ? _mainTextColor : _subTextColor);
-				pair.Value.AddThemeColorOverride("font_hover_color", _mainTextColor);
-				pair.Value.AddThemeColorOverride("font_pressed_color", _mainTextColor);
 			}
 
 			if (_skillPointsLabel != null)
@@ -1839,15 +1835,11 @@ namespace AshesofaDyingWorld.UI.HUD
 		{
 			var button = new Button();
 			button.Text = text;
-			button.CustomMinimumSize = new Vector2(0, 34);
+			button.CustomMinimumSize = new Vector2(0, 38);
 			button.SizeFlagsHorizontal = SizeFlags.ExpandFill;
 			button.FocusMode = FocusModeEnum.None;
 			button.MouseDefaultCursorShape = CursorShape.PointingHand;
-			button.AddThemeStyleboxOverride("normal", InventoryPanelChrome.CreateButtonStyle(InventoryPanelChrome.ButtonNormalColor, _borderColor, 1));
-			button.AddThemeStyleboxOverride("hover", InventoryPanelChrome.CreateButtonStyle(InventoryPanelChrome.ButtonHoverColor, _accentColor, 1));
-			button.AddThemeStyleboxOverride("pressed", InventoryPanelChrome.CreateButtonStyle(_deepSurfaceColor, _accentColor, 1));
-			button.AddThemeColorOverride("font_color", _mainTextColor);
-			button.AddThemeColorOverride("font_hover_color", Colors.White);
+			PixelButtonSkin.ApplyPrimary(button, PixelButtonSkin.RegularHeight);
 			if (onPressed != null)
 			{
 				button.Pressed += onPressed;
@@ -1879,13 +1871,8 @@ namespace AshesofaDyingWorld.UI.HUD
 		{
 			if (button == null) return;
 
-			// Tab active chỉ dùng một gạch chân sáng, tránh đóng hộp mọi thứ.
-			button.AddThemeStyleboxOverride("normal", CreateCharacterTabStyle(active, false));
-			button.AddThemeStyleboxOverride("hover", CreateCharacterTabStyle(active, true));
-			button.AddThemeStyleboxOverride("pressed", CreateCharacterTabStyle(true, true));
+			PixelButtonSkin.ApplyTab(button, active, PixelButtonSkin.RegularHeight, 126f);
 			button.AddThemeColorOverride("font_color", active ? _mainTextColor : _subTextColor);
-			button.AddThemeColorOverride("font_hover_color", _mainTextColor);
-			button.AddThemeColorOverride("font_pressed_color", _accentColor);
 			button.AddThemeFontSizeOverride("font_size", 14);
 		}
 

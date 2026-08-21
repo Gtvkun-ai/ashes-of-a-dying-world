@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using AshesofaDyingWorld.UI.HUD;
 using AshesofaDyingWorld.UI.Skills;
 using AshesofaDyingWorld.UI.Quests;
+using AshesofaDyingWorld.UI.Shared;
 using PartyManagementPanel = AshesofaDyingWorld.UI.Party.PartyPanel;
 using AshesofaDyingWorld.Quests.Runtime;
 
@@ -65,8 +66,37 @@ namespace AshesofaDyingWorld.UI.Menus
             // Không cần tạo thêm ở đây
             
             HideAllPanels();
+            ApplyFeatureButtonSkins();
             RegisterPanelVisibilityHandlers();
             ConnectFeatureButtons();
+        }
+
+        private void ApplyFeatureButtonSkins()
+        {
+            // MenuButton góc HUD là icon riêng nên giữ nguyên. Các nút mở panel dùng
+            // chung secondary skin; 9-slice tự co giãn theo kích thước 120x80 hiện có.
+            Button[] featureButtons =
+            {
+                CharacterButton,
+                InventoryButton,
+                SkillsButton,
+                QuestsButton,
+                PartyButton,
+                MapButton,
+                AchievementsButton,
+                SettingsButton
+            };
+
+            foreach (Button button in featureButtons)
+            {
+                if (button == null)
+                {
+                    continue;
+                }
+
+                PixelButtonSkin.ApplySecondary(button, PixelButtonSkin.FeatureTileHeight, PixelButtonSkin.FeatureTileWidth);
+                button.AddThemeFontSizeOverride("font_size", 13);
+            }
         }
 
         private void ConnectFeatureButtons()

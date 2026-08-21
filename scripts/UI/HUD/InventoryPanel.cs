@@ -80,8 +80,6 @@ namespace AshesofaDyingWorld.UI.Menus
         private Color _mainTextColor => InventoryPanelChrome.MainTextColor;
         private Color _mutedTextColor => InventoryPanelChrome.MutedTextColor;
         private readonly Color _categoryColor = new("#79a85c");
-        private readonly Color _equipColor = new("#657d4d");
-        private readonly Color _dropColor = new("#8f5548");
         private readonly Color _dangerColor = new("#6b342d");
 
         private InventoryManager _inventoryManager;
@@ -400,7 +398,7 @@ namespace AshesofaDyingWorld.UI.Menus
             actionRow.AddThemeConstantOverride("separation", 10);
             detail.AddChild(actionRow);
 
-            _primaryActionButton = CreateActionButton("Equip", _equipColor);
+            _primaryActionButton = CreateActionButton("Equip");
             _primaryActionButton.Pressed += OnPrimaryActionPressed;
             actionRow.AddChild(_primaryActionButton);
 
@@ -964,7 +962,7 @@ namespace AshesofaDyingWorld.UI.Menus
             return InventoryPanelChrome.CreateLabel(text, fontSize, color);
         }
 
-        private Button CreateActionButton(string text, Color color)
+        private Button CreateActionButton(string text)
         {
             var button = new Button();
             button.Text = text;
@@ -972,22 +970,13 @@ namespace AshesofaDyingWorld.UI.Menus
             button.CustomMinimumSize = new Vector2(0, 44);
             button.FocusMode = FocusModeEnum.None;
             button.MouseDefaultCursorShape = CursorShape.PointingHand;
-            // Nút không tô xanh cả mảng khi đứng yên. Màu chức năng nằm ở chữ/viền,
-            // hover mới sáng lên. Cách này gần mockup hơn và bớt cảm giác UI mobile.
-            button.AddThemeStyleboxOverride("normal", CreateButtonStyle(_deepSurfaceColor.Lightened(0.035f), color.Darkened(0.2f), 1));
-            button.AddThemeStyleboxOverride("hover", CreateButtonStyle(_raisedSurfaceColor.Lightened(0.04f), color.Lightened(0.12f), 1));
-            button.AddThemeStyleboxOverride("pressed", CreateButtonStyle(_deepSurfaceColor.Darkened(0.04f), color, 2));
-            button.AddThemeStyleboxOverride("disabled", CreateButtonStyle(_deepSurfaceColor, _borderColor.Darkened(0.2f), 1));
-            button.AddThemeColorOverride("font_color", color.Lightened(0.3f));
-            button.AddThemeColorOverride("font_hover_color", Colors.White);
-            button.AddThemeColorOverride("font_disabled_color", new Color(1f, 1f, 1f, 0.38f));
+            PixelButtonSkin.ApplyPrimary(button, PixelButtonSkin.LargeActionHeight);
             button.AddThemeFontSizeOverride("font_size", 15);
             return button;
         }
 
         /// <summary>
-        /// Drop là hành động nguy hiểm nhưng không cần đỏ rực khi đứng yên.
-        /// Bình thường chỉ dùng viền đỏ; hover mới tô nền để giảm cảm giác "hai nút app nội bộ".
+        /// Drop dùng danger skin riêng để hành động phá huỷ luôn khác primary/secondary.
         /// </summary>
         private Button CreateDangerActionButton(string text)
         {
@@ -997,25 +986,14 @@ namespace AshesofaDyingWorld.UI.Menus
             button.CustomMinimumSize = new Vector2(0, 44);
             button.FocusMode = FocusModeEnum.None;
             button.MouseDefaultCursorShape = CursorShape.PointingHand;
-
-            button.AddThemeStyleboxOverride("normal", CreateButtonStyle(_deepSurfaceColor.Lightened(0.035f), _dropColor.Darkened(0.22f), 1));
-            button.AddThemeStyleboxOverride("hover", CreateButtonStyle(_raisedSurfaceColor.Lightened(0.035f), _dropColor.Lightened(0.08f), 1));
-            button.AddThemeStyleboxOverride("pressed", CreateButtonStyle(_deepSurfaceColor.Darkened(0.04f), _dropColor, 2));
-            button.AddThemeStyleboxOverride("disabled", CreateButtonStyle(_deepSurfaceColor, _borderColor.Darkened(0.2f), 1));
-            button.AddThemeColorOverride("font_color", new Color("#dca99d"));
-            button.AddThemeColorOverride("font_hover_color", Colors.White);
-            button.AddThemeColorOverride("font_disabled_color", new Color(1f, 1f, 1f, 0.32f));
+            PixelButtonSkin.ApplyDanger(button, PixelButtonSkin.LargeActionHeight);
             button.AddThemeFontSizeOverride("font_size", 15);
             return button;
         }
 
         private void ApplySecondaryButtonStyle(Button button)
         {
-            button.AddThemeStyleboxOverride("normal", CreateButtonStyle(_deepSurfaceColor.Lightened(0.04f), _borderColor, 1));
-            button.AddThemeStyleboxOverride("hover", CreateButtonStyle(_raisedSurfaceColor.Lightened(0.04f), _strongBorderColor, 1));
-            button.AddThemeStyleboxOverride("pressed", CreateButtonStyle(_deepSurfaceColor.Darkened(0.04f), _accentColor.Darkened(0.1f), 2));
-            button.AddThemeColorOverride("font_color", _mainTextColor);
-            button.AddThemeColorOverride("font_hover_color", Colors.White);
+            PixelButtonSkin.ApplySecondary(button, PixelButtonSkin.RegularHeight);
             button.AddThemeFontSizeOverride("font_size", 14);
         }
 

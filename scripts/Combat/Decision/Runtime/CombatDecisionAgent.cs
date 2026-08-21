@@ -314,7 +314,10 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             // Sensor corridor được dùng chung cho perception và validation lúc đang cast.
             // Không dùng RayCast mảnh cho projectile rộng, vì AI sẽ nghĩ bắn lọt những khe mà đạn thật không lọt.
             _lineOfFireSensor = new CombatLineOfFireSensor { Name = "LineOfFireSensorRuntime" };
-            AddChild(_lineOfFireSensor);
+            // Dựng ShapeCast khi sensor còn detached, rồi mới attach cả cụm ở deferred frame.
+            // Như vậy không có AddChild chen vào lúc scene tree đang setup children.
+            _lineOfFireSensor.PrepareRuntime();
+            CallDeferred("add_child", _lineOfFireSensor);
             _primaryProjectileSpec = ClassProfile?.GetPrimarySkill()?.CombatAction?.ResolveProjectileSpec();
 
             var threatPredictor = new ThreatPredictor(ThreatDangerRange, ThreatFacingDot);
