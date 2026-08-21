@@ -2,6 +2,7 @@ using Godot;
 using AshesofaDyingWorld.Combat.Actors;
 using AshesofaDyingWorld.Combat.AI;
 using AshesofaDyingWorld.Combat.Model;
+using AshesofaDyingWorld.Core.Managers;
 using AshesofaDyingWorld.UI.HUD;
 
 /// <summary>
@@ -37,9 +38,17 @@ public partial class Slime1 : CombatCharacter
     protected override void OnDefeated(CombatCharacter attacker)
     {
         EnemyHealthBarService.Instance?.UnregisterEnemy(this);
-        if (attacker is Slime1 slimeAttacker)
+
+        if (attacker == null
+            || (attacker.Faction != CombatFaction.Player && attacker.Faction != CombatFaction.Companion))
         {
-            slimeAttacker.GainLevel(1);
+            return;
+        }
+
+        int experienceReward = Stats?.ManualProfileData?.ExperienceReward ?? 0;
+        if (experienceReward > 0)
+        {
+            PlayerManager.Instance?.GrantExperienceToParty(experienceReward);
         }
     }
 

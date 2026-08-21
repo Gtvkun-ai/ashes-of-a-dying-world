@@ -153,7 +153,10 @@ namespace AshesofaDyingWorld.UI.HUD
 
         private void UpdateSelection(int activeIndex)
         {
-            if (unitHUDs == null) return;
+            if (unitHUDs == null)
+            {
+                return;
+            }
 
             for (int i = 0; i < unitHUDs.Length; i++)
             {

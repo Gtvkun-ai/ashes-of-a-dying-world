@@ -22,6 +22,7 @@ namespace AshesofaDyingWorld.Combat.Projectiles
         private ProjectileSpecData _spec;
         private ProjectileVisualProfileData _visual;
         private Vector2 _direction = Vector2.Right;
+        private float _damageMultiplier = 1f;
         private ShapeCast2D _shapeCast;
         private Node2D _visualPivot;
         private Sprite2D _coreVisual;
@@ -37,11 +38,13 @@ namespace AshesofaDyingWorld.Combat.Projectiles
             CombatCharacter attacker,
             CombatActionData action,
             ProjectileSpecData spec,
-            Vector2 direction)
+            Vector2 direction,
+            float damageMultiplier = 1f)
         {
             _attacker = attacker;
             _action = action;
             _spec = spec;
+            _damageMultiplier = Mathf.Max(0f, damageMultiplier);
             _visual = spec?.VisualProfile ?? new ProjectileVisualProfileData();
             _direction = direction.LengthSquared() <= 0.001f
                 ? Vector2.Right
@@ -361,7 +364,8 @@ namespace AshesofaDyingWorld.Combat.Projectiles
                     _action,
                     hitProfile,
                     GlobalPosition,
-                    _direction);
+                    _direction,
+                    _damageMultiplier);
                 if (!result.Applied)
                 {
                     continue;

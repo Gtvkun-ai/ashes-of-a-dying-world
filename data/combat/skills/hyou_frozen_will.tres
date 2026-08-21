@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3 uid="uid://cxbaeen28sggf"]
 
 [ext_resource type="Script" path="res://scripts/Combat/Abilities/SkillData.cs" id="1_skill"]
 [ext_resource type="Texture2D" path="res://data/icons/def.tres" id="2_icon"]
@@ -8,15 +8,15 @@ script = ExtResource("1_skill")
 SkillId = "hyou_frozen_will"
 SkillName = "Ý chí băng giá"
 Icon = ExtResource("2_icon")
-Description = "Giữ tâm trí tĩnh lặng, tăng 10% tốc độ và 10% Dexterity trong 25 giây."
+Description = "Giữ tâm trí lạnh và ổn định, tăng 8% tốc độ và 10% Dexterity trong 18 giây."
 Category = 0
 Element = 2
 MaxLevel = 1
 DefaultUnlocked = false
 ExecutionType = 0
-Duration = 25.0
-MoveSpeedBonusPercent = 10.0
+Duration = 18.0
+MoveSpeedBonusPercent = 8.0
 DexterityBonusPercent = 10.0
-Cooldown = 60.0
-ManaCost = 8
+Cooldown = 42.0
+ManaCost = 14
 StaminaCost = 0

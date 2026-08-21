@@ -6,8 +6,8 @@ namespace AshesofaDyingWorld.Core.Save
 {
     public sealed class SaveGameData
     {
-        // Version 6 bổ sung mệnh lệnh companion; save cũ vẫn tải vì field mới có mặc định rỗng.
-        public int Version { get; set; } = 6;
+        // Version 7 bổ sung XP/level progression; save cũ vẫn tải với XP mặc định bằng 0.
+        public int Version { get; set; } = 7;
         public string SavedAtUtc { get; set; } = "";
         public string ScenePath { get; set; } = "";
         public Vector2SaveData PlayerPosition { get; set; } = new();
@@ -31,6 +31,7 @@ namespace AshesofaDyingWorld.Core.Save
         public string CharacterConfigPath { get; set; } = "";
         public string CharacterId { get; set; } = "";
         public int Level { get; set; } = 1;
+        public int Experience { get; set; } = 0;
         public float CurrentHP { get; set; }
         public float CurrentMP { get; set; }
         public float CurrentStamina { get; set; }
@@ -59,6 +60,8 @@ namespace AshesofaDyingWorld.Core.Save
     public sealed class PartySkillProgressSaveData
     {
         public string CharacterId { get; set; } = "";
+        public int Level { get; set; } = 1;
+        public int Experience { get; set; } = 0;
         public List<SkillStateSaveData> SkillStates { get; set; } = new();
         public int UnspentSkillPoints { get; set; }
     }

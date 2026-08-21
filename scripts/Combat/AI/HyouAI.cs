@@ -476,7 +476,7 @@ namespace AshesofaDyingWorld.Entities.NPC
                     continue;
                 }
 
-                if (!FactionRules.CanDamage(_character.Faction, candidate.Faction))
+                if (!FactionRules.IsHostile(_character.Faction, candidate.Faction))
                 {
                     continue;
                 }

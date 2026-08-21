@@ -39,7 +39,8 @@ namespace AshesofaDyingWorld.Combat.Runtime
                         actionEvent.ProjectileSpec,
                         direction,
                         actionEvent.OriginSocketPath,
-                        owner.Actions?.CurrentAimTarget) != null;
+                        owner.Actions?.CurrentAimTarget,
+                        owner.Actions?.CurrentDamageMultiplier ?? 1f) != null;
                     if (spawned)
                     {
                         CombatFeedbackService.GetOrCreate(owner.GetTree())?
@@ -93,7 +94,8 @@ namespace AshesofaDyingWorld.Combat.Runtime
                 action.ProjectileSpec,
                 direction,
                 new NodePath("CastOrigin"),
-                owner.Actions?.CurrentAimTarget) != null;
+                owner.Actions?.CurrentAimTarget,
+                owner.Actions?.CurrentDamageMultiplier ?? 1f) != null;
         }
     }
 }

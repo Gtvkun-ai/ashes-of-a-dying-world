@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="CombatStatProfileData" load_steps=2 format=3 uid="uid://d1s7l4m3b8s2c"]
+
+[ext_resource type="Script" path="res://scripts/Characters/Data/CombatStatProfileData.cs" id="1_profile"]
+
+[resource]
+script = ExtResource("1_profile")
+ProfileId = "slime_basic"
+ExperienceReward = 20
+Strength = 4
+Dexterity = 3
+Intelligence = 0
+Vitality = 4
+Spirit = 2
+Defense = 1
+MaxHP = 200.0
+MaxMP = 0.0
+MaxStamina = 0.0
+MaxGuard = 0.0
+MaxPoise = 28.0
+PhysicalPower = 18.0
+MagicPower = 0.0
+Armor = 0.0
+MagicResistance = 2.0
+AttackSpeed = 1.0
+ManaRegenRate = 0.0
+StaminaRegenRate = 0.0
+GuardRegenRate = 0.0
+PoiseRegenRate = 8.0
+ManaRegenDelay = 2.0
+StaminaRegenDelay = 0.35
+GuardRegenDelay = 0.8
+PoiseRegenDelay = 1.1

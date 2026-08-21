@@ -31,6 +31,7 @@ namespace AshesofaDyingWorld.UI.HUD
 		private Label _raceLabel;
 		private Label _sidebarNameLabel;
 		private Label _sidebarLevelLabel;
+		private Label _sidebarExperienceLabel;
 		private Label _portraitPlaceholderLabel;
 		private Label _attackValueLabel;
 		private Label _speedValueLabel;
@@ -402,6 +403,8 @@ namespace AshesofaDyingWorld.UI.HUD
 			identityColumn.AddChild(_raceLabel);
 			_sidebarLevelLabel = CreateLabel("Cấp 01", 12, _subTextColor);
 			identityColumn.AddChild(_sidebarLevelLabel);
+			_sidebarExperienceLabel = CreateLabel("0 / 100 XP", 11, _subTextColor);
+			identityColumn.AddChild(_sidebarExperienceLabel);
 
 			identityColumn.AddChild(CreateSectionSpacer(12));
 			identityColumn.AddChild(CreateSectionTitle("TỔ ĐỘI", HorizontalAlignment.Left));
@@ -2043,6 +2046,12 @@ namespace AshesofaDyingWorld.UI.HUD
 			_levelLabel.Text = $"Cấp {currentStats.CurrentLevel:00}";
 			_sidebarNameLabel.Text = config.Name;
 			_sidebarLevelLabel.Text = $"Cấp {currentStats.CurrentLevel:00}";
+			if (_sidebarExperienceLabel != null)
+			{
+				_sidebarExperienceLabel.Text = currentStats.IsAtMaxLevel
+					? "XP · TỐI ĐA"
+					: $"XP {currentStats.CurrentExperience:N0} / {currentStats.ExperienceToNextLevel:N0} · còn {currentStats.ExperienceRemaining:N0}";
+			}
 			_raceLabel.Text = config.CharacterRace?.RaceName ?? "Không rõ";
 			
 			// Cập nhật theme color từ character config
@@ -2165,20 +2174,17 @@ namespace AshesofaDyingWorld.UI.HUD
 				}
 			}
 
-			// Công vật lý dùng giá trị đã tính của PlayerStats.
+			// Công hiển thị power chính của build: Physical hoặc Magic, lấy giá trị cao hơn.
 			if (_attackValueLabel != null)
-				_attackValueLabel.Text = Mathf.RoundToInt(stats.AttackDamage).ToString();
+				_attackValueLabel.Text = Mathf.RoundToInt(stats.PrimaryPower).ToString();
 
-			// Wireframe hiển thị số nguyên, vì vậy Tốc độ dùng DEX và Kháng phép dùng SPI.
-			// Sau này nếu có stat riêng, chỉ cần đổi hai dòng lấy dữ liệu bên dưới.
+			// Wireframe vẫn dùng DEX cho ô tốc độ; ô kháng phép giờ dùng derived MagicResistance thật.
 			int dexterity = 0;
-			int spirit = 0;
 			stats.FinalAttributes?.TryGetValue(AttributeType.Dexterity, out dexterity);
-			stats.FinalAttributes?.TryGetValue(AttributeType.Spirit, out spirit);
 			if (_speedValueLabel != null)
 				_speedValueLabel.Text = dexterity.ToString();
 			if (_armorValueLabel != null)
-				_armorValueLabel.Text = spirit.ToString();
+				_armorValueLabel.Text = Mathf.RoundToInt(stats.MagicResistance).ToString();
 
 			// Project hiện chưa có trường điểm thuộc tính chưa dùng, nên tạm hiển thị 0.
 			// Khi thêm hệ thống tăng điểm, chỉ cần gán giá trị thật cho label này.

@@ -341,7 +341,7 @@ namespace AshesofaDyingWorld.Core.Managers
                 }
             }
 
-            stats.SetCurrentLevel(playerData.Level);
+            stats.RestoreProgression(playerData.Level, playerData.Experience);
 
             InventoryManager inventory = player.GetInventoryManager();
             inventory?.RestoreItems(playerData.InventoryItemPaths);
@@ -403,22 +403,26 @@ namespace AshesofaDyingWorld.Core.Managers
             {
                 if (member == null || member == playerStats || member.ConfigData == null) continue;
                 PlayerSkillCollection collection = SkillCollectionResolver.Resolve(member);
-                if (collection == null) continue;
 
                 var entry = new PartySkillProgressSaveData
                 {
                     CharacterId = member.ConfigData.ID ?? "",
-                    UnspentSkillPoints = collection.UnspentSkillPoints
+                    Level = member.CurrentLevel,
+                    Experience = member.CurrentExperience,
+                    UnspentSkillPoints = collection?.UnspentSkillPoints ?? 0
                 };
-                foreach (PlayerSkillState state in collection.CaptureStates())
+                if (collection != null)
                 {
-                    entry.SkillStates.Add(new SkillStateSaveData
+                    foreach (PlayerSkillState state in collection.CaptureStates())
                     {
-                        SkillId = state.SkillId,
-                        Level = state.Level,
-                        IsUnlocked = state.IsUnlocked,
-                        EquippedSlot = state.EquippedSlot
-                    });
+                        entry.SkillStates.Add(new SkillStateSaveData
+                        {
+                            SkillId = state.SkillId,
+                            Level = state.Level,
+                            IsUnlocked = state.IsUnlocked,
+                            EquippedSlot = state.EquippedSlot
+                        });
+                    }
                 }
                 result.Add(entry);
             }
@@ -434,6 +438,7 @@ namespace AshesofaDyingWorld.Core.Managers
                 foreach (PlayerStats member in PlayerManager.Instance.PartyMembers)
                 {
                     if (member == null || member == player?.GetStatsNode() || member.ConfigData?.ID != entry.CharacterId) continue;
+                    member.RestoreProgression(entry.Level, entry.Experience);
                     PlayerSkillCollection collection = SkillCollectionResolver.Resolve(member);
                     var states = new List<PlayerSkillState>();
                     if (entry.SkillStates != null)
@@ -537,7 +542,7 @@ namespace AshesofaDyingWorld.Core.Managers
 
             return new SaveGameData
             {
-                Version = 6,
+                Version = 7,
                 SavedAtUtc = DateTime.UtcNow.ToString("O"),
                 ScenePath = GetTree().CurrentScene?.SceneFilePath ?? string.Empty,
                 PlayerPosition = Vector2SaveData.FromVector2(player.GlobalPosition),
@@ -552,6 +557,7 @@ namespace AshesofaDyingWorld.Core.Managers
                     CharacterConfigPath = stats.ConfigData?.ResourcePath ?? string.Empty,
                     CharacterId = stats.ConfigData?.ID ?? string.Empty,
                     Level = stats.CurrentLevel,
+                    Experience = stats.CurrentExperience,
                     CurrentHP = stats.CurrentHP,
                     CurrentMP = stats.CurrentMP,
                     CurrentStamina = stats.CurrentStamina,

@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="CombatActionData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="CombatActionData" load_steps=3 format=3 uid="uid://nfr2k324qaul"]
 
 [ext_resource type="Script" path="res://scripts/Combat/Data/CombatActionData.cs" id="1"]
 [ext_resource type="Resource" path="res://data/combat/hit_profiles/wood_sword_light_2.tres" id="2"]
@@ -17,7 +17,7 @@ StartupSeconds = 0.1
 ActiveSeconds = 0.12
 RecoverySeconds = 0.24
 InputBufferSeconds = 0.22
-StaminaCost = 12.0
+StaminaCost = 7.0
 LungeSpeed = 64.0
 MovementInputMultiplier = 0.24
 HitProfile = ExtResource("2")

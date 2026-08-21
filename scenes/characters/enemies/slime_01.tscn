@@ -1,10 +1,11 @@
-[gd_scene load_steps=42 format=3 uid="uid://2cobf3p3jhuw"]
+[gd_scene load_steps=43 format=3 uid="uid://2cobf3p3jhuw"]
 
 [ext_resource type="Texture2D" uid="uid://cuo7to38hr3re" path="res://assets/graphics/characters/enemies/slime/slime_sheet.png" id="1_cs26v"]
 [ext_resource type="Script" uid="uid://bopjo761a1dq6" path="res://scripts/Characters/Enemies/Slime1.cs" id="1_t3ufe"]
 [ext_resource type="Script" uid="uid://cqcbhn0crt0fx" path="res://scripts/Characters/Stats/PlayerStats.cs" id="2_stats"]
 [ext_resource type="Script" path="res://scripts/Combat/AI/SlimeBrain.cs" id="3_brain"]
 [ext_resource type="Resource" path="res://data/combat/movesets/slime.tres" id="4_moveset"]
+[ext_resource type="Resource" uid="uid://d1s7l4m3b8s2c" path="res://data/combat/stat_profiles/slime_basic.tres" id="5_stats_profile"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_tebun"]
 atlas = ExtResource("1_cs26v")
@@ -335,18 +336,8 @@ shape = SubResource("RectangleShape2D_8ov0e")
 [node name="PlayerStats" type="Node" parent="."]
 script = ExtResource("2_stats")
 AutoRegisterWithPlayerManager = false
-InitialLevel = 5
 UseManualProfile = true
-ManualMaxHP = 600.0
-ManualMaxMP = 0.0
-ManualMaxStamina = 0.0
-ManualMaxGuard = 0.0
-ManualMaxPoise = 30.0
-ManualAttackPower = 10.0
-ManualArmor = 0.0
-ManualAttackSpeed = 1.0
-StaminaRegenRate = 0.0
-GuardRegenRate = 0.0
+ManualProfileData = ExtResource("5_stats_profile")
 
 [node name="SlimeBrain" type="Node" parent="."]
 script = ExtResource("3_brain")

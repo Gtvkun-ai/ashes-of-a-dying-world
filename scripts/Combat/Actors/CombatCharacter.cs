@@ -36,8 +36,8 @@ namespace AshesofaDyingWorld.Combat.Actors
         [ExportGroup("Movement")]
         [Export] public float Speed { get; set; } = 100f;
         [Export] public float RunSpeed { get; set; } = 180f;
-        [Export] public float RunStaminaCost { get; set; } = 20f;
-        [Export] public float MinStaminaToRun { get; set; } = 25f;
+        [Export] public float RunStaminaCost { get; set; } = 12f;
+        [Export] public float MinStaminaToRun { get; set; } = 10f;
         [Export] public float Acceleration { get; set; } = 1200f;
         [Export] public float Deceleration { get; set; } = 1600f;
         [Export] public float ExternalForceDecay { get; set; } = 900f;
@@ -354,7 +354,7 @@ namespace AshesofaDyingWorld.Combat.Actors
             Vector2 direction = target == null
                 ? FacingDirection
                 : (target.CombatCenter - CombatCenter).Normalized();
-            return TryResolveHit(target, action, profile, CombatCenter, direction);
+            return TryResolveHit(target, action, profile, CombatCenter, direction, 1f);
         }
 
         /// <summary>
@@ -366,7 +366,8 @@ namespace AshesofaDyingWorld.Combat.Actors
             CombatActionData action,
             HitProfileData profile,
             Vector2 hitOrigin,
-            Vector2 attackDirection)
+            Vector2 attackDirection,
+            float damageMultiplier = 1f)
         {
             if (target == null || profile == null)
             {
@@ -382,6 +383,7 @@ namespace AshesofaDyingWorld.Combat.Actors
                 Target = target,
                 Action = action,
                 Profile = profile,
+                DamageMultiplier = Mathf.Max(0f, damageMultiplier),
                 HitOrigin = hitOrigin,
                 AttackDirection = safeDirection
             });

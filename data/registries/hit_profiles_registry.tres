@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="Registry" load_steps=2 format=3 uid="uid://ddt6y7p5gt5ce"]
+
+[ext_resource type="Script" path="res://addons/yard/registry.gd" id="1_registry"]
+
+[resource]
+script = ExtResource("1_registry")
+_class_restriction = &"HitProfileData"
+_scan_directory = "res://data/combat/hit_profiles"
+_recursive_scan = true
+_scan_auto = true
+_scan_remove = true
+_uids_to_string_ids = Dictionary[StringName, StringName]({
+&"uid://clswry1wbixal": &"hyou_ice_bolt",
+&"uid://crogrkhm1m6ra": &"slime_bite",
+&"uid://dcftlmktcansa": &"wood_sword_heavy",
+&"uid://dtchrm3gp2m70": &"wood_sword_light_1",
+&"uid://bn356xcm4lhtc": &"wood_sword_light_2"
+})
+_string_ids_to_uids = Dictionary[StringName, StringName]({
+&"hyou_ice_bolt": &"uid://clswry1wbixal",
+&"slime_bite": &"uid://crogrkhm1m6ra",
+&"wood_sword_heavy": &"uid://dcftlmktcansa",
+&"wood_sword_light_1": &"uid://dtchrm3gp2m70",
+&"wood_sword_light_2": &"uid://bn356xcm4lhtc"
+})
+_property_index = Dictionary[StringName, Dictionary]({})

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="Registry" load_steps=2 format=3 uid="uid://c5t4tpr0f1l3x"]
+
+[ext_resource type="Script" path="res://addons/yard/registry.gd" id="1_registry"]
+
+[resource]
+script = ExtResource("1_registry")
+_class_restriction = &"CombatStatProfileData"
+_scan_directory = "res://data/combat/stat_profiles"
+_recursive_scan = true
+_scan_auto = true
+_scan_remove = true
+_uids_to_string_ids = Dictionary[StringName, StringName]({
+&"uid://d1s7l4m3b8s2c": &"slime_basic"
+})
+_string_ids_to_uids = Dictionary[StringName, StringName]({
+&"slime_basic": &"uid://d1s7l4m3b8s2c"
+})
+_property_index = Dictionary[StringName, Dictionary]({})

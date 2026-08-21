@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="WeaponMovesetData" load_steps=4 format=3]
+[gd_resource type="Resource" script_class="WeaponMovesetData" load_steps=4 format=3 uid="uid://c3y7cd0odh3ir"]
 
 [ext_resource type="Script" path="res://scripts/Combat/Data/WeaponMovesetData.cs" id="1"]
 [ext_resource type="Resource" path="res://data/combat/actions/wood_sword_light_1.tres" id="2"]

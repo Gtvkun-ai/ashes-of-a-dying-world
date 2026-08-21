@@ -378,7 +378,7 @@ public partial class PartyFollowerBrain : Node
             if (node is not CombatCharacter candidate
                 || candidate == _character
                 || !candidate.IsAlive
-                || !FactionRules.CanDamage(_character.Faction, candidate.Faction))
+                || !FactionRules.IsHostile(_character.Faction, candidate.Faction))
             {
                 continue;
             }

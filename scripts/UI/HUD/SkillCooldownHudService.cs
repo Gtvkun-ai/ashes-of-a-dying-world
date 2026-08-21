@@ -146,14 +146,16 @@ namespace AshesofaDyingWorld.UI.HUD
                 Name = "SkillCooldownRow",
                 MouseFilter = Control.MouseFilterEnum.Ignore
             };
-            _row.AnchorLeft = 1f;
+            // Đưa cụm hồi chiêu về vùng hotbar phía dưới thay vì lơ lửng cạnh HUD party.
+            // Như vậy Hyou đứng đâu cũng không che mất thông tin cooldown nữa.
+            _row.AnchorLeft = 0.5f;
             _row.AnchorTop = 1f;
-            _row.AnchorRight = 1f;
+            _row.AnchorRight = 0.5f;
             _row.AnchorBottom = 1f;
-            _row.OffsetLeft = -205f;
-            _row.OffsetTop = -58f;
-            _row.OffsetRight = -10f;
-            _row.OffsetBottom = -10f;
+            _row.OffsetLeft = -86f;
+            _row.OffsetTop = -118f;
+            _row.OffsetRight = 86f;
+            _row.OffsetBottom = -74f;
             _row.AddThemeConstantOverride("separation", 6);
             AddChild(_row);
 

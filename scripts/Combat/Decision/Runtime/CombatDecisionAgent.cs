@@ -21,7 +21,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
     /// </summary>
     public partial class CombatDecisionAgent : Node
     {
-        private const string RuntimeBuild = "v8-action-events-debug-spine";
+        private const string RuntimeBuild = "v9-spatial-line-of-fire";
 
         [Signal] public delegate void DecisionEvaluatedEventHandler(string summary);
 
@@ -50,10 +50,10 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
         [Export(PropertyHint.Range, "0,1,0.01")] public float EmergencyThreatThreshold { get; set; } = 0.38f;
 
         [ExportGroup("Movement")]
-        [Export(PropertyHint.Layers2DPhysics)] public uint ObstacleCollisionMask { get; set; } = 1;
+        [Export(PropertyHint.Layers2DPhysics)] public uint ObstacleCollisionMask { get; set; } = 8;
         [Export] public float MovementProbeDistance { get; set; } = 34f;
         [Export] public float MovementArrivalDistance { get; set; } = 6f;
-        [Export] public float NavigationThreshold { get; set; } = 96f;
+        [Export] public float NavigationThreshold { get; set; } = 64f;
 
         [ExportGroup("Profiles")]
         [Export] public CombatClassProfile ClassProfile { get; set; }
@@ -80,6 +80,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
         private CombatCharacter _self;
         private CombatCharacter _leader;
         private ICombatPerception _perception;
+        private CombatLineOfFireSensor _lineOfFireSensor;
+        private ProjectileSpecData _primaryProjectileSpec;
         private ITacticalEvaluator _evaluator;
         private ICombatActionScheduler _scheduler;
         private PartyTacticalDirector _director;
@@ -150,6 +152,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 _lastSnapshot = snapshot;
                 _hasSnapshot = true;
                 UpdateCompanionTargetIndicator(snapshot);
+                UpdateLineOfFireRepositionHint(snapshot);
 
                 if (liveControl)
                 {
@@ -307,10 +310,19 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             AddToGroup("CombatDecisionAgent");
             RayCast2D lineOfSightRay = ResolveOptionalNode<RayCast2D>(LineOfSightRayPath);
             NavigationAgent2D navigationAgent = ResolveOptionalNode<NavigationAgent2D>(NavigationAgentPath);
+
+            // Sensor corridor được dùng chung cho perception và validation lúc đang cast.
+            // Không dùng RayCast mảnh cho projectile rộng, vì AI sẽ nghĩ bắn lọt những khe mà đạn thật không lọt.
+            _lineOfFireSensor = new CombatLineOfFireSensor { Name = "LineOfFireSensorRuntime" };
+            AddChild(_lineOfFireSensor);
+            _primaryProjectileSpec = ClassProfile?.GetPrimarySkill()?.CombatAction?.ResolveProjectileSpec();
+
             var threatPredictor = new ThreatPredictor(ThreatDangerRange, ThreatFacingDot);
             _perception = new CombatPerception(
                 GetTree(),
                 lineOfSightRay,
+                _lineOfFireSensor,
+                _primaryProjectileSpec,
                 threatPredictor,
                 EnemySearchRadius,
                 LeaderDangerRadius);
@@ -370,6 +382,139 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 .SetTarget(_self, target, snapshot.HasLineOfSight);
         }
 
+        /// <summary>
+        /// Khi đường bắn bị chặn, thử trước hai firing slot trái/phải quanh target.
+        /// Blackboard chỉ nhận side tốt hơn; SpacingController và MovementSolver vẫn là nơi quyết định bước chân.
+        /// Nhờ vậy perception không giành luôn vô-lăng, kiến trúc vẫn tách cognition và locomotion.
+        /// </summary>
+        private void UpdateLineOfFireRepositionHint(in CombatSnapshot snapshot)
+        {
+            if (_lineOfFireSensor == null
+                || !snapshot.HasTarget
+                || snapshot.HasLineOfSight
+                || !snapshot.CanMove
+                || !snapshot.TargetId.HasValue)
+            {
+                return;
+            }
+
+            CombatCharacter target = ResolveCombatantById(snapshot.TargetId.Value);
+            if (target == null)
+            {
+                return;
+            }
+
+            ProjectileSpecData spec = _primaryProjectileSpec;
+            if (spec == null)
+            {
+                return;
+            }
+
+            float preferredMin = 48f;
+            float preferredMax = 72f;
+            if (ClassProfile != null)
+            {
+                ClassProfile.GetValidatedRanges(
+                    out _,
+                    out _,
+                    out preferredMin,
+                    out preferredMax,
+                    out _,
+                    out _);
+            }
+            float preferredDistance = (preferredMin + preferredMax) * 0.5f;
+            if (preferredDistance <= 1f)
+            {
+                preferredDistance = Mathf.Max(48f, snapshot.TargetDistance);
+            }
+
+            Vector2 toTarget = snapshot.DirectionToTarget.LengthSquared() > 0.001f
+                ? snapshot.DirectionToTarget.Normalized()
+                : Vector2.Down;
+            Vector2 left = new(-toTarget.Y, toTarget.X);
+            Vector2 baseAnchor = snapshot.TargetPosition - toTarget * preferredDistance;
+            float sideOffset = Mathf.Clamp(preferredDistance * 0.38f, 34f, 58f);
+            Vector2 leftAnchor = baseAnchor + left * sideOffset;
+            Vector2 rightAnchor = baseAnchor - left * sideOffset;
+
+            LineOfFireResult leftLine = _lineOfFireSensor.QueryFromOrigin(_self, leftAnchor, target, spec);
+            LineOfFireResult rightLine = _lineOfFireSensor.QueryFromOrigin(_self, rightAnchor, target, spec);
+            float leftScore = ScoreFiringSlot(leftLine, leftAnchor);
+            float rightScore = ScoreFiringSlot(rightLine, rightAnchor);
+
+            // Chỉ đổi side khi chênh lệch đủ rõ. Hysteresis nhỏ này tránh Hyou rung trái/phải
+            // khi cả hai lane gần tương đương hoặc target dịch vài pixel mỗi decision tick.
+            const float switchMargin = 0.12f;
+            int suggestedSide = _blackboard.OrbitSide;
+            if (leftScore > rightScore + switchMargin)
+            {
+                suggestedSide = -1;
+            }
+            else if (rightScore > leftScore + switchMargin)
+            {
+                suggestedSide = 1;
+            }
+
+            bool hasStrongPreference = Mathf.Abs(leftScore - rightScore) > switchMargin;
+            if (hasStrongPreference && _blackboard.OrbitDwellRemaining <= 0.15f)
+            {
+                _blackboard.OrbitSide = suggestedSide;
+
+                // Giữ dwell kể cả khi suggestedSide trùng side hiện tại. Nếu không, RecordCommittedIntent
+                // của Reposition sẽ thấy dwell=0 rồi tự flip sang phía ngược lại ngay sau khi vừa chọn đúng lane.
+                _blackboard.OrbitDwellRemaining = 0.65f;
+            }
+
+            if (DebugLogging && (leftLine.ReachesTarget || rightLine.ReachesTarget))
+            {
+                GD.Print(
+                    $"[CombatDecisionAgent] FIRING_LANE actor={_self.CombatantId} "
+                    + $"left={leftLine.BlockerType}:{leftScore:0.00} "
+                    + $"right={rightLine.BlockerType}:{rightScore:0.00} side={_blackboard.OrbitSide}");
+            }
+        }
+
+        private float ScoreFiringSlot(LineOfFireResult line, Vector2 anchor)
+        {
+            if (!line.IsValid)
+            {
+                return -1f;
+            }
+
+            float lineScore = line.BlockerType switch
+            {
+                LineOfFireBlockerType.Clear => 2.0f,
+                // Một enemy khác chắn lane vẫn ít tệ hơn cây/ally: ít nhất vị trí đó đang có pressure hữu ích.
+                LineOfFireBlockerType.Hostile => 0.55f,
+                LineOfFireBlockerType.World => 0.12f,
+                LineOfFireBlockerType.Ally => 0.0f,
+                _ => 0.05f
+            };
+
+            float travelPenalty = Mathf.Clamp(_self.CombatCenter.DistanceTo(anchor) / 240f, 0f, 1f) * 0.22f;
+            return lineScore - travelPenalty;
+        }
+
+        private CombatCharacter ResolveCombatantById(ulong instanceId)
+        {
+            if (GetTree() == null)
+            {
+                return null;
+            }
+
+            foreach (Node node in GetTree().GetNodesInGroup("Combatant"))
+            {
+                if (node is CombatCharacter combatant
+                    && combatant.GetInstanceId() == instanceId
+                    && combatant.IsAlive)
+                {
+                    return combatant;
+                }
+            }
+
+            return null;
+        }
+
         private void CancelInvalidProjectileCast()
         {
             CombatActionData action = _self?.Actions?.CurrentAction;
@@ -383,10 +528,23 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 && GodotObject.IsInstanceValid(aimTarget)
                 && !aimTarget.IsQueuedForDeletion()
                 && aimTarget.IsAlive
-                && FactionRules.CanDamage(_self.Faction, aimTarget.Faction);
+                && FactionRules.IsHostile(_self.Faction, aimTarget.Faction);
             bool inRange = targetValid
                 && _self.CombatCenter.DistanceTo(aimTarget.CombatCenter) <= EnemySearchRadius * 1.5f;
-            bool clearShot = inRange && _perception.HasLineOfSight(_self, aimTarget);
+
+            LineOfFireResult line = LineOfFireResult.Invalid;
+            bool clearShot = false;
+            if (inRange && _lineOfFireSensor != null)
+            {
+                ProjectileSpecData spec = action.ResolveProjectileSpec() ?? _primaryProjectileSpec;
+                line = _lineOfFireSensor.Query(_self, aimTarget, spec);
+                clearShot = line.ReachesTarget;
+            }
+            else if (inRange)
+            {
+                clearShot = _perception.HasLineOfSight(_self, aimTarget);
+            }
+
             if (clearShot)
             {
                 return;
@@ -399,7 +557,10 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 0.8f);
             if (DebugLogging)
             {
-                GD.Print($"[CombatDecisionAgent] CANCEL_CAST actor={_self.CombatantId} target={targetId} reason=shot_blocked_or_invalid");
+                string blocker = line.IsValid ? line.BlockerType.ToString() : "invalid_or_out_of_range";
+                GD.Print(
+                    $"[CombatDecisionAgent] CANCEL_CAST actor={_self.CombatantId} target={targetId} "
+                    + $"reason=line_of_fire_blocked blocker={blocker}");
             }
         }
 

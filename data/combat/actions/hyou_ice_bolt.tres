@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="CombatActionData" format=3 uid="uid://bhmaw8s16tvt3"]
 
 [ext_resource type="Script" uid="uid://ka2t1rxetu3" path="res://scripts/Combat/Data/CombatActionData.cs" id="1_action"]
-[ext_resource type="Resource" path="res://data/combat/hit_profiles/hyou_ice_bolt.tres" id="2_hit"]
+[ext_resource type="Resource" uid="uid://clswry1wbixal" path="res://data/combat/hit_profiles/hyou_ice_bolt.tres" id="2_hit"]
 [ext_resource type="Resource" path="res://data/combat/projectiles/hyou_ice_bolt.tres" id="3_projectile"]
 [ext_resource type="Script" uid="uid://c1n6tin5w1evj" path="res://scripts/Combat/Data/CombatActionEventData.cs" id="4_event"]
 
@@ -24,7 +24,7 @@ PlaybackSpeedMultiplier = 1.8
 ScalePlaybackWithAttackSpeed = false
 StartupSeconds = 0.66
 ActiveSeconds = 0.06
-RecoverySeconds = 0.10
+RecoverySeconds = 0.1
 InputBufferSeconds = 0.1
 StaminaCost = 0.0
 LungeSpeed = 0.0

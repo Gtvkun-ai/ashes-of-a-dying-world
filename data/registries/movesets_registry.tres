@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="Registry" load_steps=2 format=3 uid="uid://bfi25h8g1aaar"]
+
+[ext_resource type="Script" path="res://addons/yard/registry.gd" id="1_registry"]
+
+[resource]
+script = ExtResource("1_registry")
+_class_restriction = &"WeaponMovesetData"
+_scan_directory = "res://data/combat/movesets"
+_recursive_scan = true
+_scan_auto = true
+_scan_remove = true
+_uids_to_string_ids = Dictionary[StringName, StringName]({
+&"uid://bimlk38ajh3i2": &"hyou_cryomancer",
+&"uid://bq2nyk8fqedg7": &"slime",
+&"uid://c3y7cd0odh3ir": &"wood_sword"
+})
+_string_ids_to_uids = Dictionary[StringName, StringName]({
+&"hyou_cryomancer": &"uid://bimlk38ajh3i2",
+&"slime": &"uid://bq2nyk8fqedg7",
+&"wood_sword": &"uid://c3y7cd0odh3ir"
+})
+_property_index = Dictionary[StringName, Dictionary]({})

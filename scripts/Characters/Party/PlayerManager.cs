@@ -180,6 +180,32 @@ namespace AshesofaDyingWorld.Core.Managers
             return result;
         }
 
+        /// <summary>
+        /// XP combat được chia đầy đủ cho các thành viên party có CharacterConfig.
+        /// Nhờ vậy đổi người điều khiển không làm progression bị phụ thuộc vào ai tung đòn cuối.
+        /// </summary>
+        public int GrantExperienceToParty(int amount)
+        {
+            if (amount <= 0)
+            {
+                return 0;
+            }
+
+            int recipients = 0;
+            foreach (PlayerStats member in PartyMembers)
+            {
+                if (member?.ConfigData == null)
+                {
+                    continue;
+                }
+
+                member.GainExperience(amount);
+                recipients++;
+            }
+
+            return recipients;
+        }
+
         public Dictionary<string, int> CaptureCompanionCommands()
         {
             var result = new Dictionary<string, int>();

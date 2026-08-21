@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3 uid="uid://bkemn131rb3vv"]
 
 [ext_resource type="Script" path="res://scripts/Combat/Abilities/SkillData.cs" id="1_skill"]
 [ext_resource type="Texture2D" path="res://data/icons/vit.tres" id="2_icon"]
@@ -8,14 +8,14 @@ script = ExtResource("1_skill")
 SkillId = "hyou_cold_recovery"
 SkillName = "Hàn tức"
 Icon = ExtResource("2_icon")
-Description = "Thu hồi hàn khí đang phân tán, hồi 25 stamina và 20 guard."
+Description = "Thu hồi hàn khí đang phân tán, hồi 30 stamina và 25 guard."
 Category = 0
 Element = 2
 MaxLevel = 1
 DefaultUnlocked = false
 ExecutionType = 3
-RestoreStaminaAmount = 25.0
-RestoreGuardAmount = 20.0
-Cooldown = 35.0
+RestoreStaminaAmount = 30.0
+RestoreGuardAmount = 25.0
+Cooldown = 28.0
 ManaCost = 0
 StaminaCost = 0

@@ -13,6 +13,6 @@ SpawnOffset = 20.0
 PierceTargets = false
 MaxTargetHits = 1
 HurtboxCollisionMask = 16
-WorldCollisionMask = 1
+WorldCollisionMask = 8
 StopOnWorldCollision = true
 VisualProfile = ExtResource("2_visual")

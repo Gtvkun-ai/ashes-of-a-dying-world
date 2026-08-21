@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="CombatActionData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="CombatActionData" load_steps=3 format=3 uid="uid://bnrsapgjgmwn"]
 
 [ext_resource type="Script" path="res://scripts/Combat/Data/CombatActionData.cs" id="1"]
 [ext_resource type="Resource" path="res://data/combat/hit_profiles/slime_bite.tres" id="2"]

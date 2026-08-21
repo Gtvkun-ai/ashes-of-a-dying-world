@@ -1,15 +1,16 @@
-[gd_resource type="Resource" script_class="HitProfileData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="HitProfileData" load_steps=2 format=3 uid="uid://dcftlmktcansa"]
 
 [ext_resource type="Script" path="res://scripts/Combat/Data/HitProfileData.cs" id="1"]
 
 [resource]
 script = ExtResource("1")
 DamageType = 1
-BaseDamage = 4.0
-AttackPowerScale = 1.35
+PowerScaling = 1
+BaseDamage = 5.0
+AttackPowerScale = 1.4
 ArmorPenetration = 4.0
-GuardDamage = 30.0
-PoiseDamage = 34.0
+GuardDamage = 26.0
+PoiseDamage = 30.0
 HitstunSeconds = 0.24
 KnockbackForce = 155.0
 ForceStagger = true

@@ -87,8 +87,8 @@ namespace AshesofaDyingWorld.Core.Data
         [ExportGroup("Combat Cost")]
         [Export] public float Cooldown { get; set; } = 5f;
         [Export] public float DamageMultiplier { get; set; } = 1f;
-        [Export] public int ManaCost { get; set; } = 10;
-        [Export] public int StaminaCost { get; set; } = 20;
+        [Export] public int ManaCost { get; set; } = 0;
+        [Export] public int StaminaCost { get; set; } = 0;
         [Export] public string AnimationName { get; set; } = "";
     }
 }

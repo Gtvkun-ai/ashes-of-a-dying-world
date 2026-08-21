@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="Registry" load_steps=2 format=3 uid="uid://d3b4l4nc3r3g1"]
+
+[ext_resource type="Script" path="res://addons/yard/registry.gd" id="1_registry"]
+
+[resource]
+script = ExtResource("1_registry")
+_class_restriction = &"PowerBalanceData"
+_scan_directory = "res://data/balance"
+_recursive_scan = true
+_scan_auto = true
+_scan_remove = true
+_uids_to_string_ids = Dictionary[StringName, StringName]({
+&"uid://c8x4n2m6q7p1r": &"core_power"
+})
+_string_ids_to_uids = Dictionary[StringName, StringName]({
+&"core_power": &"uid://c8x4n2m6q7p1r"
+})
+_property_index = Dictionary[StringName, Dictionary]({})

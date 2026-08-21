@@ -41,6 +41,36 @@ namespace AshesofaDyingWorld.Combat.Data
 
         public bool HasAuthoredEvents => Events != null && Events.Count > 0;
 
+        /// <summary>
+        /// Trả về projectile spec thật mà action sẽ spawn.
+        /// Resource mới thường đặt spec trong Action Event, còn resource cũ có thể dùng field ProjectileSpec.
+        /// Gom logic ở đây để AI, projectile runtime và debug không tự đoán theo hai đường dữ liệu khác nhau.
+        /// </summary>
+        public ProjectileSpecData ResolveProjectileSpec()
+        {
+            if (ProjectileSpec != null)
+            {
+                return ProjectileSpec;
+            }
+
+            if (Events == null)
+            {
+                return null;
+            }
+
+            foreach (CombatActionEventData actionEvent in Events)
+            {
+                if (actionEvent != null
+                    && actionEvent.EventType == CombatActionEventType.SpawnProjectile
+                    && actionEvent.ProjectileSpec != null)
+                {
+                    return actionEvent.ProjectileSpec;
+                }
+            }
+
+            return null;
+        }
+
         public string ResolveAnimation(string direction)
         {
             string safeDirection = string.IsNullOrWhiteSpace(direction) ? "down" : direction;

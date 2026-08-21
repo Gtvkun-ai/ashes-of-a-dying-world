@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="Registry" load_steps=2 format=3 uid="uid://cro2ph8tavndq"]
+
+[ext_resource type="Script" path="res://addons/yard/registry.gd" id="1_registry"]
+
+[resource]
+script = ExtResource("1_registry")
+_class_restriction = &"RaceData"
+_scan_directory = "res://data/races"
+_recursive_scan = true
+_scan_auto = true
+_scan_remove = true
+_uids_to_string_ids = Dictionary[StringName, StringName]({
+&"uid://b4f3noqgt5bde": &"human",
+&"uid://onq8eelbwsx8": &"spirit_ice"
+})
+_string_ids_to_uids = Dictionary[StringName, StringName]({
+&"human": &"uid://b4f3noqgt5bde",
+&"spirit_ice": &"uid://onq8eelbwsx8"
+})
+_property_index = Dictionary[StringName, Dictionary]({})

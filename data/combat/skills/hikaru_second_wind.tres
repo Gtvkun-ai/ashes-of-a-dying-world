@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3 uid="uid://dbcvqh4yollw4"]
 
 [ext_resource type="Script" path="res://scripts/Combat/Abilities/SkillData.cs" id="1_skill"]
 [ext_resource type="Texture2D" path="res://data/icons/vit.tres" id="2_icon"]
@@ -8,13 +8,13 @@ script = ExtResource("1_skill")
 SkillId = "hikaru_second_wind"
 SkillName = "Hồi sức"
 Icon = ExtResource("2_icon")
-Description = "Ổn định nhịp thở và lập tức hồi 35 stamina."
+Description = "Ổn định nhịp thở và lập tức hồi 45 stamina."
 Category = 0
 Element = 1
 MaxLevel = 1
 DefaultUnlocked = false
 ExecutionType = 3
-RestoreStaminaAmount = 35.0
-Cooldown = 30.0
+RestoreStaminaAmount = 45.0
+Cooldown = 24.0
 ManaCost = 0
 StaminaCost = 0

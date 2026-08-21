@@ -270,7 +270,7 @@ namespace AshesofaDyingWorld.Combat.AI
                 || !IsUsable(attacker)
                 || !attacker.IsAlive
                 || attacker == _character
-                || !FactionRules.CanDamage(_character.Faction, attacker.Faction))
+                || !FactionRules.IsHostile(_character.Faction, attacker.Faction))
             {
                 return;
             }
@@ -347,7 +347,7 @@ namespace AshesofaDyingWorld.Combat.AI
                 && IsUsable(candidate)
                 && candidate != _character
                 && candidate.IsAlive
-                && FactionRules.CanDamage(_character.Faction, candidate.Faction);
+                && FactionRules.IsHostile(_character.Faction, candidate.Faction);
         }
 
         private void SetTarget(CombatCharacter target, string reason)

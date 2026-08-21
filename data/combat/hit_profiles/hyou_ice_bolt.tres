@@ -1,15 +1,16 @@
-[gd_resource type="Resource" script_class="HitProfileData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="HitProfileData" load_steps=2 format=3 uid="uid://clswry1wbixal"]
 
 [ext_resource type="Script" path="res://scripts/Combat/Data/HitProfileData.cs" id="1_hit"]
 
 [resource]
 script = ExtResource("1_hit")
 DamageType = 6
-BaseDamage = 8.0
+PowerScaling = 2
+BaseDamage = 6.0
 AttackPowerScale = 0.65
-ArmorPenetration = 0.10
-GuardDamage = 8.0
-PoiseDamage = 12.0
+ArmorPenetration = 2.0
+GuardDamage = 6.0
+PoiseDamage = 9.0
 HitstunSeconds = 0.18
 KnockbackForce = 62.0
 SlowPercent = 18.0

@@ -576,7 +576,7 @@ namespace AshesofaDyingWorld.UI.Party
             SetBar(_detailHpBar, _detailHpValue, member.CurrentHP, member.MaxHP);
             SetBar(_detailMpBar, _detailMpValue, member.CurrentMP, member.MaxMP);
             SetBar(_detailStaminaBar, _detailStaminaValue, member.CurrentStamina, member.MaxStamina);
-            _detailAttackValue.Text = Mathf.RoundToInt(member.AttackDamage).ToString();
+            _detailAttackValue.Text = Mathf.RoundToInt(member.PrimaryPower).ToString();
             _detailArmorValue.Text = Mathf.RoundToInt(member.Armor).ToString();
             _detailSpeedValue.Text = $"{member.AttackSpeed:0.00}x";
 

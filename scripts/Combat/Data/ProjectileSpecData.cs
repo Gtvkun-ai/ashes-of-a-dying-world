@@ -34,7 +34,7 @@ namespace AshesofaDyingWorld.Combat.Data
 
         [ExportGroup("Collision")]
         [Export(PropertyHint.Layers2DPhysics)] public uint HurtboxCollisionMask { get; set; } = 16;
-        [Export(PropertyHint.Layers2DPhysics)] public uint WorldCollisionMask { get; set; } = 1;
+        [Export(PropertyHint.Layers2DPhysics)] public uint WorldCollisionMask { get; set; } = 8;
         [Export] public bool StopOnWorldCollision { get; set; } = true;
 
         [ExportGroup("Damage")]

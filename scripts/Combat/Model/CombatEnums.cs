@@ -35,6 +35,18 @@ namespace AshesofaDyingWorld.Combat.Model
         Ice = 6
     }
 
+    /// <summary>
+    /// Nguồn sức mạnh dùng để scale một hit. Auto suy ra từ DamageType.
+    /// </summary>
+    public enum PowerScalingType
+    {
+        Auto = 0,
+        Physical = 1,
+        Magic = 2,
+        Highest = 3,
+        None = 4
+    }
+
     public enum HitRejectionReason
     {
         None = 0,

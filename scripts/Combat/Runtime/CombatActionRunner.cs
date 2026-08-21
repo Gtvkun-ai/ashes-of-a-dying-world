@@ -40,6 +40,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
         private float _fallbackRemaining;
         private float _actionElapsedSeconds;
         private float _actionDurationSeconds;
+        private float _currentDamageMultiplier = 1f;
         private readonly HashSet<int> _triggeredEventIndices = new();
 
         public event Action<CombatActionData, Vector2> ActionStarted;
@@ -52,6 +53,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
         public bool IsHitboxActive => _hitbox?.IsActive == true;
         public Vector2 ActionFacing => _actionFacing;
         public CombatCharacter CurrentAimTarget => IsUsableAimTarget(_aimTarget) ? _aimTarget : null;
+        public float CurrentDamageMultiplier => Mathf.Max(0f, _currentDamageMultiplier);
 
         public Vector2 MovementVelocity
         {
@@ -101,7 +103,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
 
         public bool TryStartAbilityAction(CombatActionData action)
         {
-            return TryStartAbilityAction(action, Vector2.Zero);
+            return TryStartAbilityAction(action, Vector2.Zero, null, 1f);
         }
 
         /// <summary>
@@ -110,17 +112,26 @@ namespace AshesofaDyingWorld.Combat.Runtime
         /// </summary>
         public bool TryStartAbilityAction(CombatActionData action, Vector2 aimDirection)
         {
-            return TryStartAbilityAction(action, aimDirection, null);
+            return TryStartAbilityAction(action, aimDirection, null, 1f);
         }
 
-        /// <summary>
-        /// Giữ target thật của projectile trong suốt cast. Hướng animation vẫn khóa lúc bắt đầu,
-        /// nhưng delivery có thể ngắm lại target ở frame release thay vì bắn vào vị trí cũ.
-        /// </summary>
         public bool TryStartAbilityAction(
             CombatActionData action,
             Vector2 aimDirection,
             CombatCharacter aimTarget)
+        {
+            return TryStartAbilityAction(action, aimDirection, aimTarget, 1f);
+        }
+
+        /// <summary>
+        /// Damage multiplier thuộc về lần thực thi skill, không được ghi ngược vào shared Resource.
+        /// Nhờ vậy Ice Bolt và Ice Lance có thể dùng chung action/projectile nhưng scale khác nhau.
+        /// </summary>
+        public bool TryStartAbilityAction(
+            CombatActionData action,
+            Vector2 aimDirection,
+            CombatCharacter aimTarget,
+            float damageMultiplier)
         {
             if (action == null || _currentAction != null)
             {
@@ -130,7 +141,13 @@ namespace AshesofaDyingWorld.Combat.Runtime
             Vector2? forcedFacing = aimDirection.LengthSquared() > 0.001f
                 ? aimDirection.Normalized()
                 : null;
-            return TryStartResolvedAction(action, -1, false, forcedFacing, aimTarget);
+            return TryStartResolvedAction(
+                action,
+                -1,
+                false,
+                forcedFacing,
+                aimTarget,
+                damageMultiplier);
         }
 
         public void Update(float delta)
@@ -184,7 +201,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
         {
             WeaponMovesetData moveset = _owner.ActiveMoveset;
             CombatActionData action = moveset?.GetLightAction(comboIndex);
-            return TryStartResolvedAction(action, comboIndex, allowChain, null, null);
+            return TryStartResolvedAction(action, comboIndex, allowChain, null, null, 1f);
         }
 
         private bool TryStartResolvedAction(
@@ -192,7 +209,8 @@ namespace AshesofaDyingWorld.Combat.Runtime
             int comboIndex,
             bool allowChain,
             Vector2? forcedFacing,
-            CombatCharacter aimTarget)
+            CombatCharacter aimTarget,
+            float damageMultiplier)
         {
             if (action == null)
             {
@@ -218,6 +236,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
             }
 
             _currentAction = action;
+            _currentDamageMultiplier = Mathf.Max(0f, damageMultiplier);
             _aimTarget = IsUsableAimTarget(aimTarget) ? aimTarget : null;
             _comboIndex = comboIndex;
             _bufferRemaining = 0f;
@@ -417,7 +436,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
             {
                 CombatFeedbackService.GetOrCreate(_owner.GetTree())?
                     .PlaySwing(_owner, _currentAction, _actionFacing);
-                _hitbox.EnableHitbox(_currentAction, _actionFacing);
+                _hitbox.EnableHitbox(_currentAction, _actionFacing, _currentDamageMultiplier);
             }
             else
             {
@@ -484,6 +503,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
             _fallbackRemaining = 0f;
             _actionElapsedSeconds = 0f;
             _actionDurationSeconds = 0f;
+            _currentDamageMultiplier = 1f;
             _triggeredEventIndices.Clear();
 
             if (_body != null)

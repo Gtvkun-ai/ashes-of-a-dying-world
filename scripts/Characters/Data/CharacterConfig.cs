@@ -16,6 +16,7 @@ namespace AshesofaDyingWorld.Core.Data
 
 		[ExportGroup("Progression")]
 		[Export(PropertyHint.Range, "1,99")] public int MaxLevel {get; set;} = 99;
+		[Export] public PowerBalanceData BalanceProfile { get; set; }
 
 		//Kỹ năng và combo riêng
 		[ExportGroup("Combat Abilities")]
@@ -49,18 +50,27 @@ namespace AshesofaDyingWorld.Core.Data
 		{
 			int vit = CalculateAttribute(AttributeType.Vitality, currentlevel);
 			int str = CalculateAttribute(AttributeType.Strength, currentlevel);
-			return (vit *10) + (str *2) + 100; //Công thức là dùng Vitality và Strength để tính MaxHP
+			return BalanceProfile != null
+				? BalanceProfile.CalculateMaxHP(vit, str)
+				: 80f + vit * 8f + str;
 		}
+
 		public float CalculateMaxStamina(int currentLevel)
 		{
 			int vit = CalculateAttribute(AttributeType.Vitality, currentLevel);
-			return (vit * 5) + 50;
+			int dex = CalculateAttribute(AttributeType.Dexterity, currentLevel);
+			return BalanceProfile != null
+				? BalanceProfile.CalculateMaxStamina(vit, dex)
+				: 60f + vit * 3f + dex;
 		}
 
 		public float CalculateMaxMP(int currentLevel)
 		{
 			int intl = CalculateAttribute(AttributeType.Intelligence, currentLevel);
-			return (intl * 8) + 50;
+			int spirit = CalculateAttribute(AttributeType.Spirit, currentLevel);
+			return BalanceProfile != null
+				? BalanceProfile.CalculateMaxMP(intl, spirit)
+				: 30f + intl * 4f + spirit * 2f;
 		}
 		
 	}

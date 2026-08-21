@@ -8,8 +8,6 @@ namespace AshesofaDyingWorld.Combat.Runtime
 {
     public static class CombatResolver
     {
-        private const float ArmorCurveConstant = 100f;
-
         public static HitResult Resolve(HitRequest request)
         {
             if (request?.Attacker == null || request.Target == null || request.Profile == null)
@@ -19,6 +17,11 @@ namespace AshesofaDyingWorld.Combat.Runtime
 
             CombatCharacter attacker = request.Attacker;
             CombatCharacter target = request.Target;
+            if (attacker == target)
+            {
+                return HitResult.Rejected(HitRejectionReason.InvalidRequest);
+            }
+
             if (!target.IsAlive)
             {
                 return HitResult.Rejected(HitRejectionReason.TargetDead);
@@ -34,17 +37,24 @@ namespace AshesofaDyingWorld.Combat.Runtime
             bool shattered = profile.ShatterFrozen
                 && target.Statuses?.IsFrozen == true
                 && !wasBlocked;
-            float attackPower = attacker.Stats?.AttackDamage ?? 1f;
-            float rawDamage = Mathf.Max(0f, profile.BaseDamage + attackPower * profile.AttackPowerScale);
+            float attackPower = attacker.Stats?.GetAttackPower(profile.PowerScaling, profile.DamageType) ?? 1f;
+            float damageMultiplier = Mathf.Max(0f, request.DamageMultiplier);
+            float rawDamage = Mathf.Max(
+                0f,
+                (profile.BaseDamage + attackPower * profile.AttackPowerScale) * damageMultiplier);
             if (shattered)
             {
+                // Shatter là bonus trạng thái riêng, không bị nhân tiếp bởi multiplier của skill.
                 rawDamage += Mathf.Max(0f, profile.ShatterBonusDamage);
             }
 
-            float armor = Mathf.Max(0f, (target.Stats?.Armor ?? 0f) - profile.ArmorPenetration);
+            float damageResistance = Mathf.Max(
+                0f,
+                (target.Stats?.GetDamageResistance(profile.DamageType) ?? 0f) - profile.ArmorPenetration);
+            float mitigationCurve = Mathf.Max(1f, target.Stats?.MitigationCurveConstant ?? 100f);
             float mitigatedDamage = profile.DamageType == DamageType.True
                 ? rawDamage
-                : rawDamage * (1f - armor / (armor + ArmorCurveConstant));
+                : rawDamage * mitigationCurve / (damageResistance + mitigationCurve);
 
             bool guardBroken = false;
             float guardDamage = 0f;
@@ -100,14 +110,14 @@ namespace AshesofaDyingWorld.Combat.Runtime
                 direction = (target.GlobalPosition - attacker.GlobalPosition).Normalized();
             }
 
-            float resistance = target.Stats?.GetKnockbackResistance() ?? 0f;
+            float knockbackResistance = target.Stats?.GetKnockbackResistance() ?? 0f;
             float knockbackMultiplier = shattered
                 ? Mathf.Max(1f, profile.ShatterKnockbackMultiplier)
                 : 1f;
             Vector2 knockback = direction.Normalized()
                 * profile.KnockbackForce
                 * knockbackMultiplier
-                * (1f - resistance);
+                * (1f - knockbackResistance);
             bool killed = target.Stats != null && target.Stats.CurrentHP <= 0f;
             bool forceStagger = profile.ForceStagger || shattered;
 

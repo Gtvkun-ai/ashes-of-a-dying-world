@@ -1,6 +1,7 @@
 using Godot;
 using AshesofaDyingWorld.Core.Data;
 using AshesofaDyingWorld.Core.Managers;
+using AshesofaDyingWorld.Combat.Model;
 using System.Collections.Generic;
 
 namespace AshesofaDyingWorld.Entities.Player
@@ -13,6 +14,7 @@ namespace AshesofaDyingWorld.Entities.Player
     {
         [Signal] public delegate void StatsChangedEventHandler();
         [Signal] public delegate void DefeatedEventHandler();
+        [Signal] public delegate void LevelChangedEventHandler(int newLevel);
 
         [ExportGroup("Identity and Progression")]
         [Export] public CharacterConfig ConfigData { get; set; }
@@ -22,26 +24,39 @@ namespace AshesofaDyingWorld.Entities.Player
 
         [ExportGroup("Manual Profile")]
         [Export] public bool UseManualProfile { get; set; } = false;
+        [Export] public CombatStatProfileData ManualProfileData { get; set; }
+        // Các field dưới đây là fallback cho scene/resource cũ chưa chuyển sang CombatStatProfileData.
         [Export] public float ManualMaxHP { get; set; } = 100f;
         [Export] public float ManualMaxMP { get; set; } = 0f;
         [Export] public float ManualMaxStamina { get; set; } = 100f;
         [Export] public float ManualMaxGuard { get; set; } = 60f;
         [Export] public float ManualMaxPoise { get; set; } = 40f;
         [Export] public float ManualAttackPower { get; set; } = 10f;
+        [Export] public float ManualMagicPower { get; set; } = 0f;
         [Export] public float ManualArmor { get; set; } = 0f;
+        [Export] public float ManualMagicResistance { get; set; } = 0f;
         [Export] public float ManualAttackSpeed { get; set; } = 1f;
 
         [ExportGroup("Regeneration")]
-        [Export] public float ManaRegenRate { get; set; } = 4f;
-        [Export] public float StaminaRegenRate { get; set; } = 10f;
+        [Export] public float ManaRegenRate { get; set; } = 0f;
+        [Export] public float StaminaRegenRate { get; set; } = 0f;
         [Export] public float GuardRegenRate { get; set; } = 16f;
         [Export] public float PoiseRegenRate { get; set; } = 12f;
-        [Export] public float ManaRegenDelay { get; set; } = 1.2f;
-        [Export] public float StaminaRegenDelay { get; set; } = 0.45f;
+        [Export] public float ManaRegenDelay { get; set; } = 2f;
+        [Export] public float StaminaRegenDelay { get; set; } = 0.35f;
         [Export] public float GuardRegenDelay { get; set; } = 0.8f;
         [Export] public float PoiseRegenDelay { get; set; } = 1.1f;
 
         public int CurrentLevel { get; private set; } = 1;
+        public int CurrentExperience { get; private set; } = 0;
+        public bool IsAtMaxLevel => CurrentLevel >= Mathf.Max(1, ConfigData?.MaxLevel ?? 99);
+        public int ExperienceToNextLevel => IsAtMaxLevel ? 0 : GetExperienceRequiredForNextLevel(CurrentLevel);
+        public int ExperienceRemaining => IsAtMaxLevel
+            ? 0
+            : Mathf.Max(0, ExperienceToNextLevel - CurrentExperience);
+        public float ExperienceProgress => IsAtMaxLevel || ExperienceToNextLevel <= 0
+            ? 1f
+            : Mathf.Clamp((float)CurrentExperience / ExperienceToNextLevel, 0f, 1f);
 
         public float CurrentHP { get; private set; }
         public float CurrentMP { get; private set; }
@@ -56,9 +71,15 @@ namespace AshesofaDyingWorld.Entities.Player
         public float MaxPoise { get; private set; }
 
         public Dictionary<AttributeType, int> FinalAttributes { get; private set; } = new();
+        // AttackDamage được giữ làm alias tương thích cho PhysicalPower.
         public float AttackDamage { get; private set; }
+        public float PhysicalPower { get; private set; }
+        public float MagicPower { get; private set; }
+        public float PrimaryPower => Mathf.Max(PhysicalPower, MagicPower);
         public float Armor { get; private set; }
+        public float MagicResistance { get; private set; }
         public float AttackSpeed { get; private set; } = 1f;
+        public float MitigationCurveConstant { get; private set; } = 100f;
 
         // Modifier được tách theo nguồn để skill/status không giẫm lên nhau.
         // Bản cũ chỉ có một giá trị mỗi attribute nên buff A tắt là tiện tay xóa luôn buff B.
@@ -103,12 +124,12 @@ namespace AshesofaDyingWorld.Entities.Player
                 return true;
             }
 
-            _manaRegenDelayRemaining = ManaRegenDelay;
             if (MaxMP <= 0f || CurrentMP + 0.001f < amount)
             {
                 return false;
             }
 
+            _manaRegenDelayRemaining = ManaRegenDelay;
             CurrentMP = Mathf.Max(0f, CurrentMP - amount);
             EmitSignal(SignalName.StatsChanged);
             return true;
@@ -122,12 +143,12 @@ namespace AshesofaDyingWorld.Entities.Player
                 return true;
             }
 
-            _staminaRegenDelayRemaining = StaminaRegenDelay;
             if (CurrentStamina + 0.001f < amount)
             {
                 return false;
             }
 
+            _staminaRegenDelayRemaining = StaminaRegenDelay;
             CurrentStamina = Mathf.Max(0f, CurrentStamina - amount);
             EmitSignal(SignalName.StatsChanged);
             return true;
@@ -295,11 +316,101 @@ namespace AshesofaDyingWorld.Entities.Player
             RecalculateStats();
         }
 
+        public int GetExperienceRequiredForNextLevel(int level)
+        {
+            PowerBalanceData balance = ConfigData?.BalanceProfile;
+            if (balance != null)
+            {
+                return balance.CalculateExperienceToNextLevel(level);
+            }
+
+            int safeLevel = Mathf.Max(1, level);
+            float raw = 100f * Mathf.Pow(1.12f, safeLevel - 1);
+            return Mathf.Max(1, Mathf.RoundToInt(raw / 5f) * 5);
+        }
+
+        /// <summary>
+        /// Cộng XP theo dạng "XP trong level hiện tại". XP dư được carry sang level tiếp theo,
+        /// không bị mất khi một phần thưởng vượt quá ngưỡng level-up.
+        /// </summary>
+        public int GainExperience(int amount)
+        {
+            if (amount <= 0 || ConfigData == null || IsAtMaxLevel)
+            {
+                return 0;
+            }
+
+            int previousLevel = CurrentLevel;
+            long pending = (long)CurrentExperience + amount;
+            int maxLevel = Mathf.Max(1, ConfigData.MaxLevel);
+
+            while (CurrentLevel < maxLevel)
+            {
+                int required = Mathf.Max(1, GetExperienceRequiredForNextLevel(CurrentLevel));
+                if (pending < required)
+                {
+                    break;
+                }
+
+                pending -= required;
+                CurrentLevel++;
+            }
+
+            CurrentExperience = CurrentLevel >= maxLevel
+                ? 0
+                : (int)System.Math.Min(pending, int.MaxValue);
+
+            if (CurrentLevel != previousLevel)
+            {
+                RecalculateStats();
+                EmitSignal(SignalName.LevelChanged, CurrentLevel);
+            }
+            else
+            {
+                EmitSignal(SignalName.StatsChanged);
+            }
+
+            return CurrentLevel - previousLevel;
+        }
+
+        public void RestoreProgression(int level, int currentExperience)
+        {
+            int maxLevel = Mathf.Max(1, ConfigData?.MaxLevel ?? 99);
+            CurrentLevel = Mathf.Clamp(level, 1, maxLevel);
+            long pending = Mathf.Max(0, currentExperience);
+
+            while (CurrentLevel < maxLevel)
+            {
+                int required = Mathf.Max(1, GetExperienceRequiredForNextLevel(CurrentLevel));
+                if (pending < required)
+                {
+                    break;
+                }
+
+                pending -= required;
+                CurrentLevel++;
+            }
+
+            CurrentExperience = CurrentLevel >= maxLevel
+                ? 0
+                : (int)System.Math.Min(pending, int.MaxValue);
+            RecalculateStats();
+        }
+
         public void SetCurrentLevel(int level)
         {
-            int maxLevel = ConfigData?.MaxLevel ?? 99;
-            CurrentLevel = Mathf.Clamp(level, 1, Mathf.Max(1, maxLevel));
+            int maxLevel = Mathf.Max(1, ConfigData?.MaxLevel ?? 99);
+            int previousLevel = CurrentLevel;
+            CurrentLevel = Mathf.Clamp(level, 1, maxLevel);
+            CurrentExperience = CurrentLevel >= maxLevel
+                ? 0
+                : Mathf.Clamp(CurrentExperience, 0, Mathf.Max(0, GetExperienceRequiredForNextLevel(CurrentLevel) - 1));
             RecalculateStats();
+
+            if (CurrentLevel != previousLevel)
+            {
+                EmitSignal(SignalName.LevelChanged, CurrentLevel);
+            }
         }
 
         public void RestoreResourceValues(float hp, float mp, float stamina)
@@ -395,6 +506,36 @@ namespace AshesofaDyingWorld.Entities.Player
             }
         }
 
+        public float GetAttackPower(PowerScalingType scaling, DamageType damageType)
+        {
+            PowerScalingType resolved = scaling;
+            if (resolved == PowerScalingType.Auto)
+            {
+                resolved = damageType == DamageType.Magic || damageType == DamageType.Ice
+                    ? PowerScalingType.Magic
+                    : PowerScalingType.Physical;
+            }
+
+            return resolved switch
+            {
+                PowerScalingType.Magic => MagicPower,
+                PowerScalingType.Highest => PrimaryPower,
+                PowerScalingType.None => 0f,
+                _ => PhysicalPower
+            };
+        }
+
+        public float GetDamageResistance(DamageType damageType)
+        {
+            return damageType switch
+            {
+                DamageType.True => 0f,
+                DamageType.Magic => MagicResistance,
+                DamageType.Ice => MagicResistance,
+                _ => Armor
+            };
+        }
+
         public float GetKnockbackResistance()
         {
             int vitality = GetAttributeValue(AttributeType.Vitality);
@@ -415,9 +556,37 @@ namespace AshesofaDyingWorld.Entities.Player
 
         private void BuildManualProfile()
         {
+            CombatStatProfileData profile = ManualProfileData;
             foreach (AttributeType attribute in System.Enum.GetValues(typeof(AttributeType)))
             {
-                FinalAttributes[attribute] = GetTemporaryAttributeBonus(attribute);
+                int baseValue = profile?.GetAttribute(attribute) ?? 0;
+                FinalAttributes[attribute] = baseValue + GetTemporaryAttributeBonus(attribute);
+            }
+
+            if (profile != null)
+            {
+                MaxHP = Mathf.Max(1f, profile.MaxHP);
+                MaxMP = Mathf.Max(0f, profile.MaxMP);
+                MaxStamina = Mathf.Max(0f, profile.MaxStamina);
+                MaxGuard = Mathf.Max(0f, profile.MaxGuard);
+                MaxPoise = Mathf.Max(0f, profile.MaxPoise);
+                PhysicalPower = Mathf.Max(0f, profile.PhysicalPower);
+                MagicPower = Mathf.Max(0f, profile.MagicPower);
+                AttackDamage = PhysicalPower;
+                Armor = Mathf.Max(0f, profile.Armor);
+                MagicResistance = Mathf.Max(0f, profile.MagicResistance);
+                AttackSpeed = Mathf.Clamp(profile.AttackSpeed, 0.25f, 4f);
+
+                ManaRegenRate = Mathf.Max(0f, profile.ManaRegenRate);
+                StaminaRegenRate = Mathf.Max(0f, profile.StaminaRegenRate);
+                GuardRegenRate = Mathf.Max(0f, profile.GuardRegenRate);
+                PoiseRegenRate = Mathf.Max(0f, profile.PoiseRegenRate);
+                ManaRegenDelay = Mathf.Max(0f, profile.ManaRegenDelay);
+                StaminaRegenDelay = Mathf.Max(0f, profile.StaminaRegenDelay);
+                GuardRegenDelay = Mathf.Max(0f, profile.GuardRegenDelay);
+                PoiseRegenDelay = Mathf.Max(0f, profile.PoiseRegenDelay);
+                MitigationCurveConstant = 100f;
+                return;
             }
 
             MaxHP = Mathf.Max(1f, ManualMaxHP);
@@ -425,9 +594,13 @@ namespace AshesofaDyingWorld.Entities.Player
             MaxStamina = Mathf.Max(0f, ManualMaxStamina);
             MaxGuard = Mathf.Max(0f, ManualMaxGuard);
             MaxPoise = Mathf.Max(0f, ManualMaxPoise);
-            AttackDamage = Mathf.Max(0f, ManualAttackPower);
+            PhysicalPower = Mathf.Max(0f, ManualAttackPower);
+            MagicPower = Mathf.Max(0f, ManualMagicPower);
+            AttackDamage = PhysicalPower;
             Armor = Mathf.Max(0f, ManualArmor);
+            MagicResistance = Mathf.Max(0f, ManualMagicResistance);
             AttackSpeed = Mathf.Clamp(ManualAttackSpeed, 0.25f, 4f);
+            MitigationCurveConstant = 100f;
         }
 
         private void BuildCharacterProfile()
@@ -445,20 +618,12 @@ namespace AshesofaDyingWorld.Entities.Player
             int defense = GetAttributeValue(AttributeType.Defense);
             int dexterity = GetAttributeValue(AttributeType.Dexterity);
             int intelligence = GetAttributeValue(AttributeType.Intelligence);
-
-            // Tính từ FinalAttributes để equipment, skill và status modifier thật sự có tác dụng.
-            MaxHP = vitality * 10f + strength * 2f + 100f;
-            MaxMP = intelligence * 8f + 50f;
-            MaxStamina = vitality * 5f + 50f;
-            MaxGuard = 40f + defense * 5f + vitality * 1.5f;
-            MaxPoise = 25f + vitality * 4f + defense * 2f;
+            int spirit = GetAttributeValue(AttributeType.Spirit);
+            PowerBalanceData balance = ConfigData.BalanceProfile;
 
             float weaponDamage = EquipmentMgr?.GetTotalBaseValue(EquipmentSlot.MainHand) ?? 0f;
-            AttackDamage = weaponDamage + strength * 2.5f;
-
             float equipmentArmor = (EquipmentMgr?.GetTotalBaseValue(EquipmentSlot.Body) ?? 0f)
                 + (EquipmentMgr?.GetTotalBaseValue(EquipmentSlot.Head) ?? 0f);
-            Armor = equipmentArmor + defense * 1.5f;
 
             float weaponWeight = 1f;
             var weapon = EquipmentMgr?.GetEquippedItem(EquipmentSlot.MainHand);
@@ -467,9 +632,55 @@ namespace AshesofaDyingWorld.Entities.Player
                 weaponWeight = weapon.WeaponWeight;
             }
 
-            float dexterityFactor = 1f + dexterity * 0.02f;
-            float weightFactor = 1f / Mathf.Max(0.5f, weaponWeight);
-            AttackSpeed = Mathf.Clamp(dexterityFactor * weightFactor, 0.5f, 3f);
+            if (balance != null)
+            {
+                MaxHP = balance.CalculateMaxHP(vitality, strength);
+                MaxMP = balance.CalculateMaxMP(intelligence, spirit);
+                MaxStamina = balance.CalculateMaxStamina(vitality, dexterity);
+                MaxGuard = balance.CalculateMaxGuard(defense, vitality);
+                MaxPoise = balance.CalculateMaxPoise(vitality, defense);
+                PhysicalPower = balance.CalculatePhysicalPower(weaponDamage, strength);
+                MagicPower = balance.CalculateMagicPower(intelligence, spirit);
+                Armor = balance.CalculateArmor(equipmentArmor, defense);
+                MagicResistance = balance.CalculateMagicResistance(spirit, defense);
+                AttackSpeed = balance.CalculateAttackSpeed(dexterity, weaponWeight);
+                ManaRegenRate = balance.CalculateManaRegen(spirit);
+                StaminaRegenRate = balance.CalculateStaminaRegen(dexterity, vitality);
+                GuardRegenRate = Mathf.Max(0f, balance.GuardRegenRate);
+                PoiseRegenRate = Mathf.Max(0f, balance.PoiseRegenRate);
+                ManaRegenDelay = Mathf.Max(0f, balance.ManaRegenDelay);
+                StaminaRegenDelay = Mathf.Max(0f, balance.StaminaRegenDelay);
+                GuardRegenDelay = Mathf.Max(0f, balance.GuardRegenDelay);
+                PoiseRegenDelay = Mathf.Max(0f, balance.PoiseRegenDelay);
+                MitigationCurveConstant = Mathf.Max(1f, balance.MitigationCurveConstant);
+            }
+            else
+            {
+                // Fallback giữ cùng công thức mặc định của core_power.tres.
+                MaxHP = 80f + vitality * 8f + strength;
+                MaxMP = 30f + intelligence * 4f + spirit * 2f;
+                MaxStamina = 60f + vitality * 3f + dexterity;
+                MaxGuard = 35f + defense * 4f + vitality * 1.5f;
+                MaxPoise = 20f + vitality * 3f + defense * 1.5f;
+                PhysicalPower = weaponDamage + strength * 2f;
+                MagicPower = intelligence * 2f + spirit * 0.5f;
+                Armor = equipmentArmor + defense * 1.5f;
+                MagicResistance = spirit * 0.8f + defense * 0.4f;
+                ManaRegenRate = 0.5f + spirit * 0.08f;
+                StaminaRegenRate = 12f + dexterity * 0.5f + vitality * 0.15f;
+                GuardRegenRate = 14f;
+                PoiseRegenRate = 10f;
+                ManaRegenDelay = 2f;
+                StaminaRegenDelay = 0.35f;
+                GuardRegenDelay = 0.8f;
+                PoiseRegenDelay = 1.1f;
+                float dexterityFactor = 0.9f + dexterity * 0.0125f;
+                float weightFactor = 1f / Mathf.Sqrt(Mathf.Max(0.7f, weaponWeight));
+                AttackSpeed = Mathf.Clamp(dexterityFactor * weightFactor, 0.6f, 2.2f);
+                MitigationCurveConstant = 100f;
+            }
+
+            AttackDamage = PhysicalPower;
         }
 
 

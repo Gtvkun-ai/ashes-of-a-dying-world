@@ -23,6 +23,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
         private HitProfileData _profile;
         private readonly HashSet<ulong> _hitTargets = new();
         private Vector2 _attackFacing = Vector2.Down;
+        private float _damageMultiplier = 1f;
         private bool _active;
 
         public bool IsActive => _active;
@@ -45,6 +46,11 @@ namespace AshesofaDyingWorld.Combat.Runtime
 
         public void EnableHitbox(CombatActionData action, Vector2 facing)
         {
+            EnableHitbox(action, facing, 1f);
+        }
+
+        public void EnableHitbox(CombatActionData action, Vector2 facing, float damageMultiplier)
+        {
             if (action?.HitProfile == null || _combatOwner == null)
             {
                 DisableHitbox();
@@ -54,6 +60,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
             EnsureNodes();
             _action = action;
             _profile = action.HitProfile;
+            _damageMultiplier = Mathf.Max(0f, damageMultiplier);
             _hitTargets.Clear();
 
             Vector2 safeFacing = facing == Vector2.Zero ? Vector2.Down : facing.Normalized();
@@ -82,6 +89,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
             _action = null;
             _profile = null;
             _attackFacing = Vector2.Down;
+            _damageMultiplier = 1f;
             _hitTargets.Clear();
             SetPhysicsProcess(false);
         }
@@ -96,7 +104,9 @@ namespace AshesofaDyingWorld.Combat.Runtime
             _area = new Area2D
             {
                 Name = "Area",
-                CollisionLayer = 8,
+                // Hitbox dùng layer riêng (32), không dùng chung layer 8 với world geometry.
+                // Nếu dùng chung, projectile quét world có thể đập vào hitbox melee đang active.
+                CollisionLayer = 32,
                 CollisionMask = 16,
 
                 // Hitbox chỉ cần chủ động quét Hurtbox. Nó không cần cho Area khác phát hiện.
@@ -157,7 +167,13 @@ namespace AshesofaDyingWorld.Combat.Runtime
                 return;
             }
 
-            _combatOwner.TryResolveHit(target, _action, _profile);
+            _combatOwner.TryResolveHit(
+                target,
+                _action,
+                _profile,
+                _combatOwner.CombatCenter,
+                _attackFacing,
+                _damageMultiplier);
         }
 
         private static CombatCharacter FindCombatCharacter(Node node)

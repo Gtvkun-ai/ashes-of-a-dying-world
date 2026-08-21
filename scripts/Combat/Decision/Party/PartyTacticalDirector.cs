@@ -168,7 +168,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Party
             return IsUsable(candidate)
                 && candidate != actor
                 && candidate.IsAlive
-                && FactionRules.CanDamage(actor.Faction, candidate.Faction);
+                && FactionRules.IsHostile(actor.Faction, candidate.Faction);
         }
 
         private static bool IsUsable(Node node)

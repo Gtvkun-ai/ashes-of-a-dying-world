@@ -8,8 +8,10 @@ namespace AshesofaDyingWorld.Combat.Data
     {
         [ExportGroup("Damage")]
         [Export] public DamageType DamageType { get; set; } = DamageType.Physical;
+        [Export] public PowerScalingType PowerScaling { get; set; } = PowerScalingType.Auto;
         [Export] public float BaseDamage { get; set; } = 0f;
         [Export] public float AttackPowerScale { get; set; } = 1f;
+        // Penetration là giá trị phẳng, áp dụng lên Armor hoặc Magic Resistance theo DamageType.
         [Export] public float ArmorPenetration { get; set; } = 0f;
 
         [ExportGroup("Control")]

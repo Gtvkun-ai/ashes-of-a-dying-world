@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="CombatActionData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="CombatActionData" load_steps=3 format=3 uid="uid://brhcdps2lufu"]
 
 [ext_resource type="Script" path="res://scripts/Combat/Data/CombatActionData.cs" id="1"]
 [ext_resource type="Resource" path="res://data/combat/hit_profiles/wood_sword_heavy.tres" id="2"]
@@ -17,7 +17,7 @@ StartupSeconds = 0.16
 ActiveSeconds = 0.14
 RecoverySeconds = 0.34
 InputBufferSeconds = 0.16
-StaminaCost = 18.0
+StaminaCost = 14.0
 LungeSpeed = 78.0
 MovementInputMultiplier = 0.14
 HitProfile = ExtResource("2")

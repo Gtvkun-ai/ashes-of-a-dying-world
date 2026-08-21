@@ -196,7 +196,7 @@ namespace AshesofaDyingWorld.Entities.NPC
                 if (candidate == null
                     || candidate == this
                     || !candidate.IsAlive
-                    || !FactionRules.CanDamage(Faction, candidate.Faction))
+                    || !FactionRules.IsHostile(Faction, candidate.Faction))
                 {
                     continue;
                 }

@@ -16,6 +16,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
     {
         private readonly SceneTree _tree;
         private readonly RayCast2D _lineOfSightRay;
+        private readonly CombatLineOfFireSensor _lineOfFireSensor;
+        private readonly ProjectileSpecData _primaryProjectileSpec;
         private readonly IThreatPredictor _threatPredictor;
         private readonly float _enemySearchRadius;
         private readonly float _leaderDangerRadius;
@@ -23,12 +25,16 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
         public CombatPerception(
             SceneTree tree,
             RayCast2D lineOfSightRay,
+            CombatLineOfFireSensor lineOfFireSensor,
+            ProjectileSpecData primaryProjectileSpec,
             IThreatPredictor threatPredictor,
             float enemySearchRadius,
             float leaderDangerRadius)
         {
             _tree = tree;
             _lineOfSightRay = lineOfSightRay;
+            _lineOfFireSensor = lineOfFireSensor;
+            _primaryProjectileSpec = primaryProjectileSpec;
             _threatPredictor = threatPredictor;
             _enemySearchRadius = Mathf.Max(1f, enemySearchRadius);
             _leaderDangerRadius = Mathf.Max(1f, leaderDangerRadius);
@@ -231,7 +237,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 if (node is not CombatCharacter hostile
                     || hostile == actor
                     || !hostile.IsAlive
-                    || !FactionRules.CanDamage(hostile.Faction, actor.Faction))
+                    || !FactionRules.IsHostile(hostile.Faction, actor.Faction))
                 {
                     continue;
                 }
@@ -261,30 +267,30 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
 
         public bool HasLineOfSight(CombatCharacter self, CombatCharacter target)
         {
-            if (_lineOfSightRay == null
-                || !GodotObject.IsInstanceValid(_lineOfSightRay)
-                || !IsUsable(self)
-                || !IsUsable(target))
+            if (!IsUsable(self) || !IsUsable(target))
             {
-                // Không có sensor thì không được giả định nhìn xuyên tường.
                 return false;
             }
 
-            // Projectile bỏ qua đồng minh, nên LOS cũng phải bỏ qua đồng minh. Nếu không Player
-            // đứng sát slime sẽ vô tình làm Hyou tưởng cả thế giới là một bức tường.
-            _lineOfSightRay.ClearExceptions();
-            foreach (Node node in _tree.GetNodesInGroup("Combatant"))
+            // Với ranged AI, "thấy mục tiêu" thực tế phải có nghĩa là viên đạn thật đi tới được mục tiêu.
+            // ShapeCast dùng cùng bán kính/mask với projectile nên cây, tường và đồng đội đều có ý nghĩa.
+            if (_lineOfFireSensor != null && GodotObject.IsInstanceValid(_lineOfFireSensor))
             {
-                if (node is CombatCharacter ally
-                    && ally != self
-                    && ally != target
-                    && IsUsable(ally)
-                    && FactionRules.AreAllies(self.Faction, ally.Faction))
+                LineOfFireResult line = _lineOfFireSensor.Query(self, target, _primaryProjectileSpec);
+                if (line.IsValid)
                 {
-                    _lineOfSightRay.AddException(ally);
+                    return line.ReachesTarget;
                 }
             }
 
+            // Fallback cho actor/class chưa có projectile profile. Ray này chỉ dùng world LOS;
+            // không còn bỏ qua đồng minh bằng policy cũ vì friendly fire hiện là luật vật lý thật.
+            if (_lineOfSightRay == null || !GodotObject.IsInstanceValid(_lineOfSightRay))
+            {
+                return false;
+            }
+
+            _lineOfSightRay.ClearExceptions();
             _lineOfSightRay.TargetPosition = _lineOfSightRay.ToLocal(target.CombatCenter);
             _lineOfSightRay.ForceRaycastUpdate();
             if (!_lineOfSightRay.IsColliding())
@@ -306,7 +312,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             return IsUsable(candidate)
                 && candidate != self
                 && candidate.IsAlive
-                && FactionRules.CanDamage(self.Faction, candidate.Faction)
+                && FactionRules.IsHostile(self.Faction, candidate.Faction)
                 && self.CombatCenter.DistanceSquaredTo(candidate.CombatCenter) <= radius * radius;
         }
 

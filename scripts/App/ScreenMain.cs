@@ -69,6 +69,7 @@ public partial class ScreenMain : Node2D
             DamageNumberService.GetOrCreate(tree);
             CompanionTargetIndicatorService.GetOrCreate(tree);
             SkillCooldownHudService.GetOrCreate(tree);
+            FloatingProgressionHudService.GetOrCreate(tree);
 
             var playerScene = GD.Load<PackedScene>(PlayerPath);
             if (playerScene == null)

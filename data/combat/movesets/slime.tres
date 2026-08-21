@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="WeaponMovesetData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="WeaponMovesetData" load_steps=3 format=3 uid="uid://bq2nyk8fqedg7"]
 
 [ext_resource type="Script" path="res://scripts/Combat/Data/WeaponMovesetData.cs" id="1"]
 [ext_resource type="Resource" path="res://data/combat/actions/slime_bite.tres" id="2"]

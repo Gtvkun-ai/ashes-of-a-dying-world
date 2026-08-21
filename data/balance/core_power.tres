@@ -1,0 +1,47 @@
+[gd_resource type="Resource" script_class="PowerBalanceData" load_steps=2 format=3 uid="uid://c8x4n2m6q7p1r"]
+
+[ext_resource type="Script" path="res://scripts/Characters/Data/PowerBalanceData.cs" id="1_balance"]
+
+[resource]
+script = ExtResource("1_balance")
+BaseHP = 80.0
+HPPerVitality = 8.0
+HPPerStrength = 1.0
+BaseMP = 30.0
+MPPerIntelligence = 4.0
+MPPerSpirit = 2.0
+BaseManaRegen = 0.5
+ManaRegenPerSpirit = 0.08
+ManaRegenDelay = 2.0
+BaseStamina = 60.0
+StaminaPerVitality = 3.0
+StaminaPerDexterity = 1.0
+BaseStaminaRegen = 12.0
+StaminaRegenPerDexterity = 0.5
+StaminaRegenPerVitality = 0.15
+StaminaRegenDelay = 0.35
+BaseGuard = 35.0
+GuardPerDefense = 4.0
+GuardPerVitality = 1.5
+BasePoise = 20.0
+PoisePerVitality = 3.0
+PoisePerDefense = 1.5
+GuardRegenRate = 14.0
+PoiseRegenRate = 10.0
+GuardRegenDelay = 0.8
+PoiseRegenDelay = 1.1
+PhysicalPowerPerStrength = 2.0
+MagicPowerPerIntelligence = 2.0
+MagicPowerPerSpirit = 0.5
+ArmorPerDefense = 1.5
+MagicResistancePerSpirit = 0.8
+MagicResistancePerDefense = 0.4
+MitigationCurveConstant = 100.0
+BaseAttackSpeed = 0.9
+AttackSpeedPerDexterity = 0.0125
+MinimumWeaponWeightForSpeed = 0.7
+MinimumAttackSpeed = 0.6
+MaximumAttackSpeed = 2.2
+BaseExperienceToNextLevel = 100
+ExperienceGrowthMultiplier = 1.12
+ExperienceRoundingStep = 5

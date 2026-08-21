@@ -5,8 +5,9 @@
 [ext_resource type="PackedScene" uid="uid://b3eivxlgndgut" path="res://scenes/characters/player/main_body.tscn" id="2_0brhl"]
 [ext_resource type="Texture2D" uid="uid://1pbexhcw6hrb" path="res://assets/graphics/characters/player/icon.png" id="2_no3tc"]
 [ext_resource type="Resource" uid="uid://b4f3noqgt5bde" path="res://data/races/human.tres" id="3_0xmke"]
-[ext_resource type="Resource" path="res://data/combat/skills/hikaru_focus.tres" id="4_focus"]
+[ext_resource type="Resource" uid="uid://cdaoahnm2y0h1" path="res://data/combat/skills/hikaru_focus.tres" id="4_focus"]
 [ext_resource type="Resource" uid="uid://mo7jkwpdw3s7" path="res://data/skill_trees/hikaru_skill_tree.tres" id="5_skill_tree"]
+[ext_resource type="Resource" uid="uid://c8x4n2m6q7p1r" path="res://data/balance/core_power.tres" id="6_balance"]
 
 [resource]
 script = ExtResource("1_68kib")
@@ -16,8 +17,10 @@ Icon = ExtResource("2_no3tc")
 Avatar = ExtResource("1_asl43")
 BodyScene = ExtResource("2_0brhl")
 CharacterRace = ExtResource("3_0xmke")
+BalanceProfile = ExtResource("6_balance")
 ActiveSkills = Array[Resource]([ExtResource("4_focus")])
 ComboSequence = Array[Object]([])
 SkillTree = ExtResource("5_skill_tree")
 ThemeColor = Color(0, 0, 0, 1)
+BackgroundImage = ExtResource("2_no3tc")
 metadata/_custom_type_script = "uid://cfybswbojyqyb"

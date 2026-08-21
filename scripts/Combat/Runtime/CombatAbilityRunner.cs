@@ -179,7 +179,11 @@ namespace AshesofaDyingWorld.Combat.Runtime
                 _owner.ReleaseBlock();
             }
 
-            return _owner.Actions.TryStartAbilityAction(skill.CombatAction, aimDirection, aimTarget);
+            return _owner.Actions.TryStartAbilityAction(
+                skill.CombatAction,
+                aimDirection,
+                aimTarget,
+                Mathf.Max(0f, skill.DamageMultiplier));
         }
 
         private bool ExecuteHeal(SkillData skill)

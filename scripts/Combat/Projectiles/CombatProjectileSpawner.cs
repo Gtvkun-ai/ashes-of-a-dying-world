@@ -19,7 +19,8 @@ namespace AshesofaDyingWorld.Combat.Projectiles
             ProjectileSpecData spec,
             Vector2 direction,
             NodePath originSocketPath = default,
-            CombatCharacter aimTarget = null)
+            CombatCharacter aimTarget = null,
+            float damageMultiplier = 1f)
         {
             if (attacker == null || action == null || spec == null || !attacker.IsInsideTree())
             {
@@ -35,7 +36,7 @@ namespace AshesofaDyingWorld.Combat.Projectiles
             Vector2 origin = ResolveOrigin(attacker, originSocketPath);
             Vector2 safeDirection = ResolveReleaseAim(attacker, aimTarget, origin, spec, direction);
             var projectile = new CombatProjectile2D();
-            projectile.Initialize(attacker, action, spec, safeDirection);
+            projectile.Initialize(attacker, action, spec, safeDirection, damageMultiplier);
             worldParent.AddChild(projectile);
             projectile.GlobalPosition = origin
                 + safeDirection * Mathf.Max(0f, spec.SpawnOffset);
@@ -61,7 +62,7 @@ namespace AshesofaDyingWorld.Combat.Projectiles
                 || !GodotObject.IsInstanceValid(target)
                 || target.IsQueuedForDeletion()
                 || !target.IsAlive
-                || !FactionRules.CanDamage(attacker.Faction, target.Faction))
+                || !FactionRules.IsHostile(attacker.Faction, target.Faction))
             {
                 return fallback;
             }
