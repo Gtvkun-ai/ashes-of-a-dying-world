@@ -1,26 +1,55 @@
-[gd_scene load_steps=4 format=3 uid="uid://b5hpvdqiypg5l"]
+[gd_scene load_steps=8 format=3 uid="uid://b5hpvdqiypg5l"]
 
-[ext_resource type="Texture2D" uid="uid://cqooxh3h0tb1v" path="res://assets/graphics/environment/flora/flora_sheet.png" id="1_ma61n"]
+[ext_resource type="Texture2D" path="res://assets/graphics/environment/flora/flora_wind_small.png" id="1_atlas"]
+[ext_resource type="Texture2D" path="res://assets/graphics/environment/flora/flora_contact_shadow.png" id="2_shadow"]
+[ext_resource type="Script" path="res://scripts/World/Environment/FloraIdleAnimator.cs" id="3_animator"]
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_o1wda"]
-atlas = ExtResource("1_ma61n")
-region = Rect2(160, 34, 16, 17)
+[sub_resource type="AtlasTexture" id="Atlas_left"]
+atlas = ExtResource("1_atlas")
+region = Rect2(0, 51, 16, 17)
 
-[sub_resource type="SpriteFrames" id="SpriteFrames_apf4k"]
+[sub_resource type="AtlasTexture" id="Atlas_neutral"]
+atlas = ExtResource("1_atlas")
+region = Rect2(16, 51, 16, 17)
+
+[sub_resource type="AtlasTexture" id="Atlas_right"]
+atlas = ExtResource("1_atlas")
+region = Rect2(32, 51, 16, 17)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_idle"]
 animations = [{
 "frames": [{
 "duration": 1.0,
-"texture": SubResource("AtlasTexture_o1wda")
+"texture": SubResource("Atlas_left")
+},{
+"duration": 1.0,
+"texture": SubResource("Atlas_neutral")
+},{
+"duration": 1.0,
+"texture": SubResource("Atlas_right")
+},{
+"duration": 1.0,
+"texture": SubResource("Atlas_neutral")
 }],
 "loop": true,
 "name": &"idle",
-"speed": 5.0
+"speed": 2.55
 }]
 
 [node name="grass" type="Node2D"]
 
+[node name="ContactShadow" type="Sprite2D" parent="."]
+z_index = -1
+texture_filter = 1
+position = Vector2(0, 35.5)
+scale = Vector2(1.1, 1)
+texture = ExtResource("2_shadow")
+
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+texture_filter = 1
 position = Vector2(0, 25)
 scale = Vector2(1.25, 1.25)
-sprite_frames = SubResource("SpriteFrames_apf4k")
+sprite_frames = SubResource("SpriteFrames_idle")
 animation = &"idle"
+autoplay = "idle"
+script = ExtResource("3_animator")

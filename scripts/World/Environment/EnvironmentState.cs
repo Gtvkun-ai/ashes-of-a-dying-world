@@ -24,6 +24,11 @@ namespace AshesofaDyingWorld.World.Environment
         public float FogAmount { get; internal set; }
         public float Cloudiness { get; internal set; }
 
+        // Biome/material response values. These are still derived state, not save data.
+        public float ShadowStrength { get; internal set; }
+        public float WaterShimmerStrength { get; internal set; }
+        public float WaterRippleStrength { get; internal set; }
+
         public float WeatherDarken { get; internal set; }
         public float WeatherDesaturate { get; internal set; }
     }

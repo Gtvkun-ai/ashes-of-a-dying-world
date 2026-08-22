@@ -24,6 +24,11 @@ public partial class ScreenMain : Node2D
     public override void _Ready()
     {
         // Runtime fallback: project zip không cần phụ thuộc autoload để settings/audio hoạt động.
+        CallDeferred(nameof(BootstrapRuntimeServices));
+    }
+
+    public void BootstrapRuntimeServices()
+    {
         SettingsManager.GetOrCreate(GetTree());
         PlayerManager.GetOrCreate(GetTree());
         AudioManager.GetOrCreate(GetTree());

@@ -35,7 +35,11 @@ namespace AshesofaDyingWorld.World.Environment
             {
                 GD.PushWarning("[EnvironmentDebug] WorldEnvironmentService not found.");
                 SetProcessUnhandledInput(false);
+                return;
             }
+
+            GD.Print("[EnvironmentDebug] ACTIVE | Ctrl+F9 time | Ctrl+F10 speed | Ctrl+F12 weather");
+            PrintState("boot");
         }
 
         public override void _UnhandledInput(InputEvent inputEvent)

@@ -29,13 +29,19 @@
 [ext_resource type="Script" path="res://scripts/World/Environment/EnvironmentBinder2D.cs" id="30_env_binder"]
 [ext_resource type="Resource" path="res://data/world/environment/whispering_fields.tres" id="31_env_profile"]
 [ext_resource type="Shader" path="res://assets/shaders/world/puddle_water.gdshader" id="32_puddle_shader"]
+[ext_resource type="Shader" path="res://assets/shaders/world/puddle_leaves.gdshader" id="33_puddle_leaves_shader"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_puddle_water"]
 shader = ExtResource("32_puddle_shader")
-shader_parameter/shimmer_strength = 0.14
-shader_parameter/ripple_strength = 0.1
-shader_parameter/animation_speed = 0.7
+shader_parameter/shimmer_response = 1.0
+shader_parameter/ripple_response = 1.0
+shader_parameter/animation_speed = 1.0
 shader_parameter/pixel_block = 2.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_puddle_leaves"]
+shader = ExtResource("33_puddle_leaves_shader")
+shader_parameter/wet_highlight = 0.10
+shader_parameter/pulse_speed = 0.55
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ey7of"]
 texture = ExtResource("1_ey7of")
@@ -1035,6 +1041,7 @@ centered = false
 [node name="MudPuddles" type="Sprite2D" parent="VisualGround"]
 z_index = -3
 texture_filter = 1
+material = SubResource("ShaderMaterial_puddle_leaves")
 scale = Vector2(4, 4)
 texture = ExtResource("29_mud_puddles")
 centered = false

@@ -1,21 +1,40 @@
-[gd_scene load_steps=5 format=3 uid="uid://dn6mkbqn5m3hq"]
+[gd_scene load_steps=9 format=3 uid="uid://dn6mkbqn5m3hq"]
 
-[ext_resource type="Texture2D" uid="uid://cqooxh3h0tb1v" path="res://assets/graphics/environment/flora/flora_sheet.png" id="1_03gg2"]
+[ext_resource type="Texture2D" path="res://assets/graphics/environment/flora/flora_wind_small.png" id="1_atlas"]
 [ext_resource type="Script" path="res://scripts/World/Interaction/WorldInteractable.cs" id="2_interactable"]
+[ext_resource type="Texture2D" path="res://assets/graphics/environment/flora/flora_contact_shadow.png" id="3_shadow"]
+[ext_resource type="Script" path="res://scripts/World/Environment/FloraIdleAnimator.cs" id="4_animator"]
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_8fhu4"]
-atlas = ExtResource("1_03gg2")
-region = Rect2(80, 34, 16, 17)
+[sub_resource type="AtlasTexture" id="Atlas_left"]
+atlas = ExtResource("1_atlas")
+region = Rect2(0, 17, 16, 17)
 
-[sub_resource type="SpriteFrames" id="SpriteFrames_c5qre"]
+[sub_resource type="AtlasTexture" id="Atlas_neutral"]
+atlas = ExtResource("1_atlas")
+region = Rect2(16, 17, 16, 17)
+
+[sub_resource type="AtlasTexture" id="Atlas_right"]
+atlas = ExtResource("1_atlas")
+region = Rect2(32, 17, 16, 17)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_idle"]
 animations = [{
 "frames": [{
 "duration": 1.0,
-"texture": SubResource("AtlasTexture_8fhu4")
+"texture": SubResource("Atlas_left")
+},{
+"duration": 1.0,
+"texture": SubResource("Atlas_neutral")
+},{
+"duration": 1.0,
+"texture": SubResource("Atlas_right")
+},{
+"duration": 1.0,
+"texture": SubResource("Atlas_neutral")
 }],
 "loop": true,
 "name": &"idle",
-"speed": 5.0
+"speed": 2.0
 }]
 
 [node name="purple_flower" type="Node2D"]
@@ -30,8 +49,18 @@ Amount = 1
 OneShot = true
 RemoveAfterInteraction = true
 
+[node name="ContactShadow" type="Sprite2D" parent="."]
+z_index = -1
+texture_filter = 1
+position = Vector2(0, 35.5)
+scale = Vector2(1.15, 1)
+texture = ExtResource("3_shadow")
+
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
-position = Vector2(0, 21.000002)
+texture_filter = 1
+position = Vector2(0, 21)
 scale = Vector2(1.75, 1.75)
-sprite_frames = SubResource("SpriteFrames_c5qre")
+sprite_frames = SubResource("SpriteFrames_idle")
 animation = &"idle"
+autoplay = "idle"
+script = ExtResource("4_animator")

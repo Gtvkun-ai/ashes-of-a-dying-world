@@ -1,6 +1,7 @@
-[gd_scene load_steps=5 format=3 uid="uid://3x0xwi0xk2ej"]
+[gd_scene load_steps=7 format=3 uid="uid://3x0xwi0xk2ej"]
 
 [ext_resource type="Texture2D" uid="uid://cdwhvp0bl0kw3" path="res://assets/graphics/environment/trees/tree.png" id="1_thqfv"]
+[ext_resource type="Shader" path="res://assets/shaders/world/foliage_wind.gdshader" id="2_wind"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_madqg"]
 atlas = ExtResource("1_thqfv")
@@ -20,9 +21,18 @@ animations = [{
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_thqfv"]
 size = Vector2(81, 18)
 
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_wind_tree"]
+shader = ExtResource("2_wind")
+shader_parameter/max_bend_pixels = 2.35
+shader_parameter/sway_speed = 0.62
+shader_parameter/anchor_y = 0.78
+shader_parameter/gust_strength = 0.32
+shader_parameter/rain_stiffness = 0.34
+
 [node name="Tree" type="StaticBody2D"]
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+material = SubResource("ShaderMaterial_wind_tree")
 sprite_frames = SubResource("SpriteFrames_gvg74")
 animation = &"idle"
 offset = Vector2(0, -30)

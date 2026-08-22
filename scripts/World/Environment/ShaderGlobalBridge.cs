@@ -21,6 +21,9 @@ namespace AshesofaDyingWorld.World.Environment
         private static readonly StringName EnvWetness = "env_wetness";
         private static readonly StringName EnvFog = "env_fog";
         private static readonly StringName EnvCloudiness = "env_cloudiness";
+        private static readonly StringName EnvShadowStrength = "env_shadow_strength";
+        private static readonly StringName EnvWaterShimmer = "env_water_shimmer";
+        private static readonly StringName EnvWaterRipple = "env_water_ripple";
 
         private static bool _validationAttempted;
         private static bool _configurationValid;
@@ -49,7 +52,10 @@ namespace AshesofaDyingWorld.World.Environment
                 "shader_globals/env_rain",
                 "shader_globals/env_wetness",
                 "shader_globals/env_fog",
-                "shader_globals/env_cloudiness"
+                "shader_globals/env_cloudiness",
+                "shader_globals/env_shadow_strength",
+                "shader_globals/env_water_shimmer",
+                "shader_globals/env_water_ripple"
             };
 
             bool ok = true;
@@ -66,6 +72,11 @@ namespace AshesofaDyingWorld.World.Environment
             }
 
             _configurationValid = ok;
+            if (_configurationValid)
+            {
+                GD.Print("[ShaderGlobalBridge] READY 13/13 environment shader globals");
+            }
+
             return _configurationValid;
         }
 
@@ -90,6 +101,9 @@ namespace AshesofaDyingWorld.World.Environment
             RenderingServer.GlobalShaderParameterSet(EnvWetness, state.Wetness);
             RenderingServer.GlobalShaderParameterSet(EnvFog, state.FogAmount);
             RenderingServer.GlobalShaderParameterSet(EnvCloudiness, state.Cloudiness);
+            RenderingServer.GlobalShaderParameterSet(EnvShadowStrength, state.ShadowStrength);
+            RenderingServer.GlobalShaderParameterSet(EnvWaterShimmer, state.WaterShimmerStrength);
+            RenderingServer.GlobalShaderParameterSet(EnvWaterRipple, state.WaterRippleStrength);
         }
     }
 }

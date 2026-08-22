@@ -1,26 +1,55 @@
-[gd_scene format=3 uid="uid://bs3fndem6lq72"]
+[gd_scene load_steps=8 format=3 uid="uid://bs3fndem6lq72"]
 
-[ext_resource type="Texture2D" uid="uid://cqooxh3h0tb1v" path="res://assets/graphics/environment/flora/flora_sheet.png" id="1_jv3e5"]
+[ext_resource type="Texture2D" path="res://assets/graphics/environment/flora/flora_wind_small.png" id="1_atlas"]
+[ext_resource type="Texture2D" path="res://assets/graphics/environment/flora/flora_contact_shadow.png" id="2_shadow"]
+[ext_resource type="Script" path="res://scripts/World/Environment/FloraIdleAnimator.cs" id="3_animator"]
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_osshh"]
-atlas = ExtResource("1_jv3e5")
-region = Rect2(16, 34, 16, 17)
+[sub_resource type="AtlasTexture" id="Atlas_left"]
+atlas = ExtResource("1_atlas")
+region = Rect2(0, 0, 16, 17)
 
-[sub_resource type="SpriteFrames" id="SpriteFrames_efhp4"]
+[sub_resource type="AtlasTexture" id="Atlas_neutral"]
+atlas = ExtResource("1_atlas")
+region = Rect2(16, 0, 16, 17)
+
+[sub_resource type="AtlasTexture" id="Atlas_right"]
+atlas = ExtResource("1_atlas")
+region = Rect2(32, 0, 16, 17)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_idle"]
 animations = [{
 "frames": [{
 "duration": 1.0,
-"texture": SubResource("AtlasTexture_osshh")
+"texture": SubResource("Atlas_left")
+},{
+"duration": 1.0,
+"texture": SubResource("Atlas_neutral")
+},{
+"duration": 1.0,
+"texture": SubResource("Atlas_right")
+},{
+"duration": 1.0,
+"texture": SubResource("Atlas_neutral")
 }],
 "loop": true,
 "name": &"idle",
-"speed": 5.0
+"speed": 2.15
 }]
 
-[node name="red_flower" type="Node2D" unique_id=1369062975]
+[node name="red_flower" type="Node2D"]
 
-[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=2115074369]
+[node name="ContactShadow" type="Sprite2D" parent="."]
+z_index = -1
+texture_filter = 1
+position = Vector2(0, 36.0)
+scale = Vector2(1.2, 1)
+texture = ExtResource("2_shadow")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+texture_filter = 1
 position = Vector2(0, 22)
 scale = Vector2(1.75, 1.75)
-sprite_frames = SubResource("SpriteFrames_efhp4")
+sprite_frames = SubResource("SpriteFrames_idle")
 animation = &"idle"
+autoplay = "idle"
+script = ExtResource("3_animator")

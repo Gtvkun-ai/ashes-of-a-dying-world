@@ -40,6 +40,8 @@ namespace AshesofaDyingWorld.World.Environment
             }
 
             ApplyAmbient();
+            GD.Print($"[EnvironmentBinder2D] BOUND profile={(Profile?.ResourcePath ?? "<none>")} " +
+                     $"canvas_modulate={(_canvasModulate != null ? _canvasModulate.GetPath().ToString() : "<missing>")}");
         }
 
         public override void _Process(double delta)

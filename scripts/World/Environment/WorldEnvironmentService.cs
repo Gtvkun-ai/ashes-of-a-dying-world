@@ -226,6 +226,9 @@ namespace AshesofaDyingWorld.World.Environment
                 CurrentState.SunDirection = Vector2.Up;
                 CurrentState.SunColor = Colors.White;
                 CurrentState.AmbientColor = Colors.White;
+                CurrentState.ShadowStrength = 0.55f;
+                CurrentState.WaterShimmerStrength = 0.12f;
+                CurrentState.WaterRippleStrength = 0.08f;
                 return;
             }
 
@@ -239,7 +242,7 @@ namespace AshesofaDyingWorld.World.Environment
             ambient = ApplyWeatherPalette(ambient, _weatherCurrent.Darken, _weatherCurrent.Desaturate);
 
             float wetness = Mathf.Clamp(
-                Mathf.Max(profile.BaseWetness, _weatherCurrent.Wetness, _weatherCurrent.Rain * 0.85f),
+                Mathf.Max(Mathf.Max(profile.BaseWetness, _weatherCurrent.Wetness), _weatherCurrent.Rain * 0.85f),
                 0f,
                 1f);
 
@@ -256,6 +259,9 @@ namespace AshesofaDyingWorld.World.Environment
             CurrentState.Wetness = wetness;
             CurrentState.FogAmount = Mathf.Clamp(_weatherCurrent.Fog, 0f, 1f);
             CurrentState.Cloudiness = Mathf.Clamp(_weatherCurrent.Cloudiness, 0f, 1f);
+            CurrentState.ShadowStrength = Mathf.Clamp(profile.ShadowStrength, 0f, 1f);
+            CurrentState.WaterShimmerStrength = Mathf.Max(0f, profile.WaterShimmerStrength);
+            CurrentState.WaterRippleStrength = Mathf.Max(0f, profile.WaterRippleStrength);
             CurrentState.WeatherDarken = Mathf.Clamp(_weatherCurrent.Darken, 0f, 1f);
             CurrentState.WeatherDesaturate = Mathf.Clamp(_weatherCurrent.Desaturate, 0f, 1f);
         }
