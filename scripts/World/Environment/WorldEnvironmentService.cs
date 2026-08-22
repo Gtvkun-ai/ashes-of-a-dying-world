@@ -34,13 +34,15 @@ namespace AshesofaDyingWorld.World.Environment
         public override void _Ready()
         {
             EnsureClock();
+            ShaderGlobalBridge.ValidateConfiguration();
+            EnsureDebugController();
 
             EnvironmentProfile defaultProfile = ResourceLoader.Exists(DefaultProfilePath)
                 ? GD.Load<EnvironmentProfile>(DefaultProfilePath)
                 : null;
 
             SetProfile(defaultProfile, snapToDefaultWeather: true);
-            RebuildState();
+            PublishState();
         }
 
         public override void _ExitTree()
@@ -54,7 +56,7 @@ namespace AshesofaDyingWorld.World.Environment
         public override void _Process(double delta)
         {
             StepWeather((float)delta);
-            RebuildState();
+            PublishState();
         }
 
         public static WorldEnvironmentService GetOrCreate(SceneTree tree)
@@ -98,7 +100,7 @@ namespace AshesofaDyingWorld.World.Environment
                 SetWeather(profile.DefaultWeather, 0f);
             }
 
-            RebuildState();
+            PublishState();
         }
 
         public void SetWeather(EnvironmentWeatherPreset preset, float transitionSeconds = 4f)
@@ -112,7 +114,7 @@ namespace AshesofaDyingWorld.World.Environment
                 _weatherTarget = target;
                 _weatherTransitionElapsed = 0f;
                 _weatherTransitionDuration = 0f;
-                RebuildState();
+                PublishState();
                 return;
             }
 
@@ -126,7 +128,7 @@ namespace AshesofaDyingWorld.World.Environment
         {
             EnsureClock();
             Clock.SetTime(day, hour);
-            RebuildState();
+            PublishState();
         }
 
         public void ResetForNewGame()
@@ -145,7 +147,7 @@ namespace AshesofaDyingWorld.World.Environment
                 _weatherTarget = _weatherCurrent;
             }
 
-            RebuildState();
+            PublishState();
         }
 
         private void EnsureClock()
@@ -166,6 +168,26 @@ namespace AshesofaDyingWorld.World.Environment
                 Name = "WorldClock"
             };
             AddChild(Clock);
+        }
+
+
+        private void EnsureDebugController()
+        {
+            if (!OS.IsDebugBuild() || GetNodeOrNull<EnvironmentDebugController>("EnvironmentDebugController") != null)
+            {
+                return;
+            }
+
+            AddChild(new EnvironmentDebugController
+            {
+                Name = "EnvironmentDebugController"
+            });
+        }
+
+        private void PublishState()
+        {
+            RebuildState();
+            ShaderGlobalBridge.Push(CurrentState);
         }
 
         private void StepWeather(float delta)

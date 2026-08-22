@@ -1,18 +1,17 @@
 shader_type canvas_item;
 
-// Ashes environment uniform contract.
-// Local uniforms intentionally used in V1 so the core works without requiring project.godot
-// global shader declarations. EnvironmentBinder2D owns the transport.
-uniform float env_time01 = 0.5;
-uniform float env_daylight = 1.0;
-uniform float env_night = 0.0;
-uniform vec2 env_sun_direction = vec2(-0.45, 0.9);
-uniform vec4 env_sun_color : source_color = vec4(1.0);
-uniform float env_wind = 0.2;
-uniform float env_rain = 0.0;
-uniform float env_wetness = 0.0;
-uniform float env_fog = 0.0;
-uniform float env_cloudiness = 0.1;
+// Ashes Environment Core V1.1: state comes from project-wide global shader uniforms.
+// res://override.cfg declares these before shaders are compiled.
+global uniform float env_time01;
+global uniform float env_daylight;
+global uniform float env_night;
+global uniform vec2 env_sun_direction;
+global uniform vec4 env_sun_color;
+global uniform float env_wind;
+global uniform float env_rain;
+global uniform float env_wetness;
+global uniform float env_fog;
+global uniform float env_cloudiness;
 
 uniform float shimmer_strength : hint_range(0.0, 1.0) = 0.12;
 uniform float ripple_strength : hint_range(0.0, 1.0) = 0.08;

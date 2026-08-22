@@ -1024,7 +1024,7 @@ scale = Vector2(4, 4)
 texture = ExtResource("27_ground_details")
 centered = false
 
-[node name="WetGround" type="Sprite2D" parent="VisualGround" groups=["environment_shader_consumer"]]
+[node name="WetGround" type="Sprite2D" parent="VisualGround"]
 z_index = -4
 texture_filter = 1
 material = SubResource("ShaderMaterial_puddle_water")
@@ -2581,7 +2581,6 @@ position = Vector2(145, 219)
 script = ExtResource("30_env_binder")
 Profile = ExtResource("31_env_profile")
 CanvasModulatePath = NodePath("../CanvasModulate")
-ScopeRootPath = NodePath("../..")
 
 [node name="AmbientMotes" type="Node2D" parent="EnvironmentFX"]
 

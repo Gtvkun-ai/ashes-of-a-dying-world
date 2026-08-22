@@ -1,15 +1,15 @@
 shader_type canvas_item;
 
-uniform float env_time01 = 0.5;
-uniform float env_daylight = 1.0;
-uniform float env_night = 0.0;
-uniform vec2 env_sun_direction = vec2(-0.45, 0.9);
-uniform vec4 env_sun_color : source_color = vec4(1.0);
-uniform float env_wind = 0.2;
-uniform float env_rain = 0.0;
-uniform float env_wetness = 0.0;
-uniform float env_fog = 0.0;
-uniform float env_cloudiness = 0.1;
+global uniform float env_time01;
+global uniform float env_daylight;
+global uniform float env_night;
+global uniform vec2 env_sun_direction;
+global uniform vec4 env_sun_color;
+global uniform float env_wind;
+global uniform float env_rain;
+global uniform float env_wetness;
+global uniform float env_fog;
+global uniform float env_cloudiness;
 
 uniform float shadow_strength : hint_range(0.0, 1.0) = 0.55;
 uniform float breathe_strength : hint_range(0.0, 0.2) = 0.035;
