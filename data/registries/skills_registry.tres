@@ -1,40 +1,27 @@
-[gd_resource type="Resource" script_class="Registry" load_steps=2 format=3 uid="uid://bnfsuimoy0teu"]
+[gd_resource type="Resource" script_class="Registry" format=3 uid="uid://bnfsuimoy0teu"]
 
-[ext_resource type="Script" path="res://addons/yard/registry.gd" id="1_registry"]
+[ext_resource type="Script" uid="uid://dqtv77mng5dyh" path="res://addons/yard/registry.gd" id="1_registry"]
 
 [resource]
 script = ExtResource("1_registry")
 _class_restriction = &"SkillData"
 _scan_directory = "res://data/combat/skills"
 _recursive_scan = true
-_scan_auto = true
-_scan_remove = true
 _uids_to_string_ids = Dictionary[StringName, StringName]({
-&"uid://ur4e8pcj7r4c": &"hikaru_battle_trance",
 &"uid://cdaoahnm2y0h1": &"hikaru_focus",
-&"uid://dvwbmxmlcn1tg": &"hikaru_heavy_slash",
-&"uid://8kbu7i1upk21": &"hikaru_quick_slash",
-&"uid://cg6et3itb3ib3": &"hikaru_relentless_cut",
-&"uid://dbcvqh4yollw4": &"hikaru_second_wind",
-&"uid://bkemn131rb3vv": &"hyou_cold_recovery",
-&"uid://didpvlcxdi310": &"hyou_crystal_step",
-&"uid://cvp1enngqujv8": &"hyou_frost_focus",
-&"uid://cxbaeen28sggf": &"hyou_frozen_will",
 &"uid://cqaq6w22d6hn7": &"hyou_ice_bolt",
-&"uid://dko8hojbnkxa0": &"hyou_ice_lance"
+&"uid://ctd73bolw74oc": &"hyou_frost_focus",
+&"uid://ddvvvfak6lau2": &"hikaru_heavy_slash",
+&"uid://dfm7cur2itipt": &"hikaru_relentless_cut",
+&"uid://didpvlcxdi310": &"hyou_crystal_step",
+&"uid://dpypvx2k7ma2u": &"hikaru_quick_slash"
 })
 _string_ids_to_uids = Dictionary[StringName, StringName]({
-&"hikaru_battle_trance": &"uid://ur4e8pcj7r4c",
 &"hikaru_focus": &"uid://cdaoahnm2y0h1",
-&"hikaru_heavy_slash": &"uid://dvwbmxmlcn1tg",
-&"hikaru_quick_slash": &"uid://8kbu7i1upk21",
-&"hikaru_relentless_cut": &"uid://cg6et3itb3ib3",
-&"hikaru_second_wind": &"uid://dbcvqh4yollw4",
-&"hyou_cold_recovery": &"uid://bkemn131rb3vv",
+&"hikaru_heavy_slash": &"uid://ddvvvfak6lau2",
+&"hikaru_quick_slash": &"uid://dpypvx2k7ma2u",
+&"hikaru_relentless_cut": &"uid://dfm7cur2itipt",
 &"hyou_crystal_step": &"uid://didpvlcxdi310",
-&"hyou_frost_focus": &"uid://cvp1enngqujv8",
-&"hyou_frozen_will": &"uid://cxbaeen28sggf",
-&"hyou_ice_bolt": &"uid://cqaq6w22d6hn7",
-&"hyou_ice_lance": &"uid://dko8hojbnkxa0"
+&"hyou_frost_focus": &"uid://ctd73bolw74oc",
+&"hyou_ice_bolt": &"uid://cqaq6w22d6hn7"
 })
-_property_index = Dictionary[StringName, Dictionary]({})

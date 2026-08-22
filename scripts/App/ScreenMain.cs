@@ -3,6 +3,8 @@ using AshesofaDyingWorld.UI.HUD;
 using AshesofaDyingWorld.Core.Managers;
 using AshesofaDyingWorld.Core.Save;
 using AshesofaDyingWorld.Combat.Runtime;
+using AshesofaDyingWorld.Gameplay.Events;
+using AshesofaDyingWorld.Quests.Runtime;
 
 public partial class ScreenMain : Node2D
 {
@@ -24,6 +26,8 @@ public partial class ScreenMain : Node2D
         SettingsManager.GetOrCreate(GetTree());
         PlayerManager.GetOrCreate(GetTree());
         AudioManager.GetOrCreate(GetTree());
+        GameplayEventBus.GetOrCreate(GetTree());
+        QuestManager.GetOrCreate(GetTree());
     }
 
     private async void _on_login_pressed()
@@ -44,6 +48,9 @@ public partial class ScreenMain : Node2D
             var tree = GetTree();
             PlayerManager.GetOrCreate(tree);
             AudioManager.GetOrCreate(tree);
+            GameplayEventBus.GetOrCreate(tree);
+            QuestManager questManager = QuestManager.GetOrCreate(tree);
+            questManager?.InitializeFromDirectory();
             if (tree?.Root == null || tree.CurrentScene == null)
             {
                 return Error.DoesNotExist;

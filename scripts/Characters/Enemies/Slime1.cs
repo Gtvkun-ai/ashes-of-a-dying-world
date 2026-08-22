@@ -4,6 +4,7 @@ using AshesofaDyingWorld.Combat.AI;
 using AshesofaDyingWorld.Combat.Model;
 using AshesofaDyingWorld.Core.Managers;
 using AshesofaDyingWorld.UI.HUD;
+using AshesofaDyingWorld.Gameplay.Events;
 
 /// <summary>
 /// Slime giờ chỉ là actor dữ liệu/presentation. Quyết định hành vi nằm trong SlimeBrain.
@@ -44,6 +45,15 @@ public partial class Slime1 : CombatCharacter
         {
             return;
         }
+
+        GameplayEventBus.GetOrCreate(GetTree())?.Publish(new GameplayEvent(
+            GameplayEventType.EnemyDefeated,
+            attacker,
+            attacker.CombatantId,
+            CombatantId,
+            Name.ToString(),
+            1,
+            GlobalPosition));
 
         int experienceReward = Stats?.ManualProfileData?.ExperienceReward ?? 0;
         if (experienceReward > 0)

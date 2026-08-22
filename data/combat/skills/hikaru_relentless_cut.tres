@@ -1,8 +1,8 @@
-[gd_resource type="Resource" script_class="SkillData" load_steps=4 format=3 uid="uid://cg6et3itb3ib3"]
+[gd_resource type="Resource" script_class="SkillData" format=3 uid="uid://dfm7cur2itipt"]
 
-[ext_resource type="Script" path="res://scripts/Combat/Abilities/SkillData.cs" id="1_skill"]
-[ext_resource type="Resource" path="res://data/combat/actions/wood_sword_light_2.tres" id="2_action"]
-[ext_resource type="Texture2D" path="res://data/icons/dex.tres" id="3_icon"]
+[ext_resource type="Script" uid="uid://ck6362qi5ee48" path="res://scripts/Combat/Abilities/SkillData.cs" id="1_skill"]
+[ext_resource type="Resource" uid="uid://nfr2k324qaul" path="res://data/combat/actions/wood_sword_light_2.tres" id="2_action"]
+[ext_resource type="Texture2D" uid="uid://rnyfxen3u03s" path="res://data/icons/dex.tres" id="3_icon"]
 
 [resource]
 script = ExtResource("1_skill")
@@ -10,14 +10,11 @@ SkillId = "hikaru_relentless_cut"
 SkillName = "Liên trảm"
 Icon = ExtResource("3_icon")
 Description = "Giữ áp lực bằng nhát chém nối gây 120% sát thương action, đổi thêm một ít stamina để duy trì thế công."
-Category = 0
 Element = 1
-MaxLevel = 1
 DefaultUnlocked = false
 ExecutionType = 1
 CombatAction = ExtResource("2_action")
 Cooldown = 1.4
 DamageMultiplier = 1.2
-ManaCost = 0
 StaminaCost = 3
 AnimationName = "sword"

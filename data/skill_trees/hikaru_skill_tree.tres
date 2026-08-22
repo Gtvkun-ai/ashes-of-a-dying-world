@@ -3,47 +3,9 @@
 [ext_resource type="Script" uid="uid://cmanber5gtscd" path="res://scripts/Combat/Abilities/SkillTree/CharacterSkillTreeData.cs" id="1_tree"]
 [ext_resource type="Script" uid="uid://cj5qroq8k1p1r" path="res://scripts/Combat/Abilities/SkillTree/SkillTreeBranchData.cs" id="2_branch"]
 [ext_resource type="Script" uid="uid://loxofqjkqcsd" path="res://scripts/Combat/Abilities/SkillTree/SkillTreeNodeData.cs" id="3_node"]
-[ext_resource type="Resource" uid="uid://8kbu7i1upk21" path="res://data/combat/skills/hikaru_quick_slash.tres" id="4_quick"]
-[ext_resource type="Resource" uid="uid://dvwbmxmlcn1tg" path="res://data/combat/skills/hikaru_heavy_slash.tres" id="5_heavy"]
-[ext_resource type="Resource" uid="uid://cg6et3itb3ib3" path="res://data/combat/skills/hikaru_relentless_cut.tres" id="6_relentless"]
 [ext_resource type="Resource" uid="uid://cdaoahnm2y0h1" path="res://data/combat/skills/hikaru_focus.tres" id="7_focus"]
-[ext_resource type="Resource" uid="uid://dbcvqh4yollw4" path="res://data/combat/skills/hikaru_second_wind.tres" id="8_second_wind"]
-[ext_resource type="Resource" uid="uid://ur4e8pcj7r4c" path="res://data/combat/skills/hikaru_battle_trance.tres" id="9_trance"]
-[ext_resource type="Texture2D" uid="uid://cdiewffjaiy8r" path="res://data/icons/str.tres" id="10_sword_icon"]
+[ext_resource type="Resource" uid="uid://didpvlcxdi310" path="res://data/combat/skills/hyou_crystal_step.tres" id="9_step"]
 [ext_resource type="Texture2D" uid="uid://rnyfxen3u03s" path="res://data/icons/dex.tres" id="11_discipline_icon"]
-
-[sub_resource type="Resource" id="Node_quick"]
-script = ExtResource("3_node")
-NodeId = "hikaru_quick_slash"
-Skill = ExtResource("4_quick")
-GraphPosition = Vector2(80, 150)
-SkillPointCost = 0
-GrantedByDefault = true
-
-[sub_resource type="Resource" id="Node_heavy"]
-script = ExtResource("3_node")
-NodeId = "hikaru_heavy_slash"
-Skill = ExtResource("5_heavy")
-GraphPosition = Vector2(290, 70)
-RequiredNodeIds = Array[String](["hikaru_quick_slash"])
-RequiredCharacterLevel = 3
-
-[sub_resource type="Resource" id="Node_relentless"]
-script = ExtResource("3_node")
-NodeId = "hikaru_relentless_cut"
-Skill = ExtResource("6_relentless")
-GraphPosition = Vector2(500, 150)
-RequiredNodeIds = Array[String](["hikaru_heavy_slash"])
-RequiredCharacterLevel = 6
-SkillPointCost = 2
-
-[sub_resource type="Resource" id="Branch_sword"]
-script = ExtResource("2_branch")
-BranchId = "hikaru_sword"
-BranchName = "Kiếm thuật"
-Description = "Nhánh tấn công trực diện, ưu tiên nhịp chém và khả năng nối đòn."
-Icon = ExtResource("10_sword_icon")
-Nodes = Array[ExtResource("3_node")]([SubResource("Node_quick"), SubResource("Node_heavy"), SubResource("Node_relentless")])
 
 [sub_resource type="Resource" id="Node_focus"]
 script = ExtResource("3_node")
@@ -53,32 +15,22 @@ GraphPosition = Vector2(80, 150)
 SkillPointCost = 0
 GrantedByDefault = true
 
-[sub_resource type="Resource" id="Node_second_wind"]
+[sub_resource type="Resource" id="Node_step"]
 script = ExtResource("3_node")
-NodeId = "hikaru_second_wind"
-Skill = ExtResource("8_second_wind")
-GraphPosition = Vector2(290, 230)
-RequiredNodeIds = Array[String](["focus"])
-RequiredCharacterLevel = 3
-
-[sub_resource type="Resource" id="Node_trance"]
-script = ExtResource("3_node")
-NodeId = "hikaru_battle_trance"
-Skill = ExtResource("9_trance")
-GraphPosition = Vector2(500, 150)
-RequiredNodeIds = Array[String](["hikaru_second_wind"])
-RequiredCharacterLevel = 7
-SkillPointCost = 2
+NodeId = "hyou_crystal_step"
+Skill = ExtResource("9_step")
+GraphPosition = Vector2(290, 150)
+RequiredCharacterLevel = 2
 
 [sub_resource type="Resource" id="Branch_discipline"]
 script = ExtResource("2_branch")
-BranchId = "hikaru_discipline"
-BranchName = "Kỷ luật"
-Description = "Nhánh duy trì thể lực và tăng cường khả năng chiến đấu trong thời gian ngắn."
+BranchId = "hikaru_core"
+BranchName = "Kỹ năng"
+Description = "Các kỹ năng cơ bản."
 Icon = ExtResource("11_discipline_icon")
-Nodes = Array[ExtResource("3_node")]([SubResource("Node_focus"), SubResource("Node_second_wind"), SubResource("Node_trance")])
+Nodes = Array[ExtResource("3_node")]([SubResource("Node_focus"), SubResource("Node_step")])
 
 [resource]
 script = ExtResource("1_tree")
 CharacterId = "001"
-Branches = Array[ExtResource("2_branch")]([SubResource("Branch_sword"), SubResource("Branch_discipline")])
+Branches = Array[ExtResource("2_branch")]([SubResource("Branch_discipline")])

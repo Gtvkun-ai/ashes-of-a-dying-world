@@ -1,6 +1,7 @@
 using Godot;
 using System.Collections.Generic;
 using AshesofaDyingWorld.World.Objects;
+using AshesofaDyingWorld.Gameplay.Events;
 
 namespace AshesofaDyingWorld.World.Maps
 {
@@ -17,6 +18,13 @@ namespace AshesofaDyingWorld.World.Maps
 		{
 			var manager = GetTree().Root.GetNodeOrNull<SceneManager>("/root/SceneManager");
 			manager?.OnSceneLoaded(this);
+
+			GameplayEventBus.GetOrCreate(GetTree())?.Publish(new GameplayEvent(
+				GameplayEventType.SceneEntered,
+				targetId: string.IsNullOrWhiteSpace(SceneFilePath) ? Name.ToString() : SceneFilePath,
+				sourceId: Name.ToString(),
+				worldPosition: GlobalPosition,
+				scenePath: SceneFilePath));
 		}
 
 		public void RegisterSpawnPoint(SpawnPoint point)

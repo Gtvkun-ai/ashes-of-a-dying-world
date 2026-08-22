@@ -2,6 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using AshesofaDyingWorld.Quests.Data;
+using AshesofaDyingWorld.Gameplay.Events;
 
 namespace AshesofaDyingWorld.Quests.Runtime
 {
@@ -15,20 +16,70 @@ namespace AshesofaDyingWorld.Quests.Runtime
 
         private readonly Dictionary<string, QuestData> _definitions = new();
         private readonly Dictionary<string, QuestRuntimeState> _states = new();
+        private GameplayEventBus _eventBus;
+        private bool _initialized;
 
+        public static QuestManager Instance { get; private set; }
         public event Action Changed;
 
         public string TrackedQuestId { get; private set; } = "";
         public IReadOnlyDictionary<string, QuestData> Definitions => _definitions;
         public IReadOnlyDictionary<string, QuestRuntimeState> States => _states;
+        public bool IsInitialized => _initialized;
+
+        public static QuestManager GetOrCreate(SceneTree tree)
+        {
+            if (Instance != null && GodotObject.IsInstanceValid(Instance))
+            {
+                return Instance;
+            }
+
+            if (tree?.Root == null)
+            {
+                return null;
+            }
+
+            QuestManager existing = tree.Root.GetNodeOrNull<QuestManager>("QuestManager");
+            if (existing != null)
+            {
+                Instance = existing;
+                return existing;
+            }
+
+            var created = new QuestManager { Name = "QuestManager" };
+            tree.Root.AddChild(created);
+            return created;
+        }
 
         public override void _Ready()
         {
+            Instance = this;
             QuestService.Current = this;
+
+            _eventBus = GameplayEventBus.GetOrCreate(GetTree());
+            if (_eventBus != null)
+            {
+                _eventBus.Published += OnGameplayEvent;
+            }
+
+            if (!_initialized)
+            {
+                InitializeFromDirectory();
+            }
         }
 
         public override void _ExitTree()
         {
+            if (_eventBus != null)
+            {
+                _eventBus.Published -= OnGameplayEvent;
+            }
+
+            if (Instance == this)
+            {
+                Instance = null;
+            }
+
             if (QuestService.Current == this)
             {
                 QuestService.Current = null;
@@ -59,6 +110,7 @@ namespace AshesofaDyingWorld.Quests.Runtime
                 RegisterDefinition(quest);
             }
 
+            _initialized = true;
             Changed?.Invoke();
         }
 
@@ -239,6 +291,88 @@ namespace AshesofaDyingWorld.Quests.Runtime
                 }
             }
             return null;
+        }
+
+        private void OnGameplayEvent(GameplayEvent gameplayEvent)
+        {
+            if (gameplayEvent == null || gameplayEvent.Type == GameplayEventType.None || gameplayEvent.Amount <= 0)
+            {
+                return;
+            }
+
+            bool anyChanged = false;
+            int delta = Mathf.Max(1, gameplayEvent.Amount);
+
+            foreach (var pair in _definitions)
+            {
+                QuestData quest = pair.Value;
+                QuestRuntimeState state = GetState(pair.Key);
+                if (quest?.Objectives == null || state == null || state.Status != QuestStatus.Active)
+                {
+                    continue;
+                }
+
+                bool questChanged = false;
+                foreach (QuestObjectiveData objective in quest.Objectives)
+                {
+                    if (objective == null
+                        || IsObjectiveComplete(objective, state)
+                        || !IsObjectiveVisible(quest, state, objective)
+                        || !MatchesGameplayEvent(objective, gameplayEvent))
+                    {
+                        continue;
+                    }
+
+                    int current = state.ObjectiveProgress.TryGetValue(objective.ObjectiveId, out int value) ? value : 0;
+                    int next = Mathf.Clamp(current + delta, 0, Mathf.Max(1, objective.RequiredAmount));
+                    if (next == current)
+                    {
+                        continue;
+                    }
+
+                    state.ObjectiveProgress[objective.ObjectiveId] = next;
+                    state.IsNew = false;
+                    questChanged = true;
+                    anyChanged = true;
+                }
+
+                if (questChanged && AreAllObjectivesComplete(quest, state))
+                {
+                    state.Status = QuestStatus.Completed;
+                    if (TrackedQuestId == quest.QuestId)
+                    {
+                        TrackedQuestId = "";
+                    }
+                }
+            }
+
+            if (anyChanged)
+            {
+                Changed?.Invoke();
+            }
+        }
+
+        private static bool MatchesGameplayEvent(QuestObjectiveData objective, GameplayEvent gameplayEvent)
+        {
+            if (objective.ProgressEventType == GameplayEventType.None
+                || objective.ProgressEventType != gameplayEvent.Type)
+            {
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(objective.ProgressTargetId)
+                && !string.Equals(objective.ProgressTargetId, gameplayEvent.TargetId, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(objective.ProgressSourceId)
+                && !string.Equals(objective.ProgressSourceId, gameplayEvent.SourceId, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            return true;
         }
 
         public List<QuestProgressRecord> CaptureProgress()
