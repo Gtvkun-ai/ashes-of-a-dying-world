@@ -59,12 +59,13 @@ namespace AshesofaDyingWorld.UI.Quests
             InventoryPanelChrome.ApplyPanelSize(this);
             AddThemeStyleboxOverride("panel", new StyleBoxEmpty());
 
-            _questManager = new QuestManager { Name = "QuestManager" };
-            AddChild(_questManager);
-            _questManager.Changed += OnQuestManagerChanged;
+            _questManager = QuestManager.GetOrCreate(GetTree());
+            if (_questManager != null)
+            {
+                _questManager.Changed += OnQuestManagerChanged;
+            }
 
             BuildInterface();
-            _questManager.InitializeFromDirectory();
 
             VisibilityChanged += OnVisibilityChanged;
             RefreshJournal();

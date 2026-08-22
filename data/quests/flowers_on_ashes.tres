@@ -11,7 +11,9 @@ script = ExtResource("2_objective")
 ObjectiveId = "collect_purple_flower"
 Description = "Thu thập hoa tím mọc trên vùng đất cháy"
 RequiredAmount = 6
-InitialProgress = 4
+InitialProgress = 0
+ProgressEventType = 2
+ProgressTargetId = "purple_flower"
 UnitLabel = "hoa"
 
 [sub_resource type="Resource" id="Objective_return"]

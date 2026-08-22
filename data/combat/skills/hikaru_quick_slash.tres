@@ -1,8 +1,8 @@
-[gd_resource type="Resource" script_class="SkillData" load_steps=4 format=3 uid="uid://8kbu7i1upk21"]
+[gd_resource type="Resource" script_class="SkillData" format=3 uid="uid://dpypvx2k7ma2u"]
 
-[ext_resource type="Script" path="res://scripts/Combat/Abilities/SkillData.cs" id="1_skill"]
-[ext_resource type="Resource" path="res://data/combat/actions/wood_sword_light_1.tres" id="2_action"]
-[ext_resource type="Texture2D" path="res://data/icons/str.tres" id="3_icon"]
+[ext_resource type="Script" uid="uid://ck6362qi5ee48" path="res://scripts/Combat/Abilities/SkillData.cs" id="1_skill"]
+[ext_resource type="Resource" uid="uid://dtp84xtvwja2f" path="res://data/combat/actions/wood_sword_light_1.tres" id="2_action"]
+[ext_resource type="Texture2D" uid="uid://cdiewffjaiy8r" path="res://data/icons/str.tres" id="3_icon"]
 
 [resource]
 script = ExtResource("1_skill")
@@ -10,14 +10,9 @@ SkillId = "hikaru_quick_slash"
 SkillName = "Trảm nhanh"
 Icon = ExtResource("3_icon")
 Description = "Một nhát chém gọn, gây 115% sát thương action và ưu tiên khả năng nối đòn."
-Category = 0
 Element = 1
-MaxLevel = 1
-DefaultUnlocked = true
 ExecutionType = 1
 CombatAction = ExtResource("2_action")
 Cooldown = 0.7
 DamageMultiplier = 1.15
-ManaCost = 0
-StaminaCost = 0
 AnimationName = "sword"

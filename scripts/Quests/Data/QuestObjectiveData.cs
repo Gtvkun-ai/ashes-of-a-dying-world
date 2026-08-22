@@ -1,4 +1,5 @@
 using Godot;
+using AshesofaDyingWorld.Gameplay.Events;
 
 namespace AshesofaDyingWorld.Quests.Data
 {
@@ -16,6 +17,11 @@ namespace AshesofaDyingWorld.Quests.Data
         [ExportGroup("Tiến độ")]
         [Export] public int RequiredAmount { get; set; } = 1;
         [Export] public int InitialProgress { get; set; } = 0;
+
+        [ExportGroup("Gameplay event binding")]
+        [Export] public GameplayEventType ProgressEventType { get; set; } = GameplayEventType.None;
+        [Export] public string ProgressTargetId { get; set; } = "";
+        [Export] public string ProgressSourceId { get; set; } = "";
 
         [ExportGroup("Hiển thị")]
         [Export] public string UnitLabel { get; set; } = "";

@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="HitProfileData" load_steps=2 format=3 uid="uid://clswry1wbixal"]
+[gd_resource type="Resource" script_class="HitProfileData" format=3 uid="uid://clswry1wbixal"]
 
-[ext_resource type="Script" path="res://scripts/Combat/Data/HitProfileData.cs" id="1_hit"]
+[ext_resource type="Script" uid="uid://devmh0hdng71n" path="res://scripts/Combat/Data/HitProfileData.cs" id="1_hit"]
 
 [resource]
 script = ExtResource("1_hit")
@@ -17,10 +17,9 @@ SlowPercent = 18.0
 SlowSeconds = 2.4
 ChillStacks = 1
 ChillSeconds = 6.0
-FreezeAtChillStacks = 3
 FreezeSeconds = 0.95
 HitStopSeconds = 0.055
-HitFlashSeconds = 0.10
+HitFlashSeconds = 0.1
 CameraShakeStrength = 0.72
 ImpactVfxScale = 1.15
 HitboxSize = Vector2(14, 14)

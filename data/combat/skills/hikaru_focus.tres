@@ -1,7 +1,7 @@
-[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3 uid="uid://cdaoahnm2y0h1"]
+[gd_resource type="Resource" script_class="SkillData" format=3 uid="uid://cdaoahnm2y0h1"]
 
-[ext_resource type="Script" path="res://scripts/Combat/Abilities/SkillData.cs" id="1_skill"]
-[ext_resource type="Texture2D" path="res://data/icons/dex.tres" id="2_icon"]
+[ext_resource type="Script" uid="uid://ck6362qi5ee48" path="res://scripts/Combat/Abilities/SkillData.cs" id="1_skill"]
+[ext_resource type="Texture2D" uid="uid://rnyfxen3u03s" path="res://data/icons/dex.tres" id="2_icon"]
 
 [resource]
 script = ExtResource("1_skill")
@@ -9,14 +9,8 @@ SkillId = "focus"
 SkillName = "Tập trung"
 Icon = ExtResource("2_icon")
 Description = "Điều hòa nhịp thở, tăng 8% tốc độ di chuyển và 15% Dexterity trong 18 giây."
-Category = 0
 Element = 1
-MaxLevel = 1
-DefaultUnlocked = true
-ExecutionType = 0
 Duration = 18.0
 MoveSpeedBonusPercent = 8.0
 DexterityBonusPercent = 15.0
 Cooldown = 50.0
-ManaCost = 0
-StaminaCost = 0
