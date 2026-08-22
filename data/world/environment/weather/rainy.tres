@@ -1,0 +1,13 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/World/Environment/EnvironmentWeatherPreset.cs" id="1_weather"]
+
+[resource]
+script = ExtResource("1_weather")
+Rain = 0.62
+Wetness = 0.9
+Fog = 0.12
+Cloudiness = 0.82
+WindMultiplier = 1.45
+Darken = 0.18
+Desaturate = 0.14

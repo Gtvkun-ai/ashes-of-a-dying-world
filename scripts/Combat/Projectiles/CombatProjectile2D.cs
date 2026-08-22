@@ -63,6 +63,17 @@ namespace AshesofaDyingWorld.Combat.Projectiles
 
             Name = $"Projectile_{ProjectileId}";
             ZIndex = 20;
+            SetPhysicsProcess(false);
+            CallDeferred(nameof(BuildRuntimeNodes));
+        }
+
+        private void BuildRuntimeNodes()
+        {
+            if (!_initialized || !IsUsable(_attacker) || IsQueuedForDeletion())
+            {
+                QueueFree();
+                return;
+            }
 
             _usesAssetVisual = TryBuildAssetVisual();
             Rotation = _usesAssetVisual ? 0f : _direction.Angle();
@@ -92,6 +103,7 @@ namespace AshesofaDyingWorld.Combat.Projectiles
             }
 
             QueueRedraw();
+            SetPhysicsProcess(true);
         }
 
         public override void _PhysicsProcess(double delta)

@@ -5,6 +5,7 @@ using AshesofaDyingWorld.Core.Save;
 using AshesofaDyingWorld.Combat.Runtime;
 using AshesofaDyingWorld.Gameplay.Events;
 using AshesofaDyingWorld.Quests.Runtime;
+using AshesofaDyingWorld.World.Environment;
 
 public partial class ScreenMain : Node2D
 {
@@ -28,6 +29,7 @@ public partial class ScreenMain : Node2D
         AudioManager.GetOrCreate(GetTree());
         GameplayEventBus.GetOrCreate(GetTree());
         QuestManager.GetOrCreate(GetTree());
+        WorldEnvironmentService.GetOrCreate(GetTree());
     }
 
     private async void _on_login_pressed()
@@ -49,6 +51,18 @@ public partial class ScreenMain : Node2D
             PlayerManager.GetOrCreate(tree);
             AudioManager.GetOrCreate(tree);
             GameplayEventBus.GetOrCreate(tree);
+            WorldEnvironmentService environment = WorldEnvironmentService.GetOrCreate(tree);
+            if (saveSnapshot?.WorldEnvironment != null)
+            {
+                environment?.RestoreClock(
+                    saveSnapshot.WorldEnvironment.Day,
+                    saveSnapshot.WorldEnvironment.TimeOfDayHours);
+            }
+            else
+            {
+                environment?.ResetForNewGame();
+            }
+
             QuestManager questManager = QuestManager.GetOrCreate(tree);
             questManager?.InitializeFromDirectory();
             if (tree?.Root == null || tree.CurrentScene == null)

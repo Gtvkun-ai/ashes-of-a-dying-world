@@ -6,8 +6,8 @@ namespace AshesofaDyingWorld.Core.Save
 {
     public sealed class SaveGameData
     {
-        // Version 7 bổ sung XP/level progression; save cũ vẫn tải với XP mặc định bằng 0.
-        public int Version { get; set; } = 7;
+        // Version 8 bổ sung WorldEnvironment clock; save cũ vẫn tải với thời gian mặc định.
+        public int Version { get; set; } = 8;
         public string SavedAtUtc { get; set; } = "";
         public string ScenePath { get; set; } = "";
         public Vector2SaveData PlayerPosition { get; set; } = new();
@@ -24,6 +24,15 @@ namespace AshesofaDyingWorld.Core.Save
         public List<PartySkillProgressSaveData> PartySkillProgress { get; set; } = new();
         public List<QuestProgressSaveData> QuestProgress { get; set; } = new();
         public string TrackedQuestId { get; set; } = "";
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public WorldEnvironmentSaveData WorldEnvironment { get; set; }
+    }
+
+    public sealed class WorldEnvironmentSaveData
+    {
+        public int Day { get; set; } = 1;
+        public float TimeOfDayHours { get; set; } = 12f;
     }
 
     public sealed class PlayerSaveData

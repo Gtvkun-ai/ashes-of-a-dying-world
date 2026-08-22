@@ -11,6 +11,7 @@ using AshesofaDyingWorld.Entities.Player;
 using AshesofaDyingWorld.UI.Menus;
 using AshesofaDyingWorld.Quests.Data;
 using AshesofaDyingWorld.Quests.Runtime;
+using AshesofaDyingWorld.World.Environment;
 
 namespace AshesofaDyingWorld.Core.Managers
 {
@@ -524,6 +525,22 @@ namespace AshesofaDyingWorld.Core.Managers
             gameMenu.RestoreQuestProgress(records, trackedQuestId ?? string.Empty);
         }
 
+        private static WorldEnvironmentSaveData CaptureWorldEnvironment()
+        {
+            WorldEnvironmentService environment = WorldEnvironmentService.Instance;
+            WorldClock clock = environment?.Clock;
+            if (clock == null)
+            {
+                return null;
+            }
+
+            return new WorldEnvironmentSaveData
+            {
+                Day = clock.CurrentDay,
+                TimeOfDayHours = clock.GameTimeHours
+            };
+        }
+
         private SaveGameData CaptureCurrentGame()
         {
             SceneManager sceneManager = GetTree().Root.GetNodeOrNull<SceneManager>("SceneManager");
@@ -542,7 +559,7 @@ namespace AshesofaDyingWorld.Core.Managers
 
             return new SaveGameData
             {
-                Version = 7,
+                Version = 8,
                 SavedAtUtc = DateTime.UtcNow.ToString("O"),
                 ScenePath = GetTree().CurrentScene?.SceneFilePath ?? string.Empty,
                 PlayerPosition = Vector2SaveData.FromVector2(player.GlobalPosition),
@@ -552,6 +569,7 @@ namespace AshesofaDyingWorld.Core.Managers
                 PartySkillProgress = CapturePartySkillProgress(player),
                 QuestProgress = CaptureQuestProgress(gameMenu),
                 TrackedQuestId = gameMenu?.CaptureTrackedQuestId() ?? string.Empty,
+                WorldEnvironment = CaptureWorldEnvironment(),
                 Player = new PlayerSaveData
                 {
                     CharacterConfigPath = stats.ConfigData?.ResourcePath ?? string.Empty,

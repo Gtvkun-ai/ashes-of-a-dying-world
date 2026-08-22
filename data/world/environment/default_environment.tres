@@ -1,0 +1,25 @@
+[gd_resource type="Resource" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/World/Environment/EnvironmentProfile.cs" id="1_profile"]
+[ext_resource type="Resource" path="res://data/world/environment/weather/clear.tres" id="2_clear"]
+
+[sub_resource type="Gradient" id="Gradient_ambient"]
+offsets = PackedFloat32Array(0, 0.2, 0.46, 0.7, 0.82, 1)
+colors = PackedColorArray(0.43, 0.48, 0.68, 1, 0.78, 0.72, 0.82, 1, 1, 1, 1, 1, 1, 0.88, 0.72, 1, 0.68, 0.58, 0.72, 1, 0.43, 0.48, 0.68, 1)
+
+[sub_resource type="Gradient" id="Gradient_sun"]
+offsets = PackedFloat32Array(0, 0.2, 0.46, 0.7, 0.82, 1)
+colors = PackedColorArray(0.72, 0.8, 1, 1, 1, 0.72, 0.58, 1, 1, 0.98, 0.9, 1, 1, 0.68, 0.36, 1, 0.96, 0.46, 0.4, 1, 0.72, 0.8, 1, 1)
+
+[resource]
+script = ExtResource("1_profile")
+SunriseHour = 5.5
+SunsetHour = 19.0
+AmbientTint = SubResource("Gradient_ambient")
+SunTint = SubResource("Gradient_sun")
+BaseWindStrength = 0.2
+BaseWetness = 0.0
+ShadowStrength = 0.55
+WaterShimmerStrength = 0.12
+WaterRippleStrength = 0.08
+DefaultWeather = ExtResource("2_clear")

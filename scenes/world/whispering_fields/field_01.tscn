@@ -24,8 +24,18 @@
 [ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/05_cliff_wall.png" id="25_cliff_wall"]
 [ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/06_stairs.png" id="26_stairs"]
 [ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/07_ground_details.png" id="27_ground_details"]
-[ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/08_wet_ground.png" id="28_wet_ground"]
-[ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/09_mud_puddles.png" id="29_mud_puddles"]
+[ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/09_1_mud_puddles water.png" id="28_wet_ground"]
+[ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/09_2_mud_puddles water leaf.png" id="29_mud_puddles"]
+[ext_resource type="Script" path="res://scripts/World/Environment/EnvironmentBinder2D.cs" id="30_env_binder"]
+[ext_resource type="Resource" path="res://data/world/environment/whispering_fields.tres" id="31_env_profile"]
+[ext_resource type="Shader" path="res://assets/shaders/world/puddle_water.gdshader" id="32_puddle_shader"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_puddle_water"]
+shader = ExtResource("32_puddle_shader")
+shader_parameter/shimmer_strength = 0.14
+shader_parameter/ripple_strength = 0.1
+shader_parameter/animation_speed = 0.7
+shader_parameter/pixel_block = 2.0
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ey7of"]
 texture = ExtResource("1_ey7of")
@@ -1014,9 +1024,10 @@ scale = Vector2(4, 4)
 texture = ExtResource("27_ground_details")
 centered = false
 
-[node name="WetGround" type="Sprite2D" parent="VisualGround"]
+[node name="WetGround" type="Sprite2D" parent="VisualGround" groups=["environment_shader_consumer"]]
 z_index = -4
 texture_filter = 1
+material = SubResource("ShaderMaterial_puddle_water")
 scale = Vector2(4, 4)
 texture = ExtResource("28_wet_ground")
 centered = false
@@ -2567,6 +2578,10 @@ position = Vector2(145, 219)
 [node name="EnvironmentFX" type="Node2D" parent="."]
 
 [node name="WorldFxController" type="Node2D" parent="EnvironmentFX"]
+script = ExtResource("30_env_binder")
+Profile = ExtResource("31_env_profile")
+CanvasModulatePath = NodePath("../CanvasModulate")
+ScopeRootPath = NodePath("../..")
 
 [node name="AmbientMotes" type="Node2D" parent="EnvironmentFX"]
 
@@ -2577,7 +2592,7 @@ z_index = 2
 
 [node name="WorldPostFX" type="CanvasLayer" parent="."]
 
-[node name="CanvasModulate" type="CanvasModulate" parent="WorldPostFX"]
+[node name="CanvasModulate" type="CanvasModulate" parent="EnvironmentFX"]
 
 [node name="ColorGrade" type="ColorRect" parent="WorldPostFX"]
 visible = false
