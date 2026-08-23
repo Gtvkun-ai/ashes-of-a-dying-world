@@ -3,10 +3,11 @@ using Godot;
 namespace AshesofaDyingWorld.World.Environment
 {
     /// <summary>
-    /// Adapter giữa một map 2D và WorldEnvironmentService.
+    /// Binder map V5.0.
     ///
-    /// Shadow Core V3.3: binder scans materials, then pushes environment state once per frame.
-    /// Per-caster shadow data lives on cloned materials, avoiding Godot instance-uniform limits.
+    /// EnvironmentState -> GPU globals đã do WorldEnvironmentService + ShaderGlobalBridge xử lý.
+    /// Binder chỉ gắn các consumer thuộc riêng scene map: CanvasModulate, lighting, shadow system,
+    /// fireflies và atmosphere. Không scan ShaderMaterial nữa.
     /// </summary>
     public partial class EnvironmentBinder2D : Node
     {
@@ -16,24 +17,20 @@ namespace AshesofaDyingWorld.World.Environment
         [Export]
         public NodePath CanvasModulatePath { get; set; }
 
-        private const double MaterialRescanSeconds = 4.0;
-
-        private readonly EnvironmentMaterialBus _materialBus = new();
         private WorldEnvironmentService _environment;
         private CanvasModulate _canvasModulate;
         private WorldLighting2D _lighting;
         private AmbientFireflies2D _fireflies;
         private WorldAtmosphere2D _atmosphere;
-        private ShadowRenderer2D _shadowRenderer;
-        private double _materialRescanCountdown;
-        private int _lastReportedMaterialCount = -1;
+        private EnvironmentShadowSystem2D _shadowSystem;
+        private bool _reportedReady;
 
         public override void _Ready()
         {
             _environment = WorldEnvironmentService.GetOrCreate(GetTree());
             if (_environment == null)
             {
-                GD.PrintErr("[EnvironmentBinder2D] WorldEnvironmentService unavailable.");
+                GD.PrintErr("[EnvironmentBinder2D V5] WorldEnvironmentService unavailable.");
                 SetProcess(false);
                 return;
             }
@@ -49,18 +46,11 @@ namespace AshesofaDyingWorld.World.Environment
             }
 
             EnsureRuntimeFx();
-            RebuildMaterialBindings();
             ApplyVisualState();
         }
 
         public override void _Process(double delta)
         {
-            _materialRescanCountdown -= delta;
-            if (_materialRescanCountdown <= 0.0)
-            {
-                RebuildMaterialBindings();
-            }
-
             ApplyVisualState();
         }
 
@@ -73,11 +63,11 @@ namespace AshesofaDyingWorld.World.Environment
                 AddChild(_lighting);
             }
 
-            _shadowRenderer = GetNodeOrNull<ShadowRenderer2D>("ShadowRenderer");
-            if (_shadowRenderer == null)
+            _shadowSystem = GetNodeOrNull<EnvironmentShadowSystem2D>("ShadowSystemV5");
+            if (_shadowSystem == null)
             {
-                _shadowRenderer = new ShadowRenderer2D { Name = "ShadowRenderer" };
-                AddChild(_shadowRenderer);
+                _shadowSystem = new EnvironmentShadowSystem2D { Name = "ShadowSystemV5" };
+                AddChild(_shadowSystem);
             }
 
             _fireflies = GetNodeOrNull<AmbientFireflies2D>("NightFireflies");
@@ -93,20 +83,13 @@ namespace AshesofaDyingWorld.World.Environment
                 _atmosphere = new WorldAtmosphere2D { Name = "Atmosphere" };
                 AddChild(_atmosphere);
             }
-        }
 
-        private void RebuildMaterialBindings()
-        {
-            Node root = GetTree()?.CurrentScene ?? GetTree()?.Root;
-            int materialCount = _materialBus.Rebuild(root);
-            _materialRescanCountdown = MaterialRescanSeconds;
-
-            if (materialCount != _lastReportedMaterialCount)
+            if (!_reportedReady)
             {
-                _lastReportedMaterialCount = materialCount;
+                _reportedReady = true;
                 GD.Print(
-                    $"[EnvironmentBinder2D] BOUND materials={materialCount} shadow_core=V4.3-alpha-bounds-footprint " +
-                    $"profile={Profile?.ResourcePath ?? "<none>"}");
+                    $"[EnvironmentBinder2D] READY V5.1 | gpu=global_uniforms | material_scan=OFF | vegetation=native_tree_package | " +
+                    $"shadow=ground_footprint | mass_shadow=OFF | profile={Profile?.ResourcePath ?? "<none>"}");
             }
         }
 
@@ -118,9 +101,8 @@ namespace AshesofaDyingWorld.World.Environment
             }
 
             EnvironmentState state = _environment.CurrentState;
-            _materialBus.Push(state);
             _lighting?.ApplyEnvironment(state);
-            _shadowRenderer?.ApplyEnvironment(state);
+            _shadowSystem?.ApplyEnvironment(state);
             _fireflies?.ApplyEnvironment(state);
             _atmosphere?.ApplyEnvironment(state);
 

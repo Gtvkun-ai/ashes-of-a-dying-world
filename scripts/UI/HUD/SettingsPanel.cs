@@ -24,7 +24,7 @@ namespace AshesofaDyingWorld.UI.HUD
             new(1920, 1080),
             new(2560, 1440)
         };
-        private readonly int[] _fpsOptions = { 60, 120, 144, 0 };
+        private readonly int[] _fpsOptions = { 60, 120, 144, 240 };
 
         private SettingsManager _settings;
         private VBoxContainer _content;
@@ -513,7 +513,7 @@ namespace AshesofaDyingWorld.UI.HUD
             for (int i = 0; i < _fpsOptions.Length; i++)
             {
                 int value = _fpsOptions[i];
-                fps.AddItem(value == 0 ? "Không giới hạn" : $"{value} FPS");
+                fps.AddItem($"{value} FPS");
                 if (value == _settings.CurrentSettings.MaxFps)
                 {
                     selectedFps = i;
@@ -529,7 +529,7 @@ namespace AshesofaDyingWorld.UI.HUD
             };
             AddControlRow(
                 "Giới hạn FPS",
-                "Có thể giảm tải GPU; mặc định hiện tại là không giới hạn để không đổi hành vi cũ.",
+                "Giữ FPS có trần để OpenGL/NVIDIA không bị kẹt render khi Alt-Tab.",
                 fps);
         }
 

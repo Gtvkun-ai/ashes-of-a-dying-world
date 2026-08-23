@@ -3,7 +3,7 @@ using Godot;
 namespace AshesofaDyingWorld.World.Environment
 {
     /// <summary>
-    /// Renderer trung tâm của Shadow Core V3.3.
+    /// Renderer trung tâm của Shadow Core V4.4.
     ///
     /// Toàn bộ caster dùng chung một ShaderMaterial. Mỗi frame renderer chỉ ghi 4 uniform chung.
     /// Không scan scene, không loop caster, không material-per-object.
@@ -52,7 +52,7 @@ namespace AshesofaDyingWorld.World.Environment
             if (!_reportedReady)
             {
                 _reportedReady = true;
-                GD.Print("[ShadowRenderer2D] READY V4.3 | alpha-bounds ground footprint + soft contact AO");
+                GD.Print("[ShadowRenderer2D] READY V4.5 | alpha-bounds footprint + mass penumbra + contact AO");
             }
         }
     }

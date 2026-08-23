@@ -17,7 +17,7 @@ namespace AshesofaDyingWorld.Core.Save
         public bool Fullscreen { get; set; } = false;
         public int ResolutionWidth { get; set; } = 1280;
         public int ResolutionHeight { get; set; } = 720;
-        public int MaxFps { get; set; } = 0;
+        public int MaxFps { get; set; } = 144;
 
         // Gameplay / comfort
         public float ScreenShakeIntensity { get; set; } = 1f;

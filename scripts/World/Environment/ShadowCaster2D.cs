@@ -4,41 +4,60 @@ using Godot;
 namespace AshesofaDyingWorld.World.Environment
 {
     /// <summary>
-    /// Adapter rất mỏng giữa Sprite2D/AnimatedSprite2D và shared Shadow Core material.
+    /// Shadow caster V5.0: chỉ tạo footprint Sprite2D trên ground plane.
     ///
-    /// V4 giữ proxy gọn và dùng footprint art-directed cho foliage lớn. Shadow proxy giờ có
-    /// đúng texture/transform của source; vertex shader chỉ biến cả quad thành một mặt phẳng bóng.
-    /// Nhờ vậy không còn sọc, lỗ, texture bị kéo sai UV hay bounds khổng lồ.
+    /// V4 dùng shader để biến đổi silhouette rồi phải thêm mass-shadow để che khuyết điểm.
+    /// V5 bỏ hẳn phép chiếu vertex. Một caster chỉ có:
+    /// - Ground anchor.
+    /// - Footprint texture.
+    /// - Width/length/opacity từ profile + EnvironmentState.
+    /// - Contact AO nhỏ sát chân.
+    ///
+    /// TextureOverride giờ mang nghĩa đúng: footprint art riêng của caster (nếu có).
+    /// Nếu null, hệ thống dùng footprint mềm chung cho actor/rock/flora.
     /// </summary>
     public partial class ShadowCaster2D : Node2D
     {
-        private const string SharedMaterialPath = "res://assets/materials/world/projected_shadow_shared.tres";
-        private const string ContactShadowTexturePath = "res://assets/graphics/environment/shadows/contact_ellipse_64x28_v4.png";
+        public const string RuntimeGroup = "EnvironmentShadowCasterV5";
+
+        private const string GenericFootprintPath = "res://assets/graphics/environment/shadows/v5/soft_footprint_v5.png";
+        private const string ContactShadowPath = "res://assets/graphics/environment/shadows/v5/contact_ao_v5.png";
+
         private static readonly Dictionary<string, AlphaBounds> AlphaBoundsCache = new();
 
         [ExportGroup("Nguồn")]
         [Export]
         public NodePath SourcePath { get; set; }
 
+        /// <summary>
+        /// V5: texture footprint nằm sẵn trên ground plane. Tree/apple tree có footprint riêng.
+        /// Actor/rock có thể để null để dùng soft footprint chung.
+        /// </summary>
         [Export]
         public Texture2D TextureOverride { get; set; }
 
         [Export]
         public ShadowCasterProfile Profile { get; set; }
 
+        /// <summary>
+        /// Offset từ đáy alpha của source tới điểm chạm đất thực, tính trong local space của caster.
+        /// Với tree split-canopy, offset này bù từ đáy canopy xuống chân trunk.
+        /// </summary>
         [Export]
         public Vector2 GroundOffset { get; set; } = Vector2.Zero;
 
         private CanvasItem _source;
-        private Sprite2D _shadowSprite;
-        private Sprite2D _contactShadowSprite;
-        private ShaderMaterial _shadowMaterial;
-        private Texture2D _lastTexture;
-        private int _lastFrame = -1;
+        private Sprite2D _projectedShadow;
+        private Sprite2D _contactShadow;
+        private Texture2D _genericFootprint;
+        private Texture2D _contactTexture;
         private AnimatedSprite2D _connectedAnimated;
-        private bool _warnedMissingSource;
-        private bool _sourceRetryScheduled;
-        private int _sourceResolveRetries;
+
+        private Vector2 _groundAnchorLocal;
+        private float _visibleWidthWorld = 24f;
+        private float _visibleHeightWorld = 24f;
+        private bool _geometryReady;
+        private bool _warnedSource;
 
         private readonly struct AlphaBounds
         {
@@ -52,46 +71,86 @@ namespace AshesofaDyingWorld.World.Environment
             public bool HasPixels { get; }
         }
 
+        public override void _EnterTree()
+        {
+            AddToGroup(RuntimeGroup, false);
+        }
+
         public override void _Ready()
         {
-            EnsureShadowSprite();
-            EnsureContactShadowSprite();
+            _genericFootprint = ResourceLoader.Exists(GenericFootprintPath)
+                ? GD.Load<Texture2D>(GenericFootprintPath)
+                : null;
+            _contactTexture = ResourceLoader.Exists(ContactShadowPath)
+                ? GD.Load<Texture2D>(ContactShadowPath)
+                : null;
 
-            Node parent = GetParent();
-            if (parent != null)
-            {
-                parent.ChildEnteredTree += OnParentChildEnteredTree;
-            }
-
+            EnsureSprites();
             ResolveSource();
-            SyncCaster(force: true);
+            SyncGeometry();
             SetProcess(false);
         }
 
         public override void _ExitTree()
         {
             DisconnectAnimatedSource();
-            Node parent = GetParent();
-            if (parent != null)
-            {
-                parent.ChildEnteredTree -= OnParentChildEnteredTree;
-            }
         }
 
-        private void OnParentChildEnteredTree(Node child)
+        public void ApplyEnvironment(EnvironmentState state)
         {
-            if (_source != null && GodotObject.IsInstanceValid(_source))
+            if (state == null || Profile == null)
             {
                 return;
             }
 
-            ResolveSource();
-            SyncCaster(force: true);
+            if (_source == null || !GodotObject.IsInstanceValid(_source))
+            {
+                ResolveSource();
+                SyncGeometry();
+            }
+
+            if (!_geometryReady || _projectedShadow == null)
+            {
+                return;
+            }
+
+            if (Profile.Model == ShadowCasterProfile.ProjectionModel.RigidDrop)
+            {
+                ApplyRigidDrop(state);
+                return;
+            }
+
+            ApplyFootprint(state);
         }
 
-        private void OnAnimatedFrameChanged()
+        private void EnsureSprites()
         {
-            SyncCaster(force: false);
+            if (_projectedShadow == null)
+            {
+                _projectedShadow = new Sprite2D
+                {
+                    Name = "ProjectedShadowV5",
+                    Centered = true,
+                    ZAsRelative = true,
+                    ShowBehindParent = true,
+                    TextureFilter = CanvasItem.TextureFilterEnum.Linear
+                };
+                AddChild(_projectedShadow);
+            }
+
+            if (_contactShadow == null)
+            {
+                _contactShadow = new Sprite2D
+                {
+                    Name = "ContactShadowV5",
+                    Centered = true,
+                    ZAsRelative = true,
+                    ShowBehindParent = true,
+                    TextureFilter = CanvasItem.TextureFilterEnum.Linear,
+                    Texture = _contactTexture
+                };
+                AddChild(_contactShadow);
+            }
         }
 
         private void ResolveSource()
@@ -105,24 +164,50 @@ namespace AshesofaDyingWorld.World.Environment
             }
 
             _source ??= FindFallbackSource();
-
             if (_source == null)
             {
-                if (_sourceResolveRetries < 4)
+                if (!_warnedSource)
                 {
-                    ScheduleSourceRetry();
+                    _warnedSource = true;
+                    GD.PushWarning($"[ShadowCaster2D V5] Không tìm thấy source tại {GetPath()} | SourcePath={SourcePath}");
                 }
                 return;
             }
 
-            _warnedMissingSource = false;
-            _sourceResolveRetries = 0;
-
-            if (TextureOverride == null && _source is AnimatedSprite2D animated)
+            _warnedSource = false;
+            if (_source is AnimatedSprite2D animated)
             {
                 _connectedAnimated = animated;
                 _connectedAnimated.FrameChanged += OnAnimatedFrameChanged;
             }
+        }
+
+        private CanvasItem FindFallbackSource()
+        {
+            Node parent = GetParent();
+            if (parent == null)
+            {
+                return null;
+            }
+
+            string[] preferred = { "Body", "AnimatedSprite2D", "Sprite2D", "Canopy", "Trunk" };
+            foreach (string name in preferred)
+            {
+                if (parent.GetNodeOrNull<CanvasItem>(name) is CanvasItem item && item != this)
+                {
+                    return item;
+                }
+            }
+
+            foreach (Node child in parent.GetChildren())
+            {
+                if (child != this && (child is Sprite2D || child is AnimatedSprite2D))
+                {
+                    return child as CanvasItem;
+                }
+            }
+
+            return null;
         }
 
         private void DisconnectAnimatedSource()
@@ -134,341 +219,311 @@ namespace AshesofaDyingWorld.World.Environment
             _connectedAnimated = null;
         }
 
-        private CanvasItem FindFallbackSource()
+        private void OnAnimatedFrameChanged()
         {
-            Node parent = GetParent();
-            if (parent == null)
-            {
-                return null;
-            }
-
-            string[] preferredNames = { "Body", "AnimatedSprite2D", "Sprite2D", "Canopy" };
-            foreach (string name in preferredNames)
-            {
-                CanvasItem named = parent.GetNodeOrNull<CanvasItem>(name);
-                if (named != null && named != this)
-                {
-                    return named;
-                }
-            }
-
-            foreach (Node child in parent.GetChildren())
-            {
-                if (child == this)
-                {
-                    continue;
-                }
-
-                if (child is AnimatedSprite2D || child is Sprite2D)
-                {
-                    return child as CanvasItem;
-                }
-            }
-
-            return null;
+            SyncGeometry();
         }
 
-        private void ScheduleSourceRetry()
+        private void SyncGeometry()
         {
-            if (_sourceRetryScheduled)
-            {
-                return;
-            }
-
-            _sourceRetryScheduled = true;
-            CallDeferred(nameof(RetryResolveSource));
-        }
-
-        private void RetryResolveSource()
-        {
-            _sourceRetryScheduled = false;
-            if (_source != null && GodotObject.IsInstanceValid(_source))
-            {
-                return;
-            }
-
-            _sourceResolveRetries++;
-            ResolveSource();
-            SyncCaster(force: true);
-
-            if (_source != null && GodotObject.IsInstanceValid(_source))
-            {
-                return;
-            }
-
-            if (_sourceResolveRetries < 4)
-            {
-                ScheduleSourceRetry();
-                return;
-            }
-
-            if (!_warnedMissingSource)
-            {
-                _warnedMissingSource = true;
-                GD.PushWarning($"[ShadowCaster2D] Chua tim thay SourcePath tai {GetPath()}: {SourcePath}");
-            }
-        }
-
-        private void EnsureShadowSprite()
-        {
-            if (_shadowSprite != null && GodotObject.IsInstanceValid(_shadowSprite))
-            {
-                return;
-            }
-
-            ShaderMaterial sharedMaterial = ResourceLoader.Load<ShaderMaterial>(SharedMaterialPath);
-            if (sharedMaterial == null)
-            {
-                GD.PrintErr($"[ShadowCaster2D] Không load được shared material: {SharedMaterialPath}");
-                return;
-            }
-
-            _shadowMaterial = sharedMaterial.Duplicate() as ShaderMaterial;
-            if (_shadowMaterial == null)
-            {
-                GD.PrintErr($"[ShadowCaster2D] Khong duplicate duoc shared material: {SharedMaterialPath}");
-                return;
-            }
-            _shadowMaterial.ResourceLocalToScene = true;
-
-            _shadowSprite = new Sprite2D
-            {
-                Name = "ProjectedShadow",
-                Material = _shadowMaterial,
-                ZAsRelative = true,
-                ShowBehindParent = true,
-                TextureFilter = CanvasItem.TextureFilterEnum.Linear,
-                // Shadow là lớp ánh sáng mềm, không phải sprite art. Dùng linear riêng cho proxy
-                // để penumbra không biến thành các sọc pixel cứng khi footprint bị kéo dài.
-                // Fail-safe: nếu Godot không compile được material, mask thô vẫn hiện như một
-                // bóng tối mờ thay vì silhouette TRẮNG chọc xuống dưới gốc cây. Shader hợp lệ
-                // tự ghi COLOR nên SelfModulate này không đổi màu pass V3 bình thường.
-                SelfModulate = new Color(0.03f, 0.05f, 0.035f, 0.26f)
-            };
-            AddChild(_shadowSprite);
-        }
-
-        private void EnsureContactShadowSprite()
-        {
-            if (_contactShadowSprite != null && GodotObject.IsInstanceValid(_contactShadowSprite))
-            {
-                return;
-            }
-
-            Texture2D texture = ResourceLoader.Exists(ContactShadowTexturePath)
-                ? GD.Load<Texture2D>(ContactShadowTexturePath)
-                : null;
-            if (texture == null)
-            {
-                GD.PushWarning($"[ShadowCaster2D] Missing contact shadow texture: {ContactShadowTexturePath}");
-                return;
-            }
-
-            _contactShadowSprite = new Sprite2D
-            {
-                Name = "ContactShadow",
-                Texture = texture,
-                Centered = true,
-                ZAsRelative = true,
-                ShowBehindParent = true,
-                TextureFilter = CanvasItem.TextureFilterEnum.Linear
-            };
-            AddChild(_contactShadowSprite);
-        }
-
-        private void SyncCaster(bool force)
-        {
-            if (_shadowSprite == null || _source == null || Profile == null)
+            _geometryReady = false;
+            if (_source == null || Profile == null || _projectedShadow == null)
             {
                 Visible = false;
                 return;
             }
 
-            Texture2D texture = TextureOverride;
-            Vector2 sourcePosition = Vector2.Zero;
-            Vector2 sourceScale = Vector2.One;
-            float sourceRotation = 0f;
-            float sourceSkew = 0f;
-            Vector2 sourceOffset = Vector2.Zero;
-            bool centered = true;
-            bool flipH = false;
-            bool flipV = false;
-            bool regionEnabled = false;
-            Rect2 regionRect = default;
-            int frame = -1;
-
-            if (_source is Sprite2D sprite)
+            Texture2D sourceTexture = ResolveSourceTexture();
+            if (sourceTexture == null)
             {
-                texture ??= sprite.Texture;
-                sourcePosition = sprite.Position;
-                sourceScale = sprite.Scale;
-                sourceRotation = sprite.Rotation;
-                sourceSkew = sprite.Skew;
-                sourceOffset = sprite.Offset;
-                centered = sprite.Centered;
-                flipH = sprite.FlipH;
-                flipV = sprite.FlipV;
-                regionEnabled = TextureOverride == null && sprite.RegionEnabled;
-                regionRect = sprite.RegionRect;
+                Visible = false;
+                return;
             }
-            else if (_source is AnimatedSprite2D animated)
-            {
-                frame = animated.Frame;
-                if (texture == null && animated.SpriteFrames != null)
-                {
-                    texture = animated.SpriteFrames.GetFrameTexture(animated.Animation, animated.Frame);
-                }
 
-                sourcePosition = animated.Position;
-                sourceScale = animated.Scale;
-                sourceRotation = animated.Rotation;
-                sourceSkew = animated.Skew;
-                sourceOffset = animated.Offset;
-                centered = animated.Centered;
-                flipH = animated.FlipH;
-                flipV = animated.FlipV;
+            SourceVisual visual = ResolveSourceVisual(sourceTexture);
+            Vector2 anchorGlobal = visual.SourceNode.ToGlobal(visual.BottomCenterLocal);
+            Vector2 groundDeltaGlobal = ToGlobal(GroundOffset) - ToGlobal(Vector2.Zero);
+            anchorGlobal += groundDeltaGlobal;
+            _groundAnchorLocal = ToLocal(anchorGlobal);
+
+            Vector2 leftGlobal = visual.SourceNode.ToGlobal(visual.LeftCenterLocal);
+            Vector2 rightGlobal = visual.SourceNode.ToGlobal(visual.RightCenterLocal);
+            Vector2 topGlobal = visual.SourceNode.ToGlobal(visual.TopCenterLocal);
+            Vector2 bottomGlobal = visual.SourceNode.ToGlobal(visual.BottomCenterLocal);
+            _visibleWidthWorld = Mathf.Max(leftGlobal.DistanceTo(rightGlobal), 2f);
+            _visibleHeightWorld = Mathf.Max(topGlobal.DistanceTo(bottomGlobal), 2f);
+
+            if (Profile.Model == ShadowCasterProfile.ProjectionModel.RigidDrop)
+            {
+                ConfigureRigidDropSprite(sourceTexture, visual);
             }
             else
             {
-                Visible = false;
-                return;
+                _projectedShadow.Texture = TextureOverride ?? _genericFootprint;
+                _projectedShadow.Centered = true;
+                _projectedShadow.RegionEnabled = false;
+                _projectedShadow.Offset = Vector2.Zero;
+                _projectedShadow.FlipH = false;
+                _projectedShadow.FlipV = false;
             }
 
-            if (texture == null)
-            {
-                Visible = false;
-                return;
-            }
-
-            bool textureChanged = texture != _lastTexture || frame != _lastFrame;
-            _lastTexture = texture;
-            _lastFrame = frame;
-
-            if (force || textureChanged)
-            {
-                _shadowSprite.Texture = texture;
-                _shadowSprite.RegionEnabled = regionEnabled;
-                if (regionEnabled)
-                {
-                    _shadowSprite.RegionRect = regionRect;
-                }
-            }
-
-            // Không phóng quad, không canvas padding. Proxy giữ transform y hệt source.
-            _shadowSprite.Position = sourcePosition + GroundOffset;
-            _shadowSprite.Scale = sourceScale;
-            _shadowSprite.Rotation = sourceRotation;
-            _shadowSprite.Skew = sourceSkew;
-            _shadowSprite.Offset = sourceOffset;
-            _shadowSprite.Centered = centered;
-            _shadowSprite.FlipH = flipH;
-            _shadowSprite.FlipV = flipV;
-            _shadowSprite.ZIndex = Profile.ZIndex;
-
-            Vector2 sourceSize = regionEnabled ? regionRect.Size : texture.GetSize();
-            sourceSize.X = Mathf.Max(sourceSize.X, 1f);
-            sourceSize.Y = Mathf.Max(sourceSize.Y, 1f);
-
-            float left = centered ? -sourceSize.X * 0.5f : 0f;
-            float top = centered ? -sourceSize.Y * 0.5f : 0f;
-            AlphaBounds alphaBounds = ResolveAlphaBounds(
-                texture,
-                regionEnabled,
-                regionRect,
-                Mathf.Clamp(Profile.AlphaCutoff, 0f, 1f),
-                sourceSize);
-
-            Rect2 visibleRect = alphaBounds.HasPixels
-                ? alphaBounds.Rect
-                : new Rect2(Vector2.Zero, sourceSize);
-            float visibleWidth = Mathf.Max(visibleRect.Size.X, 1f);
-            float visibleHeight = Mathf.Max(visibleRect.Size.Y, 1f);
-
-            float visibleLeft = left + visibleRect.Position.X + sourceOffset.X;
-            float visibleTop = top + visibleRect.Position.Y + sourceOffset.Y;
-            float baseXLocal = visibleLeft + visibleWidth * 0.5f;
-            float baseYLocal = visibleTop + visibleHeight * Mathf.Clamp(Profile.BaseY01, 0f, 1f);
-            float heightLocal = Mathf.Max(visibleHeight * Mathf.Max(Profile.HeightRatio, 0.02f), 1f);
-            float footprintCenterYLocal = visibleTop + visibleHeight * 0.5f;
-            float footprintDepthLocal = Mathf.Max(visibleHeight, 1f);
-
-            SetInstance("caster_projection_model", (float)Profile.Model);
-            SetInstance("caster_base_x_local", baseXLocal);
-            SetInstance("caster_base_y_local", baseYLocal);
-            SetInstance("caster_height_local", heightLocal);
-            SetInstance("caster_footprint_center_y_local", footprintCenterYLocal);
-            SetInstance("caster_footprint_depth_local", footprintDepthLocal);
-            SetInstance("caster_width_scale", Mathf.Clamp(Profile.WidthScale, 0.1f, 1.5f));
-            SetInstance("caster_noon_length_world", Mathf.Max(Profile.NoonLengthWorld, 0f));
-            SetInstance("caster_max_length_world", Mathf.Max(Profile.MaxLengthWorld, Profile.NoonLengthWorld));
-            SetInstance("caster_noon_flatten", Mathf.Clamp(Profile.NoonFlatten, 0.01f, 0.8f));
-            SetInstance("caster_horizon_flatten", Mathf.Clamp(Profile.HorizonFlatten, 0.01f, 0.8f));
-            SetInstance("caster_tint", Profile.Tint);
-            SetInstance("caster_opacity", Mathf.Clamp(Profile.Opacity, 0f, 1f));
-            SetInstance("caster_alpha_cutoff", Mathf.Clamp(Profile.AlphaCutoff, 0f, 1f));
-
-            SyncContactShadow(
-                baseXLocal,
-                baseYLocal,
-                visibleWidth,
-                visibleHeight,
-                sourceScale);
-
+            SyncContactShadow();
+            _projectedShadow.ZIndex = Profile.ZIndex;
             Visible = _source.Visible;
+            _geometryReady = _projectedShadow.Texture != null;
         }
 
-        private void SyncContactShadow(
-            float baseXLocal,
-            float baseYLocal,
-            float visibleWidth,
-            float visibleHeight,
-            Vector2 sourceScale)
+        private void ApplyFootprint(EnvironmentState state)
         {
-            if (_contactShadowSprite == null || Profile == null)
+            Vector2 direction = state.ShadowDirection2D.LengthSquared() > 0.0001f
+                ? state.ShadowDirection2D.Normalized()
+                : Vector2.Down;
+            float length01 = Mathf.Clamp(state.ShadowLength01, 0f, 1f);
+            float lengthCurve = Mathf.Pow(length01, 0.84f);
+
+            float castLengthWorld = Mathf.Lerp(
+                Mathf.Max(Profile.NoonLengthWorld, 1f),
+                Mathf.Max(Profile.MaxLengthWorld, Profile.NoonLengthWorld),
+                lengthCurve);
+
+            float modelWidthFactor = Profile.Model switch
+            {
+                ShadowCasterProfile.ProjectionModel.ArtDirectedFootprint => Mathf.Lerp(0.70f, 0.92f, lengthCurve),
+                ShadowCasterProfile.ProjectionModel.Volume => Mathf.Lerp(0.72f, 0.86f, lengthCurve),
+                _ => Mathf.Lerp(0.52f, 0.68f, lengthCurve)
+            };
+
+            float widthWorld = Mathf.Max(_visibleWidthWorld * Profile.WidthScale * modelWidthFactor, 2.5f);
+            Vector2 anchorGlobal = ToGlobal(_groundAnchorLocal);
+            Vector2 centerGlobal = anchorGlobal + direction * (castLengthWorld * 0.50f);
+            Vector2 centerLocal = ToLocal(centerGlobal);
+
+            Vector2 localDir = ToLocal(anchorGlobal + direction) - ToLocal(anchorGlobal);
+            if (localDir.LengthSquared() < 0.0001f)
+            {
+                localDir = Vector2.Down;
+            }
+            localDir = localDir.Normalized();
+
+            Vector2 side = new(-direction.Y, direction.X);
+            float localLength = (ToLocal(anchorGlobal + direction * castLengthWorld) - _groundAnchorLocal).Length();
+            float localWidth = (ToLocal(anchorGlobal + side * widthWorld) - _groundAnchorLocal).Length();
+
+            Vector2 texSize = _projectedShadow.Texture?.GetSize() ?? new Vector2(64f, 64f);
+            _projectedShadow.Position = centerLocal;
+            _projectedShadow.Rotation = localDir.Angle() - Mathf.Pi * 0.5f;
+            _projectedShadow.Scale = new Vector2(
+                localWidth / Mathf.Max(texSize.X, 1f),
+                localLength / Mathf.Max(texSize.Y, 1f));
+
+            float keyVisibility = 0.42f + 0.58f * Mathf.Sqrt(Mathf.Clamp(state.KeyLightStrength01, 0f, 1f));
+            float cloudAttenuation = 1f - Mathf.Clamp(state.Cloudiness, 0f, 1f) * 0.24f;
+            float nightAttenuation = Mathf.Lerp(1f, 0.62f, Mathf.Clamp(state.NightFactor, 0f, 1f));
+            float horizonBoost = Mathf.Lerp(0.90f, 1.08f, lengthCurve);
+            float alpha = Profile.Opacity
+                * Mathf.Clamp(state.ShadowStrength, 0f, 1f)
+                * keyVisibility
+                * cloudAttenuation
+                * nightAttenuation
+                * horizonBoost;
+
+            Color nightTint = new(0.020f, 0.032f, 0.060f, 1f);
+            Color tint = Profile.Tint.Lerp(nightTint, Mathf.Clamp(state.NightFactor * 0.44f, 0f, 0.44f));
+            _projectedShadow.Modulate = new Color(tint.R, tint.G, tint.B, Mathf.Clamp(alpha, 0f, 0.56f));
+            _projectedShadow.Visible = _source.Visible;
+        }
+
+        private void ApplyRigidDrop(EnvironmentState state)
+        {
+            if (_source is not Node2D sourceNode || _projectedShadow.Texture == null)
             {
                 return;
             }
 
-            bool enabled = Profile.ContactShadowEnabled && Profile.ContactOpacity > 0.001f;
-            _contactShadowSprite.Visible = enabled;
+            Vector2 direction = state.ShadowDirection2D.LengthSquared() > 0.0001f
+                ? state.ShadowDirection2D.Normalized()
+                : Vector2.Down;
+            float lengthCurve = Mathf.Pow(Mathf.Clamp(state.ShadowLength01, 0f, 1f), 0.84f);
+            float distanceWorld = Mathf.Lerp(Profile.NoonLengthWorld, Profile.MaxLengthWorld, lengthCurve);
+            Vector2 offsetLocal = ToLocal(GlobalPosition + direction * distanceWorld) - ToLocal(GlobalPosition);
+
+            _projectedShadow.Position = ToLocal(sourceNode.GlobalPosition) + offsetLocal;
+            _projectedShadow.Rotation = sourceNode.GlobalRotation - GlobalRotation;
+            Vector2 myScale = GlobalScale;
+            Vector2 sourceScale = sourceNode.GlobalScale;
+            _projectedShadow.Scale = new Vector2(
+                sourceScale.X / Mathf.Max(Mathf.Abs(myScale.X), 0.0001f),
+                sourceScale.Y / Mathf.Max(Mathf.Abs(myScale.Y), 0.0001f));
+
+            float alpha = Profile.Opacity
+                * Mathf.Clamp(state.ShadowStrength, 0f, 1f)
+                * Mathf.Lerp(0.86f, 1.0f, lengthCurve)
+                * Mathf.Lerp(1f, 0.60f, state.NightFactor);
+            Color tint = Profile.Tint.Lerp(new Color(0.020f, 0.032f, 0.060f, 1f), state.NightFactor * 0.40f);
+            _projectedShadow.Modulate = new Color(tint.R, tint.G, tint.B, Mathf.Clamp(alpha, 0f, 0.42f));
+            _projectedShadow.Visible = _source.Visible;
+        }
+
+        private void ConfigureRigidDropSprite(Texture2D texture, SourceVisual visual)
+        {
+            _projectedShadow.Texture = texture;
+            _projectedShadow.Centered = visual.Centered;
+            _projectedShadow.Offset = visual.Offset;
+            _projectedShadow.FlipH = visual.FlipH;
+            _projectedShadow.FlipV = visual.FlipV;
+            _projectedShadow.RegionEnabled = visual.RegionEnabled;
+            if (visual.RegionEnabled)
+            {
+                _projectedShadow.RegionRect = visual.RegionRect;
+            }
+        }
+
+        private void SyncContactShadow()
+        {
+            if (_contactShadow == null || Profile == null)
+            {
+                return;
+            }
+
+            bool enabled = Profile.ContactShadowEnabled
+                && Profile.ContactOpacity > 0.001f
+                && _contactTexture != null;
+            _contactShadow.Visible = enabled;
             if (!enabled)
             {
                 return;
             }
 
-            // Contact shadow bám đúng alpha-base của caster, nhưng luôn nằm trên mặt đất.
-            // Vì vậy nó KHÔNG kế thừa phép affine projection của bóng mặt trời.
-            Vector2 anchorInShadowLocal = new(baseXLocal, baseYLocal);
-            Vector2 anchorGlobal = _shadowSprite.ToGlobal(anchorInShadowLocal);
-            Vector2 anchorHere = ToLocal(anchorGlobal) + Profile.ContactOffset;
-            _contactShadowSprite.Position = anchorHere;
-            _contactShadowSprite.Rotation = 0f;
-            _contactShadowSprite.Skew = 0f;
+            Vector2 anchorGlobal = ToGlobal(_groundAnchorLocal);
+            Vector2 contactOffsetGlobal = ToGlobal(Profile.ContactOffset) - ToGlobal(Vector2.Zero);
+            Vector2 positionLocal = ToLocal(anchorGlobal + contactOffsetGlobal);
 
-            float desiredWidth = Mathf.Max(
-                visibleWidth * Mathf.Abs(sourceScale.X) * Profile.ContactWidthRatio,
-                2f);
-            float desiredDepth = Mathf.Max(
-                visibleHeight * Mathf.Abs(sourceScale.Y) * Profile.ContactDepthRatio,
-                1.5f);
+            float widthWorld = Mathf.Max(_visibleWidthWorld * Profile.ContactWidthRatio, 2f);
+            float depthWorld = Mathf.Max(_visibleHeightWorld * Profile.ContactDepthRatio, 1.5f);
+            Vector2 localX = ToLocal(anchorGlobal + Vector2.Right * widthWorld) - _groundAnchorLocal;
+            Vector2 localY = ToLocal(anchorGlobal + Vector2.Down * depthWorld) - _groundAnchorLocal;
+            Vector2 texSize = _contactTexture.GetSize();
 
-            Vector2 textureSize = _contactShadowSprite.Texture?.GetSize() ?? new Vector2(32f, 16f);
-            _contactShadowSprite.Scale = new Vector2(
-                desiredWidth / Mathf.Max(textureSize.X, 1f),
-                desiredDepth / Mathf.Max(textureSize.Y, 1f));
-            _contactShadowSprite.ZIndex = Profile.ZIndex - 1;
-
+            _contactShadow.Position = positionLocal;
+            _contactShadow.Rotation = -GlobalRotation;
+            _contactShadow.Scale = new Vector2(
+                localX.Length() / Mathf.Max(texSize.X, 1f),
+                localY.Length() / Mathf.Max(texSize.Y, 1f));
+            _contactShadow.ZIndex = Profile.ZIndex - 1;
             Color tint = Profile.ContactTint;
-            _contactShadowSprite.Modulate = new Color(
-                tint.R,
-                tint.G,
-                tint.B,
-                Mathf.Clamp(Profile.ContactOpacity, 0f, 1f));
+            _contactShadow.Modulate = new Color(tint.R, tint.G, tint.B, Mathf.Clamp(Profile.ContactOpacity, 0f, 1f));
         }
 
-        private void SetInstance(string name, Variant value)
+        private Texture2D ResolveSourceTexture()
         {
-            _shadowMaterial?.SetShaderParameter(name, value);
+            if (_source is Sprite2D sprite)
+            {
+                return sprite.Texture;
+            }
+
+            if (_source is AnimatedSprite2D animated && animated.SpriteFrames != null)
+            {
+                return animated.SpriteFrames.GetFrameTexture(animated.Animation, animated.Frame);
+            }
+
+            return null;
+        }
+
+        private readonly struct SourceVisual
+        {
+            public SourceVisual(
+                Node2D sourceNode,
+                Vector2 leftCenterLocal,
+                Vector2 rightCenterLocal,
+                Vector2 topCenterLocal,
+                Vector2 bottomCenterLocal,
+                bool centered,
+                Vector2 offset,
+                bool flipH,
+                bool flipV,
+                bool regionEnabled,
+                Rect2 regionRect)
+            {
+                SourceNode = sourceNode;
+                LeftCenterLocal = leftCenterLocal;
+                RightCenterLocal = rightCenterLocal;
+                TopCenterLocal = topCenterLocal;
+                BottomCenterLocal = bottomCenterLocal;
+                Centered = centered;
+                Offset = offset;
+                FlipH = flipH;
+                FlipV = flipV;
+                RegionEnabled = regionEnabled;
+                RegionRect = regionRect;
+            }
+
+            public Node2D SourceNode { get; }
+            public Vector2 LeftCenterLocal { get; }
+            public Vector2 RightCenterLocal { get; }
+            public Vector2 TopCenterLocal { get; }
+            public Vector2 BottomCenterLocal { get; }
+            public bool Centered { get; }
+            public Vector2 Offset { get; }
+            public bool FlipH { get; }
+            public bool FlipV { get; }
+            public bool RegionEnabled { get; }
+            public Rect2 RegionRect { get; }
+        }
+
+        private SourceVisual ResolveSourceVisual(Texture2D texture)
+        {
+            bool centered = true;
+            Vector2 offset = Vector2.Zero;
+            bool flipH = false;
+            bool flipV = false;
+            bool regionEnabled = false;
+            Rect2 regionRect = default;
+            Node2D node = _source as Node2D;
+
+            if (_source is Sprite2D sprite)
+            {
+                centered = sprite.Centered;
+                offset = sprite.Offset;
+                flipH = sprite.FlipH;
+                flipV = sprite.FlipV;
+                regionEnabled = sprite.RegionEnabled;
+                regionRect = sprite.RegionRect;
+            }
+            else if (_source is AnimatedSprite2D animated)
+            {
+                centered = animated.Centered;
+                offset = animated.Offset;
+                flipH = animated.FlipH;
+                flipV = animated.FlipV;
+            }
+
+            Vector2 size = regionEnabled ? regionRect.Size : texture.GetSize();
+            size.X = Mathf.Max(size.X, 1f);
+            size.Y = Mathf.Max(size.Y, 1f);
+            AlphaBounds bounds = ResolveAlphaBounds(texture, regionEnabled, regionRect, Profile?.AlphaCutoff ?? 0.08f, size);
+            Rect2 rect = bounds.HasPixels ? bounds.Rect : new Rect2(Vector2.Zero, size);
+
+            float left = centered ? -size.X * 0.5f : 0f;
+            float top = centered ? -size.Y * 0.5f : 0f;
+            float x0 = left + rect.Position.X + offset.X;
+            float x1 = x0 + rect.Size.X;
+            float y0 = top + rect.Position.Y + offset.Y;
+            float y1 = y0 + rect.Size.Y;
+            float cx = (x0 + x1) * 0.5f;
+            float cy = (y0 + y1) * 0.5f;
+
+            return new SourceVisual(
+                node,
+                new Vector2(x0, cy),
+                new Vector2(x1, cy),
+                new Vector2(cx, y0),
+                new Vector2(cx, y1),
+                centered,
+                offset,
+                flipH,
+                flipV,
+                regionEnabled,
+                regionRect);
         }
 
         private static AlphaBounds ResolveAlphaBounds(
@@ -483,13 +538,12 @@ namespace AshesofaDyingWorld.World.Environment
                 return new AlphaBounds(new Rect2(Vector2.Zero, fallbackSize), false);
             }
 
-            Rect2 sampleRect = new Rect2(Vector2.Zero, fallbackSize);
+            Rect2 sampleRect = new(Vector2.Zero, fallbackSize);
             Image image = null;
-
-            if (texture is AtlasTexture atlasTexture)
+            if (texture is AtlasTexture atlas)
             {
-                image = atlasTexture.Atlas?.GetImage();
-                sampleRect = atlasTexture.Region;
+                image = atlas.Atlas?.GetImage();
+                sampleRect = atlas.Region;
             }
             else
             {
@@ -505,21 +559,12 @@ namespace AshesofaDyingWorld.World.Environment
                 return new AlphaBounds(new Rect2(Vector2.Zero, fallbackSize), false);
             }
 
-            int imageWidth = image.GetWidth();
-            int imageHeight = image.GetHeight();
-            int startX = Mathf.Clamp(Mathf.FloorToInt(sampleRect.Position.X), 0, imageWidth);
-            int startY = Mathf.Clamp(Mathf.FloorToInt(sampleRect.Position.Y), 0, imageHeight);
-            int endX = Mathf.Clamp(Mathf.CeilToInt(sampleRect.End.X), 0, imageWidth);
-            int endY = Mathf.Clamp(Mathf.CeilToInt(sampleRect.End.Y), 0, imageHeight);
-
-            if (endX <= startX || endY <= startY)
-            {
-                return new AlphaBounds(new Rect2(Vector2.Zero, fallbackSize), false);
-            }
-
+            int startX = Mathf.Clamp(Mathf.FloorToInt(sampleRect.Position.X), 0, image.GetWidth());
+            int startY = Mathf.Clamp(Mathf.FloorToInt(sampleRect.Position.Y), 0, image.GetHeight());
+            int endX = Mathf.Clamp(Mathf.CeilToInt(sampleRect.End.X), 0, image.GetWidth());
+            int endY = Mathf.Clamp(Mathf.CeilToInt(sampleRect.End.Y), 0, image.GetHeight());
             int cutoffKey = Mathf.Clamp(Mathf.RoundToInt(alphaCutoff * 255f), 0, 255);
-            string cacheKey =
-                $"{texture.GetInstanceId()}:{startX},{startY},{endX},{endY}:{cutoffKey}";
+            string cacheKey = $"{texture.GetInstanceId()}:{startX},{startY},{endX},{endY}:{cutoffKey}";
             if (AlphaBoundsCache.TryGetValue(cacheKey, out AlphaBounds cached))
             {
                 return cached;
@@ -530,7 +575,6 @@ namespace AshesofaDyingWorld.World.Environment
             int minY = endY;
             int maxX = startX - 1;
             int maxY = startY - 1;
-
             for (int y = startY; y < endY; y++)
             {
                 for (int x = startX; x < endX; x++)
@@ -539,40 +583,20 @@ namespace AshesofaDyingWorld.World.Environment
                     {
                         continue;
                     }
-
-                    if (x < minX)
-                    {
-                        minX = x;
-                    }
-                    if (y < minY)
-                    {
-                        minY = y;
-                    }
-                    if (x > maxX)
-                    {
-                        maxX = x;
-                    }
-                    if (y > maxY)
-                    {
-                        maxY = y;
-                    }
+                    minX = Mathf.Min(minX, x);
+                    minY = Mathf.Min(minY, y);
+                    maxX = Mathf.Max(maxX, x);
+                    maxY = Mathf.Max(maxY, y);
                 }
             }
 
-            AlphaBounds result;
-            if (maxX < minX || maxY < minY)
-            {
-                result = new AlphaBounds(new Rect2(Vector2.Zero, fallbackSize), false);
-            }
-            else
-            {
-                result = new AlphaBounds(
+            AlphaBounds result = maxX < minX || maxY < minY
+                ? new AlphaBounds(new Rect2(Vector2.Zero, fallbackSize), false)
+                : new AlphaBounds(
                     new Rect2(
                         new Vector2(minX - startX, minY - startY),
                         new Vector2(maxX - minX + 1, maxY - minY + 1)),
                     true);
-            }
-
             AlphaBoundsCache[cacheKey] = result;
             return result;
         }

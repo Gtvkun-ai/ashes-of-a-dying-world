@@ -17,6 +17,7 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 config/name="Ashes of a Dying World"
 run/main_scene="uid://caqnp10danp0c"
 config/features=PackedStringArray("4.7", "C#", "GL Compatibility")
+run/max_fps=144
 config/icon="res://icon.svg"
 
 [autoload]
@@ -131,3 +132,82 @@ skill_1={
 textures/canvas_textures/default_texture_filter=0
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
+
+[shader_globals]
+
+env_time01={
+"type": "float",
+"value": 0.5
+}
+env_daylight={
+"type": "float",
+"value": 1.0
+}
+env_night={
+"type": "float",
+"value": 0.0
+}
+env_sun_direction={
+"type": "vec2",
+"value": Vector2(-0.447214, 0.894427)
+}
+env_sun_color={
+"type": "color",
+"value": Color(1, 1, 1, 1)
+}
+env_key_direction={
+"type": "vec2",
+"value": Vector2(0, 1)
+}
+env_key_color={
+"type": "color",
+"value": Color(1, 1, 1, 1)
+}
+env_key_elevation={
+"type": "float",
+"value": 1.0
+}
+env_key_strength={
+"type": "float",
+"value": 1.0
+}
+env_golden_hour={
+"type": "float",
+"value": 0.0
+}
+env_shadow_length={
+"type": "float",
+"value": 0.0
+}
+env_wind={
+"type": "float",
+"value": 0.2
+}
+env_rain={
+"type": "float",
+"value": 0.0
+}
+env_wetness={
+"type": "float",
+"value": 0.0
+}
+env_fog={
+"type": "float",
+"value": 0.0
+}
+env_cloudiness={
+"type": "float",
+"value": 0.1
+}
+env_shadow_strength={
+"type": "float",
+"value": 0.55
+}
+env_water_shimmer={
+"type": "float",
+"value": 0.12
+}
+env_water_ripple={
+"type": "float",
+"value": 0.08
+}

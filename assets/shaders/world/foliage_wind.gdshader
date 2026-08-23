@@ -2,27 +2,28 @@ shader_type canvas_item;
 
 // Ashes Environment V4.0 - foliage shape + light, tuned against the day/golden/night target frames.
 // The authored albedo stays crisp; pseudo-normal only redistributes value/color across the crown.
-uniform float env_time01 = 0.5;
-uniform float env_daylight = 1.0;
-uniform float env_night = 0.0;
-uniform vec2 env_sun_direction = vec2(-0.447214, 0.894427);
-uniform vec4 env_sun_color : source_color = vec4(1.0);
-uniform vec2 env_key_direction = vec2(0.0, 1.0);
-uniform vec4 env_key_color : source_color = vec4(1.0);
-uniform float env_key_elevation = 1.0;
-uniform float env_key_strength = 1.0;
-uniform float env_golden_hour = 0.0;
-uniform float env_shadow_length = 0.0;
-uniform float env_wind = 0.32;
-uniform float env_rain = 0.0;
-uniform float env_wetness = 0.0;
-uniform float env_fog = 0.0;
-uniform float env_cloudiness = 0.1;
-uniform float env_shadow_strength = 0.55;
-uniform float env_water_shimmer = 0.18;
-uniform float env_water_ripple = 0.0;
-
+global uniform float env_time01;
+global uniform float env_daylight;
+global uniform float env_night;
+global uniform vec2 env_sun_direction;
+global uniform vec4 env_sun_color;
+global uniform vec2 env_key_direction;
+global uniform vec4 env_key_color;
+global uniform float env_key_elevation;
+global uniform float env_key_strength;
+global uniform float env_golden_hour;
+global uniform float env_shadow_length;
+global uniform float env_wind;
+global uniform float env_rain;
+global uniform float env_wetness;
+global uniform float env_fog;
+global uniform float env_cloudiness;
+global uniform float env_shadow_strength;
+global uniform float env_water_shimmer;
+global uniform float env_water_ripple;
 uniform sampler2D foliage_normal : filter_nearest;
+uniform sampler2D foliage_ao : filter_nearest;
+uniform float authored_ao_strength : hint_range(0.0, 0.45) = 0.0;
 uniform float relight_strength : hint_range(0.0, 1.8) = 1.12;
 uniform float sun_highlight : hint_range(0.0, 0.7) = 0.31;
 uniform float shade_depth : hint_range(0.0, 0.7) = 0.27;
@@ -81,6 +82,13 @@ void fragment() {
         result *= 1.0 - shaded * shade_depth * day_response;
         result = mix(result, result * cool_shadow_tint, shaded * day_response * 0.34);
         result += env_key_color.rgb * lit * day_response * (0.030 + golden * golden_rim);
+
+        // V5.1: AO authored từ chính asset native-resolution.
+        // Mặc định strength=0 nên grass/flora cũ dùng shader này không bị thay đổi ngoài ý muốn.
+        if (authored_ao_strength > 0.001) {
+            float authored_ao = texture(foliage_ao, UV).r;
+            result *= mix(1.0 - authored_ao_strength, 1.0, clamp(authored_ao, 0.0, 1.0));
+        }
 
         // Lower crown and interior leaf masses remain darker at noon too, so the canopy reads as volume.
         float lower_crown = smoothstep(0.54, 1.0, UV.y);

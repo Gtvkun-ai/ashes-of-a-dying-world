@@ -11,6 +11,12 @@ namespace AshesofaDyingWorld.Core.Managers
         private const string SettingsPath = "user://settings.json";
         private const float MinLinearVolume = 0.0001f;
         private const int CurrentSettingsVersion = 3;
+        private const int DefaultMaxFps = 144;
+        private const int BackgroundMaxFps = 30;
+        private const int FocusWakeFrames = 8;
+
+        private bool _windowFocused = true;
+        private int _focusWakeFramesRemaining;
 
         private readonly JsonSerializerOptions _jsonOptions = new()
         {
@@ -53,9 +59,40 @@ namespace AshesofaDyingWorld.Core.Managers
 
         public override void _Ready()
         {
+            ProcessMode = ProcessModeEnum.Always;
+            SetProcess(true);
+            ConfigureRenderWakePolicy();
             LoadSettings();
             ApplyAll();
-            GD.Print($"[SettingsManager] READY fullscreen={CurrentSettings.Fullscreen} resolution={CurrentSettings.ResolutionWidth}x{CurrentSettings.ResolutionHeight} fps_cap={CurrentSettings.MaxFps}");
+            GD.Print($"[SettingsManager] READY fullscreen={CurrentSettings.Fullscreen} resolution={CurrentSettings.ResolutionWidth}x{CurrentSettings.ResolutionHeight} fps_cap={CurrentSettings.MaxFps} focused={_windowFocused}");
+        }
+
+        public override void _Notification(int what)
+        {
+            if (what == NotificationWMWindowFocusIn || what == NotificationApplicationFocusIn)
+            {
+                _windowFocused = true;
+                ApplyRuntimeSettings();
+                WakeRendererAfterFocusIn();
+                return;
+            }
+
+            if (what == NotificationWMWindowFocusOut || what == NotificationApplicationFocusOut)
+            {
+                _windowFocused = false;
+                ApplyRuntimeSettings();
+            }
+        }
+
+        public override void _Process(double delta)
+        {
+            if (_focusWakeFramesRemaining <= 0)
+            {
+                return;
+            }
+
+            _focusWakeFramesRemaining--;
+            ForceRenderFrame();
         }
 
         public override void _ExitTree()
@@ -176,7 +213,8 @@ namespace AshesofaDyingWorld.Core.Managers
 
         public void ApplyRuntimeSettings()
         {
-            Engine.MaxFps = CurrentSettings.MaxFps;
+            ConfigureRenderWakePolicy();
+            Engine.MaxFps = ResolveRuntimeFps();
         }
 
 
@@ -414,7 +452,7 @@ namespace AshesofaDyingWorld.Core.Managers
         {
             if (value <= 0)
             {
-                return 0;
+                return DefaultMaxFps;
             }
             return Mathf.Clamp(value, 30, 360);
         }
@@ -432,6 +470,33 @@ namespace AshesofaDyingWorld.Core.Managers
             }
 
             return Mathf.LinearToDb(linear);
+        }
+
+        private int ResolveRuntimeFps()
+        {
+            if (_windowFocused)
+            {
+                return CurrentSettings.MaxFps;
+            }
+
+            return Mathf.Min(CurrentSettings.MaxFps, BackgroundMaxFps);
+        }
+
+        private static void ConfigureRenderWakePolicy()
+        {
+            OS.LowProcessorUsageMode = false;
+            OS.LowProcessorUsageModeSleepUsec = 6900;
+        }
+
+        private void WakeRendererAfterFocusIn()
+        {
+            _focusWakeFramesRemaining = FocusWakeFrames;
+            ForceRenderFrame();
+        }
+
+        private static void ForceRenderFrame()
+        {
+            RenderingServer.ForceDraw(true, 0.0);
         }
     }
 }

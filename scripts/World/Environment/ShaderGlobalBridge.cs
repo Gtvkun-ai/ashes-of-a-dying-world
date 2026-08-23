@@ -3,11 +3,11 @@ using Godot;
 namespace AshesofaDyingWorld.World.Environment
 {
     /// <summary>
-    /// Cầu nối duy nhất từ EnvironmentState sang GPU.
+    /// Environment GPU Bridge V5.0.
     ///
-    /// Shader không biết WorldClock / weather preset / map hiện tại. Chúng chỉ đọc
-    /// global uniforms đã khai báo trong res://override.cfg. Nhờ vậy số lượng shader
-    /// consumer không làm tăng công việc C# mỗi frame.
+    /// Đây là đường DUY NHẤT đẩy EnvironmentState sang shader world.
+    /// Không scan scene, không SetShaderParameter lên hàng trăm ShaderMaterial.
+    /// Shader đọc `global uniform` đã khai báo trong res://override.cfg.
     /// </summary>
     public static class ShaderGlobalBridge
     {
@@ -16,6 +16,12 @@ namespace AshesofaDyingWorld.World.Environment
         private static readonly StringName EnvNight = "env_night";
         private static readonly StringName EnvSunDirection = "env_sun_direction";
         private static readonly StringName EnvSunColor = "env_sun_color";
+        private static readonly StringName EnvKeyDirection = "env_key_direction";
+        private static readonly StringName EnvKeyColor = "env_key_color";
+        private static readonly StringName EnvKeyElevation = "env_key_elevation";
+        private static readonly StringName EnvKeyStrength = "env_key_strength";
+        private static readonly StringName EnvGoldenHour = "env_golden_hour";
+        private static readonly StringName EnvShadowLength = "env_shadow_length";
         private static readonly StringName EnvWind = "env_wind";
         private static readonly StringName EnvRain = "env_rain";
         private static readonly StringName EnvWetness = "env_wetness";
@@ -28,10 +34,6 @@ namespace AshesofaDyingWorld.World.Environment
         private static bool _validationAttempted;
         private static bool _configurationValid;
 
-        /// <summary>
-        /// Kiểm tra config một lần. Không đọc ngược global uniform từ RenderingServer,
-        /// vì thao tác đó buộc render thread đồng bộ với CPU và không nên nằm trong loop.
-        /// </summary>
         public static bool ValidateConfiguration()
         {
             if (_validationAttempted)
@@ -40,7 +42,6 @@ namespace AshesofaDyingWorld.World.Environment
             }
 
             _validationAttempted = true;
-
             string[] required =
             {
                 "shader_globals/env_time01",
@@ -48,6 +49,12 @@ namespace AshesofaDyingWorld.World.Environment
                 "shader_globals/env_night",
                 "shader_globals/env_sun_direction",
                 "shader_globals/env_sun_color",
+                "shader_globals/env_key_direction",
+                "shader_globals/env_key_color",
+                "shader_globals/env_key_elevation",
+                "shader_globals/env_key_strength",
+                "shader_globals/env_golden_hour",
+                "shader_globals/env_shadow_length",
                 "shader_globals/env_wind",
                 "shader_globals/env_rain",
                 "shader_globals/env_wetness",
@@ -67,22 +74,21 @@ namespace AshesofaDyingWorld.World.Environment
                 }
 
                 ok = false;
-                GD.PushError($"[ShaderGlobalBridge] Missing ProjectSetting '{setting}'. " +
-                             "Keep res://override.cfg from Environment Core V1.1 in the project root.");
+                GD.PushError(
+                    $"[ShaderGlobalBridge V5] Thiếu ProjectSetting '{setting}'. " +
+                    "Hãy giữ res://override.cfg đi cùng patch V5.0.");
             }
 
             _configurationValid = ok;
-            if (_configurationValid)
+            if (ok)
             {
-                GD.Print("[ShaderGlobalBridge] READY 13/13 environment shader globals");
+                GD.Print("[ShaderGlobalBridge] READY V5.0 | globals=19 | material_scan=OFF");
             }
-
-            return _configurationValid;
+            return ok;
         }
 
         /// <summary>
-        /// Publish một snapshot state sang RenderingServer. Set global parameter là thao tác
-        /// write-only, không cần CPU/GPU synchronization và được thiết kế cho environment state.
+        /// Push write-only sang RenderingServer. Không đọc ngược global uniform để tránh sync CPU/GPU.
         /// </summary>
         public static void Push(EnvironmentState state)
         {
@@ -91,11 +97,25 @@ namespace AshesofaDyingWorld.World.Environment
                 return;
             }
 
+            float sunElevation = Mathf.Clamp(state.SunElevation, 0f, 1f);
+            float lowSun = 1f - SmoothStep(0.30f, 0.68f, sunElevation);
+            float horizonVisible = SmoothStep(0.055f, 0.18f, sunElevation);
+            float goldenHour = Mathf.Clamp(state.Daylight * lowSun * horizonVisible, 0f, 1f);
+            Vector2 keyDirection = state.KeyLightDirection.LengthSquared() > 0.0001f
+                ? state.KeyLightDirection.Normalized()
+                : Vector2.Down;
+
             RenderingServer.GlobalShaderParameterSet(EnvTime01, state.TimeOfDay01);
             RenderingServer.GlobalShaderParameterSet(EnvDaylight, state.Daylight);
             RenderingServer.GlobalShaderParameterSet(EnvNight, state.NightFactor);
             RenderingServer.GlobalShaderParameterSet(EnvSunDirection, state.SunDirection);
             RenderingServer.GlobalShaderParameterSet(EnvSunColor, state.SunColor);
+            RenderingServer.GlobalShaderParameterSet(EnvKeyDirection, keyDirection);
+            RenderingServer.GlobalShaderParameterSet(EnvKeyColor, state.KeyLightColor);
+            RenderingServer.GlobalShaderParameterSet(EnvKeyElevation, Mathf.Clamp(state.KeyLightElevation, 0f, 1f));
+            RenderingServer.GlobalShaderParameterSet(EnvKeyStrength, Mathf.Clamp(state.KeyLightStrength01, 0f, 1f));
+            RenderingServer.GlobalShaderParameterSet(EnvGoldenHour, goldenHour);
+            RenderingServer.GlobalShaderParameterSet(EnvShadowLength, Mathf.Clamp(state.ShadowLength01, 0f, 1f));
             RenderingServer.GlobalShaderParameterSet(EnvWind, state.WindStrength);
             RenderingServer.GlobalShaderParameterSet(EnvRain, state.RainAmount);
             RenderingServer.GlobalShaderParameterSet(EnvWetness, state.Wetness);
@@ -104,6 +124,13 @@ namespace AshesofaDyingWorld.World.Environment
             RenderingServer.GlobalShaderParameterSet(EnvShadowStrength, state.ShadowStrength);
             RenderingServer.GlobalShaderParameterSet(EnvWaterShimmer, state.WaterShimmerStrength);
             RenderingServer.GlobalShaderParameterSet(EnvWaterRipple, state.WaterRippleStrength);
+        }
+
+        private static float SmoothStep(float edge0, float edge1, float value)
+        {
+            float denom = Mathf.Max(edge1 - edge0, 0.0001f);
+            float t = Mathf.Clamp((value - edge0) / denom, 0f, 1f);
+            return t * t * (3f - 2f * t);
         }
     }
 }

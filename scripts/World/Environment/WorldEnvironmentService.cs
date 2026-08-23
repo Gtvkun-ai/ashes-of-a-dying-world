@@ -186,6 +186,9 @@ namespace AshesofaDyingWorld.World.Environment
         private void PublishState()
         {
             RebuildState();
+            // V5.0: service publish state thẳng sang global shader uniforms.
+            // Không còn EnvironmentMaterialBus scan + push từng ShaderMaterial.
+            ShaderGlobalBridge.Push(CurrentState);
         }
 
         private void StepWeather(float delta)

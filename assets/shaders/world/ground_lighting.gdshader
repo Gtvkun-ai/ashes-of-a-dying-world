@@ -3,26 +3,25 @@ shader_type canvas_item;
 // Ashes Environment V4.0 - authored ground response.
 // GroundBase stays pixel-perfect; this pass only adds broad material variation, cavity shade,
 // water-edge moisture and time-of-day split lighting. No moving micro-noise.
-uniform float env_time01 = 0.5;
-uniform float env_daylight = 1.0;
-uniform float env_night = 0.0;
-uniform vec2 env_sun_direction = vec2(-0.447214, 0.894427);
-uniform vec4 env_sun_color : source_color = vec4(1.0);
-uniform vec2 env_key_direction = vec2(0.0, 1.0);
-uniform vec4 env_key_color : source_color = vec4(1.0);
-uniform float env_key_elevation = 1.0;
-uniform float env_key_strength = 1.0;
-uniform float env_golden_hour = 0.0;
-uniform float env_shadow_length = 0.0;
-uniform float env_wind = 0.32;
-uniform float env_rain = 0.0;
-uniform float env_wetness = 0.0;
-uniform float env_fog = 0.0;
-uniform float env_cloudiness = 0.1;
-uniform float env_shadow_strength = 0.55;
-uniform float env_water_shimmer = 0.18;
-uniform float env_water_ripple = 0.0;
-
+global uniform float env_time01;
+global uniform float env_daylight;
+global uniform float env_night;
+global uniform vec2 env_sun_direction;
+global uniform vec4 env_sun_color;
+global uniform vec2 env_key_direction;
+global uniform vec4 env_key_color;
+global uniform float env_key_elevation;
+global uniform float env_key_strength;
+global uniform float env_golden_hour;
+global uniform float env_shadow_length;
+global uniform float env_wind;
+global uniform float env_rain;
+global uniform float env_wetness;
+global uniform float env_fog;
+global uniform float env_cloudiness;
+global uniform float env_shadow_strength;
+global uniform float env_water_shimmer;
+global uniform float env_water_ripple;
 // R=macro value field, G=terrain cavity/edge proximity, B=pond moisture proximity.
 uniform sampler2D art_mask : filter_nearest;
 uniform float macro_strength : hint_range(0.0, 0.20) = 0.060;
