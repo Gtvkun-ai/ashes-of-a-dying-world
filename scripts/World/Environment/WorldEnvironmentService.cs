@@ -5,7 +5,7 @@ namespace AshesofaDyingWorld.World.Environment
     /// <summary>
     /// Runtime hub cho toàn bộ môi trường 2D.
     ///
-    /// Pattern tham khảo từ Weather System 2D: một hub giữ state chung, còn map/shader là consumer.
+    /// Pattern tham khảo từ Weather System 2D: một hub giữ state chung, còn map/material là consumer.
     /// Service nằm ở SceneTree.Root nên sống xuyên scene mà không cần bắt buộc autoload.
     /// </summary>
     public partial class WorldEnvironmentService : Node
@@ -34,7 +34,6 @@ namespace AshesofaDyingWorld.World.Environment
         public override void _Ready()
         {
             EnsureClock();
-            ShaderGlobalBridge.ValidateConfiguration();
             EnsureDebugController();
 
             EnvironmentProfile defaultProfile = ResourceLoader.Exists(DefaultProfilePath)
@@ -187,7 +186,6 @@ namespace AshesofaDyingWorld.World.Environment
         private void PublishState()
         {
             RebuildState();
-            ShaderGlobalBridge.Push(CurrentState);
         }
 
         private void StepWeather(float delta)
@@ -223,9 +221,19 @@ namespace AshesofaDyingWorld.World.Environment
                 CurrentState.TimeOfDay01 = Clock.NormalizedTimeOfDay;
                 CurrentState.Daylight = 1f;
                 CurrentState.NightFactor = 0f;
-                CurrentState.SunDirection = Vector2.Up;
+                CurrentState.SunDirection = Vector2.Down;
+                CurrentState.SunElevation = 1f;
+                CurrentState.SunEnergy = 0.18f;
                 CurrentState.SunColor = Colors.White;
-                CurrentState.AmbientColor = Colors.White;
+                CurrentState.MoonDirection = Vector2.Down;
+                CurrentState.MoonElevation = 0f;
+                CurrentState.MoonEnergy = 0f;
+                CurrentState.MoonColor = new Color(0.70f, 0.79f, 1f, 1f);
+                CurrentState.KeyLightDirection = Vector2.Down;
+                CurrentState.KeyLightElevation = 1f;
+                CurrentState.KeyLightStrength01 = 1f;
+                CurrentState.KeyLightColor = Colors.White;
+                CurrentState.AmbientColor = new Color(0.84f, 0.84f, 0.84f, 1f);
                 CurrentState.ShadowStrength = 0.55f;
                 CurrentState.WaterShimmerStrength = 0.12f;
                 CurrentState.WaterRippleStrength = 0.08f;
@@ -238,8 +246,22 @@ namespace AshesofaDyingWorld.World.Environment
             float night = 1f - daylight;
 
             Color ambient = profile.SampleAmbient(time01);
-            Color sunColor = profile.SampleSunColor(time01);
             ambient = ApplyWeatherPalette(ambient, _weatherCurrent.Darken, _weatherCurrent.Desaturate);
+
+            // Tách ambient khỏi direct light: nếu noon ambient = trắng tuyệt đối thì DirectionalLight2D
+            // không còn khoảng tương phản để tạo chiều sâu. Direct sun/moon sẽ bù phần sáng còn lại.
+            float ambientStrength = Mathf.Lerp(
+                profile.NightAmbientStrength,
+                profile.DayAmbientStrength,
+                daylight);
+            ambient = ScaleRgb(ambient, ambientStrength);
+
+            CelestialSolver.Sample celestial = CelestialSolver.Evaluate(
+                hour,
+                profile,
+                daylight,
+                night,
+                _weatherCurrent.Cloudiness);
 
             float wetness = Mathf.Clamp(
                 Mathf.Max(Mathf.Max(profile.BaseWetness, _weatherCurrent.Wetness), _weatherCurrent.Rain * 0.85f),
@@ -251,8 +273,18 @@ namespace AshesofaDyingWorld.World.Environment
             CurrentState.TimeOfDay01 = time01;
             CurrentState.Daylight = daylight;
             CurrentState.NightFactor = night;
-            CurrentState.SunDirection = CalculateSunDirection(hour, profile.SunriseHour, profile.SunsetHour);
-            CurrentState.SunColor = sunColor;
+            CurrentState.SunDirection = celestial.SunDirection;
+            CurrentState.SunElevation = celestial.SunElevation;
+            CurrentState.SunEnergy = celestial.SunEnergy;
+            CurrentState.SunColor = celestial.SunColor;
+            CurrentState.MoonDirection = celestial.MoonDirection;
+            CurrentState.MoonElevation = celestial.MoonElevation;
+            CurrentState.MoonEnergy = celestial.MoonEnergy;
+            CurrentState.MoonColor = celestial.MoonColor;
+            CurrentState.KeyLightDirection = celestial.KeyDirection;
+            CurrentState.KeyLightElevation = celestial.KeyElevation;
+            CurrentState.KeyLightStrength01 = celestial.KeyStrength01;
+            CurrentState.KeyLightColor = celestial.KeyColor;
             CurrentState.AmbientColor = ambient;
             CurrentState.WindStrength = Mathf.Max(0f, profile.BaseWindStrength * _weatherCurrent.WindMultiplier);
             CurrentState.RainAmount = Mathf.Clamp(_weatherCurrent.Rain, 0f, 1f);
@@ -282,19 +314,6 @@ namespace AshesofaDyingWorld.World.Environment
             return Smooth01(Mathf.Clamp(sunElevation / 0.22f, 0f, 1f));
         }
 
-        private static Vector2 CalculateSunDirection(float hour, float sunrise, float sunset)
-        {
-            if (sunset <= sunrise)
-            {
-                return new Vector2(-0.45f, 0.9f).Normalized();
-            }
-
-            float progress = Mathf.Clamp((hour - sunrise) / (sunset - sunrise), 0f, 1f);
-            // Ánh sáng quét từ trái-trên sang phải-trên trong một ngày.
-            float angle = Mathf.Lerp(Mathf.DegToRad(135f), Mathf.DegToRad(45f), progress);
-            return new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)).Normalized();
-        }
-
         private static Color ApplyWeatherPalette(Color color, float darken, float desaturate)
         {
             darken = Mathf.Clamp(darken, 0f, 1f);
@@ -303,6 +322,16 @@ namespace AshesofaDyingWorld.World.Environment
             Color darkened = color.Lerp(new Color(0.22f, 0.25f, 0.32f, color.A), darken * 0.5f);
             float gray = darkened.R * 0.2126f + darkened.G * 0.7152f + darkened.B * 0.0722f;
             return darkened.Lerp(new Color(gray, gray, gray, darkened.A), desaturate * 0.6f);
+        }
+
+        private static Color ScaleRgb(Color color, float strength)
+        {
+            strength = Mathf.Max(strength, 0f);
+            return new Color(
+                Mathf.Clamp(color.R * strength, 0f, 1.5f),
+                Mathf.Clamp(color.G * strength, 0f, 1.5f),
+                Mathf.Clamp(color.B * strength, 0f, 1.5f),
+                color.A);
         }
 
         private static float Smooth01(float value)

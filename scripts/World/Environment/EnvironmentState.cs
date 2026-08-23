@@ -14,8 +14,24 @@ namespace AshesofaDyingWorld.World.Environment
 
         public float Daylight { get; internal set; }
         public float NightFactor { get; internal set; }
-        public Vector2 SunDirection { get; internal set; } = Vector2.Up;
+
+        // Celestial lighting. Direction là hướng tia sáng chiếu trên mặt phẳng 2D (+Y = xuống màn hình).
+        public Vector2 SunDirection { get; internal set; } = Vector2.Down;
+        public float SunElevation { get; internal set; } = 1f;
+        public float SunEnergy { get; internal set; }
         public Color SunColor { get; internal set; } = Colors.White;
+
+        public Vector2 MoonDirection { get; internal set; } = Vector2.Down;
+        public float MoonElevation { get; internal set; }
+        public float MoonEnergy { get; internal set; }
+        public Color MoonColor { get; internal set; } = new Color(0.70f, 0.79f, 1f, 1f);
+
+        // Key light là thiên thể mạnh hơn tại frame này, dùng chung cho projected shadow.
+        public Vector2 KeyLightDirection { get; internal set; } = Vector2.Down;
+        public float KeyLightElevation { get; internal set; } = 1f;
+        public float KeyLightStrength01 { get; internal set; } = 1f;
+        public Color KeyLightColor { get; internal set; } = Colors.White;
+
         public Color AmbientColor { get; internal set; } = Colors.White;
 
         public float WindStrength { get; internal set; }
@@ -24,7 +40,7 @@ namespace AshesofaDyingWorld.World.Environment
         public float FogAmount { get; internal set; }
         public float Cloudiness { get; internal set; }
 
-        // Biome/material response values. These are still derived state, not save data.
+        // Biome/material response values. Đây vẫn là derived state, không phải save data.
         public float ShadowStrength { get; internal set; }
         public float WaterShimmerStrength { get; internal set; }
         public float WaterRippleStrength { get; internal set; }

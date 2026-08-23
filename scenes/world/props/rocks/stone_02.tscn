@@ -1,6 +1,8 @@
-[gd_scene format=3 uid="uid://cm5he8r8ot85v"]
+[gd_scene format=3 uid="uid://cm5he8r8ot85v" load_steps=2]
 
 [ext_resource type="Texture2D" uid="uid://bbodahvt5v125" path="res://assets/graphics/environment/rocks/stone_variants.png" id="1_um4o4"]
+
+[ext_resource type="Script" path="res://scripts/World/Environment/ProjectedShadow2D.cs" id="99_shadow"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_04423"]
 atlas = ExtResource("1_um4o4")
@@ -21,6 +23,24 @@ animations = [{
 size = Vector2(169.06075, 42.90467)
 
 [node name="Stone2" type="StaticBody2D" unique_id=1100242338]
+
+[node name="AssetShadow" type="Node2D" parent="."]
+z_index = -1
+show_behind_parent = true
+script = ExtResource("99_shadow")
+SourcePath = NodePath("../AnimatedSprite2D")
+ProjectionMode = 0
+BaseY01 = 0.658
+GroundOffset = Vector2(0, -1)
+VirtualHeightPixels = 205
+NoonProjectionPixels = 4
+MaxProjectionPixels = 85
+NoonFlatten = 0.24
+HorizonFlatten = 0.32
+ShadowTint = Color(0.055, 0.065, 0.045, 1)
+BaseOpacity = 0.32
+AlphaCutoff = 0.1
+ShadowZIndex = -1
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=664646291]
 position = Vector2(0, 20)

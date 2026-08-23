@@ -1,8 +1,10 @@
-[gd_scene load_steps=8 format=3 uid="uid://bry35o5o8jdxs"]
+[gd_scene load_steps=9 format=3 uid="uid://bry35o5o8jdxs"]
 
 [ext_resource type="Texture2D" path="res://assets/graphics/environment/flora/grass_patch_wind.png" id="1_atlas"]
 [ext_resource type="Texture2D" path="res://assets/graphics/environment/flora/flora_contact_shadow.png" id="2_shadow"]
 [ext_resource type="Script" path="res://scripts/World/Environment/FloraIdleAnimator.cs" id="3_animator"]
+
+[ext_resource type="Script" path="res://scripts/World/Environment/ProjectedShadow2D.cs" id="99_shadow"]
 
 [sub_resource type="AtlasTexture" id="Atlas_left"]
 atlas = ExtResource("1_atlas")
@@ -44,6 +46,24 @@ texture_filter = 1
 position = Vector2(0, 33)
 scale = Vector2(1.9, 1)
 texture = ExtResource("2_shadow")
+
+[node name="AssetShadow" type="Node2D" parent="."]
+z_index = -1
+show_behind_parent = true
+script = ExtResource("99_shadow")
+SourcePath = NodePath("../AnimatedSprite2D")
+ProjectionMode = 0
+BaseY01 = 0.706
+GroundOffset = Vector2(0, 1)
+VirtualHeightPixels = 24
+NoonProjectionPixels = 1.0
+MaxProjectionPixels = 8.0
+NoonFlatten = 0.16
+HorizonFlatten = 0.24
+ShadowTint = Color(0.04, 0.07, 0.035, 1)
+BaseOpacity = 0.18
+AlphaCutoff = 0.10
+ShadowZIndex = -1
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=794164765]
 texture_filter = 1

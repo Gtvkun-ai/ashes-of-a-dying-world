@@ -16,15 +16,32 @@ namespace AshesofaDyingWorld.World.Environment
         [Export(PropertyHint.Range, "0,24,0.05")]
         public float SunsetHour { get; set; } = 19f;
 
-        /// <summary>
-        /// Màu tint toàn scene theo thời gian 0..1. Điểm 0 và 1 nên cùng màu đêm.
-        /// </summary>
+        /// <summary>Màu ambient toàn scene theo thời gian 0..1.</summary>
         [Export]
         public Gradient AmbientTint { get; set; }
 
-        /// <summary>Màu ánh sáng mặt trời / mặt trăng theo thời gian 0..1.</summary>
+        /// <summary>Màu direct light của mặt trời theo thời gian 0..1.</summary>
         [Export]
         public Gradient SunTint { get; set; }
+
+        [ExportGroup("Celestial Lighting")]
+        [Export(PropertyHint.Range, "0,1.5,0.01")]
+        public float DayAmbientStrength { get; set; } = 0.84f;
+
+        [Export(PropertyHint.Range, "0,1.5,0.01")]
+        public float NightAmbientStrength { get; set; } = 0.62f;
+
+        /// <summary>
+        /// Direct light cộng lên ambient. Noon cố ý không để ambient = 1.0 để bóng vẫn đọc được.
+        /// </summary>
+        [Export(PropertyHint.Range, "0,2,0.01")]
+        public float SunLightEnergy { get; set; } = 0.18f;
+
+        [Export(PropertyHint.Range, "0,1,0.01")]
+        public float MoonLightEnergy { get; set; } = 0.07f;
+
+        [Export]
+        public Color MoonLightColor { get; set; } = new Color(0.70f, 0.79f, 1.0f, 1f);
 
         [ExportGroup("Atmosphere")]
         [Export(PropertyHint.Range, "0,2,0.01")]

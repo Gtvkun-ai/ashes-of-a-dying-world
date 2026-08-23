@@ -30,6 +30,7 @@
 [ext_resource type="Resource" path="res://data/world/environment/whispering_fields.tres" id="31_env_profile"]
 [ext_resource type="Shader" path="res://assets/shaders/world/puddle_water.gdshader" id="32_puddle_shader"]
 [ext_resource type="Shader" path="res://assets/shaders/world/puddle_leaves.gdshader" id="33_puddle_leaves_shader"]
+[ext_resource type="Script" path="res://scripts/World/Environment/ProjectedShadow2D.cs" id="34_asset_shadow"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_puddle_water"]
 shader = ExtResource("32_puddle_shader")
@@ -1015,6 +1016,24 @@ texture_filter = 1
 scale = Vector2(4, 4)
 texture = ExtResource("25_cliff_wall")
 centered = false
+
+[node name="CliffWallAssetShadow" type="Node2D" parent="VisualGround"]
+z_index = -7
+show_behind_parent = true
+script = ExtResource("34_asset_shadow")
+SourcePath = NodePath("../CliffWall")
+ProjectionMode = 1
+BaseY01 = 1.0
+GroundOffset = Vector2(0, 0)
+VirtualHeightPixels = 1
+NoonProjectionPixels = 0.75
+MaxProjectionPixels = 3.5
+NoonFlatten = 1.0
+HorizonFlatten = 1.0
+ShadowTint = Color(0.08, 0.06, 0.035, 1)
+BaseOpacity = 0.24
+AlphaCutoff = 0.12
+ShadowZIndex = 0
 
 [node name="Stairs" type="Sprite2D" parent="VisualGround"]
 z_index = -5

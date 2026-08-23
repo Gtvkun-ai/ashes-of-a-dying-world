@@ -117,6 +117,9 @@ namespace AshesofaDyingWorld.World.Environment
                 $"[EnvironmentDebug] {action} | day={state.Day} " +
                 $"hour={state.TimeOfDayHours:00.00} daylight={state.Daylight:0.00} " +
                 $"night={state.NightFactor:0.00} wind={state.WindStrength:0.00} " +
+                $"sunEl={state.SunElevation:0.00} sunE={state.SunEnergy:0.00} " +
+                $"moonEl={state.MoonElevation:0.00} moonE={state.MoonEnergy:0.00} " +
+                $"shadowKey={state.KeyLightStrength01:0.00} " +
                 $"rain={state.RainAmount:0.00} wet={state.Wetness:0.00}");
         }
     }
