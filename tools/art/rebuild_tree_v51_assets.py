@@ -19,16 +19,16 @@ import numpy as np
 from PIL import Image, ImageFilter
 
 ROOT = Path(__file__).resolve().parents[2]
-TREE_DIR = ROOT / "assets/graphics/environment/trees/v5_1"
+TREE_DIR = ROOT / "assets/graphics/environment/trees"
 SHADOW_DIR = ROOT / "assets/graphics/environment/shadows/v5_1"
 
 ASSETS = {
     "tree": {
-        "master": TREE_DIR / "tree_v51_master.png",
+        "master": TREE_DIR / "tree.png",
         "shadow": SHADOW_DIR / "tree_footprint_v51.png",
     },
     "apple_tree": {
-        "master": TREE_DIR / "apple_tree_v51_master.png",
+        "master": TREE_DIR / "apple_tree.png",
         "shadow": SHADOW_DIR / "apple_tree_footprint_v51.png",
     },
 }
@@ -213,10 +213,10 @@ def rebuild_one(name: str, cfg: dict) -> None:
     canopy = _masked_rgba(master, canopy_mask)
     trunk = _masked_rgba(master, trunk_mask)
 
-    canopy.save(TREE_DIR / f"{name}_canopy_v51.png")
-    trunk.save(TREE_DIR / f"{name}_trunk_v51.png")
-    _build_normal(canopy).save(TREE_DIR / f"{name}_canopy_normal_v51.png")
-    _build_ao(canopy).save(TREE_DIR / f"{name}_canopy_ao_v51.png")
+    canopy.save(TREE_DIR / f"{name}_canopy.png")
+    trunk.save(TREE_DIR / f"{name}_trunk.png")
+    _build_normal(canopy).save(TREE_DIR / f"{name}_canopy_normal.png")
+    _build_ao(canopy).save(TREE_DIR / f"{name}_canopy_ao.png")
     _build_footprint(canopy, cfg["shadow"])
 
     # Metadata anchor để code/artist dễ kiểm tra khi thay master.

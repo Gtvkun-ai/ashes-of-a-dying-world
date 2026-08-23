@@ -287,21 +287,37 @@ namespace AshesofaDyingWorld.World.Environment
             // when the key light actually approaches the horizon. This avoids the old "dark carpet" look.
             float lengthCurve = Mathf.Pow(length01, artDirected ? 1.10f : 0.84f);
 
-            float castLengthWorld = Mathf.Lerp(
+            // V5.1.2: footprint depth and celestial reach are NOT the same thing.
+            // The old pass used castLengthWorld directly as Scale.Y, so a 64px organic mask
+            // was crushed to ~12px at noon and read as a thin saucer under the trunk.
+            // Keep a real canopy-shaped ground footprint at all times, then let low sun extend it.
+            float celestialReachWorld = Mathf.Lerp(
                 Mathf.Max(Profile.NoonLengthWorld, 1f),
                 Mathf.Max(Profile.MaxLengthWorld, Profile.NoonLengthWorld),
                 lengthCurve);
 
+            float footprintFlatten = Mathf.Lerp(
+                Mathf.Max(Profile.NoonFlatten, 0.01f),
+                Mathf.Max(Profile.HorizonFlatten, Profile.NoonFlatten),
+                lengthCurve);
+            float baseFootprintDepthWorld = Mathf.Max(_visibleHeightWorld * footprintFlatten, 2.5f);
+            float footprintDepthWorld = artDirected
+                ? Mathf.Max(baseFootprintDepthWorld, celestialReachWorld)
+                : celestialReachWorld;
+
             float modelWidthFactor = Profile.Model switch
             {
-                ShadowCasterProfile.ProjectionModel.ArtDirectedFootprint => Mathf.Lerp(0.84f, 0.94f, lengthCurve),
+                ShadowCasterProfile.ProjectionModel.ArtDirectedFootprint => Mathf.Lerp(0.78f, 0.86f, lengthCurve),
                 ShadowCasterProfile.ProjectionModel.Volume => Mathf.Lerp(0.72f, 0.86f, lengthCurve),
                 _ => Mathf.Lerp(0.52f, 0.68f, lengthCurve)
             };
 
             float widthWorld = Mathf.Max(_visibleWidthWorld * Profile.WidthScale * modelWidthFactor, 2.5f);
             Vector2 anchorGlobal = ToGlobal(_groundAnchorLocal);
-            Vector2 centerGlobal = anchorGlobal + direction * (castLengthWorld * 0.50f);
+            // A slight negative overlap keeps the broad core tucked under the roots instead of
+            // starting as a detached strip in front of the tree.
+            float centerBias = artDirected ? 0.46f : 0.50f;
+            Vector2 centerGlobal = anchorGlobal + direction * (footprintDepthWorld * centerBias);
             Vector2 centerLocal = ToLocal(centerGlobal);
 
             Vector2 localDir = ToLocal(anchorGlobal + direction) - ToLocal(anchorGlobal);
@@ -312,7 +328,7 @@ namespace AshesofaDyingWorld.World.Environment
             localDir = localDir.Normalized();
 
             Vector2 side = new(-direction.Y, direction.X);
-            float localLength = (ToLocal(anchorGlobal + direction * castLengthWorld) - _groundAnchorLocal).Length();
+            float localLength = (ToLocal(anchorGlobal + direction * footprintDepthWorld) - _groundAnchorLocal).Length();
             float localWidth = (ToLocal(anchorGlobal + side * widthWorld) - _groundAnchorLocal).Length();
 
             Vector2 texSize = _projectedShadow.Texture?.GetSize() ?? new Vector2(64f, 64f);
@@ -322,13 +338,17 @@ namespace AshesofaDyingWorld.World.Environment
                 localWidth / Mathf.Max(texSize.X, 1f),
                 localLength / Mathf.Max(texSize.Y, 1f));
 
-            float keyVisibility = (artDirected ? 0.38f : 0.42f)
-                + (artDirected ? 0.62f : 0.58f) * Mathf.Sqrt(Mathf.Clamp(state.KeyLightStrength01, 0f, 1f));
-            float cloudAttenuation = 1f - Mathf.Clamp(state.Cloudiness, 0f, 1f) * (artDirected ? 0.18f : 0.24f);
-            float nightAttenuation = Mathf.Lerp(1f, artDirected ? 0.58f : 0.62f, Mathf.Clamp(state.NightFactor, 0f, 1f));
-            // Long shadows should become softer, not more opaque. Shape/length sells the low sun.
+            // Foliage footprint is art-directed, so golden-hour shadows must remain readable even
+            // when the physical key energy is low. Night is the opposite: keep mostly contact AO
+            // and let the directional cast fade almost completely.
+            float keyVisibility = artDirected
+                ? 0.78f + 0.22f * Mathf.Sqrt(Mathf.Clamp(state.KeyLightStrength01, 0f, 1f))
+                : 0.42f + 0.58f * Mathf.Sqrt(Mathf.Clamp(state.KeyLightStrength01, 0f, 1f));
+            float cloudAttenuation = 1f - Mathf.Clamp(state.Cloudiness, 0f, 1f) * (artDirected ? 0.14f : 0.24f);
+            float nightAttenuation = Mathf.Lerp(1f, artDirected ? 0.18f : 0.62f, Mathf.Clamp(state.NightFactor, 0f, 1f));
+            // Low sun lengthens the shape; it should not make the core disappear.
             float horizonResponse = artDirected
-                ? Mathf.Lerp(0.98f, 0.82f, lengthCurve)
+                ? Mathf.Lerp(1.00f, 0.92f, lengthCurve)
                 : Mathf.Lerp(0.90f, 1.08f, lengthCurve);
             float alpha = Profile.Opacity
                 * Mathf.Clamp(state.ShadowStrength, 0f, 1f)
@@ -339,7 +359,7 @@ namespace AshesofaDyingWorld.World.Environment
 
             Color nightTint = new(0.020f, 0.032f, 0.060f, 1f);
             Color tint = Profile.Tint.Lerp(nightTint, Mathf.Clamp(state.NightFactor * 0.44f, 0f, 0.44f));
-            _projectedShadow.Modulate = new Color(tint.R, tint.G, tint.B, Mathf.Clamp(alpha, 0f, artDirected ? 0.32f : 0.56f));
+            _projectedShadow.Modulate = new Color(tint.R, tint.G, tint.B, Mathf.Clamp(alpha, 0f, artDirected ? 0.42f : 0.56f));
             _projectedShadow.Visible = _source.Visible;
         }
 

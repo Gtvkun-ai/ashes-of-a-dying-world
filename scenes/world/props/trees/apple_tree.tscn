@@ -1,13 +1,13 @@
 [gd_scene load_steps=16 format=3 uid="uid://bw0xlnjpp75sv"]
 
-[ext_resource type="Texture2D" path="res://assets/graphics/environment/trees/v5_1/apple_tree_trunk_v51.png" id="1_trunk"]
-[ext_resource type="Texture2D" path="res://assets/graphics/environment/trees/v5_1/apple_tree_canopy_v51.png" id="2_canopy"]
+[ext_resource type="Texture2D" path="res://assets/graphics/environment/trees/apple_tree_trunk.png" id="1_trunk"]
+[ext_resource type="Texture2D" path="res://assets/graphics/environment/trees/apple_tree_canopy.png" id="2_canopy"]
 [ext_resource type="Shader" path="res://assets/shaders/world/foliage_wind.gdshader" id="3_wind"]
 [ext_resource type="Texture2D" path="res://assets/graphics/environment/shadows/v5_1/apple_tree_footprint_v51.png" id="4_shadow_source"]
-[ext_resource type="Texture2D" path="res://assets/graphics/environment/trees/v5_1/apple_tree_canopy_normal_v51.png" id="5_normal"]
+[ext_resource type="Texture2D" path="res://assets/graphics/environment/trees/apple_tree_canopy_normal.png" id="5_normal"]
 [ext_resource type="Shader" path="res://assets/shaders/world/trunk_relight.gdshader" id="6_trunk_shader"]
-[ext_resource type="Texture2D" path="res://assets/graphics/environment/trees/v5_1/apple_tree_canopy_ao_v51.png" id="7_ao"]
-[ext_resource type="Texture2D" path="res://assets/graphics/environment/trees/v5_1/apple_tree_v51_master.png" id="8_full_source"]
+[ext_resource type="Texture2D" path="res://assets/graphics/environment/trees/apple_tree_canopy_ao.png" id="7_ao"]
+[ext_resource type="Texture2D" path="res://assets/graphics/environment/trees/apple_tree.png" id="8_full_source"]
 [ext_resource type="Script" path="res://scripts/World/Environment/EnvironmentTreeEditorPreview2D.cs" id="9_editor_preview"]
 [ext_resource type="Script" path="res://scripts/World/Environment/ShadowCaster2D.cs" id="99_shadow"]
 [ext_resource type="Resource" path="res://data/world/shadows/apple_tree.tres" id="98_shadow_profile"]
@@ -31,7 +31,7 @@ shader_parameter/shade_depth = 0.22
 shader_parameter/crown_ao = 0.072
 shader_parameter/golden_rim = 0.10
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_trunk_v51"]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_trunk"]
 shader = ExtResource("6_trunk_shader")
 shader_parameter/bump_pixels = 1.25
 shader_parameter/highlight_gain = 0.14
@@ -58,7 +58,7 @@ offset = Vector2(0, -14)
 texture_filter = 1
 
 [node name="Trunk" type="Sprite2D" parent="." unique_id=540762600]
-material = SubResource("ShaderMaterial_trunk_v51")
+material = SubResource("ShaderMaterial_trunk")
 texture = ExtResource("1_trunk")
 offset = Vector2(0, -14)
 texture_filter = 1
