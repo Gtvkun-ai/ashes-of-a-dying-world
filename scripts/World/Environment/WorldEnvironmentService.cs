@@ -233,6 +233,8 @@ namespace AshesofaDyingWorld.World.Environment
                 CurrentState.KeyLightElevation = 1f;
                 CurrentState.KeyLightStrength01 = 1f;
                 CurrentState.KeyLightColor = Colors.White;
+                CurrentState.ShadowDirection2D = Vector2.Down;
+                CurrentState.ShadowLength01 = 0f;
                 CurrentState.AmbientColor = new Color(0.84f, 0.84f, 0.84f, 1f);
                 CurrentState.ShadowStrength = 0.55f;
                 CurrentState.WaterShimmerStrength = 0.12f;
@@ -285,6 +287,8 @@ namespace AshesofaDyingWorld.World.Environment
             CurrentState.KeyLightElevation = celestial.KeyElevation;
             CurrentState.KeyLightStrength01 = celestial.KeyStrength01;
             CurrentState.KeyLightColor = celestial.KeyColor;
+            CurrentState.ShadowDirection2D = celestial.ShadowDirection2D;
+            CurrentState.ShadowLength01 = celestial.ShadowLength01;
             CurrentState.AmbientColor = ambient;
             CurrentState.WindStrength = Mathf.Max(0f, profile.BaseWindStrength * _weatherCurrent.WindMultiplier);
             CurrentState.RainAmount = Mathf.Clamp(_weatherCurrent.Rain, 0f, 1f);

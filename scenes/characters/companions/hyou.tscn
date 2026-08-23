@@ -14,7 +14,8 @@
 [ext_resource type="Resource" path="res://data/combat/movesets/hyou_cryomancer.tres" id="12_moveset"]
 [ext_resource type="Script" path="res://scripts/Combat/Decision/Debug/CombatDecisionDebugOverlay.cs" id="13_debug_overlay"]
 
-[ext_resource type="Script" path="res://scripts/World/Environment/ProjectedShadow2D.cs" id="99_shadow"]
+[ext_resource type="Script" path="res://scripts/World/Environment/ShadowCaster2D.cs" id="99_shadow"]
+[ext_resource type="Resource" path="res://data/world/shadows/character.tres" id="98_shadow_profile"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_sxeu7"]
 size = Vector2(11, 6)
@@ -66,18 +67,8 @@ z_index = -1
 show_behind_parent = true
 script = ExtResource("99_shadow")
 SourcePath = NodePath("../Body")
-ProjectionMode = 0
-BaseY01 = 0.94
+Profile = ExtResource("98_shadow_profile")
 GroundOffset = Vector2(0, 3)
-VirtualHeightPixels = 30
-NoonProjectionPixels = 0.8
-MaxProjectionPixels = 9.0
-NoonFlatten = 0.14
-HorizonFlatten = 0.22
-ShadowTint = Color(0.035, 0.055, 0.045, 1)
-BaseOpacity = 0.28
-AlphaCutoff = 0.08
-ShadowZIndex = -1
 
 [node name="HyouCastVisual" type="Node2D" parent="."]
 visible = false

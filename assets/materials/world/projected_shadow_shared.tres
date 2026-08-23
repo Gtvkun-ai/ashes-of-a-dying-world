@@ -1,0 +1,10 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+[ext_resource type="Shader" path="res://assets/shaders/world/projected_shadow_v2.gdshader" id="1_shader"]
+
+[resource]
+shader = ExtResource("1_shader")
+shader_parameter/shadow_direction = Vector2(0, 1)
+shader_parameter/shadow_length01 = 0.0
+shader_parameter/shadow_strength = 0.5
+shader_parameter/shadow_night_factor = 0.0

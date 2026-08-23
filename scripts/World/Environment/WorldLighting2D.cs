@@ -63,7 +63,7 @@ namespace AshesofaDyingWorld.World.Environment
                     Height = 0.85f,
                     MaxDistance = 4096f,
                     // Shadow hình học của Godot sẽ dành cho cliff/building ở pass sau.
-                    // Cây/đá hiện dùng ProjectedShadow2D để giữ silhouette pixel-art dễ kiểm soát.
+                    // Cây/đá dùng Shadow Core V2 asset-projection để giữ silhouette pixel-art dễ kiểm soát.
                     ShadowEnabled = false
                 };
                 AddChild(_sun);

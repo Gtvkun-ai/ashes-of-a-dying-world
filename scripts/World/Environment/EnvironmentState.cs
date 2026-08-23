@@ -26,11 +26,16 @@ namespace AshesofaDyingWorld.World.Environment
         public float MoonEnergy { get; internal set; }
         public Color MoonColor { get; internal set; } = new Color(0.70f, 0.79f, 1f, 1f);
 
-        // Key light là thiên thể mạnh hơn tại frame này, dùng chung cho projected shadow.
+        // Key light là thiên thể mạnh hơn tại frame này, dùng cho direct lighting.
         public Vector2 KeyLightDirection { get; internal set; } = Vector2.Down;
         public float KeyLightElevation { get; internal set; } = 1f;
         public float KeyLightStrength01 { get; internal set; } = 1f;
         public Color KeyLightColor { get; internal set; } = Colors.White;
+
+        // Shadow contract tách riêng khỏi light-ray direction để renderer không phải đoán dấu.
+        // ShadowDirection2D luôn là HƯỚNG BÓNG CHẠY TRÊN MẶT ĐẤT.
+        public Vector2 ShadowDirection2D { get; internal set; } = Vector2.Down;
+        public float ShadowLength01 { get; internal set; } = 0f;
 
         public Color AmbientColor { get; internal set; } = Colors.White;
 

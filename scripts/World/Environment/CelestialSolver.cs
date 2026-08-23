@@ -5,9 +5,13 @@ namespace AshesofaDyingWorld.World.Environment
     /// <summary>
     /// Bộ giải quỹ đạo ánh sáng 2D cho mặt trời / mặt trăng.
     ///
-    /// Ý tưởng kiến trúc tham khảo WeatherSystem2D/TimeOfDay (MIT): một nguồn sáng thiên thể thống nhất
-    /// phải cùng lúc quyết định hướng sáng, độ cao, cường độ và màu. Ashes chỉ mượn pattern đó rồi
-    /// dùng công thức riêng phù hợp top-down pixel art, không kéo nguyên addon vào runtime.
+    /// V2.1 tách rõ hai khái niệm:
+    /// - LightDirection: hướng tia sáng dùng cho direct lighting.
+    /// - ShadowDirection2D: hướng BÓNG chạy trên mặt đất.
+    ///
+    /// Shadow azimuth đi qua một cung 180 độ thật sự trong ngày. Vì vậy bóng buổi sáng và
+    /// buổi chiều có thể nằm ở hai nửa mặt phẳng đối nhau, thay vì chỉ đổi chút X nhưng mãi
+    /// nằm phía dưới vật thể như bản cũ.
     /// </summary>
     public static class CelestialSolver
     {
@@ -23,11 +27,14 @@ namespace AshesofaDyingWorld.World.Environment
             public float MoonEnergy { get; init; }
             public Color MoonColor { get; init; } = new Color(0.70f, 0.79f, 1.0f, 1f);
 
-            /// <summary>Ánh sáng đang chi phối bóng đổ tại thời điểm hiện tại.</summary>
             public Vector2 KeyDirection { get; init; } = Vector2.Down;
             public float KeyElevation { get; init; } = 1f;
             public float KeyStrength01 { get; init; } = 1f;
             public Color KeyColor { get; init; } = Colors.White;
+
+            /// <summary>Hướng bóng chạy trên mặt đất, đã có dấu và đã chọn Sun/Moon key.</summary>
+            public Vector2 ShadowDirection2D { get; init; } = Vector2.Down;
+            public float ShadowLength01 { get; init; }
         }
 
         public static Sample Evaluate(
@@ -57,12 +64,18 @@ namespace AshesofaDyingWorld.World.Environment
 
             float moonProgress = NightArcProgress(hour, sunrise, sunset);
             float moonElevation = moonProgress < 0f ? 0f : Mathf.Sin(moonProgress * Mathf.Pi);
-            // Mặt trăng đi ngược nhịp mặt trời một chút để bóng đêm không đứng cùng một hướng cả ngày.
             Vector2 moonDirection = DirectionAcrossSky(moonProgress < 0f ? 0.5f : 1f - moonProgress, 0.62f);
             float moonEnergy = profile.MoonLightEnergy
                 * Mathf.Pow(Mathf.Clamp(moonElevation, 0f, 1f), 0.78f)
                 * nightFactor
                 * (1f - Mathf.Clamp(cloudiness, 0f, 1f) * 0.55f);
+
+            // 06h-ish: bóng xuống-phải. 12h: gần xuống dưới chân. 18h-ish: bóng lên-trái.
+            // Đây là một azimuth orbit thật sự, không còn y luôn dương như Shadow Core V2 cũ.
+            Vector2 sunShadowDirection = ShadowOrbitDay(sunProgress < 0f ? 0.5f : sunProgress);
+
+            // Moon tiếp tục quỹ đạo theo nửa vòng kế tiếp để đêm không reset bóng về cùng một hướng.
+            Vector2 moonShadowDirection = ShadowOrbitNight(moonProgress < 0f ? 0.5f : moonProgress);
 
             bool sunIsKey = sunEnergy >= moonEnergy;
             float maxSun = Mathf.Max(profile.SunLightEnergy, 0.0001f);
@@ -70,6 +83,8 @@ namespace AshesofaDyingWorld.World.Environment
             float keyStrength01 = sunIsKey
                 ? Mathf.Clamp(sunEnergy / maxSun, 0f, 1f)
                 : Mathf.Clamp(moonEnergy / maxMoon, 0f, 1f);
+
+            float shadowElevation = sunIsKey ? sunElevation : moonElevation;
 
             return new Sample
             {
@@ -82,9 +97,11 @@ namespace AshesofaDyingWorld.World.Environment
                 MoonEnergy = moonEnergy,
                 MoonColor = profile.MoonLightColor,
                 KeyDirection = sunIsKey ? sunDirection : moonDirection,
-                KeyElevation = sunIsKey ? sunElevation : moonElevation,
+                KeyElevation = shadowElevation,
                 KeyStrength01 = keyStrength01,
-                KeyColor = sunIsKey ? sunColor : profile.MoonLightColor
+                KeyColor = sunIsKey ? sunColor : profile.MoonLightColor,
+                ShadowDirection2D = sunIsKey ? sunShadowDirection : moonShadowDirection,
+                ShadowLength01 = 1f - Mathf.Clamp(shadowElevation, 0f, 1f)
             };
         }
 
@@ -124,14 +141,50 @@ namespace AshesofaDyingWorld.World.Environment
             return -1f;
         }
 
+        private static Vector2 ShadowOrbitDay(float progress)
+        {
+            progress = Mathf.Clamp(progress, 0f, 1f);
+
+            // Có chủ ý cho trưa hướng xuống màn hình để shadow ngắn vẫn nằm sát chân,
+            // nhưng từ sáng -> chiều tổng cộng quay đủ 180 độ.
+            float angleDegrees;
+            if (progress <= 0.5f)
+            {
+                float t = Smooth01(progress / 0.5f);
+                angleDegrees = Mathf.Lerp(30f, 90f, t);
+            }
+            else
+            {
+                float t = Smooth01((progress - 0.5f) / 0.5f);
+                angleDegrees = Mathf.Lerp(90f, 210f, t);
+            }
+
+            float radians = Mathf.DegToRad(angleDegrees);
+            return new Vector2(Mathf.Cos(radians), Mathf.Sin(radians)).Normalized();
+        }
+
+        private static Vector2 ShadowOrbitNight(float progress)
+        {
+            progress = Mathf.Clamp(progress, 0f, 1f);
+            // Tiếp tục nửa vòng còn lại: 210 -> 390 độ.
+            float angleDegrees = Mathf.Lerp(210f, 390f, Smooth01(progress));
+            float radians = Mathf.DegToRad(angleDegrees);
+            return new Vector2(Mathf.Cos(radians), Mathf.Sin(radians)).Normalized();
+        }
+
         private static Vector2 DirectionAcrossSky(float progress, float horizontalReach)
         {
             progress = Mathf.Clamp(progress, 0f, 1f);
             float elevation = Mathf.Sin(progress * Mathf.Pi);
             float x = Mathf.Lerp(-horizontalReach, horizontalReach, progress);
-            // Screen-space +Y là xuống. Ở giữa ngày tia gần thẳng xuống, sáng/chiều tia xiên rõ hơn.
             float y = Mathf.Lerp(0.50f, 1.0f, elevation);
             return new Vector2(x, y).Normalized();
+        }
+
+        private static float Smooth01(float value)
+        {
+            value = Mathf.Clamp(value, 0f, 1f);
+            return value * value * (3f - 2f * value);
         }
     }
 }

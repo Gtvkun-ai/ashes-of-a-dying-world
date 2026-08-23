@@ -31,24 +31,30 @@ namespace AshesofaDyingWorld.World.Environment
         private static readonly StringName EnvShadowStrength = "env_shadow_strength";
         private static readonly StringName EnvWaterShimmer = "env_water_shimmer";
         private static readonly StringName EnvWaterRipple = "env_water_ripple";
+        private static readonly StringName ShadowDirection = "shadow_direction";
+        private static readonly StringName ShadowLength01 = "shadow_length01";
+        private static readonly StringName ShadowStrength = "shadow_strength";
+        private static readonly StringName ShadowNightFactor = "shadow_night_factor";
 
         private readonly Dictionary<ulong, ShaderMaterial> _materials = new();
+        private readonly Dictionary<ulong, ShaderMaterial> _shadowMaterials = new();
 
-        public int MaterialCount => _materials.Count;
+        public int MaterialCount => _materials.Count + _shadowMaterials.Count;
 
         public int Rebuild(Node root)
         {
             _materials.Clear();
+            _shadowMaterials.Clear();
             if (root != null)
             {
                 Collect(root);
             }
-            return _materials.Count;
+            return MaterialCount;
         }
 
         public void Push(EnvironmentState state)
         {
-            if (state == null || _materials.Count == 0)
+            if (state == null || (_materials.Count == 0 && _shadowMaterials.Count == 0))
             {
                 return;
             }
@@ -75,6 +81,24 @@ namespace AshesofaDyingWorld.World.Environment
                 material.SetShaderParameter(EnvWaterShimmer, state.WaterShimmerStrength);
                 material.SetShaderParameter(EnvWaterRipple, state.WaterRippleStrength);
             }
+
+            Vector2 shadowDirection = state.ShadowDirection2D.LengthSquared() > 0.0001f
+                ? state.ShadowDirection2D.Normalized()
+                : Vector2.Down;
+            float shadowStrength = Mathf.Clamp(state.ShadowStrength * state.KeyLightStrength01, 0f, 1f);
+
+            foreach (ShaderMaterial material in _shadowMaterials.Values)
+            {
+                if (!GodotObject.IsInstanceValid(material))
+                {
+                    continue;
+                }
+
+                material.SetShaderParameter(ShadowDirection, shadowDirection);
+                material.SetShaderParameter(ShadowLength01, Mathf.Clamp(state.ShadowLength01, 0f, 1f));
+                material.SetShaderParameter(ShadowStrength, shadowStrength);
+                material.SetShaderParameter(ShadowNightFactor, Mathf.Clamp(state.NightFactor, 0f, 1f));
+            }
         }
 
         private void Collect(Node node)
@@ -83,10 +107,15 @@ namespace AshesofaDyingWorld.World.Environment
             {
                 Shader shader = shaderMaterial.Shader;
                 string path = shader?.ResourcePath ?? string.Empty;
-                // projected_asset_shadow có lifecycle riêng trong EnvironmentShadowBus;
-                // nếu MaterialBus chạm vào nó sẽ set một loạt uniform không tồn tại vô ích.
-                bool isProjectedShadow = path.EndsWith("/projected_asset_shadow.gdshader", StringComparison.OrdinalIgnoreCase);
-                if (!isProjectedShadow && path.StartsWith(WorldShaderPrefix, StringComparison.OrdinalIgnoreCase))
+                // Shadow Core V2.2 uses cloned per-caster materials, so the bus also
+                // pushes the small set of shared shadow environment uniforms.
+                bool isProjectedShadow = path.EndsWith("/projected_asset_shadow.gdshader", StringComparison.OrdinalIgnoreCase)
+                    || path.EndsWith("/projected_shadow_v2.gdshader", StringComparison.OrdinalIgnoreCase);
+                if (isProjectedShadow)
+                {
+                    _shadowMaterials[shaderMaterial.GetInstanceId()] = shaderMaterial;
+                }
+                else if (path.StartsWith(WorldShaderPrefix, StringComparison.OrdinalIgnoreCase))
                 {
                     _materials[shaderMaterial.GetInstanceId()] = shaderMaterial;
                 }

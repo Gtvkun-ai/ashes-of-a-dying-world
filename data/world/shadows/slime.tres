@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ShadowCasterProfile" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/World/Environment/ShadowCasterProfile.cs" id="1_profile"]
+[resource]
+script = ExtResource("1_profile")
+Model = 1
+BaseY01 = 0.90
+HeightRatio = 0.66
+WidthScale = 0.72
+NoonLengthWorld = 0.3
+MaxLengthWorld = 4.5
+NoonFlatten = 0.10
+HorizonFlatten = 0.14
+Tint = Color(0.045, 0.055, 0.04, 1)
+Opacity = 0.22
+AlphaCutoff = 0.10
+ZIndex = -1

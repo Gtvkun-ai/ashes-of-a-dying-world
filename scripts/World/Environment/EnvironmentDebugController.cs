@@ -4,7 +4,6 @@ namespace AshesofaDyingWorld.World.Environment
 {
     /// <summary>
     /// QA controller cực nhẹ cho Environment Core. Chỉ được tạo ở debug build.
-    /// Không dựng panel, không thêm InputMap, không làm runtime release phình lên.
     ///
     /// Ctrl+F9  : 06:00 -> 12:00 -> 18:00 -> 00:00
     /// Ctrl+F10 : 0x -> 1x -> 60x -> 600x
@@ -113,6 +112,12 @@ namespace AshesofaDyingWorld.World.Environment
         private void PrintState(string action)
         {
             EnvironmentState state = _environment.CurrentState;
+            float angleDegrees = Mathf.RadToDeg(Mathf.Atan2(state.ShadowDirection2D.Y, state.ShadowDirection2D.X));
+            if (angleDegrees < 0f)
+            {
+                angleDegrees += 360f;
+            }
+
             GD.Print(
                 $"[EnvironmentDebug] {action} | day={state.Day} " +
                 $"hour={state.TimeOfDayHours:00.00} daylight={state.Daylight:0.00} " +
@@ -120,6 +125,8 @@ namespace AshesofaDyingWorld.World.Environment
                 $"sunEl={state.SunElevation:0.00} sunE={state.SunEnergy:0.00} " +
                 $"moonEl={state.MoonElevation:0.00} moonE={state.MoonEnergy:0.00} " +
                 $"shadowKey={state.KeyLightStrength01:0.00} " +
+                $"shadowDir=({state.ShadowDirection2D.X:0.00},{state.ShadowDirection2D.Y:0.00}) " +
+                $"shadowAngle={angleDegrees:0}deg shadowLen={state.ShadowLength01:0.00} " +
                 $"rain={state.RainAmount:0.00} wet={state.Wetness:0.00}");
         }
     }

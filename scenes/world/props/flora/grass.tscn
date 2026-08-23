@@ -1,10 +1,11 @@
-[gd_scene load_steps=9 format=3 uid="uid://b5hpvdqiypg5l"]
+[gd_scene load_steps=10 format=3 uid="uid://b5hpvdqiypg5l"]
 
 [ext_resource type="Texture2D" path="res://assets/graphics/environment/flora/flora_wind_small.png" id="1_atlas"]
 [ext_resource type="Texture2D" path="res://assets/graphics/environment/flora/flora_contact_shadow.png" id="2_shadow"]
 [ext_resource type="Script" path="res://scripts/World/Environment/FloraIdleAnimator.cs" id="3_animator"]
 
-[ext_resource type="Script" path="res://scripts/World/Environment/ProjectedShadow2D.cs" id="99_shadow"]
+[ext_resource type="Script" path="res://scripts/World/Environment/ShadowCaster2D.cs" id="99_shadow"]
+[ext_resource type="Resource" path="res://data/world/shadows/grass.tres" id="98_shadow_profile"]
 
 [sub_resource type="AtlasTexture" id="Atlas_left"]
 atlas = ExtResource("1_atlas")
@@ -52,18 +53,8 @@ z_index = -1
 show_behind_parent = true
 script = ExtResource("99_shadow")
 SourcePath = NodePath("../AnimatedSprite2D")
-ProjectionMode = 0
-BaseY01 = 0.824
+Profile = ExtResource("98_shadow_profile")
 GroundOffset = Vector2(0, 5)
-VirtualHeightPixels = 10
-NoonProjectionPixels = 0.6
-MaxProjectionPixels = 4.0
-NoonFlatten = 0.18
-HorizonFlatten = 0.25
-ShadowTint = Color(0.04, 0.07, 0.035, 1)
-BaseOpacity = 0.16
-AlphaCutoff = 0.10
-ShadowZIndex = -1
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 texture_filter = 1

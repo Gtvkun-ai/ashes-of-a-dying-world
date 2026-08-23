@@ -5,8 +5,8 @@ namespace AshesofaDyingWorld.World.Environment
     /// <summary>
     /// Adapter giữa một map 2D và WorldEnvironmentService.
     ///
-    /// V1.4 giữ shader local-uniform đáng tin cậy của V1.3, đồng thời nối thêm Celestial Lighting,
-    /// projected shadows và ambient fireflies. Map chỉ khai báo profile; core tự dựng runtime FX.
+    /// Shadow Core V2.2: binder scans materials, then pushes environment state once per frame.
+    /// Per-caster shadow data lives on cloned materials, avoiding Godot instance-uniform limits.
     /// </summary>
     public partial class EnvironmentBinder2D : Node
     {
@@ -17,18 +17,15 @@ namespace AshesofaDyingWorld.World.Environment
         public NodePath CanvasModulatePath { get; set; }
 
         private const double MaterialRescanSeconds = 4.0;
-        private const double ShadowUpdateSeconds = 0.10;
 
         private readonly EnvironmentMaterialBus _materialBus = new();
-        private readonly EnvironmentShadowBus _shadowBus = new();
         private WorldEnvironmentService _environment;
         private CanvasModulate _canvasModulate;
         private WorldLighting2D _lighting;
         private AmbientFireflies2D _fireflies;
+        private ShadowRenderer2D _shadowRenderer;
         private double _materialRescanCountdown;
-        private double _shadowUpdateCountdown;
         private int _lastReportedMaterialCount = -1;
-        private int _lastReportedShadowCount = -1;
 
         public override void _Ready()
         {
@@ -51,26 +48,19 @@ namespace AshesofaDyingWorld.World.Environment
             }
 
             EnsureRuntimeFx();
-            RebuildBindings();
-            ApplyVisualState(forceShadowUpdate: true);
+            RebuildMaterialBindings();
+            ApplyVisualState();
         }
 
         public override void _Process(double delta)
         {
             _materialRescanCountdown -= delta;
-            _shadowUpdateCountdown -= delta;
-
             if (_materialRescanCountdown <= 0.0)
             {
-                RebuildBindings();
+                RebuildMaterialBindings();
             }
 
-            bool updateShadows = _shadowUpdateCountdown <= 0.0;
-            ApplyVisualState(updateShadows);
-            if (updateShadows)
-            {
-                _shadowUpdateCountdown = ShadowUpdateSeconds;
-            }
+            ApplyVisualState();
         }
 
         private void EnsureRuntimeFx()
@@ -82,6 +72,13 @@ namespace AshesofaDyingWorld.World.Environment
                 AddChild(_lighting);
             }
 
+            _shadowRenderer = GetNodeOrNull<ShadowRenderer2D>("ShadowRenderer");
+            if (_shadowRenderer == null)
+            {
+                _shadowRenderer = new ShadowRenderer2D { Name = "ShadowRenderer" };
+                AddChild(_shadowRenderer);
+            }
+
             _fireflies = GetNodeOrNull<AmbientFireflies2D>("NightFireflies");
             if (_fireflies == null)
             {
@@ -90,24 +87,22 @@ namespace AshesofaDyingWorld.World.Environment
             }
         }
 
-        private void RebuildBindings()
+        private void RebuildMaterialBindings()
         {
             Node root = GetTree()?.CurrentScene ?? GetTree()?.Root;
             int materialCount = _materialBus.Rebuild(root);
-            int shadowCount = _shadowBus.Rebuild(root);
             _materialRescanCountdown = MaterialRescanSeconds;
 
-            if (materialCount != _lastReportedMaterialCount || shadowCount != _lastReportedShadowCount)
+            if (materialCount != _lastReportedMaterialCount)
             {
                 _lastReportedMaterialCount = materialCount;
-                _lastReportedShadowCount = shadowCount;
                 GD.Print(
-                    $"[EnvironmentBinder2D] BOUND materials={materialCount} projected_shadows={shadowCount} " +
+                    $"[EnvironmentBinder2D] BOUND materials={materialCount} shadow_core=V2.2-local-materials " +
                     $"profile={Profile?.ResourcePath ?? "<none>"}");
             }
         }
 
-        private void ApplyVisualState(bool forceShadowUpdate)
+        private void ApplyVisualState()
         {
             if (_environment == null)
             {
@@ -117,12 +112,8 @@ namespace AshesofaDyingWorld.World.Environment
             EnvironmentState state = _environment.CurrentState;
             _materialBus.Push(state);
             _lighting?.ApplyEnvironment(state);
+            _shadowRenderer?.ApplyEnvironment(state);
             _fireflies?.ApplyEnvironment(state);
-
-            if (forceShadowUpdate)
-            {
-                _shadowBus.Push(state);
-            }
 
             if (_canvasModulate != null)
             {

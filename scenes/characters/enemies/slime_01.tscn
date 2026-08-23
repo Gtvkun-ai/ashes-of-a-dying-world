@@ -1,4 +1,4 @@
-[gd_scene load_steps=44 format=3 uid="uid://2cobf3p3jhuw"]
+[gd_scene load_steps=45 format=3 uid="uid://2cobf3p3jhuw"]
 
 [ext_resource type="Texture2D" uid="uid://cuo7to38hr3re" path="res://assets/graphics/characters/enemies/slime/slime_sheet.png" id="1_cs26v"]
 [ext_resource type="Script" uid="uid://bopjo761a1dq6" path="res://scripts/Characters/Enemies/Slime1.cs" id="1_t3ufe"]
@@ -7,7 +7,8 @@
 [ext_resource type="Resource" path="res://data/combat/movesets/slime.tres" id="4_moveset"]
 [ext_resource type="Resource" uid="uid://d1s7l4m3b8s2c" path="res://data/combat/stat_profiles/slime_basic.tres" id="5_stats_profile"]
 
-[ext_resource type="Script" path="res://scripts/World/Environment/ProjectedShadow2D.cs" id="99_shadow"]
+[ext_resource type="Script" path="res://scripts/World/Environment/ShadowCaster2D.cs" id="99_shadow"]
+[ext_resource type="Resource" path="res://data/world/shadows/slime.tres" id="98_shadow_profile"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_tebun"]
 atlas = ExtResource("1_cs26v")
@@ -326,18 +327,8 @@ z_index = -1
 show_behind_parent = true
 script = ExtResource("99_shadow")
 SourcePath = NodePath("../AnimatedSprite2D")
-ProjectionMode = 0
-BaseY01 = 0.90
+Profile = ExtResource("98_shadow_profile")
 GroundOffset = Vector2(0, 8)
-VirtualHeightPixels = 42
-NoonProjectionPixels = 1.5
-MaxProjectionPixels = 14.0
-NoonFlatten = 0.22
-HorizonFlatten = 0.30
-ShadowTint = Color(0.045, 0.055, 0.04, 1)
-BaseOpacity = 0.30
-AlphaCutoff = 0.08
-ShadowZIndex = -1
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=380990352]
 position = Vector2(0, 20)
