@@ -6,14 +6,14 @@ namespace AshesofaDyingWorld.World.Environment
     /// <summary>
     /// Adapter rất mỏng giữa Sprite2D/AnimatedSprite2D và shared Shadow Core material.
     ///
-    /// V2.1 bỏ hoàn toàn quad padding + inverse texture mapping của V2. Shadow proxy giờ có
+    /// V4 giữ proxy gọn và dùng footprint art-directed cho foliage lớn. Shadow proxy giờ có
     /// đúng texture/transform của source; vertex shader chỉ biến cả quad thành một mặt phẳng bóng.
     /// Nhờ vậy không còn sọc, lỗ, texture bị kéo sai UV hay bounds khổng lồ.
     /// </summary>
     public partial class ShadowCaster2D : Node2D
     {
         private const string SharedMaterialPath = "res://assets/materials/world/projected_shadow_shared.tres";
-        private const string ContactShadowTexturePath = "res://assets/graphics/environment/shadows/contact_ellipse_48x24_v32.png";
+        private const string ContactShadowTexturePath = "res://assets/graphics/environment/shadows/contact_ellipse_64x28_v4.png";
         private static readonly Dictionary<string, AlphaBounds> AlphaBoundsCache = new();
 
         [ExportGroup("Nguồn")]

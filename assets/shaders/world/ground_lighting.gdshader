@@ -1,12 +1,19 @@
 shader_type canvas_item;
 
-// V3 ground material: macro tonal variation cố định theo map UV.
-// Không rung pixel, không procedural micro-noise. Chỉ phá cảm giác "tấm thảm xanh phẳng".
+// Ashes Environment V4.0 - authored ground response.
+// GroundBase stays pixel-perfect; this pass only adds broad material variation, cavity shade,
+// water-edge moisture and time-of-day split lighting. No moving micro-noise.
 uniform float env_time01 = 0.5;
 uniform float env_daylight = 1.0;
 uniform float env_night = 0.0;
 uniform vec2 env_sun_direction = vec2(-0.447214, 0.894427);
 uniform vec4 env_sun_color : source_color = vec4(1.0);
+uniform vec2 env_key_direction = vec2(0.0, 1.0);
+uniform vec4 env_key_color : source_color = vec4(1.0);
+uniform float env_key_elevation = 1.0;
+uniform float env_key_strength = 1.0;
+uniform float env_golden_hour = 0.0;
+uniform float env_shadow_length = 0.0;
 uniform float env_wind = 0.32;
 uniform float env_rain = 0.0;
 uniform float env_wetness = 0.0;
@@ -16,42 +23,63 @@ uniform float env_shadow_strength = 0.55;
 uniform float env_water_shimmer = 0.18;
 uniform float env_water_ripple = 0.0;
 
-uniform float macro_strength : hint_range(0.0, 0.15) = 0.045;
-uniform float warm_day_gain : hint_range(0.0, 0.15) = 0.025;
-uniform float wet_darken : hint_range(0.0, 0.20) = 0.055;
+// R=macro value field, G=terrain cavity/edge proximity, B=pond moisture proximity.
+uniform sampler2D art_mask : filter_nearest;
+uniform float macro_strength : hint_range(0.0, 0.20) = 0.060;
+uniform float cavity_strength : hint_range(0.0, 0.25) = 0.105;
+uniform float moisture_strength : hint_range(0.0, 0.20) = 0.055;
+uniform float sun_wash : hint_range(0.0, 0.20) = 0.070;
+uniform float golden_gain : hint_range(0.0, 0.25) = 0.115;
+uniform float wet_darken : hint_range(0.0, 0.20) = 0.060;
 
-float hash(vec2 p) {
-    p = fract(p * vec2(123.34, 456.21));
-    p += dot(p, p + 45.32);
-    return fract(p.x * p.y);
-}
-
-float noise2(vec2 p) {
-    vec2 i = floor(p);
-    vec2 f = fract(p);
-    vec2 u = f * f * (3.0 - 2.0 * f);
-    return mix(
-        mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x),
-        mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x),
-        u.y);
+float luma(vec3 c) {
+    return dot(c, vec3(0.2126, 0.7152, 0.0722));
 }
 
 void fragment() {
     vec4 base = COLOR;
     vec3 result = base.rgb;
 
-    // Chỉ vài mảng lớn trên cả map. Hai octave đủ, thêm nữa chỉ biến pixel-art thành nhiễu.
-    float n0 = noise2(UV * vec2(6.0, 6.6));
-    float n1 = noise2(UV * vec2(12.0, 10.0) + 7.3) * 0.35;
-    float macro = ((n0 + n1) / 1.35 - 0.5) * 2.0;
-    result *= 1.0 + macro * macro_strength;
+    if (base.a > 0.001) {
+        vec3 authored = texture(art_mask, UV).rgb;
+        float macro = (authored.r - 0.5) * 2.0;
+        float cavity = authored.g;
+        float moisture = authored.b;
+        float day = clamp(env_daylight, 0.0, 1.0);
+        float night = clamp(env_night, 0.0, 1.0);
+        float golden = clamp(env_golden_hour, 0.0, 1.0);
+        float key = clamp(env_key_strength, 0.0, 1.0);
 
-    float daylight = clamp(env_daylight, 0.0, 1.0);
-    result += env_sun_color.rgb * warm_day_gain * daylight * (0.55 + macro * 0.18);
+        // Large calm patches, not procedural grass static.
+        result *= 1.0 + macro * macro_strength;
 
-    float wet = clamp(max(env_wetness, env_rain), 0.0, 1.0);
-    result *= 1.0 - wet * wet_darken;
-    result = mix(result, result * vec3(0.76, 0.83, 0.96), clamp(env_night, 0.0, 1.0) * 0.10);
+        // Terrain edge shade helps cliff/shore/tree-border areas sit into the ground.
+        float cavity_gain = cavity_strength * (0.72 + day * 0.28);
+        result *= 1.0 - cavity * cavity_gain;
 
-    COLOR = vec4(result, base.a);
+        // Slightly cooler, darker soil around the pond. It remains subtle under the water sprite.
+        vec3 moist_tint = vec3(0.86, 0.96, 0.90);
+        result = mix(result, result * moist_tint, moisture * moisture_strength / 0.20);
+
+        // Sun only kisses the brighter macro fields. This is what avoids the old full-screen orange/olive wash.
+        float sun_patch = smoothstep(-0.22, 0.72, macro);
+        float cloud_soften = 1.0 - clamp(env_cloudiness, 0.0, 1.0) * 0.42;
+        float key_gain = key * cloud_soften * day;
+        result += env_key_color.rgb * sun_patch * sun_wash * key_gain * (0.42 + golden * 0.58);
+
+        // Golden hour is selective: highlights warm, shadows remain green/cool like the target paintover.
+        float y = luma(result);
+        float highlight_zone = smoothstep(0.30, 0.72, y) * (0.55 + sun_patch * 0.45);
+        result += vec3(0.095, 0.045, 0.002) * highlight_zone * golden * golden_gain / 0.25;
+        result *= mix(vec3(1.0), vec3(0.95, 0.975, 1.015), (1.0 - highlight_zone) * golden * 0.055);
+
+        float wet = clamp(max(env_wetness, env_rain), 0.0, 1.0);
+        result *= 1.0 - wet * wet_darken;
+
+        // Moonlit ground must be blue-green and readable, not a nearly-black green filter.
+        vec3 night_result = result * vec3(0.66, 0.82, 1.10) + vec3(0.006, 0.014, 0.030);
+        result = mix(result, night_result, night * 0.30);
+    }
+
+    COLOR = vec4(clamp(result, vec3(0.0), vec3(1.0)), base.a);
 }

@@ -11,8 +11,12 @@ namespace AshesofaDyingWorld.World.Environment
     /// </summary>
     public partial class WorldLighting2D : Node2D
     {
-        private const float BakedAssetDirectLightScale = 0.42f;
-        private const float MaxFillLightEnergy = 0.22f;
+        // V4: direct light is deliberately restrained. Material shaders create directional form;
+        // DirectionalLight2D only provides a coherent fill so baked AI assets do not blow out neon-green.
+        private const float SunDirectScale = 0.24f;
+        private const float MoonDirectScale = 0.55f;
+        private const float MaxSunFillEnergy = 0.14f;
+        private const float MaxMoonFillEnergy = 0.05f;
 
         private DirectionalLight2D _sun;
         private DirectionalLight2D _moon;
@@ -37,19 +41,23 @@ namespace AshesofaDyingWorld.World.Environment
                 state.SunDirection,
                 state.SunElevation,
                 state.SunColor,
-                state.SunEnergy);
+                state.SunEnergy,
+                SunDirectScale,
+                MaxSunFillEnergy);
 
             ApplyDirectionalLight(
                 _moon,
                 state.MoonDirection,
                 state.MoonElevation,
                 state.MoonColor,
-                state.MoonEnergy);
+                state.MoonEnergy,
+                MoonDirectScale,
+                MaxMoonFillEnergy);
 
             if (!_reportedReady)
             {
                 _reportedReady = true;
-                GD.Print("[WorldLighting2D] READY sun+moon directional lighting");
+                GD.Print("[WorldLighting2D] READY V4 restrained sun fill + readable moon fill");
             }
         }
 
@@ -93,7 +101,9 @@ namespace AshesofaDyingWorld.World.Environment
             Vector2 rayDirection,
             float elevation,
             Color color,
-            float energy)
+            float energy,
+            float directScale,
+            float maxEnergy)
         {
             if (light == null)
             {
@@ -102,7 +112,7 @@ namespace AshesofaDyingWorld.World.Environment
 
             // V3 vẫn tôn trọng baked pixel-art, nhưng direct light phải đủ mạnh để người chơi
             // thực sự đọc được hướng mặt trời. Giá trị cũ ~0.01 gần như vô hình.
-            float safeEnergy = Mathf.Min(Mathf.Max(energy, 0f) * BakedAssetDirectLightScale, MaxFillLightEnergy);
+            float safeEnergy = Mathf.Min(Mathf.Max(energy, 0f) * directScale, maxEnergy);
             light.Enabled = safeEnergy > 0.001f;
             light.Energy = safeEnergy;
             light.Color = color;

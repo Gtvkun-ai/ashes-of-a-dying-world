@@ -23,6 +23,12 @@ namespace AshesofaDyingWorld.World.Environment
         private static readonly StringName EnvNight = "env_night";
         private static readonly StringName EnvSunDirection = "env_sun_direction";
         private static readonly StringName EnvSunColor = "env_sun_color";
+        private static readonly StringName EnvKeyDirection = "env_key_direction";
+        private static readonly StringName EnvKeyColor = "env_key_color";
+        private static readonly StringName EnvKeyElevation = "env_key_elevation";
+        private static readonly StringName EnvKeyStrength = "env_key_strength";
+        private static readonly StringName EnvGoldenHour = "env_golden_hour";
+        private static readonly StringName EnvShadowLength = "env_shadow_length";
         private static readonly StringName EnvWind = "env_wind";
         private static readonly StringName EnvRain = "env_rain";
         private static readonly StringName EnvWetness = "env_wetness";
@@ -59,6 +65,14 @@ namespace AshesofaDyingWorld.World.Environment
                 return;
             }
 
+            float sunElevation = Mathf.Clamp(state.SunElevation, 0f, 1f);
+            float lowSun = 1f - SmoothStep(0.30f, 0.68f, sunElevation);
+            float horizonVisible = SmoothStep(0.055f, 0.18f, sunElevation);
+            float goldenHour = Mathf.Clamp(state.Daylight * lowSun * horizonVisible, 0f, 1f);
+            Vector2 keyDirection = state.KeyLightDirection.LengthSquared() > 0.0001f
+                ? state.KeyLightDirection.Normalized()
+                : Vector2.Down;
+
             foreach (ShaderMaterial material in _materials.Values)
             {
                 if (!GodotObject.IsInstanceValid(material))
@@ -72,6 +86,12 @@ namespace AshesofaDyingWorld.World.Environment
                 material.SetShaderParameter(EnvNight, state.NightFactor);
                 material.SetShaderParameter(EnvSunDirection, state.SunDirection);
                 material.SetShaderParameter(EnvSunColor, state.SunColor);
+                material.SetShaderParameter(EnvKeyDirection, keyDirection);
+                material.SetShaderParameter(EnvKeyColor, state.KeyLightColor);
+                material.SetShaderParameter(EnvKeyElevation, Mathf.Clamp(state.KeyLightElevation, 0f, 1f));
+                material.SetShaderParameter(EnvKeyStrength, Mathf.Clamp(state.KeyLightStrength01, 0f, 1f));
+                material.SetShaderParameter(EnvGoldenHour, goldenHour);
+                material.SetShaderParameter(EnvShadowLength, Mathf.Clamp(state.ShadowLength01, 0f, 1f));
                 material.SetShaderParameter(EnvWind, state.WindStrength);
                 material.SetShaderParameter(EnvRain, state.RainAmount);
                 material.SetShaderParameter(EnvWetness, state.Wetness);
@@ -89,10 +109,11 @@ namespace AshesofaDyingWorld.World.Environment
             // như V2.2 (cách đó làm bình minh/hoàng hôn còn ~1-2% alpha). Ta giữ visibility nền,
             // rồi chỉ giảm mềm khi đêm sâu / mây dày.
             float keyVisibility = 0.46f + 0.54f * Mathf.Sqrt(Mathf.Clamp(state.KeyLightStrength01, 0f, 1f));
-            float nightAttenuation = Mathf.Lerp(1.0f, 0.58f, Mathf.Clamp(state.NightFactor, 0f, 1f));
+            float nightAttenuation = Mathf.Lerp(1.0f, 0.66f, Mathf.Clamp(state.NightFactor, 0f, 1f));
             float cloudAttenuation = 1.0f - Mathf.Clamp(state.Cloudiness, 0f, 1f) * 0.22f;
+            float longShadowArtBoost = Mathf.Lerp(1.0f, 1.12f, Mathf.Clamp(state.ShadowLength01, 0f, 1f));
             float shadowStrength = Mathf.Clamp(
-                state.ShadowStrength * keyVisibility * nightAttenuation * cloudAttenuation,
+                state.ShadowStrength * keyVisibility * nightAttenuation * cloudAttenuation * longShadowArtBoost,
                 0f,
                 1f);
 
@@ -108,6 +129,17 @@ namespace AshesofaDyingWorld.World.Environment
                 material.SetShaderParameter(ShadowStrength, shadowStrength);
                 material.SetShaderParameter(ShadowNightFactor, Mathf.Clamp(state.NightFactor, 0f, 1f));
             }
+        }
+
+        private static float SmoothStep(float edge0, float edge1, float value)
+        {
+            if (Mathf.Abs(edge1 - edge0) < 0.00001f)
+            {
+                return value < edge0 ? 0f : 1f;
+            }
+
+            float t = Mathf.Clamp((value - edge0) / (edge1 - edge0), 0f, 1f);
+            return t * t * (3f - 2f * t);
         }
 
         private void Collect(Node node)

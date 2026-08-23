@@ -4,12 +4,12 @@
 [ext_resource type="Resource" path="res://data/world/environment/weather/clear.tres" id="2_clear"]
 
 [sub_resource type="Gradient" id="Gradient_ambient"]
-offsets = PackedFloat32Array(0, 0.18, 0.30, 0.50, 0.72, 0.84, 1)
-colors = PackedColorArray(0.46, 0.56, 0.72, 1, 0.68, 0.67, 0.76, 1, 0.91, 0.89, 0.82, 1, 1, 1, 0.98, 1, 1, 0.84, 0.66, 1, 0.67, 0.61, 0.76, 1, 0.46, 0.56, 0.72, 1)
+offsets = PackedFloat32Array(0, 0.18, 0.27, 0.50, 0.74, 0.84, 1)
+colors = PackedColorArray(0.52, 0.65, 0.90, 1, 0.50, 0.60, 0.82, 1, 0.84, 0.90, 0.91, 1, 0.98, 0.99, 0.95, 1, 0.78, 0.82, 0.76, 1, 0.54, 0.62, 0.82, 1, 0.52, 0.65, 0.90, 1)
 
 [sub_resource type="Gradient" id="Gradient_sun"]
-offsets = PackedFloat32Array(0, 0.18, 0.30, 0.50, 0.72, 0.84, 1)
-colors = PackedColorArray(0.70, 0.82, 1, 1, 1, 0.70, 0.48, 1, 1, 0.84, 0.60, 1, 1, 0.98, 0.90, 1, 1, 0.72, 0.38, 1, 0.94, 0.54, 0.48, 1, 0.70, 0.82, 1, 1)
+offsets = PackedFloat32Array(0, 0.19, 0.29, 0.50, 0.73, 0.82, 1)
+colors = PackedColorArray(0.70, 0.82, 1, 1, 1, 0.60, 0.34, 1, 1, 0.86, 0.62, 1, 1, 0.98, 0.91, 1, 1, 0.70, 0.28, 1, 0.95, 0.48, 0.34, 1, 0.70, 0.82, 1, 1)
 
 [resource]
 script = ExtResource("1_profile")
@@ -17,14 +17,14 @@ SunriseHour = 5.25
 SunsetHour = 19.25
 AmbientTint = SubResource("Gradient_ambient")
 SunTint = SubResource("Gradient_sun")
-DayAmbientStrength = 0.88
+DayAmbientStrength = 0.82
 NightAmbientStrength = 0.72
-SunLightEnergy = 0.52
-MoonLightEnergy = 0.07
-MoonLightColor = Color(0.70, 0.79, 1.0, 1)
+SunLightEnergy = 0.58
+MoonLightEnergy = 0.09
+MoonLightColor = Color(0.62, 0.78, 1.0, 1)
 BaseWindStrength = 0.62
 BaseWetness = 0.05
-ShadowStrength = 0.62
-WaterShimmerStrength = 0.52
-WaterRippleStrength = 0.14
+ShadowStrength = 0.72
+WaterShimmerStrength = 0.72
+WaterRippleStrength = 0.18
 DefaultWeather = ExtResource("2_clear")

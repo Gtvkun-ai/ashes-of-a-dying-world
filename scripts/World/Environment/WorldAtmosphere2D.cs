@@ -43,9 +43,11 @@ namespace AshesofaDyingWorld.World.Environment
 
             float clearSky = 1f - Mathf.Clamp(state.Cloudiness * 0.78f + state.RainAmount * 0.85f, 0f, 1f);
             float lowSun = Smooth01(Mathf.InverseLerp(0.10f, 0.78f, state.ShadowLength01));
-            float beamIntensity = 0.20f
+            // Target V4 gets its golden-hour depth from material/key contrast, not a bright screen veil.
+            // Keep beams as a rare atmospheric accent only.
+            float beamIntensity = 0.075f
                 * state.Daylight
-                * state.KeyLightStrength01
+                * Mathf.Max(state.KeyLightStrength01, 0.55f)
                 * clearSky
                 * lowSun;
 
@@ -55,7 +57,7 @@ namespace AshesofaDyingWorld.World.Environment
 
             _sunbeamMaterial?.SetShaderParameter("beam_direction", shadowDirection);
             _sunbeamMaterial?.SetShaderParameter("beam_color", WarmLight(state.KeyLightColor));
-            _sunbeamMaterial?.SetShaderParameter("intensity", Mathf.Clamp(beamIntensity, 0f, 0.22f));
+            _sunbeamMaterial?.SetShaderParameter("intensity", Mathf.Clamp(beamIntensity, 0f, 0.085f));
 
             float cloudCoverage = Mathf.Clamp(state.Cloudiness, 0f, 1f);
             float cloudShadowStrength = _worldLockedCloudAvailable
@@ -71,8 +73,8 @@ namespace AshesofaDyingWorld.World.Environment
             float fogDensity = Mathf.Clamp(
                 state.FogAmount * 0.30f
                 + state.RainAmount * 0.09f
-                + state.Cloudiness * 0.035f
-                + state.NightFactor * 0.025f,
+                + state.Cloudiness * 0.030f
+                + state.NightFactor * 0.012f,
                 0f,
                 0.32f);
             _fogMaterial?.SetShaderParameter("density", fogDensity);
@@ -86,7 +88,7 @@ namespace AshesofaDyingWorld.World.Environment
             if (!_reportedReady)
             {
                 _reportedReady = true;
-                GD.Print("[WorldAtmosphere2D] READY WeatherSystem2D overlays: world-locked cloud preferred + sunbeam/fog/rain");
+                GD.Print("[WorldAtmosphere2D] READY V4 restrained beams + world-locked cloud/fog/rain");
             }
         }
 

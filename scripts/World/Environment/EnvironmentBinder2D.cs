@@ -105,7 +105,7 @@ namespace AshesofaDyingWorld.World.Environment
             {
                 _lastReportedMaterialCount = materialCount;
                 GD.Print(
-                    $"[EnvironmentBinder2D] BOUND materials={materialCount} shadow_core=V3.3-footprint+contact " +
+                    $"[EnvironmentBinder2D] BOUND materials={materialCount} shadow_core=V4-authored-look+footprint " +
                     $"profile={Profile?.ResourcePath ?? "<none>"}");
             }
         }

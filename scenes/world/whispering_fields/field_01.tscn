@@ -32,22 +32,27 @@
 [ext_resource type="Shader" path="res://assets/shaders/world/puddle_leaves.gdshader" id="33_puddle_leaves_shader"]
 [ext_resource type="Script" path="res://scripts/World/Environment/ShadowCaster2D.cs" id="34_asset_shadow"]
 [ext_resource type="Resource" path="res://data/world/shadows/cliff_wall.tres" id="35_cliff_shadow_profile"]
-[ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/10_puddle_depth_mask.png" id="36_depth_mask"]
-[ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/05_cliff_contact_ao.png" id="37_cliff_ao"]
+[ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/10_puddle_depth_mask_v4.png" id="36_depth_mask"]
+[ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/05_cliff_contact_ao_v4.png" id="37_cliff_ao"]
 [ext_resource type="Shader" path="res://assets/shaders/world/ground_lighting.gdshader" id="38_ground_shader"]
 [ext_resource type="Shader" path="res://assets/shaders/world/cliff_surface.gdshader" id="39_cliff_shader"]
 [ext_resource type="Shader" path="res://assets/shaders/world/world_cloud_shadow.gdshader" id="40_cloud_shader"]
 [ext_resource type="Shader" path="res://assets/shaders/world/world_color_grade.gdshader" id="41_grade_shader"]
+[ext_resource type="Shader" path="res://assets/shaders/world/path_lighting.gdshader" id="42_path_shader"]
+[ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/11_ground_art_mask_v4.png" id="43_ground_art_mask"]
+[ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/12_ground_detail_v4.png" id="44_ground_detail_v4"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_puddle_water"]
 shader = ExtResource("32_puddle_shader")
 shader_parameter/depth_mask = ExtResource("36_depth_mask")
-shader_parameter/depth_color_strength = 0.58
-shader_parameter/shoreline_gain = 0.12
-shader_parameter/shimmer_response = 1.35
-shader_parameter/ripple_response = 1.15
-shader_parameter/animation_speed = 0.72
+shader_parameter/depth_color_strength = 0.64
+shader_parameter/shoreline_gain = 0.14
+shader_parameter/shimmer_response = 1.45
+shader_parameter/ripple_response = 1.05
+shader_parameter/animation_speed = 0.62
 shader_parameter/pixel_block = 2.0
+shader_parameter/golden_glint = 0.40
+shader_parameter/night_glint = 0.28
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_puddle_leaves"]
 shader = ExtResource("33_puddle_leaves_shader")
@@ -56,39 +61,56 @@ shader_parameter/pulse_speed = 0.55
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_ground_v3"]
 shader = ExtResource("38_ground_shader")
-shader_parameter/macro_strength = 0.050
-shader_parameter/warm_day_gain = 0.030
-shader_parameter/wet_darken = 0.055
+shader_parameter/art_mask = ExtResource("43_ground_art_mask")
+shader_parameter/macro_strength = 0.060
+shader_parameter/cavity_strength = 0.105
+shader_parameter/moisture_strength = 0.055
+shader_parameter/sun_wash = 0.070
+shader_parameter/golden_gain = 0.115
+shader_parameter/wet_darken = 0.060
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_path_v4"]
+shader = ExtResource("42_path_shader")
+shader_parameter/relief_gain = 0.075
+shader_parameter/golden_gain = 0.15
+shader_parameter/night_lift = 0.075
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_cliff_top_v3"]
 shader = ExtResource("39_cliff_shader")
 shader_parameter/surface_mode = 0.0
-shader_parameter/edge_gain = 0.16
+shader_parameter/edge_gain = 0.19
+shader_parameter/cavity_gain = 0.12
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_cliff_wall_v3"]
 shader = ExtResource("39_cliff_shader")
 shader_parameter/surface_mode = 1.0
-shader_parameter/edge_gain = 0.12
+shader_parameter/edge_gain = 0.13
+shader_parameter/cavity_gain = 0.16
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_stairs_v3"]
 shader = ExtResource("39_cliff_shader")
 shader_parameter/surface_mode = 2.0
-shader_parameter/edge_gain = 0.07
+shader_parameter/edge_gain = 0.09
+shader_parameter/cavity_gain = 0.10
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_world_cloud_v3"]
 shader = ExtResource("40_cloud_shader")
-shader_parameter/max_strength = 0.09
+shader_parameter/max_strength = 0.065
 shader_parameter/world_scale = 0.0032
 shader_parameter/wind_dir = Vector2(1, 0.15)
 shader_parameter/speed = 3.2
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_grade_v3"]
 shader = ExtResource("41_grade_shader")
-shader_parameter/contrast = 1.045
-shader_parameter/day_saturation = 1.075
-shader_parameter/night_saturation = 0.92
-shader_parameter/warm_highlights = 0.040
-shader_parameter/cool_shadows = 0.032
+shader_parameter/contrast = 1.075
+shader_parameter/day_saturation = 1.025
+shader_parameter/golden_saturation = 1.085
+shader_parameter/night_saturation = 0.96
+shader_parameter/golden_strength = 0.23
+shader_parameter/night_blue_strength = 0.62
+shader_parameter/night_exposure = 0.18
+shader_parameter/green_tame = 0.075
+shader_parameter/vignette_strength = 0.030
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ey7of"]
 texture = ExtResource("1_ey7of")
@@ -1036,6 +1058,13 @@ scale = Vector2(4, 4)
 texture = ExtResource("21_ground_variation")
 centered = false
 
+[node name="GroundFineDetailV4" type="Sprite2D" parent="VisualGround"]
+z_index = -8
+texture_filter = 1
+scale = Vector2(4, 4)
+texture = ExtResource("44_ground_detail_v4")
+centered = false
+
 [node name="GroundCanopyShadow" type="Sprite2D" parent="VisualGround"]
 z_index = -8
 texture_filter = 1
@@ -1047,6 +1076,7 @@ centered = false
 [node name="DirtPath" type="Sprite2D" parent="VisualGround"]
 z_index = -7
 texture_filter = 1
+material = SubResource("ShaderMaterial_path_v4")
 scale = Vector2(4, 4)
 texture = ExtResource("23_dirt_path")
 centered = false

@@ -118,10 +118,14 @@ namespace AshesofaDyingWorld.World.Environment
                 angleDegrees += 360f;
             }
 
+            float lowSun = 1f - SmoothStep(0.30f, 0.68f, Mathf.Clamp(state.SunElevation, 0f, 1f));
+            float horizonVisible = SmoothStep(0.055f, 0.18f, Mathf.Clamp(state.SunElevation, 0f, 1f));
+            float golden = Mathf.Clamp(state.Daylight * lowSun * horizonVisible, 0f, 1f);
+
             GD.Print(
                 $"[EnvironmentDebug] {action} | day={state.Day} " +
                 $"hour={state.TimeOfDayHours:00.00} daylight={state.Daylight:0.00} " +
-                $"night={state.NightFactor:0.00} wind={state.WindStrength:0.00} " +
+                $"night={state.NightFactor:0.00} golden={golden:0.00} wind={state.WindStrength:0.00} " +
                 $"sunEl={state.SunElevation:0.00} sunE={state.SunEnergy:0.00} " +
                 $"moonEl={state.MoonElevation:0.00} moonE={state.MoonEnergy:0.00} " +
                 $"shadowKey={state.KeyLightStrength01:0.00} " +
@@ -129,5 +133,17 @@ namespace AshesofaDyingWorld.World.Environment
                 $"shadowAngle={angleDegrees:0}deg shadowLen={state.ShadowLength01:0.00} " +
                 $"rain={state.RainAmount:0.00} wet={state.Wetness:0.00}");
         }
+        private static float SmoothStep(float edge0, float edge1, float value)
+        {
+            float width = edge1 - edge0;
+            if (Mathf.Abs(width) < 0.00001f)
+            {
+                return value < edge0 ? 0f : 1f;
+            }
+
+            float t = Mathf.Clamp((value - edge0) / width, 0f, 1f);
+            return t * t * (3f - 2f * t);
+        }
+
     }
 }
