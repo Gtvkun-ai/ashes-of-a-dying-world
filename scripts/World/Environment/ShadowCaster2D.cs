@@ -4,7 +4,7 @@ using Godot;
 namespace AshesofaDyingWorld.World.Environment
 {
     /// <summary>
-    /// Shadow caster V5.0: chỉ tạo footprint Sprite2D trên ground plane.
+    /// Shadow caster V5.1 elegant: footprint Sprite2D hữu cơ trên ground plane.
     ///
     /// V4 dùng shader để biến đổi silhouette rồi phải thêm mass-shadow để che khuyết điểm.
     /// V5 bỏ hẳn phép chiếu vertex. Một caster chỉ có:
@@ -28,6 +28,9 @@ namespace AshesofaDyingWorld.World.Environment
         [ExportGroup("Nguồn")]
         [Export]
         public NodePath SourcePath { get; set; }
+
+        [Export]
+        public Texture2D SourceTextureOverride { get; set; }
 
         /// <summary>
         /// V5: texture footprint nằm sẵn trên ground plane. Tree/apple tree có footprint riêng.
@@ -279,7 +282,10 @@ namespace AshesofaDyingWorld.World.Environment
                 ? state.ShadowDirection2D.Normalized()
                 : Vector2.Down;
             float length01 = Mathf.Clamp(state.ShadowLength01, 0f, 1f);
-            float lengthCurve = Mathf.Pow(length01, 0.84f);
+            bool artDirected = Profile.Model == ShadowCasterProfile.ProjectionModel.ArtDirectedFootprint;
+            // Elegant tree shadows stay compact for most of the day; they only lengthen decisively
+            // when the key light actually approaches the horizon. This avoids the old "dark carpet" look.
+            float lengthCurve = Mathf.Pow(length01, artDirected ? 1.10f : 0.84f);
 
             float castLengthWorld = Mathf.Lerp(
                 Mathf.Max(Profile.NoonLengthWorld, 1f),
@@ -288,7 +294,7 @@ namespace AshesofaDyingWorld.World.Environment
 
             float modelWidthFactor = Profile.Model switch
             {
-                ShadowCasterProfile.ProjectionModel.ArtDirectedFootprint => Mathf.Lerp(0.70f, 0.92f, lengthCurve),
+                ShadowCasterProfile.ProjectionModel.ArtDirectedFootprint => Mathf.Lerp(0.84f, 0.94f, lengthCurve),
                 ShadowCasterProfile.ProjectionModel.Volume => Mathf.Lerp(0.72f, 0.86f, lengthCurve),
                 _ => Mathf.Lerp(0.52f, 0.68f, lengthCurve)
             };
@@ -316,20 +322,24 @@ namespace AshesofaDyingWorld.World.Environment
                 localWidth / Mathf.Max(texSize.X, 1f),
                 localLength / Mathf.Max(texSize.Y, 1f));
 
-            float keyVisibility = 0.42f + 0.58f * Mathf.Sqrt(Mathf.Clamp(state.KeyLightStrength01, 0f, 1f));
-            float cloudAttenuation = 1f - Mathf.Clamp(state.Cloudiness, 0f, 1f) * 0.24f;
-            float nightAttenuation = Mathf.Lerp(1f, 0.62f, Mathf.Clamp(state.NightFactor, 0f, 1f));
-            float horizonBoost = Mathf.Lerp(0.90f, 1.08f, lengthCurve);
+            float keyVisibility = (artDirected ? 0.38f : 0.42f)
+                + (artDirected ? 0.62f : 0.58f) * Mathf.Sqrt(Mathf.Clamp(state.KeyLightStrength01, 0f, 1f));
+            float cloudAttenuation = 1f - Mathf.Clamp(state.Cloudiness, 0f, 1f) * (artDirected ? 0.18f : 0.24f);
+            float nightAttenuation = Mathf.Lerp(1f, artDirected ? 0.58f : 0.62f, Mathf.Clamp(state.NightFactor, 0f, 1f));
+            // Long shadows should become softer, not more opaque. Shape/length sells the low sun.
+            float horizonResponse = artDirected
+                ? Mathf.Lerp(0.98f, 0.82f, lengthCurve)
+                : Mathf.Lerp(0.90f, 1.08f, lengthCurve);
             float alpha = Profile.Opacity
                 * Mathf.Clamp(state.ShadowStrength, 0f, 1f)
                 * keyVisibility
                 * cloudAttenuation
                 * nightAttenuation
-                * horizonBoost;
+                * horizonResponse;
 
             Color nightTint = new(0.020f, 0.032f, 0.060f, 1f);
             Color tint = Profile.Tint.Lerp(nightTint, Mathf.Clamp(state.NightFactor * 0.44f, 0f, 0.44f));
-            _projectedShadow.Modulate = new Color(tint.R, tint.G, tint.B, Mathf.Clamp(alpha, 0f, 0.56f));
+            _projectedShadow.Modulate = new Color(tint.R, tint.G, tint.B, Mathf.Clamp(alpha, 0f, artDirected ? 0.32f : 0.56f));
             _projectedShadow.Visible = _source.Visible;
         }
 
@@ -416,6 +426,11 @@ namespace AshesofaDyingWorld.World.Environment
 
         private Texture2D ResolveSourceTexture()
         {
+            if (SourceTextureOverride != null)
+            {
+                return SourceTextureOverride;
+            }
+
             if (_source is Sprite2D sprite)
             {
                 return sprite.Texture;

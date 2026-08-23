@@ -23,6 +23,8 @@ namespace AshesofaDyingWorld.World.Environment
         private AmbientFireflies2D _fireflies;
         private WorldAtmosphere2D _atmosphere;
         private EnvironmentShadowSystem2D _shadowSystem;
+        private CanvasItem _sceneCloudShadow;
+        private CanvasItem _sceneColorGrade;
         private bool _reportedReady;
 
         public override void _Ready()
@@ -82,6 +84,17 @@ namespace AshesofaDyingWorld.World.Environment
             {
                 _atmosphere = new WorldAtmosphere2D { Name = "Atmosphere" };
                 AddChild(_atmosphere);
+            }
+
+            _sceneCloudShadow = GetNodeOrNull<CanvasItem>("../WorldCloudShadow");
+            _sceneColorGrade = GetNodeOrNull<CanvasItem>("../../WorldPostFX/ColorGrade");
+            if (_sceneCloudShadow != null)
+            {
+                _sceneCloudShadow.Visible = true;
+            }
+            if (_sceneColorGrade != null)
+            {
+                _sceneColorGrade.Visible = true;
             }
 
             if (!_reportedReady)

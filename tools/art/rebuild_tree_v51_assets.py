@@ -142,39 +142,68 @@ def _build_ao(canopy: Image.Image) -> Image.Image:
 
 
 def _build_footprint(canopy: Image.Image, out_path: Path) -> None:
-    alpha = np.asarray(canopy.getchannel("A"), dtype=np.float32) / 255.0
-    # Silhouette ngang của canopy giúp mép bóng không thành ellipse hình học hoàn hảo.
-    x_profile = alpha.max(axis=0)
-    prof = Image.fromarray(np.uint8(x_profile[None, :] * 255.0), "L").resize((112, 1), Image.Resampling.BOX)
-    xprof = np.asarray(prof, dtype=np.float32)[0] / 255.0
+    """
+    V5.1 elegant footprint.
+
+    Không còn lấy x_profile rồi extrude thành hình thang. Cách cũ khiến bóng cây đọc như
+    một polygon/skew rectangle. Bản này giữ silhouette thật của canopy, ép nó xuống ground
+    plane rồi nối nhẹ về root bằng một penumbra hữu cơ. Texture chỉ mang ALPHA; RGB trắng
+    để ShadowCasterProfile.Tint là nơi duy nhất quyết định màu bóng.
+    """
+    alpha_img = canopy.getchannel("A")
+    bbox = alpha_img.getbbox()
+    if bbox is None:
+        Image.new("RGBA", (112, 64), (255, 255, 255, 0)).save(out_path)
+        return
+
+    # Fill tiny leaf holes before projection, but keep the crown contour authored.
+    crown = alpha_img.crop(bbox).filter(ImageFilter.MaxFilter(3))
 
     w, h = 112, 64
-    out = np.zeros((h, w), dtype=np.float32)
-    center = (w - 1) * 0.5
-    for y in range(h):
-        t = y / max(h - 1, 1)
-        # Gốc rộng, đuôi thu nhẹ và fade. Không dùng oval parametric hoàn toàn.
-        width_scale = 1.00 - 0.32 * (t ** 1.15)
-        fade = (1.0 - t) ** 0.58
-        core = 0.82 + 0.18 * math.exp(-((t - 0.18) / 0.22) ** 2)
-        for x in range(w):
-            src_x = center + (x - center) / max(width_scale, 0.05)
-            if 0 <= src_x < w - 1:
-                x0 = int(src_x)
-                f = src_x - x0
-                p = xprof[x0] * (1.0 - f) + xprof[min(x0 + 1, w - 1)] * f
-                out[y, x] = p * fade * core
+    crown_w, crown_h = 98, 40
+    crown = crown.resize((crown_w, crown_h), Image.Resampling.LANCZOS)
+    crown = crown.filter(ImageFilter.GaussianBlur(radius=0.65))
 
-    # Penumbra mềm, nhưng giữ core foliage irregular.
-    core_img = Image.fromarray(np.uint8(np.clip(out * 210.0, 0, 255)), "L")
-    blur_img = core_img.filter(ImageFilter.GaussianBlur(radius=2.0))
-    core_a = np.asarray(core_img, dtype=np.uint8)
-    blur_a = np.asarray(blur_img, dtype=np.uint8)
-    final_a = np.maximum(core_a, (blur_a.astype(np.float32) * 0.72).astype(np.uint8))
+    crown_layer = np.zeros((h, w), dtype=np.float32)
+    crown_arr = np.asarray(crown, dtype=np.float32) / 255.0
+    x0 = (w - crown_w) // 2
+    y0 = 16
+    y1 = min(y0 + crown_h, h)
+    crown_layer[y0:y1, x0:x0 + crown_w] = crown_arr[:y1 - y0]
+
+    # Narrow root connection -> broad crown. This prevents a detached oval while avoiding
+    # any straight trapezoid edges. It deliberately stays weaker than the canopy mass.
+    xx = np.arange(w, dtype=np.float32)
+    center_x = (w - 1) * 0.5
+    bridge = np.zeros((h, w), dtype=np.float32)
+    for y in range(h):
+        t = np.clip(y / 34.0, 0.0, 1.0)
+        sigma_x = 5.0 + 31.0 * (t ** 0.82)
+        horizontal = np.exp(-0.5 * ((xx - center_x) / max(sigma_x, 0.01)) ** 2)
+        vertical = math.exp(-0.5 * ((y - 18.0) / 14.5) ** 2)
+        bridge[y] = horizontal * vertical * 0.72
+
+    projected = np.maximum(crown_layer * 0.92, bridge)
+
+    # Near the caster the shadow is stable; far edge gently loses density. No hard tail.
+    yy = np.arange(h, dtype=np.float32) / max(h - 1, 1)
+    distance_fade = 0.98 - 0.38 * (yy ** 1.45)
+    projected *= distance_fade[:, None]
+
+    # Controlled penumbra: core keeps pixel-art contour, blur only softens outer alpha.
+    core = Image.fromarray(np.uint8(np.clip(projected * 205.0, 0, 255)), "L")
+    penumbra = core.filter(ImageFilter.GaussianBlur(radius=1.8))
+    core_a = np.asarray(core, dtype=np.float32)
+    penumbra_a = np.asarray(penumbra, dtype=np.float32)
+    final_a = np.maximum(core_a * 0.90, penumbra_a * 0.70)
+
+    # Fade the very first/last rows so rotation never exposes a rectangular end-cap.
+    final_a[:4] *= np.linspace(0.18, 0.92, 4, dtype=np.float32)[:, None]
+    final_a[-7:] *= np.linspace(1.0, 0.18, 7, dtype=np.float32)[:, None]
 
     rgba = np.zeros((h, w, 4), dtype=np.uint8)
-    rgba[..., :3] = np.array([9, 15, 10], dtype=np.uint8)
-    rgba[..., 3] = final_a
+    rgba[..., :3] = 255  # alpha-only art; tint comes from ShadowCasterProfile.
+    rgba[..., 3] = np.uint8(np.clip(final_a, 0, 188))
     Image.fromarray(rgba, "RGBA").save(out_path)
 
 

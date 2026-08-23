@@ -2694,6 +2694,7 @@ CanvasModulatePath = NodePath("../CanvasModulate")
 z_index = 2
 
 [node name="WorldCloudShadow" type="Polygon2D" parent="EnvironmentFX"]
+visible = false
 z_index = 80
 material = SubResource("ShaderMaterial_world_cloud_v3")
 polygon = PackedVector2Array(0, 0, 1824, 0, 1824, 1896, 0, 1896)
@@ -2704,6 +2705,7 @@ color = Color(1, 1, 1, 1)
 [node name="CanvasModulate" type="CanvasModulate" parent="EnvironmentFX"]
 
 [node name="ColorGrade" type="ColorRect" parent="WorldPostFX"]
+visible = false
 material = SubResource("ShaderMaterial_grade_v3")
 anchors_preset = 15
 anchor_right = 1.0

@@ -1,5 +1,7 @@
-[gd_resource type="Resource" script_class="ShadowCasterProfile" load_steps=2 format=3]
-[ext_resource type="Script" path="res://scripts/World/Environment/ShadowCasterProfile.cs" id="1_profile"]
+[gd_resource type="Resource" script_class="ShadowCasterProfile" format=3 uid="uid://dd24532x37e5k"]
+
+[ext_resource type="Script" uid="uid://ckn4rit2k8kwo" path="res://scripts/World/Environment/ShadowCasterProfile.cs" id="1_profile"]
+
 [resource]
 script = ExtResource("1_profile")
 Model = 1
@@ -13,10 +15,8 @@ HorizonFlatten = 0.15
 Tint = Color(0.055, 0.065, 0.045, 1)
 Opacity = 0.35
 AlphaCutoff = 0.12
-ContactShadowEnabled = true
 ContactWidthRatio = 0.78
 ContactDepthRatio = 0.14
 ContactOpacity = 0.21
 ContactOffset = Vector2(0, 2)
 ContactTint = Color(0.032, 0.044, 0.034, 1)
-ZIndex = -1
