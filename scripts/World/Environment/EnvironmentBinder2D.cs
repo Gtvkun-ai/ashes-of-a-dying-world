@@ -23,6 +23,7 @@ namespace AshesofaDyingWorld.World.Environment
         private CanvasModulate _canvasModulate;
         private WorldLighting2D _lighting;
         private AmbientFireflies2D _fireflies;
+        private WorldAtmosphere2D _atmosphere;
         private ShadowRenderer2D _shadowRenderer;
         private double _materialRescanCountdown;
         private int _lastReportedMaterialCount = -1;
@@ -85,6 +86,13 @@ namespace AshesofaDyingWorld.World.Environment
                 _fireflies = new AmbientFireflies2D { Name = "NightFireflies" };
                 AddChild(_fireflies);
             }
+
+            _atmosphere = GetNodeOrNull<WorldAtmosphere2D>("Atmosphere");
+            if (_atmosphere == null)
+            {
+                _atmosphere = new WorldAtmosphere2D { Name = "Atmosphere" };
+                AddChild(_atmosphere);
+            }
         }
 
         private void RebuildMaterialBindings()
@@ -114,6 +122,7 @@ namespace AshesofaDyingWorld.World.Environment
             _lighting?.ApplyEnvironment(state);
             _shadowRenderer?.ApplyEnvironment(state);
             _fireflies?.ApplyEnvironment(state);
+            _atmosphere?.ApplyEnvironment(state);
 
             if (_canvasModulate != null)
             {

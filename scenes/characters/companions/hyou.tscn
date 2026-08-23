@@ -13,6 +13,7 @@
 [ext_resource type="Script" path="res://scripts/Combat/Visuals/HyouCastVisual.cs" id="11_cast_visual"]
 [ext_resource type="Resource" path="res://data/combat/movesets/hyou_cryomancer.tres" id="12_moveset"]
 [ext_resource type="Script" path="res://scripts/Combat/Decision/Debug/CombatDecisionDebugOverlay.cs" id="13_debug_overlay"]
+[ext_resource type="Script" path="res://scripts/World/Camera/PlayerCameraZoom.cs" id="14_camera_zoom"]
 
 [ext_resource type="Script" path="res://scripts/World/Environment/ShadowCaster2D.cs" id="99_shadow"]
 [ext_resource type="Resource" path="res://data/world/shadows/character.tres" id="98_shadow_profile"]
@@ -101,6 +102,7 @@ position = Vector2(0, -8)
 
 [node name="follow" type="Camera2D" parent="."]
 enabled = false
+script = ExtResource("14_camera_zoom")
 
 [node name="PlayerStats" type="Node" parent="." unique_id=1536723479 node_paths=PackedStringArray("EquipmentMgr")]
 script = ExtResource("3_stats")
@@ -183,4 +185,3 @@ Enabled = false
 VisibleByDefault = false
 RefreshSeconds = 0.15
 MaxCandidates = 6
-

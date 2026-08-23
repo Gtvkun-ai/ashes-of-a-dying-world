@@ -5,6 +5,7 @@
 [ext_resource type="Resource" uid="uid://btue7yvcpa6pm" path="res://data/characters/main.tres" id="7_owkge"]
 [ext_resource type="Script" uid="uid://bmhf2l4kgx1rl" path="res://scripts/Inventory/Runtime/EquipmentManager.cs" id="8_4rh2k"]
 [ext_resource type="Script" path="res://scripts/Characters/Player/PartyFollowerBrain.cs" id="9_party_follower"]
+[ext_resource type="Script" path="res://scripts/World/Camera/PlayerCameraZoom.cs" id="10_camera_zoom"]
 
 [ext_resource type="Script" path="res://scripts/World/Environment/ShadowCaster2D.cs" id="99_shadow"]
 [ext_resource type="Resource" path="res://data/world/shadows/character.tres" id="98_shadow_profile"]
@@ -55,6 +56,7 @@ monitorable = true
 shape = SubResource("CapsuleShape2D_sgmg4")
 
 [node name="follow" type="Camera2D" parent="." unique_id=497279611]
+script = ExtResource("10_camera_zoom")
 
 [node name="PlayerStats" type="Node" parent="." unique_id=1279805624 node_paths=PackedStringArray("EquipmentMgr")]
 script = ExtResource("6_kimch")
