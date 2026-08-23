@@ -52,7 +52,7 @@ namespace AshesofaDyingWorld.World.Environment
             if (!_reportedReady)
             {
                 _reportedReady = true;
-                GD.Print("[ShadowRenderer2D] READY V4 | soft art-directed footprint + contact AO");
+                GD.Print("[ShadowRenderer2D] READY V4.3 | alpha-bounds ground footprint + soft contact AO");
             }
         }
     }

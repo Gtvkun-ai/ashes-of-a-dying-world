@@ -237,7 +237,9 @@ namespace AshesofaDyingWorld.World.Environment
                 Material = _shadowMaterial,
                 ZAsRelative = true,
                 ShowBehindParent = true,
-                TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
+                TextureFilter = CanvasItem.TextureFilterEnum.Linear,
+                // Shadow là lớp ánh sáng mềm, không phải sprite art. Dùng linear riêng cho proxy
+                // để penumbra không biến thành các sọc pixel cứng khi footprint bị kéo dài.
                 // Fail-safe: nếu Godot không compile được material, mask thô vẫn hiện như một
                 // bóng tối mờ thay vì silhouette TRẮNG chọc xuống dưới gốc cây. Shader hợp lệ
                 // tự ghi COLOR nên SelfModulate này không đổi màu pass V3 bình thường.
@@ -269,7 +271,7 @@ namespace AshesofaDyingWorld.World.Environment
                 Centered = true,
                 ZAsRelative = true,
                 ShowBehindParent = true,
-                TextureFilter = CanvasItem.TextureFilterEnum.Nearest
+                TextureFilter = CanvasItem.TextureFilterEnum.Linear
             };
             AddChild(_contactShadowSprite);
         }
@@ -387,11 +389,15 @@ namespace AshesofaDyingWorld.World.Environment
             float baseXLocal = visibleLeft + visibleWidth * 0.5f;
             float baseYLocal = visibleTop + visibleHeight * Mathf.Clamp(Profile.BaseY01, 0f, 1f);
             float heightLocal = Mathf.Max(visibleHeight * Mathf.Max(Profile.HeightRatio, 0.02f), 1f);
+            float footprintCenterYLocal = visibleTop + visibleHeight * 0.5f;
+            float footprintDepthLocal = Mathf.Max(visibleHeight, 1f);
 
             SetInstance("caster_projection_model", (float)Profile.Model);
             SetInstance("caster_base_x_local", baseXLocal);
             SetInstance("caster_base_y_local", baseYLocal);
             SetInstance("caster_height_local", heightLocal);
+            SetInstance("caster_footprint_center_y_local", footprintCenterYLocal);
+            SetInstance("caster_footprint_depth_local", footprintDepthLocal);
             SetInstance("caster_width_scale", Mathf.Clamp(Profile.WidthScale, 0.1f, 1.5f));
             SetInstance("caster_noon_length_world", Mathf.Max(Profile.NoonLengthWorld, 0f));
             SetInstance("caster_max_length_world", Mathf.Max(Profile.MaxLengthWorld, Profile.NoonLengthWorld));

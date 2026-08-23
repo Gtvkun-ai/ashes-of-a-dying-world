@@ -1066,9 +1066,10 @@ texture = ExtResource("44_ground_detail_v4")
 centered = false
 
 [node name="GroundCanopyShadow" type="Sprite2D" parent="VisualGround"]
+visible = false
 z_index = -8
 texture_filter = 1
-modulate = Color(1, 1, 1, 0.58)
+modulate = Color(1, 1, 1, 0.0)
 scale = Vector2(4, 4)
 texture = ExtResource("22_canopy_shadow")
 centered = false

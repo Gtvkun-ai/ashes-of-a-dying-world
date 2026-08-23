@@ -145,18 +145,20 @@ namespace AshesofaDyingWorld.World.Environment
         {
             progress = Mathf.Clamp(progress, 0f, 1f);
 
-            // Có chủ ý cho trưa hướng xuống màn hình để shadow ngắn vẫn nằm sát chân,
-            // nhưng từ sáng -> chiều tổng cộng quay đủ 180 độ.
+            // V4.1: tách hướng sáng / trưa / chiều quyết liệt hơn để người chơi NHÌN THẤY
+            // mặt trời đang chạy, thay vì ba frame dùng gần như cùng một họ bóng.
             float angleDegrees;
             if (progress <= 0.5f)
             {
                 float t = Smooth01(progress / 0.5f);
-                angleDegrees = Mathf.Lerp(30f, 90f, t);
+                // Morning: bóng quăng xuống-phải khá mạnh.
+                angleDegrees = Mathf.Lerp(18f, 94f, t);
             }
             else
             {
                 float t = Smooth01((progress - 0.5f) / 0.5f);
-                angleDegrees = Mathf.Lerp(90f, 210f, t);
+                // Evening: lật sang nửa mặt phẳng đối diện rõ hơn trước.
+                angleDegrees = Mathf.Lerp(94f, 236f, t);
             }
 
             float radians = Mathf.DegToRad(angleDegrees);
@@ -166,8 +168,8 @@ namespace AshesofaDyingWorld.World.Environment
         private static Vector2 ShadowOrbitNight(float progress)
         {
             progress = Mathf.Clamp(progress, 0f, 1f);
-            // Tiếp tục nửa vòng còn lại: 210 -> 390 độ.
-            float angleDegrees = Mathf.Lerp(210f, 390f, Smooth01(progress));
+            // Moon tiếp tục quỹ đạo nhưng nhẹ hơn. Bắt đầu từ đúng hướng kết thúc của hoàng hôn.
+            float angleDegrees = Mathf.Lerp(236f, 416f, Smooth01(progress));
             float radians = Mathf.DegToRad(angleDegrees);
             return new Vector2(Mathf.Cos(radians), Mathf.Sin(radians)).Normalized();
         }
