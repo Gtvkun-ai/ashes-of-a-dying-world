@@ -2,15 +2,21 @@
 [ext_resource type="Script" path="res://scripts/World/Environment/ShadowCasterProfile.cs" id="1_profile"]
 [resource]
 script = ExtResource("1_profile")
-Model = 0
-BaseY01 = 0.975
-HeightRatio = 0.77
-WidthScale = 0.88
-NoonLengthWorld = 0.55
-MaxLengthWorld = 12.0
-NoonFlatten = 0.06
-HorizonFlatten = 0.09
-Tint = Color(0.035, 0.065, 0.035, 1)
-Opacity = 0.17
-AlphaCutoff = 0.1
+Model = 3
+BaseY01 = 0.985
+HeightRatio = 0.96
+WidthScale = 0.90
+NoonLengthWorld = 7.0
+MaxLengthWorld = 92.0
+NoonFlatten = 0.08
+HorizonFlatten = 0.12
+Tint = Color(0.028, 0.052, 0.033, 1)
+Opacity = 0.46
+AlphaCutoff = 0.06
+ContactShadowEnabled = true
+ContactWidthRatio = 0.48
+ContactDepthRatio = 0.075
+ContactOpacity = 0.24
+ContactOffset = Vector2(0, 1)
+ContactTint = Color(0.025, 0.045, 0.030, 1)
 ZIndex = -1

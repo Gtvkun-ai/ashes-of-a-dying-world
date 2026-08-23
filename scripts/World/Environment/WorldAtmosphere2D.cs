@@ -19,10 +19,17 @@ namespace AshesofaDyingWorld.World.Environment
         private ShaderMaterial _fogMaterial;
         private ShaderMaterial _rainMaterial;
         private bool _reportedReady;
+        private bool _worldLockedCloudAvailable;
 
         public override void _Ready()
         {
             EnsureLayer();
+            // Field V3 có cloud-shadow world-space riêng. Khi tồn tại pass này,
+            // overlay screen-space cũ phải im để tránh hai lớp mây chồng nhau.
+            _worldLockedCloudAvailable = GetTree()?.CurrentScene?.FindChild(
+                "WorldCloudShadow",
+                true,
+                false) != null;
         }
 
         public void ApplyEnvironment(EnvironmentState state)
@@ -51,10 +58,12 @@ namespace AshesofaDyingWorld.World.Environment
             _sunbeamMaterial?.SetShaderParameter("intensity", Mathf.Clamp(beamIntensity, 0f, 0.22f));
 
             float cloudCoverage = Mathf.Clamp(state.Cloudiness, 0f, 1f);
-            float cloudShadowStrength = Mathf.Clamp(
-                cloudCoverage * state.Daylight * state.KeyLightStrength01 * 0.10f,
-                0f,
-                0.10f);
+            float cloudShadowStrength = _worldLockedCloudAvailable
+                ? 0f
+                : Mathf.Clamp(
+                    cloudCoverage * state.Daylight * (0.45f + state.KeyLightStrength01 * 0.55f) * 0.10f,
+                    0f,
+                    0.10f);
             _cloudShadowMaterial?.SetShaderParameter("coverage", cloudCoverage);
             _cloudShadowMaterial?.SetShaderParameter("strength", cloudShadowStrength);
             _cloudShadowMaterial?.SetShaderParameter("wind_dir", new Vector2(1f, 0.12f + state.WindStrength * 0.08f));
@@ -77,7 +86,7 @@ namespace AshesofaDyingWorld.World.Environment
             if (!_reportedReady)
             {
                 _reportedReady = true;
-                GD.Print("[WorldAtmosphere2D] READY WeatherSystem2D-selected overlays: cloud shadow, sunbeam, fog, rain");
+                GD.Print("[WorldAtmosphere2D] READY WeatherSystem2D overlays: world-locked cloud preferred + sunbeam/fog/rain");
             }
         }
 

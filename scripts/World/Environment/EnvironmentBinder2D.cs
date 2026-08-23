@@ -5,7 +5,7 @@ namespace AshesofaDyingWorld.World.Environment
     /// <summary>
     /// Adapter giữa một map 2D và WorldEnvironmentService.
     ///
-    /// Shadow Core V2.2: binder scans materials, then pushes environment state once per frame.
+    /// Shadow Core V3.3: binder scans materials, then pushes environment state once per frame.
     /// Per-caster shadow data lives on cloned materials, avoiding Godot instance-uniform limits.
     /// </summary>
     public partial class EnvironmentBinder2D : Node
@@ -105,7 +105,7 @@ namespace AshesofaDyingWorld.World.Environment
             {
                 _lastReportedMaterialCount = materialCount;
                 GD.Print(
-                    $"[EnvironmentBinder2D] BOUND materials={materialCount} shadow_core=V2.2-local-materials " +
+                    $"[EnvironmentBinder2D] BOUND materials={materialCount} shadow_core=V3.3-footprint+contact " +
                     $"profile={Profile?.ResourcePath ?? "<none>"}");
             }
         }

@@ -3,7 +3,7 @@ using Godot;
 namespace AshesofaDyingWorld.World.Environment
 {
     /// <summary>
-    /// Renderer trung tâm của Shadow Core V2.
+    /// Renderer trung tâm của Shadow Core V3.3.
     ///
     /// Toàn bộ caster dùng chung một ShaderMaterial. Mỗi frame renderer chỉ ghi 4 uniform chung.
     /// Không scan scene, không loop caster, không material-per-object.
@@ -40,15 +40,18 @@ namespace AshesofaDyingWorld.World.Environment
 
             _sharedMaterial.SetShaderParameter("shadow_direction", direction);
             _sharedMaterial.SetShaderParameter("shadow_length01", Mathf.Clamp(state.ShadowLength01, 0f, 1f));
+            float keyVisibility = 0.46f + 0.54f * Mathf.Sqrt(Mathf.Clamp(state.KeyLightStrength01, 0f, 1f));
+            float nightAttenuation = Mathf.Lerp(1.0f, 0.58f, Mathf.Clamp(state.NightFactor, 0f, 1f));
+            float cloudAttenuation = 1.0f - Mathf.Clamp(state.Cloudiness, 0f, 1f) * 0.22f;
             _sharedMaterial.SetShaderParameter(
                 "shadow_strength",
-                Mathf.Clamp(state.ShadowStrength * state.KeyLightStrength01, 0f, 1f));
+                Mathf.Clamp(state.ShadowStrength * keyVisibility * nightAttenuation * cloudAttenuation, 0f, 1f));
             _sharedMaterial.SetShaderParameter("shadow_night_factor", Mathf.Clamp(state.NightFactor, 0f, 1f));
 
             if (!_reportedReady)
             {
                 _reportedReady = true;
-                GD.Print("[ShadowRenderer2D] READY V2.2 | template material + material-bus shadow uniforms");
+                GD.Print("[ShadowRenderer2D] READY V3.3 | art-directed tree footprint + contact AO");
             }
         }
     }

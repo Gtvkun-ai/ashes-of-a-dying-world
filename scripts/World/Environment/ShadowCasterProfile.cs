@@ -5,8 +5,8 @@ namespace AshesofaDyingWorld.World.Environment
     /// <summary>
     /// Data thuần cho một nhóm vật thể đổ bóng.
     ///
-    /// Shadow Core V2.1 giữ profile data-driven, nhưng projection không còn inverse-sample pixel.
-    /// Tất cả model dùng một shared shader và phép biến đổi affine ổn định trên quad.
+    /// Shadow Core V3.3 giữ profile data-driven và thêm ArtDirectedFootprint cho foliage lớn.
+    /// Cây lớn dùng footprint mask nằm sẵn trên ground; actor/rock vẫn dùng projection compact.
     /// </summary>
     [GlobalClass]
     public partial class ShadowCasterProfile : Resource
@@ -20,7 +20,13 @@ namespace AshesofaDyingWorld.World.Environment
             Volume = 1,
 
             /// <summary>Layer lớn như cliff/tường. Chỉ dịch silhouette, không dựng chiều cao giả.</summary>
-            RigidDrop = 2
+            RigidDrop = 2,
+
+            /// <summary>
+            /// Silhouette đã được art-direct thành footprint nằm trên mặt đất. Shader chỉ rotate + stretch
+            /// theo hướng/độ dài thiên thể. Dùng cho cây lớn để tránh hiệu ứng "cardboard bị đập bẹp".
+            /// </summary>
+            ArtDirectedFootprint = 3
         }
 
         [Export]
@@ -59,6 +65,30 @@ namespace AshesofaDyingWorld.World.Environment
 
         [Export(PropertyHint.Range, "0,1,0.01")]
         public float AlphaCutoff { get; set; } = 0.08f;
+
+        [ExportGroup("Contact / AO")]
+        [Export]
+        public bool ContactShadowEnabled { get; set; } = true;
+
+        /// <summary>
+        /// Bề ngang contact shadow so với alpha-bounds của caster. Đây là AO sát chân,
+        /// không phải bóng mặt trời, nên nó không quay theo thiên thể.
+        /// </summary>
+        [Export(PropertyHint.Range, "0.05,1.5,0.01")]
+        public float ContactWidthRatio { get; set; } = 0.52f;
+
+        /// <summary>Độ dày contact shadow so với chiều cao alpha-bounds của caster.</summary>
+        [Export(PropertyHint.Range, "0.01,0.5,0.01")]
+        public float ContactDepthRatio { get; set; } = 0.08f;
+
+        [Export(PropertyHint.Range, "0,1,0.01")]
+        public float ContactOpacity { get; set; } = 0.24f;
+
+        [Export]
+        public Vector2 ContactOffset { get; set; } = Vector2.Zero;
+
+        [Export]
+        public Color ContactTint { get; set; } = new Color(0.035f, 0.055f, 0.040f, 1f);
 
         [Export]
         public int ZIndex { get; set; } = -1;

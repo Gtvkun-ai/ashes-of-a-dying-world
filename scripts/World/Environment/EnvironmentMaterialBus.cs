@@ -85,7 +85,16 @@ namespace AshesofaDyingWorld.World.Environment
             Vector2 shadowDirection = state.ShadowDirection2D.LengthSquared() > 0.0001f
                 ? state.ShadowDirection2D.Normalized()
                 : Vector2.Down;
-            float shadowStrength = Mathf.Clamp(state.ShadowStrength * state.KeyLightStrength01, 0f, 1f);
+            // Bóng dài đẹp nhất ở lúc thiên thể thấp, nên không được nhân thẳng với key strength
+            // như V2.2 (cách đó làm bình minh/hoàng hôn còn ~1-2% alpha). Ta giữ visibility nền,
+            // rồi chỉ giảm mềm khi đêm sâu / mây dày.
+            float keyVisibility = 0.46f + 0.54f * Mathf.Sqrt(Mathf.Clamp(state.KeyLightStrength01, 0f, 1f));
+            float nightAttenuation = Mathf.Lerp(1.0f, 0.58f, Mathf.Clamp(state.NightFactor, 0f, 1f));
+            float cloudAttenuation = 1.0f - Mathf.Clamp(state.Cloudiness, 0f, 1f) * 0.22f;
+            float shadowStrength = Mathf.Clamp(
+                state.ShadowStrength * keyVisibility * nightAttenuation * cloudAttenuation,
+                0f,
+                1f);
 
             foreach (ShaderMaterial material in _shadowMaterials.Values)
             {

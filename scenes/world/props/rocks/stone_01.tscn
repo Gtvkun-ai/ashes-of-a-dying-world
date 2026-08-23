@@ -2,8 +2,17 @@
 
 [ext_resource type="Texture2D" uid="uid://bbodahvt5v125" path="res://assets/graphics/environment/rocks/stone_variants.png" id="1_ikttr"]
 
+[ext_resource type="Shader" path="res://assets/shaders/world/rock_relight.gdshader" id="97_relight"]
+
 [ext_resource type="Script" path="res://scripts/World/Environment/ShadowCaster2D.cs" id="99_shadow"]
 [ext_resource type="Resource" path="res://data/world/shadows/rock_small.tres" id="98_shadow_profile"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_rock_relight"]
+shader = ExtResource("97_relight")
+shader_parameter/bump_pixels = 3.0
+shader_parameter/relight_strength = 0.82
+shader_parameter/highlight_gain = 0.23
+shader_parameter/shade_gain = 0.21
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_ck0th"]
 atlas = ExtResource("1_ikttr")
@@ -30,6 +39,7 @@ SourcePath = NodePath("../AnimatedSprite2D")
 Profile = ExtResource("98_shadow_profile")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+material = SubResource("ShaderMaterial_rock_relight")
 position = Vector2(2.3282898e-10, 26)
 scale = Vector2(0.07942659, 0.08055954)
 skew = 0.0017453292

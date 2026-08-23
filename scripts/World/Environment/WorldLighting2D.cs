@@ -11,8 +11,8 @@ namespace AshesofaDyingWorld.World.Environment
     /// </summary>
     public partial class WorldLighting2D : Node2D
     {
-        private const float BakedAssetDirectLightScale = 0.18f;
-        private const float MaxFillLightEnergy = 0.045f;
+        private const float BakedAssetDirectLightScale = 0.42f;
+        private const float MaxFillLightEnergy = 0.22f;
 
         private DirectionalLight2D _sun;
         private DirectionalLight2D _moon;
@@ -100,8 +100,8 @@ namespace AshesofaDyingWorld.World.Environment
                 return;
             }
 
-            // World assets already carry painted light and form shadows. Keep Godot lights as
-            // a very soft fill only; stronger values make the map read like a flashlight pass.
+            // V3 vẫn tôn trọng baked pixel-art, nhưng direct light phải đủ mạnh để người chơi
+            // thực sự đọc được hướng mặt trời. Giá trị cũ ~0.01 gần như vô hình.
             float safeEnergy = Mathf.Min(Mathf.Max(energy, 0f) * BakedAssetDirectLightScale, MaxFillLightEnergy);
             light.Enabled = safeEnergy > 0.001f;
             light.Energy = safeEnergy;

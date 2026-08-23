@@ -13,6 +13,7 @@ namespace AshesofaDyingWorld.World.Environment
     public partial class ShadowCaster2D : Node2D
     {
         private const string SharedMaterialPath = "res://assets/materials/world/projected_shadow_shared.tres";
+        private const string ContactShadowTexturePath = "res://assets/graphics/environment/shadows/contact_ellipse_48x24_v32.png";
         private static readonly Dictionary<string, AlphaBounds> AlphaBoundsCache = new();
 
         [ExportGroup("Nguồn")]
@@ -30,6 +31,7 @@ namespace AshesofaDyingWorld.World.Environment
 
         private CanvasItem _source;
         private Sprite2D _shadowSprite;
+        private Sprite2D _contactShadowSprite;
         private ShaderMaterial _shadowMaterial;
         private Texture2D _lastTexture;
         private int _lastFrame = -1;
@@ -53,6 +55,7 @@ namespace AshesofaDyingWorld.World.Environment
         public override void _Ready()
         {
             EnsureShadowSprite();
+            EnsureContactShadowSprite();
 
             Node parent = GetParent();
             if (parent != null)
@@ -234,9 +237,41 @@ namespace AshesofaDyingWorld.World.Environment
                 Material = _shadowMaterial,
                 ZAsRelative = true,
                 ShowBehindParent = true,
-                TextureFilter = CanvasItem.TextureFilterEnum.Nearest
+                TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
+                // Fail-safe: nếu Godot không compile được material, mask thô vẫn hiện như một
+                // bóng tối mờ thay vì silhouette TRẮNG chọc xuống dưới gốc cây. Shader hợp lệ
+                // tự ghi COLOR nên SelfModulate này không đổi màu pass V3 bình thường.
+                SelfModulate = new Color(0.03f, 0.05f, 0.035f, 0.26f)
             };
             AddChild(_shadowSprite);
+        }
+
+        private void EnsureContactShadowSprite()
+        {
+            if (_contactShadowSprite != null && GodotObject.IsInstanceValid(_contactShadowSprite))
+            {
+                return;
+            }
+
+            Texture2D texture = ResourceLoader.Exists(ContactShadowTexturePath)
+                ? GD.Load<Texture2D>(ContactShadowTexturePath)
+                : null;
+            if (texture == null)
+            {
+                GD.PushWarning($"[ShadowCaster2D] Missing contact shadow texture: {ContactShadowTexturePath}");
+                return;
+            }
+
+            _contactShadowSprite = new Sprite2D
+            {
+                Name = "ContactShadow",
+                Texture = texture,
+                Centered = true,
+                ZAsRelative = true,
+                ShowBehindParent = true,
+                TextureFilter = CanvasItem.TextureFilterEnum.Nearest
+            };
+            AddChild(_contactShadowSprite);
         }
 
         private void SyncCaster(bool force)
@@ -366,7 +401,63 @@ namespace AshesofaDyingWorld.World.Environment
             SetInstance("caster_opacity", Mathf.Clamp(Profile.Opacity, 0f, 1f));
             SetInstance("caster_alpha_cutoff", Mathf.Clamp(Profile.AlphaCutoff, 0f, 1f));
 
+            SyncContactShadow(
+                baseXLocal,
+                baseYLocal,
+                visibleWidth,
+                visibleHeight,
+                sourceScale);
+
             Visible = _source.Visible;
+        }
+
+        private void SyncContactShadow(
+            float baseXLocal,
+            float baseYLocal,
+            float visibleWidth,
+            float visibleHeight,
+            Vector2 sourceScale)
+        {
+            if (_contactShadowSprite == null || Profile == null)
+            {
+                return;
+            }
+
+            bool enabled = Profile.ContactShadowEnabled && Profile.ContactOpacity > 0.001f;
+            _contactShadowSprite.Visible = enabled;
+            if (!enabled)
+            {
+                return;
+            }
+
+            // Contact shadow bám đúng alpha-base của caster, nhưng luôn nằm trên mặt đất.
+            // Vì vậy nó KHÔNG kế thừa phép affine projection của bóng mặt trời.
+            Vector2 anchorInShadowLocal = new(baseXLocal, baseYLocal);
+            Vector2 anchorGlobal = _shadowSprite.ToGlobal(anchorInShadowLocal);
+            Vector2 anchorHere = ToLocal(anchorGlobal) + Profile.ContactOffset;
+            _contactShadowSprite.Position = anchorHere;
+            _contactShadowSprite.Rotation = 0f;
+            _contactShadowSprite.Skew = 0f;
+
+            float desiredWidth = Mathf.Max(
+                visibleWidth * Mathf.Abs(sourceScale.X) * Profile.ContactWidthRatio,
+                2f);
+            float desiredDepth = Mathf.Max(
+                visibleHeight * Mathf.Abs(sourceScale.Y) * Profile.ContactDepthRatio,
+                1.5f);
+
+            Vector2 textureSize = _contactShadowSprite.Texture?.GetSize() ?? new Vector2(32f, 16f);
+            _contactShadowSprite.Scale = new Vector2(
+                desiredWidth / Mathf.Max(textureSize.X, 1f),
+                desiredDepth / Mathf.Max(textureSize.Y, 1f));
+            _contactShadowSprite.ZIndex = Profile.ZIndex - 1;
+
+            Color tint = Profile.ContactTint;
+            _contactShadowSprite.Modulate = new Color(
+                tint.R,
+                tint.G,
+                tint.B,
+                Mathf.Clamp(Profile.ContactOpacity, 0f, 1f));
         }
 
         private void SetInstance(string name, Variant value)
