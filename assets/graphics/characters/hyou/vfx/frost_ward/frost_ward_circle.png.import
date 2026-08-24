@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bbodahvt5v125"
-path="res://.godot/imported/stone_variants.png-be30d62b31c80574bdc83dc6a0e3d3e0.ctex"
+uid="uid://31xt2cmtrmah"
+path="res://.godot/imported/frost_ward_circle.png-596a97784e0c6a8ae9d6d46a59742a55.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/graphics/environment/rocks/stone_variants.png"
-dest_files=["res://.godot/imported/stone_variants.png-be30d62b31c80574bdc83dc6a0e3d3e0.ctex"]
+source_file="res://assets/graphics/characters/hyou/vfx/frost_ward/frost_ward_circle.png"
+dest_files=["res://.godot/imported/frost_ward_circle.png-596a97784e0c6a8ae9d6d46a59742a55.ctex"]
 
 [params]
 

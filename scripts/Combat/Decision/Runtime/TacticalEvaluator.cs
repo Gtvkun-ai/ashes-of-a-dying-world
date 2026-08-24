@@ -128,6 +128,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 immediateDodgeWindow);
 
             SkillData primarySkill = safeClass.GetPrimarySkill();
+            SkillData secondarySkill = safeClass.GetSecondarySkill();
             AddCastCandidate(
                 candidates,
                 snapshot,
@@ -141,6 +142,16 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 safety,
                 targetExposure,
                 insideUnsafe);
+            AddDefensiveFieldCandidate(
+                candidates,
+                snapshot,
+                blackboard,
+                safeClass,
+                secondarySkill,
+                panicRange,
+                unsafeRange,
+                preferredMin,
+                immediateDodgeWindow);
             AddRepositionCandidate(
                 candidates,
                 snapshot,
@@ -322,6 +333,96 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                     ["low_mana_bias"] = lowManaBias,
                     ["rhythm"] = rhythm,
                     ["safe"] = safeEnough ? 1f : 0f
+                }));
+        }
+
+        private static void AddDefensiveFieldCandidate(
+            ICollection<CandidateTrace> candidates,
+            in CombatSnapshot snapshot,
+            CombatBlackboard blackboard,
+            CombatClassProfile classProfile,
+            SkillData skill,
+            float panicRange,
+            float unsafeRange,
+            float preferredMin,
+            bool immediateDodgeWindow)
+        {
+            bool hasSkill = skill != null;
+            StringName skillKey = new StringName(skill?.SkillId ?? string.Empty);
+            float runtimeCooldown = GetCooldownRemaining(blackboard?.ActionCooldowns, skillKey);
+            float failedCooldown = GetCooldownRemaining(blackboard?.FailedActionCooldowns, skillKey);
+            bool offCooldown = runtimeCooldown <= 0.001f && failedCooldown <= 0.001f;
+            float staminaCost = hasSkill
+                ? Mathf.Max(0f, skill.StaminaCost)
+                    + Mathf.Max(0f, skill.CombatAction?.StaminaCost ?? 0f)
+                : 0f;
+            bool enoughMana = !hasSkill || skill.ManaCost <= 0 || snapshot.Mana.CanAfford(skill.ManaCost);
+            bool enoughStamina = !hasSkill || staminaCost <= 0f || snapshot.Stamina.CanAfford(staminaCost);
+
+            // Ward có cast time 2 giây nên AI không đợi tới lúc kẻ địch đứng ngay trong PanicRange.
+            // Nó dựng vùng cấm khi đối thủ đã vượt preferred band và đang tiến vào unsafe band.
+            float triggerOuter = Mathf.Max(unsafeRange + 18f, Mathf.Min(preferredMin - 4f, unsafeRange + 30f));
+            bool inSetupBand = snapshot.TargetDistance > Mathf.Max(8f, panicRange + 4f)
+                && snapshot.TargetDistance <= triggerOuter;
+            bool safeToChannel = !immediateDodgeWindow
+                && snapshot.ThreatSeverity <= 0.58f
+                && !snapshot.IsCornered;
+            bool tacticalNeed = inSetupBand || (snapshot.LeaderThreatened && snapshot.TargetDistance <= triggerOuter + 10f);
+            bool feasible = hasSkill
+                && enoughMana
+                && enoughStamina
+                && offCooldown
+                && snapshot.CanStartAction
+                && tacticalNeed
+                && safeToChannel;
+
+            float proximity = ResponseCurve.InverseSmoothRamp(
+                snapshot.TargetDistance,
+                Mathf.Max(1f, panicRange + 4f),
+                Mathf.Max(panicRange + 6f, triggerOuter));
+            float pressure = Mathf.Clamp(snapshot.ThreatSeverity, 0f, 1f);
+            float leaderBias = snapshot.LeaderThreatened ? 0.10f : 0f;
+            float rhythm = blackboard.GetActionRhythmMultiplier(skillKey);
+            float score = Mathf.Clamp(
+                (0.78f + 0.15f * proximity + 0.05f * pressure + leaderBias) * rhythm,
+                0f,
+                0.96f);
+
+            string failure = string.Empty;
+            if (!hasSkill) failure = "secondary_skill_missing";
+            else if (!enoughMana) failure = "insufficient_mana";
+            else if (!enoughStamina) failure = "insufficient_stamina";
+            else if (!offCooldown) failure = "skill_cooldown";
+            else if (!snapshot.CanStartAction) failure = "state_blocks_cast";
+            else if (!tacticalNeed) failure = "target_not_in_ward_setup_band";
+            else if (!safeToChannel) failure = "two_second_channel_unsafe";
+
+            candidates.Add(BuildCandidate(
+                MakeIntent(
+                    CombatIntentType.CastDefensive,
+                    snapshot,
+                    skill?.SkillId ?? string.Empty,
+                    snapshot.SelfPosition,
+                    panicRange,
+                    triggerOuter,
+                    2.05f,
+                    "frost_ward_preemptive_zone"),
+                feasible,
+                score,
+                failure,
+                TacticalActionTag.Control
+                    | TacticalActionTag.Defensive
+                    | TacticalActionTag.Area
+                    | TacticalActionTag.HighCommitment
+                    | TacticalActionTag.ManaHeavy,
+                new Dictionary<string, float>
+                {
+                    ["proximity"] = proximity,
+                    ["pressure"] = pressure,
+                    ["setup_band"] = inSetupBand ? 1f : 0f,
+                    ["leader_threatened"] = snapshot.LeaderThreatened ? 1f : 0f,
+                    ["safe_to_channel"] = safeToChannel ? 1f : 0f,
+                    ["rhythm"] = rhythm
                 }));
         }
 

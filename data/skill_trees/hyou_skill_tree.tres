@@ -4,6 +4,7 @@
 [ext_resource type="Script" uid="uid://cj5qroq8k1p1r" path="res://scripts/Combat/Abilities/SkillTree/SkillTreeBranchData.cs" id="2_branch"]
 [ext_resource type="Script" uid="uid://loxofqjkqcsd" path="res://scripts/Combat/Abilities/SkillTree/SkillTreeNodeData.cs" id="3_node"]
 [ext_resource type="Resource" uid="uid://cqaq6w22d6hn7" path="res://data/combat/skills/hyou_ice_bolt.tres" id="4_ice_bolt"]
+[ext_resource type="Resource" path="res://data/combat/skills/hyou_frost_ward.tres" id="5_frost_ward"]
 [ext_resource type="Texture2D" uid="uid://cwaknh3l4dox6" path="res://data/icons/spi.tres" id="10_ice_icon"]
 
 [sub_resource type="Resource" id="Node_ice_bolt"]
@@ -14,13 +15,22 @@ GraphPosition = Vector2(80, 150)
 SkillPointCost = 0
 GrantedByDefault = true
 
+[sub_resource type="Resource" id="Node_frost_ward"]
+script = ExtResource("3_node")
+NodeId = "hyou_frost_ward"
+Skill = ExtResource("5_frost_ward")
+GraphPosition = Vector2(250, 150)
+RequiredNodeIds = Array[String](["hyou_ice_bolt"])
+SkillPointCost = 0
+GrantedByDefault = true
+
 [sub_resource type="Resource" id="Branch_ice"]
 script = ExtResource("2_branch")
 BranchId = "hyou_cryomancy"
 BranchName = "Băng thuật"
 Description = "Nhánh phép tầm xa và điều khiển hàn khí của Hyou."
 Icon = ExtResource("10_ice_icon")
-Nodes = Array[ExtResource("3_node")]([SubResource("Node_ice_bolt")])
+Nodes = Array[ExtResource("3_node")]([SubResource("Node_ice_bolt"), SubResource("Node_frost_ward")])
 
 [resource]
 script = ExtResource("1_tree")

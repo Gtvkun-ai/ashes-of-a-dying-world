@@ -56,6 +56,13 @@ namespace AshesofaDyingWorld.Combat.Decision.Profiles
                 : null;
         }
 
+        public SkillData GetSecondarySkill()
+        {
+            return GrantedSkills != null && GrantedSkills.Count > 1
+                ? GrantedSkills[1]
+                : null;
+        }
+
         public void GetValidatedRanges(
             out float panic,
             out float unsafeRange,

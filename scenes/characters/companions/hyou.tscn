@@ -14,6 +14,8 @@
 [ext_resource type="Resource" path="res://data/combat/movesets/hyou_cryomancer.tres" id="12_moveset"]
 [ext_resource type="Script" path="res://scripts/Combat/Decision/Debug/CombatDecisionDebugOverlay.cs" id="13_debug_overlay"]
 [ext_resource type="Script" path="res://scripts/World/Camera/PlayerCameraZoom.cs" id="14_camera_zoom"]
+[ext_resource type="Script" path="res://scripts/Combat/Visuals/HyouFrostWardCastVisual.cs" id="15_frost_ward_cast"]
+[ext_resource type="Texture2D" path="res://assets/graphics/characters/hyou/vfx/frost_ward/frost_ward_circle.png" id="16_frost_ward_circle"]
 
 [ext_resource type="Script" path="res://scripts/World/Environment/ShadowCaster2D.cs" id="99_shadow"]
 [ext_resource type="Resource" path="res://data/world/shadows/character.tres" id="98_shadow_profile"]
@@ -96,6 +98,17 @@ z_index = 4
 
 [node name="UpIceBolt" type="AnimatedSprite2D" parent="HyouCastVisual"]
 z_index = 6
+
+[node name="HyouFrostWardCastVisual" type="Node2D" parent="."]
+script = ExtResource("15_frost_ward_cast")
+CircleTexture = ExtResource("16_frost_ward_circle")
+GroundOffset = Vector2(0, 14)
+CastDurationSeconds = 2.0
+StartScale = 1.35
+EndScale = 1.62
+StartAlpha = 0.18
+EndAlpha = 0.95
+DebugLogging = false
 
 [node name="CastOrigin" type="Marker2D" parent="."]
 position = Vector2(0, -8)

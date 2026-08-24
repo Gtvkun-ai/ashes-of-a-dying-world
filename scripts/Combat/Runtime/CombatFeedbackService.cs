@@ -193,7 +193,8 @@ namespace AshesofaDyingWorld.Combat.Runtime
                 return;
             }
 
-            if (action.ActionId == "hyou_ice_bolt" && _iceCastCue != null)
+            if ((action.ActionId == "hyou_ice_bolt" || action.ActionId == "hyou_frost_ward")
+                && _iceCastCue != null)
             {
                 AudioManager.Instance.PlaySfx(_iceCastCue);
             }
@@ -210,9 +211,11 @@ namespace AshesofaDyingWorld.Combat.Runtime
                 return;
             }
 
-            if (action.ActionId == "hyou_ice_bolt"
-                && actionEvent.EventType == CombatActionEventType.SpawnProjectile
-                && _iceReleaseCue != null)
+            bool iceRelease = action.ActionId == "hyou_ice_bolt"
+                && actionEvent.EventType == CombatActionEventType.SpawnProjectile;
+            bool wardRelease = action.ActionId == "hyou_frost_ward"
+                && actionEvent.EventType == CombatActionEventType.SpawnField;
+            if ((iceRelease || wardRelease) && _iceReleaseCue != null)
             {
                 AudioManager.Instance.PlaySfx(_iceReleaseCue);
             }

@@ -2,6 +2,7 @@ using Godot;
 using AshesofaDyingWorld.Combat.Actors;
 using AshesofaDyingWorld.Combat.Data;
 using AshesofaDyingWorld.Combat.Projectiles;
+using AshesofaDyingWorld.Combat.Fields;
 
 namespace AshesofaDyingWorld.Combat.Runtime
 {
@@ -51,6 +52,31 @@ namespace AshesofaDyingWorld.Combat.Runtime
                             + $"event={actionEvent.EventId} type={actionEvent.EventType}");
                     }
                     return spawned;
+
+                case CombatActionEventType.SpawnField:
+                    if (actionEvent.FieldSpec == null)
+                    {
+                        GD.PushError(
+                            $"[CombatActionEvent] SpawnField thiếu spec "
+                            + $"action={action.ActionId} event={actionEvent.EventId}");
+                        return false;
+                    }
+
+                    bool fieldSpawned = CombatFieldSpawner.Spawn(
+                        owner,
+                        action,
+                        actionEvent.FieldSpec,
+                        owner.Actions?.CurrentDamageMultiplier ?? 1f) != null;
+                    if (fieldSpawned)
+                    {
+                        CombatFeedbackService.GetOrCreate(owner.GetTree())?
+                            .PlayActionEvent(owner, action, actionEvent);
+                        GD.Print(
+                            $"[CombatActionEvent] FIRED build=v9-field-spine "
+                            + $"actor={owner.CombatantId} action={action.ActionId} "
+                            + $"event={actionEvent.EventId} type={actionEvent.EventType}");
+                    }
+                    return fieldSpawned;
 
                 case CombatActionEventType.PresentationCue:
                     // Cột sống đã có cue id và thời điểm chuẩn; audio/VFX service có thể bind sau

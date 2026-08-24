@@ -1,0 +1,58 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/characters/player/player.tscn" id="1_player"]
+[ext_resource type="PackedScene" path="res://scenes/characters/companions/hyou.tscn" id="2_hyou"]
+[ext_resource type="PackedScene" path="res://scenes/characters/enemies/slime_01.tscn" id="3_slime"]
+
+[node name="HyouFrostWardTest" type="Node2D"]
+
+[node name="Backdrop" type="Polygon2D" parent="."]
+z_index = -100
+polygon = PackedVector2Array(-900, -600, 900, -600, 900, 600, -900, 600)
+color = Color(0.075, 0.105, 0.14, 1)
+
+[node name="WardSetupBand" type="Polygon2D" parent="."]
+z_index = -90
+polygon = PackedVector2Array(-96, -62, 30, -62, 30, 62, -96, 62)
+color = Color(0.08, 0.24, 0.32, 0.30)
+
+[node name="Player" parent="." instance=ExtResource("1_player")]
+position = Vector2(-128, 86)
+
+[node name="Hyou" parent="." instance=ExtResource("2_hyou")]
+position = Vector2(-64, 0)
+
+[node name="TargetSlime" parent="." instance=ExtResource("3_slime")]
+process_mode = 4
+position = Vector2(10, 0)
+
+[node name="Guide" type="Line2D" parent="."]
+z_index = -80
+points = PackedVector2Array(-64, 0, 10, 0)
+width = 2.0
+default_color = Color(0.35, 0.82, 1, 0.55)
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="Panel" type="ColorRect" parent="UI"]
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 690.0
+offset_bottom = 128.0
+color = Color(0.025, 0.035, 0.05, 0.9)
+mouse_filter = 2
+
+[node name="Title" type="Label" parent="UI/Panel"]
+offset_left = 16.0
+offset_top = 10.0
+offset_right = 650.0
+offset_bottom = 34.0
+theme_override_font_sizes/font_size = 18
+text = "HYOU FROST WARD TEST"
+
+[node name="Instructions" type="Label" parent="UI/Panel"]
+offset_left = 16.0
+offset_top = 39.0
+offset_right = 650.0
+offset_bottom = 102.0
+text = "Slime đứng cách Hyou ~74 px: AI nên chọn CastDefensive(hyou_frost_ward).\nCast đúng 2 giây: chỉ vòng phép hiện dưới chân. Khi hoàn tất crystal nhô lên và field ARMED.\nĐẩy slime ra -> Chill +1; slime phải ra ngoài rồi bước vào lại mới trigger lần nữa. Chill x3 -> Frozen."

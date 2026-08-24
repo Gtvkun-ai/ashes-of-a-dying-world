@@ -1,26 +1,25 @@
-[gd_resource type="Resource" script_class="Registry" load_steps=2 format=3 uid="uid://dxu5hb1g654v6"]
+[gd_resource type="Resource" script_class="Registry" format=3 uid="uid://dxu5hb1g654v6"]
 
-[ext_resource type="Script" path="res://addons/yard/registry.gd" id="1_registry"]
+[ext_resource type="Script" uid="uid://dqtv77mng5dyh" path="res://addons/yard/registry.gd" id="1_registry"]
 
 [resource]
 script = ExtResource("1_registry")
 _class_restriction = &"CombatActionData"
 _scan_directory = "res://data/combat/actions"
 _recursive_scan = true
-_scan_auto = true
-_scan_remove = true
 _uids_to_string_ids = Dictionary[StringName, StringName]({
 &"uid://bhmaw8s16tvt3": &"hyou_ice_bolt",
 &"uid://bnrsapgjgmwn": &"slime_bite",
 &"uid://brhcdps2lufu": &"wood_sword_heavy",
+&"uid://btc78w1apx887": &"hyou_frost_ward",
 &"uid://dtp84xtvwja2f": &"wood_sword_light_1",
 &"uid://nfr2k324qaul": &"wood_sword_light_2"
 })
 _string_ids_to_uids = Dictionary[StringName, StringName]({
+&"hyou_frost_ward": &"uid://btc78w1apx887",
 &"hyou_ice_bolt": &"uid://bhmaw8s16tvt3",
 &"slime_bite": &"uid://bnrsapgjgmwn",
 &"wood_sword_heavy": &"uid://brhcdps2lufu",
 &"wood_sword_light_1": &"uid://dtp84xtvwja2f",
 &"wood_sword_light_2": &"uid://nfr2k324qaul"
 })
-_property_index = Dictionary[StringName, Dictionary]({})

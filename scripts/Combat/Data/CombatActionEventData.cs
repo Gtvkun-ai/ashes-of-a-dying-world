@@ -10,7 +10,8 @@ namespace AshesofaDyingWorld.Combat.Data
     {
         SpawnProjectile = 0,
         PresentationCue = 1,
-        SelfEffect = 2
+        SelfEffect = 2,
+        SpawnField = 3
     }
 
     /// <summary>
@@ -32,6 +33,7 @@ namespace AshesofaDyingWorld.Combat.Data
 
         [ExportGroup("Payload")]
         [Export] public ProjectileSpecData ProjectileSpec { get; set; }
+        [Export] public CombatFieldSpecData FieldSpec { get; set; }
         [Export] public NodePath OriginSocketPath { get; set; } = new NodePath("CastOrigin");
         [Export] public StringName CueId { get; set; } = new StringName(string.Empty);
 

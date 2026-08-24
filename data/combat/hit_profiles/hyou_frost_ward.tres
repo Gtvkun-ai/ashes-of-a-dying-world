@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="HitProfileData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/Combat/Data/HitProfileData.cs" id="1_hit"]
+
+[resource]
+script = ExtResource("1_hit")
+DamageType = 6
+PowerScaling = 4
+BaseDamage = 0.0
+AttackPowerScale = 0.0
+ArmorPenetration = 0.0
+GuardDamage = 0.0
+PoiseDamage = 0.0
+HitstunSeconds = 0.08
+KnockbackForce = 172.0
+SlowPercent = 18.0
+SlowSeconds = 2.4
+ChillStacks = 1
+ChillSeconds = 6.0
+FreezeAtChillStacks = 3
+FreezeSeconds = 0.95
+HitStopSeconds = 0.025
+HitFlashSeconds = 0.07
+CameraShakeStrength = 0.28
+ImpactVfxScale = 0.88
+HitboxSize = Vector2(14, 14)
+Reach = 0.0

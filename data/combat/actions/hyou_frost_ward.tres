@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="CombatActionData" format=3 uid="uid://btc78w1apx887"]
+
+[ext_resource type="Script" uid="uid://ka2t1rxetu3" path="res://scripts/Combat/Data/CombatActionData.cs" id="1_action"]
+[ext_resource type="Resource" path="res://data/combat/hit_profiles/hyou_frost_ward.tres" id="2_hit"]
+[ext_resource type="Script" uid="uid://c1n6tin5w1evj" path="res://scripts/Combat/Data/CombatActionEventData.cs" id="3_event"]
+[ext_resource type="Resource" path="res://data/combat/fields/hyou_frost_ward.tres" id="4_field"]
+
+[sub_resource type="Resource" id="Resource_spawn_frost_ward"]
+script = ExtResource("3_event")
+EventId = "spawn_hyou_frost_ward"
+EventType = 3
+TriggerFrame = 7
+TriggerNormalizedTime = 0.99
+FieldSpec = ExtResource("4_field")
+
+[resource]
+script = ExtResource("1_action")
+ActionId = "hyou_frost_ward"
+Tags = 8
+AnimationTemplate = "ice_bolt_{dir}"
+ActiveStartFrame = 7
+ActiveEndFrame = 7
+EndFrame = 7
+PlaybackSpeedMultiplier = 0.7
+ScalePlaybackWithAttackSpeed = false
+StartupSeconds = 2.0
+ActiveSeconds = 0.05
+RecoverySeconds = 0.08
+InputBufferSeconds = 0.1
+StaminaCost = 0.0
+LungeSpeed = 0.0
+DeliveryMode = 2
+HitProfile = ExtResource("2_hit")
+Events = Array[ExtResource("3_event")]([SubResource("Resource_spawn_frost_ward")])

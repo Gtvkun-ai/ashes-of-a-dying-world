@@ -8,6 +8,7 @@
 [ext_resource type="Resource" uid="uid://cqaq6w22d6hn7" path="res://data/combat/skills/hyou_ice_bolt.tres" id="4_ice_bolt"]
 [ext_resource type="Resource" uid="uid://mxp13qosa7du" path="res://data/skill_trees/hyou_skill_tree.tres" id="5_skill_tree"]
 [ext_resource type="Resource" uid="uid://c8x4n2m6q7p1r" path="res://data/balance/core_power.tres" id="6_balance"]
+[ext_resource type="Resource" path="res://data/combat/skills/hyou_frost_ward.tres" id="7_frost_ward"]
 
 [sub_resource type="CompressedTexture2D" id="CompressedTexture2D_yky31"]
 load_path = "res://.godot/imported/icon.png-343b79491001e7a536b98b148ee8e383.ctex"
@@ -21,7 +22,7 @@ Avatar = ExtResource("1_dor51")
 BodyScene = ExtResource("3_tmsvj")
 CharacterRace = ExtResource("2_pl1xm")
 BalanceProfile = ExtResource("6_balance")
-ActiveSkills = Array[Resource]([ExtResource("4_ice_bolt")])
+ActiveSkills = Array[Resource]([ExtResource("4_ice_bolt"), ExtResource("7_frost_ward")])
 ComboSequence = Array[Resource]([ExtResource("4_ice_bolt")])
 SkillTree = ExtResource("5_skill_tree")
 ThemeColor = Color(0.22, 0.74, 0.97, 1)
