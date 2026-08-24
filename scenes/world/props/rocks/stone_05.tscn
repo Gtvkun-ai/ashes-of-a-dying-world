@@ -2,17 +2,20 @@
 
 [ext_resource type="Texture2D" uid="uid://dfu2mmbrsicgx" path="res://assets/graphics/environment/rocks/stone_large_01.png" id="1_x14md"]
 [ext_resource type="Shader" uid="uid://boasfh1rkvr06" path="res://assets/shaders/world/rock_relight.gdshader" id="97_relight"]
+[ext_resource type="Texture2D" path="res://assets/graphics/environment/rocks/stone_large_01_normal.png" id="96_normal"]
+[ext_resource type="Texture2D" path="res://assets/graphics/environment/rocks/stone_large_01_ao.png" id="95_ao"]
 [ext_resource type="Resource" uid="uid://dd24532x37e5k" path="res://data/world/shadows/rock_large.tres" id="98_shadow_profile"]
 [ext_resource type="Script" uid="uid://dpj0gwv5r1fh0" path="res://scripts/World/Environment/ShadowCaster2D.cs" id="99_shadow"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_rock_relight"]
 shader = ExtResource("97_relight")
-shader_parameter/bump_pixels = 3.0
-shader_parameter/relight_strength = 0.82
-shader_parameter/highlight_gain = 0.23
-shader_parameter/shade_gain = 0.21
-shader_parameter/cavity_gain = 0.11
-
+shader_parameter/normal_map = ExtResource("96_normal")
+shader_parameter/ao_map = ExtResource("95_ao")
+shader_parameter/normal_strength = 0.20
+shader_parameter/ao_strength = 0.26
+shader_parameter/highlight_gain = 0.055
+shader_parameter/golden_gain = 0.070
+shader_parameter/wet_darken = 0.040
 [sub_resource type="SpriteFrames" id="SpriteFrames_1eg2o"]
 animations = [{
 "frames": [{
