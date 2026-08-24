@@ -974,14 +974,14 @@ shader_parameter/macro_mask = ExtResource("43_grass_macro")
 shader_parameter/micro_detail = ExtResource("44_grass_micro")
 shader_parameter/contact_mask = ExtResource("45_grass_contact")
 shader_parameter/normal_soft = ExtResource("46_grass_normal")
-shader_parameter/macro_strength = 0.065
-shader_parameter/micro_strength = 0.032
-shader_parameter/contact_strength = 0.095
-shader_parameter/contact_coolth = 0.045
-shader_parameter/normal_strength = 0.055
-shader_parameter/sun_gain = 0.042
-shader_parameter/golden_gain = 0.075
-shader_parameter/wet_darken = 0.05
+shader_parameter/macro_strength = 0.05
+shader_parameter/micro_strength = 0.018
+shader_parameter/contact_strength = 0.082
+shader_parameter/contact_coolth = 0.036
+shader_parameter/normal_strength = 0.0
+shader_parameter/sun_gain = 0.028
+shader_parameter/golden_gain = 0.045
+shader_parameter/wet_darken = 0.038
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_path_v4"]
 shader = ExtResource("42_path_shader")
@@ -989,7 +989,7 @@ shader_parameter/normal_map = ExtResource("47_path_normal")
 shader_parameter/ao_map = ExtResource("48_path_ao")
 shader_parameter/normal_strength = 0.16
 shader_parameter/ao_strength = 0.22
-shader_parameter/sun_gain = 0.035
+shader_parameter/sun_gain = 0.0285
 shader_parameter/golden_gain = 0.1
 shader_parameter/wet_darken = 0.075
 
@@ -1003,7 +1003,7 @@ shader_parameter/ao_strength = 0.3
 shader_parameter/wall_darkening = 0.095
 shader_parameter/stairs_darkening = 0.035
 shader_parameter/edge_gain = 0.045
-shader_parameter/golden_gain = 0.075
+shader_parameter/golden_gain = 0.045
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_stairs_v3"]
 shader = ExtResource("39_cliff_shader")
@@ -1077,7 +1077,6 @@ texture_filter = 1
 z_index = -10
 texture_filter = 1
 material = SubResource("ShaderMaterial_ground_v3")
-scale = Vector2(4, 4)
 texture = ExtResource("20_ground_base")
 centered = false
 

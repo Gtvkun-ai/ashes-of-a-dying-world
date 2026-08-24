@@ -1,6 +1,7 @@
 shader_type canvas_item;
+render_mode unshaded;
 
-// Ashes Environment V5.2 - authored normal/AO cliff and stairs material.
+// Ashes Environment V5.4 - restrained authored normal/AO cliff and stairs material.
 global uniform float env_daylight;
 global uniform float env_night;
 global uniform vec2 env_key_direction;
@@ -15,12 +16,12 @@ uniform sampler2D normal_map : filter_linear, repeat_disable;
 uniform sampler2D ao_map : filter_linear, repeat_disable;
 // 1 = vertical cliff wall, 2 = stairs.
 uniform float surface_mode : hint_range(1.0, 2.0, 1.0) = 1.0;
-uniform float normal_strength : hint_range(0.0, 0.50) = 0.20;
-uniform float ao_strength : hint_range(0.0, 0.60) = 0.30;
+uniform float normal_strength : hint_range(0.0, 0.50) = 0.15;
+uniform float ao_strength : hint_range(0.0, 0.60) = 0.26;
 uniform float wall_darkening : hint_range(0.0, 0.30) = 0.095;
 uniform float stairs_darkening : hint_range(0.0, 0.20) = 0.035;
-uniform float edge_gain : hint_range(0.0, 0.20) = 0.045;
-uniform float golden_gain : hint_range(0.0, 0.30) = 0.075;
+uniform float edge_gain : hint_range(0.0, 0.20) = 0.028;
+uniform float golden_gain : hint_range(0.0, 0.30) = 0.050;
 
 void fragment() {
     vec4 base = COLOR;

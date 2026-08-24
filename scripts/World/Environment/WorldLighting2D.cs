@@ -11,12 +11,12 @@ namespace AshesofaDyingWorld.World.Environment
     /// </summary>
     public partial class WorldLighting2D : Node2D
     {
-        // V4: direct light is deliberately restrained. Material shaders create directional form;
-        // DirectionalLight2D only provides a coherent fill so baked AI assets do not blow out neon-green.
-        private const float SunDirectScale = 0.24f;
-        private const float MoonDirectScale = 0.55f;
-        private const float MaxSunFillEnergy = 0.14f;
-        private const float MaxMoonFillEnergy = 0.05f;
+        // V5.4: custom world materials are unshaded and own their relighting.
+        // DirectionalLight2D is now only a restrained fallback for sprites/actors without a custom material.
+        private const float SunDirectScale = 0.14f;
+        private const float MoonDirectScale = 0.42f;
+        private const float MaxSunFillEnergy = 0.075f;
+        private const float MaxMoonFillEnergy = 0.040f;
 
         private DirectionalLight2D _sun;
         private DirectionalLight2D _moon;
@@ -57,7 +57,7 @@ namespace AshesofaDyingWorld.World.Environment
             if (!_reportedReady)
             {
                 _reportedReady = true;
-                GD.Print("[WorldLighting2D] READY V4 restrained sun fill + readable moon fill");
+                GD.Print("[WorldLighting2D] READY V5.4 fallback-only restrained sun/moon fill");
             }
         }
 

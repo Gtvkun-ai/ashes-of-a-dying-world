@@ -1,6 +1,7 @@
 shader_type canvas_item;
+render_mode unshaded;
 
-// Ashes Water V5.3 - authored depth / shoreline / surface detail.
+// Ashes Water V5.4 - restrained depth / shoreline / surface detail.
 global uniform float env_daylight;
 global uniform float env_night;
 global uniform vec2 env_key_direction;
@@ -20,12 +21,12 @@ uniform sampler2D surface_detail : filter_nearest, repeat_disable;
 uniform vec3 shallow_tint : source_color = vec3(0.78, 0.96, 0.86);
 uniform vec3 deep_tint : source_color = vec3(0.48, 0.76, 0.88);
 uniform float depth_color_strength : hint_range(0.0, 1.0) = 0.30;
-uniform float shoreline_gain : hint_range(0.0, 0.25) = 0.075;
-uniform float shimmer_response : hint_range(0.0, 2.0) = 0.90;
-uniform float ripple_response : hint_range(0.0, 2.0) = 0.72;
+uniform float shoreline_gain : hint_range(0.0, 0.25) = 0.055;
+uniform float shimmer_response : hint_range(0.0, 2.0) = 0.76;
+uniform float ripple_response : hint_range(0.0, 2.0) = 0.62;
 uniform float animation_speed : hint_range(0.0, 4.0) = 0.50;
-uniform float golden_glint : hint_range(0.0, 0.6) = 0.18;
-uniform float night_glint : hint_range(0.0, 0.6) = 0.16;
+uniform float golden_glint : hint_range(0.0, 0.6) = 0.13;
+uniform float night_glint : hint_range(0.0, 0.6) = 0.12;
 
 float hash(vec2 p) {
     p = fract(p * vec2(127.1, 311.7));
@@ -48,7 +49,7 @@ void fragment() {
 
         vec3 depth_tint = mix(shallow_tint, deep_tint, smoothstep(0.05, 0.92, depth));
         result = mix(result, result * depth_tint, depth_color_strength);
-        result *= 1.0 + detail * 0.035;
+        result *= 1.0 + detail * 0.024;
 
         vec3 shore_color = mix(vec3(0.70, 0.88, 0.76), env_key_color.rgb, golden * 0.55);
         result += shore_color * shore * shoreline_gain * (0.35 + day * 0.65);

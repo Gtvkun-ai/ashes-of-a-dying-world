@@ -3,7 +3,7 @@ using Godot;
 namespace AshesofaDyingWorld.World.Environment
 {
     /// <summary>
-    /// Binder map V5.0.
+    /// Binder map V5.4.
     ///
     /// EnvironmentState -> GPU globals đã do WorldEnvironmentService + ShaderGlobalBridge xử lý.
     /// Binder chỉ gắn các consumer thuộc riêng scene map: CanvasModulate, lighting, shadow system,
@@ -33,7 +33,7 @@ namespace AshesofaDyingWorld.World.Environment
             _environment = WorldEnvironmentService.GetOrCreate(GetTree());
             if (_environment == null)
             {
-                GD.PrintErr("[EnvironmentBinder2D V5] WorldEnvironmentService unavailable.");
+                GD.PrintErr("[EnvironmentBinder2D V5.4] WorldEnvironmentService unavailable.");
                 SetProcess(false);
                 return;
             }
@@ -109,8 +109,8 @@ namespace AshesofaDyingWorld.World.Environment
             {
                 _reportedReady = true;
                 GD.Print(
-                    $"[EnvironmentBinder2D] READY V5.1h | gpu=global_uniforms | material_scan=OFF | vegetation=native_tree_package | " +
-                    $"shadow=ground_footprint | mass_shadow=ON | profile={Profile?.ResourcePath ?? "<none>"}");
+                    $"[EnvironmentBinder2D] READY V5.4 | gpu=global_uniforms | material_scan=OFF | lighting_owner=material | " +
+                    $"grass_canvas=456x474 | shadow=ground_footprint | mass_shadow=ON | profile={Profile?.ResourcePath ?? "<none>"}");
             }
         }
 

@@ -1,6 +1,7 @@
 shader_type canvas_item;
+render_mode unshaded;
 
-// Ashes Environment V5.3 - authored dirt path response.
+// Ashes Environment V5.4 - restrained authored dirt path response.
 global uniform float env_daylight;
 global uniform float env_night;
 global uniform vec2 env_key_direction;
@@ -13,10 +14,10 @@ global uniform float env_cloudiness;
 
 uniform sampler2D normal_map : filter_linear, repeat_disable;
 uniform sampler2D ao_map : filter_linear, repeat_disable;
-uniform float normal_strength : hint_range(0.0, 0.40) = 0.16;
-uniform float ao_strength : hint_range(0.0, 0.50) = 0.22;
-uniform float sun_gain : hint_range(0.0, 0.20) = 0.035;
-uniform float golden_gain : hint_range(0.0, 0.30) = 0.10;
+uniform float normal_strength : hint_range(0.0, 0.40) = 0.12;
+uniform float ao_strength : hint_range(0.0, 0.50) = 0.19;
+uniform float sun_gain : hint_range(0.0, 0.20) = 0.020;
+uniform float golden_gain : hint_range(0.0, 0.30) = 0.065;
 uniform float wet_darken : hint_range(0.0, 0.30) = 0.075;
 
 void fragment() {

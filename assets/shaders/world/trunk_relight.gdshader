@@ -1,6 +1,7 @@
 shader_type canvas_item;
+render_mode unshaded;
 
-// V4 trunk/wood relight. Tiny material, but it matters because bright roots are a major cue in the target art.
+// V5.4 restrained trunk/wood relight. Tiny material, but it matters because bright roots are a major cue in the target art.
 global uniform float env_time01;
 global uniform float env_daylight;
 global uniform float env_night;
@@ -21,9 +22,9 @@ global uniform float env_shadow_strength;
 global uniform float env_water_shimmer;
 global uniform float env_water_ripple;
 uniform float bump_pixels : hint_range(1.0, 6.0) = 2.0;
-uniform float highlight_gain : hint_range(0.0, 0.50) = 0.18;
-uniform float shade_gain : hint_range(0.0, 0.50) = 0.16;
-uniform float root_ao : hint_range(0.0, 0.30) = 0.08;
+uniform float highlight_gain : hint_range(0.0, 0.50) = 0.12;
+uniform float shade_gain : hint_range(0.0, 0.50) = 0.12;
+uniform float root_ao : hint_range(0.0, 0.30) = 0.07;
 
 float luma(vec3 c) {
     return dot(c, vec3(0.2126, 0.7152, 0.0722));
@@ -47,7 +48,7 @@ void fragment() {
 
         result *= 1.0 + max(side, 0.0) * highlight_gain * response;
         result *= 1.0 - max(-side, 0.0) * shade_gain * response;
-        result += env_key_color.rgb * max(side, 0.0) * response * (0.020 + golden * 0.055);
+        result += env_key_color.rgb * max(side, 0.0) * response * (0.012 + golden * 0.036);
 
         float root = smoothstep(0.62, 1.0, UV.y);
         result *= 1.0 - root * root_ao;

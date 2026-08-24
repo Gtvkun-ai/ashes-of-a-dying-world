@@ -1,6 +1,7 @@
 shader_type canvas_item;
+render_mode unshaded;
 
-// Ashes Environment V5.2 - authored rock normal/AO response.
+// Ashes Environment V5.4 - restrained authored rock normal/AO response.
 global uniform float env_daylight;
 global uniform float env_night;
 global uniform vec2 env_key_direction;
@@ -13,10 +14,10 @@ global uniform float env_cloudiness;
 
 uniform sampler2D normal_map : filter_linear, repeat_disable;
 uniform sampler2D ao_map : filter_linear, repeat_disable;
-uniform float normal_strength : hint_range(0.0, 0.60) = 0.20;
-uniform float ao_strength : hint_range(0.0, 0.60) = 0.26;
-uniform float highlight_gain : hint_range(0.0, 0.30) = 0.055;
-uniform float golden_gain : hint_range(0.0, 0.30) = 0.070;
+uniform float normal_strength : hint_range(0.0, 0.60) = 0.15;
+uniform float ao_strength : hint_range(0.0, 0.60) = 0.23;
+uniform float highlight_gain : hint_range(0.0, 0.30) = 0.032;
+uniform float golden_gain : hint_range(0.0, 0.30) = 0.050;
 uniform float wet_darken : hint_range(0.0, 0.30) = 0.040;
 
 void fragment() {

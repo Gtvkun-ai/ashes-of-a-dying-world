@@ -1,6 +1,7 @@
 shader_type canvas_item;
+render_mode unshaded;
 
-// Ashes Environment V4.0 - small wet vegetation / lily-pad response.
+// Ashes Environment V5.4 - restrained wet vegetation / lily-pad response.
 global uniform float env_time01;
 global uniform float env_daylight;
 global uniform float env_night;
@@ -20,7 +21,7 @@ global uniform float env_cloudiness;
 global uniform float env_shadow_strength;
 global uniform float env_water_shimmer;
 global uniform float env_water_ripple;
-uniform float wet_highlight : hint_range(0.0, 1.0) = 0.12;
+uniform float wet_highlight : hint_range(0.0, 1.0) = 0.09;
 uniform float pulse_speed : hint_range(0.0, 3.0) = 0.50;
 
 void fragment() {
