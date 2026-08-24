@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://0knms5qief8n"
-path="res://.godot/imported/04_cliff_top.png-bfb1d70d26cb601ff31b67592145be23.ctex"
+uid="uid://d2ptdpkyxc6ib"
+path="res://.godot/imported/05_cliff_wall_ao.png-ba98de76c078598aa467d76ad608594c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/graphics/world/whispering_fields/field_01_layers/04_cliff_top.png"
-dest_files=["res://.godot/imported/04_cliff_top.png-bfb1d70d26cb601ff31b67592145be23.ctex"]
+source_file="res://assets/graphics/world/whispering_fields/field_01_layers/05_cliff_wall_ao.png"
+dest_files=["res://.godot/imported/05_cliff_wall_ao.png-ba98de76c078598aa467d76ad608594c.ctex"]
 
 [params]
 

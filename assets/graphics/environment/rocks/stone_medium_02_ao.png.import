@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://gdf6worwo0q7"
-path="res://.godot/imported/01_ground_variation.png-9f4d9391bdffae352077e22142edbd3d.ctex"
+uid="uid://ddyysohxbpefb"
+path="res://.godot/imported/stone_medium_02_ao.png-22b43fe63770899242a8d2b23e873fa7.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/graphics/world/whispering_fields/field_01_layers/01_ground_variation.png"
-dest_files=["res://.godot/imported/01_ground_variation.png-9f4d9391bdffae352077e22142edbd3d.ctex"]
+source_file="res://assets/graphics/environment/rocks/stone_medium_02_ao.png"
+dest_files=["res://.godot/imported/stone_medium_02_ao.png-22b43fe63770899242a8d2b23e873fa7.ctex"]
 
 [params]
 

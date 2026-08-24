@@ -146,7 +146,8 @@ namespace AshesofaDyingWorld.Combat.Fields
                 if (_circleSprite != null)
                 {
                     float flash = Mathf.Sin(eased * Mathf.Pi) * 0.16f;
-                    _circleSprite.Scale = _baseCircleScale * (0.94f + eased * 0.06f);
+                    float phaseBloom = Mathf.Sin(eased * Mathf.Pi) * 0.035f;
+                    _circleSprite.Scale = _baseCircleScale * (1f + phaseBloom);
                     _circleSprite.Modulate = new Color(1f + flash, 1f + flash, 1f + flash, Mathf.Lerp(0.55f, 1f, eased));
                 }
 

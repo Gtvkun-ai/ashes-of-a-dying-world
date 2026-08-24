@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://7lsb2yt4l64v"
-path="res://.godot/imported/02_canopy_shadow.png-4f0f4eee326801291edf1725ff94136c.ctex"
+uid="uid://uyu5hbi6dyvu"
+path="res://.godot/imported/05_cliff_wall_normal.png-07c45789719900bd59153b57cc1ae114.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/graphics/world/whispering_fields/field_01_layers/02_canopy_shadow.png"
-dest_files=["res://.godot/imported/02_canopy_shadow.png-4f0f4eee326801291edf1725ff94136c.ctex"]
+source_file="res://assets/graphics/world/whispering_fields/field_01_layers/05_cliff_wall_normal.png"
+dest_files=["res://.godot/imported/05_cliff_wall_normal.png-07c45789719900bd59153b57cc1ae114.ctex"]
 
 [params]
 

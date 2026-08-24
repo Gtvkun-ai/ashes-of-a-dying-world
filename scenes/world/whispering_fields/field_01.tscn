@@ -17,13 +17,9 @@
 [ext_resource type="PackedScene" uid="uid://bw0xlnjpp75sv" path="res://scenes/world/props/trees/apple_tree.tscn" id="15_3drur"]
 [ext_resource type="PackedScene" uid="uid://bry35o5o8jdxs" path="res://scenes/world/props/flora/grass_patch.tscn" id="16_85bg5"]
 [ext_resource type="Texture2D" uid="uid://b0lo3nn34tbut" path="res://assets/graphics/world/whispering_fields/field_01_layers/00_ground_base.png" id="20_ground_base"]
-[ext_resource type="Texture2D" uid="uid://gdf6worwo0q7" path="res://assets/graphics/world/whispering_fields/field_01_layers/01_ground_variation.png" id="21_ground_variation"]
-[ext_resource type="Texture2D" uid="uid://7lsb2yt4l64v" path="res://assets/graphics/world/whispering_fields/field_01_layers/02_canopy_shadow.png" id="22_canopy_shadow"]
 [ext_resource type="Texture2D" uid="uid://divms3cxhhts2" path="res://assets/graphics/world/whispering_fields/field_01_layers/03_dirt_path.png" id="23_dirt_path"]
-[ext_resource type="Texture2D" uid="uid://0knms5qief8n" path="res://assets/graphics/world/whispering_fields/field_01_layers/04_cliff_top.png" id="24_cliff_top"]
 [ext_resource type="Texture2D" uid="uid://bkaxdql6x2xu3" path="res://assets/graphics/world/whispering_fields/field_01_layers/05_cliff_wall.png" id="25_cliff_wall"]
 [ext_resource type="Texture2D" uid="uid://mywaeqf86vc3" path="res://assets/graphics/world/whispering_fields/field_01_layers/06_stairs.png" id="26_stairs"]
-[ext_resource type="Texture2D" uid="uid://owhhyik6j355" path="res://assets/graphics/world/whispering_fields/field_01_layers/07_ground_details.png" id="27_ground_details"]
 [ext_resource type="Texture2D" uid="uid://3ovagg0v2clv" path="res://assets/graphics/world/whispering_fields/field_01_layers/09_1_mud_puddles water.png" id="28_wet_ground"]
 [ext_resource type="Texture2D" uid="uid://tl4uf1b5yttd" path="res://assets/graphics/world/whispering_fields/field_01_layers/09_2_mud_puddles water leaf.png" id="29_mud_puddles"]
 [ext_resource type="Script" uid="uid://mnugi7njro3q" path="res://scripts/World/Environment/EnvironmentBinder2D.cs" id="30_env_binder"]
@@ -979,12 +975,6 @@ shader_parameter/relief_gain = 0.075
 shader_parameter/golden_gain = 0.15
 shader_parameter/night_lift = 0.075
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_cliff_top_v3"]
-shader = ExtResource("39_cliff_shader")
-shader_parameter/surface_mode = 0.0
-shader_parameter/edge_gain = 0.19
-shader_parameter/cavity_gain = 0.12
-
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_cliff_wall_v3"]
 shader = ExtResource("39_cliff_shader")
 shader_parameter/surface_mode = 1.0
@@ -1060,27 +1050,11 @@ scale = Vector2(4, 4)
 texture = ExtResource("20_ground_base")
 centered = false
 
-[node name="GroundVariation" type="Sprite2D" parent="VisualGround" unique_id=409089131]
-z_index = -9
-texture_filter = 1
-scale = Vector2(4, 4)
-texture = ExtResource("21_ground_variation")
-centered = false
-
 [node name="GroundFineDetailV4" type="Sprite2D" parent="VisualGround" unique_id=1904101685]
 z_index = -8
 texture_filter = 1
 scale = Vector2(4, 4)
 texture = ExtResource("44_ground_detail_v4")
-centered = false
-
-[node name="GroundCanopyShadow" type="Sprite2D" parent="VisualGround" unique_id=1045449210]
-visible = false
-modulate = Color(1, 1, 1, 0)
-z_index = -8
-texture_filter = 1
-scale = Vector2(4, 4)
-texture = ExtResource("22_canopy_shadow")
 centered = false
 
 [node name="DirtPath" type="Sprite2D" parent="VisualGround" unique_id=1503719066]
@@ -1089,14 +1063,6 @@ texture_filter = 1
 material = SubResource("ShaderMaterial_path_v4")
 scale = Vector2(4, 4)
 texture = ExtResource("23_dirt_path")
-centered = false
-
-[node name="CliffTop" type="Sprite2D" parent="VisualGround" unique_id=1473951148]
-z_index = -6
-texture_filter = 1
-material = SubResource("ShaderMaterial_cliff_top_v3")
-scale = Vector2(4, 4)
-texture = ExtResource("24_cliff_top")
 centered = false
 
 [node name="CliffWall" type="Sprite2D" parent="VisualGround" unique_id=2050479709]
@@ -1127,13 +1093,6 @@ texture_filter = 1
 material = SubResource("ShaderMaterial_stairs_v3")
 scale = Vector2(4, 4)
 texture = ExtResource("26_stairs")
-centered = false
-
-[node name="GroundDetails" type="Sprite2D" parent="VisualGround" unique_id=1614054909]
-z_index = -2
-texture_filter = 1
-scale = Vector2(4, 4)
-texture = ExtResource("27_ground_details")
 centered = false
 
 [node name="WetGround" type="Sprite2D" parent="VisualGround" unique_id=194921631]

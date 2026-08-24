@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://nflrvf1yk4lh"
-path="res://.godot/imported/05_cliff_contact_ao_v4.png-8aab92c09045ff8b0646a8b90726c6b4.ctex"
+uid="uid://d10j8bi3txfu5"
+path="res://.godot/imported/stone_small_01_normal.png-66c2e872c7de81813af724e83c2bbe88.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/graphics/world/whispering_fields/field_01_layers/05_cliff_contact_ao_v4.png"
-dest_files=["res://.godot/imported/05_cliff_contact_ao_v4.png-8aab92c09045ff8b0646a8b90726c6b4.ctex"]
+source_file="res://assets/graphics/environment/rocks/stone_small_01_normal.png"
+dest_files=["res://.godot/imported/stone_small_01_normal.png-66c2e872c7de81813af724e83c2bbe88.ctex"]
 
 [params]
 
