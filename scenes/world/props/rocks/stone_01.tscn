@@ -35,7 +35,7 @@ Profile = ExtResource("98_shadow_profile")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=363603376]
 material = SubResource("ShaderMaterial_rock_relight")
-position = Vector2(0, 26.965029)
+position = Vector2(-0.079427, 28.616499)
 scale = Vector2(0.07942659, 0.08055952)
 skew = 0.0017453432
 sprite_frames = SubResource("SpriteFrames_tfppn")

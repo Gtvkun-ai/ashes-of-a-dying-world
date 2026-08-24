@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cintan48ve0lt"
-path="res://.godot/imported/11_ground_art_mask_v4.png-4121018c943ec4c74d7168457e8725cc.ctex"
+uid="uid://cfmoufu07afpx"
+path="res://.godot/imported/06_stairs_candidate_normal.png-d6da84c82a4eb6b4b0b0502e4bc0cce4.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/graphics/world/whispering_fields/field_01_layers/11_ground_art_mask_v4.png"
-dest_files=["res://.godot/imported/11_ground_art_mask_v4.png-4121018c943ec4c74d7168457e8725cc.ctex"]
+source_file="res://assets/graphics/world/whispering_fields/field_01_layers/06_stairs_candidate_normal.png"
+dest_files=["res://.godot/imported/06_stairs_candidate_normal.png-d6da84c82a4eb6b4b0b0502e4bc0cce4.ctex"]
 
 [params]
 

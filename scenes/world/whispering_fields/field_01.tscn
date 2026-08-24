@@ -37,6 +37,7 @@
 [ext_resource type="Shader" uid="uid://ced2ycupqm0nu" path="res://assets/shaders/world/path_lighting.gdshader" id="42_path_shader"]
 [ext_resource type="Texture2D" uid="uid://cintan48ve0lt" path="res://assets/graphics/world/whispering_fields/field_01_layers/11_ground_art_mask_v4.png" id="43_ground_art_mask"]
 [ext_resource type="Texture2D" uid="uid://b2rv6lwnr8mg3" path="res://assets/graphics/world/whispering_fields/field_01_layers/12_ground_detail_v4.png" id="44_ground_detail_v4"]
+[ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/12_grass_contact_mask.png" id="45_grass_contact_mask"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ey7of"]
 texture = ExtResource("1_ey7of")
@@ -962,9 +963,12 @@ sources/1 = SubResource("TileSetAtlasSource_ey7of")
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_ground_v3"]
 shader = ExtResource("38_ground_shader")
 shader_parameter/art_mask = ExtResource("43_ground_art_mask")
+shader_parameter/grass_contact_mask = ExtResource("45_grass_contact_mask")
 shader_parameter/macro_strength = 0.06
 shader_parameter/cavity_strength = 0.105
 shader_parameter/moisture_strength = 0.055
+shader_parameter/grass_contact_strength = 0.05
+shader_parameter/grass_contact_coolth = 0.06
 shader_parameter/sun_wash = 0.07
 shader_parameter/golden_gain = 0.115
 shader_parameter/wet_darken = 0.06

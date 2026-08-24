@@ -24,9 +24,13 @@ global uniform float env_water_shimmer;
 global uniform float env_water_ripple;
 // R=macro value field, G=terrain cavity/edge proximity, B=pond moisture proximity.
 uniform sampler2D art_mask : filter_nearest;
+// Grayscale contact map for path/cliff/pond/rock grounding.
+uniform sampler2D grass_contact_mask : filter_nearest;
 uniform float macro_strength : hint_range(0.0, 0.20) = 0.060;
 uniform float cavity_strength : hint_range(0.0, 0.25) = 0.105;
 uniform float moisture_strength : hint_range(0.0, 0.20) = 0.055;
+uniform float grass_contact_strength : hint_range(0.0, 0.16) = 0.050;
+uniform float grass_contact_coolth : hint_range(0.0, 0.18) = 0.060;
 uniform float sun_wash : hint_range(0.0, 0.20) = 0.070;
 uniform float golden_gain : hint_range(0.0, 0.25) = 0.115;
 uniform float wet_darken : hint_range(0.0, 0.20) = 0.060;
@@ -41,6 +45,7 @@ void fragment() {
 
     if (base.a > 0.001) {
         vec3 authored = texture(art_mask, UV).rgb;
+        float grass_contact = texture(grass_contact_mask, UV).r;
         float macro = (authored.r - 0.5) * 2.0;
         float cavity = authored.g;
         float moisture = authored.b;
@@ -59,6 +64,11 @@ void fragment() {
         // Slightly cooler, darker soil around the pond. It remains subtle under the water sprite.
         vec3 moist_tint = vec3(0.86, 0.96, 0.90);
         result = mix(result, result * moist_tint, moisture * moisture_strength / 0.20);
+
+        // Subtle grounding around authored objects without turning the grass muddy.
+        vec3 contact_tint = vec3(0.88, 0.96, 0.84);
+        result = mix(result, result * contact_tint, grass_contact * grass_contact_coolth);
+        result *= 1.0 - grass_contact * grass_contact_strength;
 
         // Sun only kisses the brighter macro fields. This is what avoids the old full-screen orange/olive wash.
         float sun_patch = smoothstep(-0.22, 0.72, macro);

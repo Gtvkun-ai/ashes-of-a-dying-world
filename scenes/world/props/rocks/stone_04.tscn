@@ -39,7 +39,7 @@ GroundOffset = Vector2(0, -1)
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=188021303]
 material = SubResource("ShaderMaterial_rock_relight")
-position = Vector2(0, 11.599161)
+position = Vector2(-0.061041, 11.929272)
 scale = Vector2(0.122081704, 0.13204426)
 sprite_frames = SubResource("SpriteFrames_ln8du")
 
