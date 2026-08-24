@@ -1,37 +1,18 @@
-[gd_scene load_steps=18 format=3 uid="uid://bw0xlnjpp75sv"]
+[gd_scene format=3 uid="uid://bw0xlnjpp75sv"]
 
-[ext_resource type="Texture2D" path="res://assets/graphics/environment/trees/apple_tree_trunk.png" id="1_trunk"]
-[ext_resource type="Texture2D" path="res://assets/graphics/environment/trees/apple_tree_canopy.png" id="2_canopy"]
-[ext_resource type="Shader" path="res://assets/shaders/world/foliage_wind.gdshader" id="3_wind"]
-[ext_resource type="Texture2D" path="res://assets/graphics/environment/shadows/v5_1/apple_tree_footprint_compact_v51.png" id="4_shadow_compact"]
-[ext_resource type="Texture2D" path="res://assets/graphics/environment/shadows/v5_1/apple_tree_footprint_medium_v51.png" id="14_shadow_medium"]
-[ext_resource type="Texture2D" path="res://assets/graphics/environment/shadows/v5_1/apple_tree_footprint_long_v51.png" id="15_shadow_long"]
-[ext_resource type="Texture2D" path="res://assets/graphics/environment/trees/apple_tree_canopy_normal.png" id="5_normal"]
-[ext_resource type="Shader" path="res://assets/shaders/world/trunk_relight.gdshader" id="6_trunk_shader"]
-[ext_resource type="Texture2D" path="res://assets/graphics/environment/trees/apple_tree_canopy_ao.png" id="7_ao"]
-[ext_resource type="Texture2D" path="res://assets/graphics/environment/trees/apple_tree.png" id="8_full_source"]
-[ext_resource type="Script" path="res://scripts/World/Environment/EnvironmentTreeEditorPreview2D.cs" id="9_editor_preview"]
-[ext_resource type="Script" path="res://scripts/World/Environment/ShadowCaster2D.cs" id="99_shadow"]
-[ext_resource type="Resource" path="res://data/world/shadows/apple_tree.tres" id="98_shadow_profile"]
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_lah34"]
-size = Vector2(68, 32)
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_wind_apple_tree_canopy"]
-shader = ExtResource("3_wind")
-shader_parameter/max_bend_pixels = 1.75
-shader_parameter/sway_speed = 0.52
-shader_parameter/anchor_y = 0.81
-shader_parameter/gust_strength = 0.32
-shader_parameter/rain_stiffness = 0.32
-shader_parameter/foliage_normal = ExtResource("5_normal")
-shader_parameter/foliage_ao = ExtResource("7_ao")
-shader_parameter/authored_ao_strength = 0.18
-shader_parameter/relight_strength = 0.86
-shader_parameter/sun_highlight = 0.23
-shader_parameter/shade_depth = 0.22
-shader_parameter/crown_ao = 0.072
-shader_parameter/golden_rim = 0.10
+[ext_resource type="Texture2D" uid="uid://cquersebqlnoq" path="res://assets/graphics/environment/trees/apple_tree_trunk.png" id="1_trunk"]
+[ext_resource type="Texture2D" uid="uid://mf6s3ebbbgh3" path="res://assets/graphics/environment/trees/apple_tree_canopy.png" id="2_canopy"]
+[ext_resource type="Shader" uid="uid://c4bwpka3n6cg0" path="res://assets/shaders/world/foliage_wind.gdshader" id="3_wind"]
+[ext_resource type="Texture2D" uid="uid://bhhmv34gtq45h" path="res://assets/graphics/environment/shadows/v5_1/apple_tree_footprint_compact_v51.png" id="4_shadow_compact"]
+[ext_resource type="Texture2D" uid="uid://dol71c8x8fouu" path="res://assets/graphics/environment/trees/apple_tree_canopy_normal.png" id="5_normal"]
+[ext_resource type="Shader" uid="uid://b84yu8uaktp3u" path="res://assets/shaders/world/trunk_relight.gdshader" id="6_trunk_shader"]
+[ext_resource type="Texture2D" uid="uid://cr8kiw038f702" path="res://assets/graphics/environment/trees/apple_tree_canopy_ao.png" id="7_ao"]
+[ext_resource type="Texture2D" uid="uid://b8tuw4i23umnj" path="res://assets/graphics/environment/trees/apple_tree.png" id="8_full_source"]
+[ext_resource type="Script" uid="uid://ckxgd3xiumomh" path="res://scripts/World/Environment/EnvironmentTreeEditorPreview2D.cs" id="9_editor_preview"]
+[ext_resource type="Texture2D" uid="uid://cvu70vu3soh1y" path="res://assets/graphics/environment/shadows/v5_1/apple_tree_footprint_medium_v51.png" id="14_shadow_medium"]
+[ext_resource type="Texture2D" uid="uid://bhnbh44xrdsbf" path="res://assets/graphics/environment/shadows/v5_1/apple_tree_footprint_long_v51.png" id="15_shadow_long"]
+[ext_resource type="Resource" uid="uid://cv6efclv08yvk" path="res://data/world/shadows/apple_tree.tres" id="98_shadow_profile"]
+[ext_resource type="Script" uid="uid://dpj0gwv5r1fh0" path="res://scripts/World/Environment/ShadowCaster2D.cs" id="99_shadow"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_trunk"]
 shader = ExtResource("6_trunk_shader")
@@ -40,12 +21,33 @@ shader_parameter/highlight_gain = 0.14
 shader_parameter/shade_gain = 0.13
 shader_parameter/root_ao = 0.06
 
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_wind_apple_tree_canopy"]
+shader = ExtResource("3_wind")
+shader_parameter/foliage_normal = ExtResource("5_normal")
+shader_parameter/foliage_ao = ExtResource("7_ao")
+shader_parameter/authored_ao_strength = 0.18
+shader_parameter/relight_strength = 0.86
+shader_parameter/sun_highlight = 0.23
+shader_parameter/shade_depth = 0.22
+shader_parameter/crown_ao = 0.072
+shader_parameter/golden_rim = 0.1
+shader_parameter/cool_shadow_tint = Color(0.76, 0.86, 0.88, 1)
+shader_parameter/max_bend_pixels = 1.75
+shader_parameter/sway_speed = 0.52
+shader_parameter/anchor_y = 0.81
+shader_parameter/gust_strength = 0.32
+shader_parameter/rain_stiffness = 0.32
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lah34"]
+size = Vector2(32, 62)
+
 [node name="apple tree" type="StaticBody2D" unique_id=516426036]
 script = ExtResource("9_editor_preview")
 
-[node name="AssetShadow" type="Node2D" parent="."]
-z_index = -1
+[node name="AssetShadow" type="Node2D" parent="." unique_id=1922227248]
+visible = false
 show_behind_parent = true
+z_index = -1
 script = ExtResource("99_shadow")
 SourcePath = NodePath("../Canopy")
 SourceTextureOverride = ExtResource("8_full_source")
@@ -54,26 +56,26 @@ CompactTextureOverride = ExtResource("4_shadow_compact")
 MediumTextureOverride = ExtResource("14_shadow_medium")
 LongTextureOverride = ExtResource("15_shadow_long")
 Profile = ExtResource("98_shadow_profile")
-GroundOffset = Vector2(0, 0)
 
-[node name="EditorPreview" type="Sprite2D" parent="."]
-visible = false
+[node name="EditorPreview" type="Sprite2D" parent="." unique_id=1508505633]
+texture_filter = 1
 texture = ExtResource("8_full_source")
 offset = Vector2(0, -14)
-texture_filter = 1
 
 [node name="Trunk" type="Sprite2D" parent="." unique_id=540762600]
+visible = false
+texture_filter = 1
 material = SubResource("ShaderMaterial_trunk")
 texture = ExtResource("1_trunk")
 offset = Vector2(0, -14)
-texture_filter = 1
 
 [node name="Canopy" type="Sprite2D" parent="." unique_id=540762601]
+visible = false
+texture_filter = 1
 material = SubResource("ShaderMaterial_wind_apple_tree_canopy")
 texture = ExtResource("2_canopy")
 offset = Vector2(0, -14)
-texture_filter = 1
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1113817706]
-position = Vector2(1, 23)
+position = Vector2(1, 44)
 shape = SubResource("RectangleShape2D_lah34")

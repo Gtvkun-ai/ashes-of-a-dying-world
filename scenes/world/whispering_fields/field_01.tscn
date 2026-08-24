@@ -1372,73 +1372,73 @@ position = Vector2(1141.0001, 382)
 y_sort_enabled = true
 
 [node name="stone5" parent="Props/Rocks" unique_id=1673058089 instance=ExtResource("7_xvu3u")]
-position = Vector2(1725, 283)
+position = Vector2(1726, 300)
 
 [node name="stone6" parent="Props/Rocks" unique_id=541495835 instance=ExtResource("7_xvu3u")]
-position = Vector2(326, 409)
+position = Vector2(327, 426)
 
 [node name="Stone3" parent="Props/Rocks" unique_id=1160141481 instance=ExtResource("4_man2x")]
 position = Vector2(388, 253)
 
 [node name="stone17" parent="Props/Rocks" unique_id=239629400 instance=ExtResource("7_xvu3u")]
-position = Vector2(1290, 1657)
+position = Vector2(1291, 1674)
 
 [node name="Stone4" parent="Props/Rocks" unique_id=766568538 instance=ExtResource("4_man2x")]
 position = Vector2(1653, 1206)
 
 [node name="stone8" parent="Props/Rocks" unique_id=439444256 instance=ExtResource("3_man2x")]
-position = Vector2(339, 1488)
+position = Vector2(340, 1489)
 
 [node name="stone2" parent="Props/Rocks" unique_id=497371363 instance=ExtResource("3_man2x")]
-position = Vector2(656, 1191)
+position = Vector2(657, 1192)
 
 [node name="stone7" parent="Props/Rocks" unique_id=285567208 instance=ExtResource("6_qln1y")]
-position = Vector2(1083, 1217)
+position = Vector2(1082, 1220)
 
 [node name="stone18" parent="Props/Rocks" unique_id=171838551 instance=ExtResource("3_man2x")]
-position = Vector2(286, 818)
+position = Vector2(287, 819)
 
 [node name="stone20" parent="Props/Rocks" unique_id=1372537773 instance=ExtResource("3_man2x")]
-position = Vector2(1456, 695)
+position = Vector2(1457, 696)
 
 [node name="stone21" parent="Props/Rocks" unique_id=1447128587 instance=ExtResource("3_man2x")]
-position = Vector2(1060, 1625)
+position = Vector2(1061, 1626)
 
 [node name="stone27" parent="Props/Rocks" unique_id=200554664 instance=ExtResource("3_man2x")]
-position = Vector2(337, 1130)
+position = Vector2(338, 1131)
 
 [node name="stone28" parent="Props/Rocks" unique_id=986332705 instance=ExtResource("3_man2x")]
-position = Vector2(1323, 950)
+position = Vector2(1324, 951)
 
 [node name="stone30" parent="Props/Rocks" unique_id=238385589 instance=ExtResource("3_man2x")]
-position = Vector2(1310, 42)
+position = Vector2(1311, 43)
 
 [node name="stone29" parent="Props/Rocks" unique_id=1760584276 instance=ExtResource("3_man2x")]
-position = Vector2(688, 688)
+position = Vector2(689, 689)
 
 [node name="stone22" parent="Props/Rocks" unique_id=845237087 instance=ExtResource("3_man2x")]
-position = Vector2(1496, 1220)
+position = Vector2(1497, 1221)
 
 [node name="stone23" parent="Props/Rocks" unique_id=161398382 instance=ExtResource("3_man2x")]
-position = Vector2(1329, 1157)
+position = Vector2(1330, 1158)
 
 [node name="stone24" parent="Props/Rocks" unique_id=1725016800 instance=ExtResource("3_man2x")]
-position = Vector2(1568, 1072)
+position = Vector2(1569, 1073)
 
 [node name="stone19" parent="Props/Rocks" unique_id=438784386 instance=ExtResource("6_qln1y")]
-position = Vector2(358, 1112)
+position = Vector2(357, 1115)
 
 [node name="stone25" parent="Props/Rocks" unique_id=1784111299 instance=ExtResource("6_qln1y")]
-position = Vector2(1178, 519)
+position = Vector2(1177, 522)
 
 [node name="stone26" parent="Props/Rocks" unique_id=1753595536 instance=ExtResource("6_qln1y")]
-position = Vector2(676, 687)
+position = Vector2(675, 690)
 
 [node name="stone4" parent="Props/Rocks" unique_id=2139133011 instance=ExtResource("6_qln1y")]
-position = Vector2(1685, 240)
+position = Vector2(1684, 243)
 
 [node name="stone3" parent="Props/Rocks" unique_id=741021758 instance=ExtResource("5_g0qre")]
-position = Vector2(1299, 944)
+position = Vector2(1299, 955)
 
 [node name="Stone2" parent="Props/Rocks" unique_id=1765865561 instance=ExtResource("4_man2x")]
 position = Vector2(1125, 1232)
@@ -1462,34 +1462,34 @@ position = Vector2(1531, 1153)
 position = Vector2(1444, 703)
 
 [node name="stone1" parent="Props/Rocks" unique_id=1829240052 instance=ExtResource("3_man2x")]
-position = Vector2(136, 493)
+position = Vector2(137, 494)
 
 [node name="stone9" parent="Props/Rocks" unique_id=1678664312 instance=ExtResource("7_xvu3u")]
-position = Vector2(-2, 960)
+position = Vector2(-1, 977)
 
 [node name="stone10" parent="Props/Rocks" unique_id=131489049 instance=ExtResource("6_qln1y")]
-position = Vector2(505, 1622)
+position = Vector2(504, 1625)
 
 [node name="stone11" parent="Props/Rocks" unique_id=2043856145 instance=ExtResource("3_man2x")]
-position = Vector2(897, 903)
+position = Vector2(898, 904)
 
 [node name="stone12" parent="Props/Rocks" unique_id=463201921 instance=ExtResource("3_man2x")]
-position = Vector2(971, 267)
+position = Vector2(972, 268)
 
 [node name="stone13" parent="Props/Rocks" unique_id=267625288 instance=ExtResource("3_man2x")]
-position = Vector2(1441, 283)
+position = Vector2(1442, 284)
 
 [node name="stone14" parent="Props/Rocks" unique_id=101692340 instance=ExtResource("3_man2x")]
-position = Vector2(1662, 432)
+position = Vector2(1663, 433)
 
 [node name="stone15" parent="Props/Rocks" unique_id=859544348 instance=ExtResource("3_man2x")]
-position = Vector2(1225, 85)
+position = Vector2(1226, 86)
 
 [node name="stone16" parent="Props/Rocks" unique_id=876210947 instance=ExtResource("3_man2x")]
-position = Vector2(1555, 1786)
+position = Vector2(1556, 1787)
 
 [node name="stone31" parent="Props/Rocks" unique_id=869678091 instance=ExtResource("7_xvu3u")]
-position = Vector2(979, 169)
+position = Vector2(980, 186)
 
 [node name="Trees" type="Node2D" parent="Props" unique_id=2028207403]
 y_sort_enabled = true
