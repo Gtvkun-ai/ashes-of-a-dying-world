@@ -19,7 +19,7 @@
 [ext_resource type="Texture2D" uid="uid://b0lo3nn34tbut" path="res://assets/graphics/world/whispering_fields/field_01_layers/00_ground_base.png" id="20_ground_base"]
 [ext_resource type="Texture2D" uid="uid://divms3cxhhts2" path="res://assets/graphics/world/whispering_fields/field_01_layers/03_dirt_path.png" id="23_dirt_path"]
 [ext_resource type="Texture2D" uid="uid://bkaxdql6x2xu3" path="res://assets/graphics/world/whispering_fields/field_01_layers/05_cliff_wall.png" id="25_cliff_wall"]
-[ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/06_stairs_candidate.png" id="26_stairs"]
+[ext_resource type="Texture2D" uid="uid://b4bhevrohmv35" path="res://assets/graphics/world/whispering_fields/field_01_layers/06_stairs_candidate.png" id="26_stairs"]
 [ext_resource type="Texture2D" uid="uid://3ovagg0v2clv" path="res://assets/graphics/world/whispering_fields/field_01_layers/09_1_mud_puddles water.png" id="28_wet_ground"]
 [ext_resource type="Texture2D" uid="uid://tl4uf1b5yttd" path="res://assets/graphics/world/whispering_fields/field_01_layers/09_2_mud_puddles water leaf.png" id="29_mud_puddles"]
 [ext_resource type="Script" uid="uid://mnugi7njro3q" path="res://scripts/World/Environment/EnvironmentBinder2D.cs" id="30_env_binder"]
@@ -28,24 +28,24 @@
 [ext_resource type="Shader" uid="uid://tld3o8a61vkf" path="res://assets/shaders/world/puddle_leaves.gdshader" id="33_puddle_leaves_shader"]
 [ext_resource type="Script" uid="uid://dpj0gwv5r1fh0" path="res://scripts/World/Environment/ShadowCaster2D.cs" id="34_asset_shadow"]
 [ext_resource type="Resource" path="res://data/world/shadows/cliff_wall.tres" id="35_cliff_shadow_profile"]
-[ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/10_puddle_depth_mask_v53.png" id="36_depth_mask"]
+[ext_resource type="Texture2D" uid="uid://3i2qm43nnv2" path="res://assets/graphics/world/whispering_fields/field_01_layers/10_puddle_depth_mask_v53.png" id="36_depth_mask"]
 [ext_resource type="Shader" uid="uid://dat7nqvjxn40f" path="res://assets/shaders/world/ground_lighting.gdshader" id="38_ground_shader"]
 [ext_resource type="Shader" uid="uid://cfui3vjhxy4wq" path="res://assets/shaders/world/cliff_surface.gdshader" id="39_cliff_shader"]
 [ext_resource type="Shader" uid="uid://bgku4vkxulkt6" path="res://assets/shaders/world/world_cloud_shadow.gdshader" id="40_cloud_shader"]
 [ext_resource type="Shader" uid="uid://cw75ek257rbo" path="res://assets/shaders/world/world_color_grade.gdshader" id="41_grade_shader"]
 [ext_resource type="Shader" uid="uid://ced2ycupqm0nu" path="res://assets/shaders/world/path_lighting.gdshader" id="42_path_shader"]
-[ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/10_grass_macro_mask.png" id="43_grass_macro"]
-[ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/11_grass_micro_detail.png" id="44_grass_micro"]
-[ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/12_grass_contact_mask.png" id="45_grass_contact"]
-[ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/13_grass_normal_soft.png" id="46_grass_normal"]
-[ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/03_dirt_path_normal.png" id="47_path_normal"]
-[ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/03_dirt_path_ao.png" id="48_path_ao"]
-[ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/05_cliff_wall_normal.png" id="49_cliff_normal"]
-[ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/05_cliff_wall_ao.png" id="50_cliff_ao"]
-[ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/06_stairs_candidate_normal.png" id="51_stairs_normal"]
-[ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/06_stairs_candidate_ao.png" id="52_stairs_ao"]
-[ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/11_puddle_shoreline_mask_v53.png" id="53_puddle_shore"]
-[ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/12_puddle_surface_detail_v53.png" id="54_puddle_detail"]
+[ext_resource type="Texture2D" uid="uid://cjpo0wma08lkg" path="res://assets/graphics/world/whispering_fields/field_01_layers/10_grass_macro_mask.png" id="43_grass_macro"]
+[ext_resource type="Texture2D" uid="uid://b1jv5m8hmk578" path="res://assets/graphics/world/whispering_fields/field_01_layers/11_grass_micro_detail.png" id="44_grass_micro"]
+[ext_resource type="Texture2D" uid="uid://biqryiwx8mo25" path="res://assets/graphics/world/whispering_fields/field_01_layers/12_grass_contact_mask.png" id="45_grass_contact"]
+[ext_resource type="Texture2D" uid="uid://v3i3uynkjvmv" path="res://assets/graphics/world/whispering_fields/field_01_layers/13_grass_normal_soft.png" id="46_grass_normal"]
+[ext_resource type="Texture2D" uid="uid://d3gcs3lwfo2qo" path="res://assets/graphics/world/whispering_fields/field_01_layers/03_dirt_path_normal.png" id="47_path_normal"]
+[ext_resource type="Texture2D" uid="uid://ddfn000pt6ov5" path="res://assets/graphics/world/whispering_fields/field_01_layers/03_dirt_path_ao.png" id="48_path_ao"]
+[ext_resource type="Texture2D" uid="uid://uyu5hbi6dyvu" path="res://assets/graphics/world/whispering_fields/field_01_layers/05_cliff_wall_normal.png" id="49_cliff_normal"]
+[ext_resource type="Texture2D" uid="uid://d2ptdpkyxc6ib" path="res://assets/graphics/world/whispering_fields/field_01_layers/05_cliff_wall_ao.png" id="50_cliff_ao"]
+[ext_resource type="Texture2D" uid="uid://cfmoufu07afpx" path="res://assets/graphics/world/whispering_fields/field_01_layers/06_stairs_candidate_normal.png" id="51_stairs_normal"]
+[ext_resource type="Texture2D" uid="uid://c0l30mtkmm5gy" path="res://assets/graphics/world/whispering_fields/field_01_layers/06_stairs_candidate_ao.png" id="52_stairs_ao"]
+[ext_resource type="Texture2D" uid="uid://beapm3yw4glcj" path="res://assets/graphics/world/whispering_fields/field_01_layers/11_puddle_shoreline_mask_v53.png" id="53_puddle_shore"]
+[ext_resource type="Texture2D" uid="uid://b6s1dxh2skf4" path="res://assets/graphics/world/whispering_fields/field_01_layers/12_puddle_surface_detail_v53.png" id="54_puddle_detail"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ey7of"]
 texture = ExtResource("1_ey7of")
@@ -982,6 +982,7 @@ shader_parameter/normal_strength = 0.055
 shader_parameter/sun_gain = 0.042
 shader_parameter/golden_gain = 0.075
 shader_parameter/wet_darken = 0.05
+
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_path_v4"]
 shader = ExtResource("42_path_shader")
 shader_parameter/normal_map = ExtResource("47_path_normal")
@@ -989,18 +990,21 @@ shader_parameter/ao_map = ExtResource("48_path_ao")
 shader_parameter/normal_strength = 0.16
 shader_parameter/ao_strength = 0.22
 shader_parameter/sun_gain = 0.035
-shader_parameter/golden_gain = 0.10
+shader_parameter/golden_gain = 0.1
 shader_parameter/wet_darken = 0.075
+
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_cliff_wall_v3"]
 shader = ExtResource("39_cliff_shader")
 shader_parameter/normal_map = ExtResource("49_cliff_normal")
 shader_parameter/ao_map = ExtResource("50_cliff_ao")
 shader_parameter/surface_mode = 1.0
-shader_parameter/normal_strength = 0.20
-shader_parameter/ao_strength = 0.30
+shader_parameter/normal_strength = 0.2
+shader_parameter/ao_strength = 0.3
 shader_parameter/wall_darkening = 0.095
+shader_parameter/stairs_darkening = 0.035
 shader_parameter/edge_gain = 0.045
 shader_parameter/golden_gain = 0.075
+
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_stairs_v3"]
 shader = ExtResource("39_cliff_shader")
 shader_parameter/normal_map = ExtResource("51_stairs_normal")
@@ -1008,9 +1012,11 @@ shader_parameter/ao_map = ExtResource("52_stairs_ao")
 shader_parameter/surface_mode = 2.0
 shader_parameter/normal_strength = 0.16
 shader_parameter/ao_strength = 0.28
+shader_parameter/wall_darkening = 0.095
 shader_parameter/stairs_darkening = 0.03
 shader_parameter/edge_gain = 0.04
 shader_parameter/golden_gain = 0.065
+
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_puddle_water"]
 shader = ExtResource("32_puddle_shader")
 shader_parameter/depth_mask = ExtResource("36_depth_mask")
@@ -1018,13 +1024,14 @@ shader_parameter/shoreline_mask = ExtResource("53_puddle_shore")
 shader_parameter/surface_detail = ExtResource("54_puddle_detail")
 shader_parameter/shallow_tint = Color(0.78, 0.96, 0.86, 1)
 shader_parameter/deep_tint = Color(0.48, 0.76, 0.88, 1)
-shader_parameter/depth_color_strength = 0.30
+shader_parameter/depth_color_strength = 0.3
 shader_parameter/shoreline_gain = 0.075
-shader_parameter/shimmer_response = 0.90
+shader_parameter/shimmer_response = 0.9
 shader_parameter/ripple_response = 0.72
-shader_parameter/animation_speed = 0.50
+shader_parameter/animation_speed = 0.5
 shader_parameter/golden_glint = 0.18
 shader_parameter/night_glint = 0.16
+
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_puddle_leaves"]
 shader = ExtResource("33_puddle_leaves_shader")
 shader_parameter/wet_highlight = 0.1
@@ -1101,7 +1108,8 @@ Profile = ExtResource("35_cliff_shadow_profile")
 z_index = -5
 texture_filter = 1
 material = SubResource("ShaderMaterial_stairs_v3")
-scale = Vector2(4, 4)
+position = Vector2(-133.00002, -27.000011)
+scale = Vector2(4.3, 4.1)
 texture = ExtResource("26_stairs")
 centered = false
 
@@ -1341,7 +1349,7 @@ position = Vector2(1141.0001, 382)
 y_sort_enabled = true
 
 [node name="stone5" parent="Props/Rocks" unique_id=1673058089 instance=ExtResource("7_xvu3u")]
-position = Vector2(1726, 300)
+position = Vector2(1742, 284)
 
 [node name="stone6" parent="Props/Rocks" unique_id=541495835 instance=ExtResource("7_xvu3u")]
 position = Vector2(327, 426)
@@ -1350,7 +1358,7 @@ position = Vector2(327, 426)
 position = Vector2(388, 253)
 
 [node name="stone17" parent="Props/Rocks" unique_id=239629400 instance=ExtResource("7_xvu3u")]
-position = Vector2(1291, 1674)
+position = Vector2(1224, 1746)
 
 [node name="Stone4" parent="Props/Rocks" unique_id=766568538 instance=ExtResource("4_man2x")]
 position = Vector2(1653, 1206)
@@ -1380,13 +1388,13 @@ position = Vector2(338, 1131)
 position = Vector2(1324, 951)
 
 [node name="stone30" parent="Props/Rocks" unique_id=238385589 instance=ExtResource("3_man2x")]
-position = Vector2(1311, 43)
+position = Vector2(1251, 257)
 
 [node name="stone29" parent="Props/Rocks" unique_id=1760584276 instance=ExtResource("3_man2x")]
 position = Vector2(689, 689)
 
 [node name="stone22" parent="Props/Rocks" unique_id=845237087 instance=ExtResource("3_man2x")]
-position = Vector2(1497, 1221)
+position = Vector2(1397, 1281)
 
 [node name="stone23" parent="Props/Rocks" unique_id=161398382 instance=ExtResource("3_man2x")]
 position = Vector2(1330, 1158)
@@ -1404,13 +1412,13 @@ position = Vector2(1177, 522)
 position = Vector2(675, 690)
 
 [node name="stone4" parent="Props/Rocks" unique_id=2139133011 instance=ExtResource("6_qln1y")]
-position = Vector2(1684, 243)
+position = Vector2(1693, 261)
 
 [node name="stone3" parent="Props/Rocks" unique_id=741021758 instance=ExtResource("5_g0qre")]
 position = Vector2(1299, 955)
 
 [node name="Stone2" parent="Props/Rocks" unique_id=1765865561 instance=ExtResource("4_man2x")]
-position = Vector2(1125, 1232)
+position = Vector2(1172, 1332)
 
 [node name="Stone5" parent="Props/Rocks" unique_id=1772926890 instance=ExtResource("4_man2x")]
 position = Vector2(599, 1458)
@@ -1419,7 +1427,7 @@ position = Vector2(599, 1458)
 position = Vector2(941, 601)
 
 [node name="Stone10" parent="Props/Rocks" unique_id=1582329805 instance=ExtResource("4_man2x")]
-position = Vector2(1301, 39)
+position = Vector2(1214, 197)
 
 [node name="Stone8" parent="Props/Rocks" unique_id=344129601 instance=ExtResource("4_man2x")]
 position = Vector2(1200, 525)
@@ -1434,10 +1442,10 @@ position = Vector2(1444, 703)
 position = Vector2(137, 494)
 
 [node name="stone9" parent="Props/Rocks" unique_id=1678664312 instance=ExtResource("7_xvu3u")]
-position = Vector2(-1, 977)
+position = Vector2(0, 974)
 
 [node name="stone10" parent="Props/Rocks" unique_id=131489049 instance=ExtResource("6_qln1y")]
-position = Vector2(504, 1625)
+position = Vector2(489, 1654)
 
 [node name="stone11" parent="Props/Rocks" unique_id=2043856145 instance=ExtResource("3_man2x")]
 position = Vector2(898, 904)
@@ -1635,7 +1643,7 @@ position = Vector2(1882, -20)
 position = Vector2(1215, 4)
 
 [node name="Tree58" parent="Props/Trees" unique_id=1877412028 instance=ExtResource("3_vydvg")]
-position = Vector2(1301, 3)
+position = Vector2(1318, 30)
 
 [node name="Tree59" parent="Props/Trees" unique_id=1252843137 instance=ExtResource("3_vydvg")]
 position = Vector2(1386, 4)
@@ -1662,7 +1670,7 @@ position = Vector2(1173, 31)
 position = Vector2(1259, 30)
 
 [node name="Tree67" parent="Props/Trees" unique_id=1978289604 instance=ExtResource("3_vydvg")]
-position = Vector2(1344, 31)
+position = Vector2(1350, 20)
 
 [node name="Tree68" parent="Props/Trees" unique_id=801596435 instance=ExtResource("3_vydvg")]
 position = Vector2(1410, 31)
@@ -2355,7 +2363,7 @@ position = Vector2(1121, 178)
 position = Vector2(823, 49)
 
 [node name="grass28" parent="Props/Grass" unique_id=443956801 instance=ExtResource("9_ndsxw")]
-position = Vector2(1484, 664)
+position = Vector2(1465, 664)
 
 [node name="grass29" parent="Props/Grass" unique_id=1083582567 instance=ExtResource("9_ndsxw")]
 position = Vector2(116, 1244)

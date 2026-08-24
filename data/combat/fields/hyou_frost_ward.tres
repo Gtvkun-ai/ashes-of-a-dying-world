@@ -1,21 +1,15 @@
-[gd_resource type="Resource" script_class="CombatFieldSpecData" load_steps=6 format=3]
+[gd_resource type="Resource" script_class="CombatFieldSpecData" format=3 uid="uid://bl6ycl6dyr3g8"]
 
-[ext_resource type="Script" path="res://scripts/Combat/Data/CombatFieldSpecData.cs" id="1_field"]
+[ext_resource type="Script" uid="uid://bsg72owkxfjlr" path="res://scripts/Combat/Data/CombatFieldSpecData.cs" id="1_field"]
 [ext_resource type="Resource" path="res://data/combat/hit_profiles/hyou_frost_ward.tres" id="2_hit"]
-[ext_resource type="Texture2D" path="res://assets/graphics/characters/hyou/vfx/frost_ward/frost_ward_circle.png" id="3_circle"]
-[ext_resource type="Texture2D" path="res://assets/graphics/characters/hyou/vfx/frost_ward/frost_ward_armed.png" id="4_armed"]
-[ext_resource type="Texture2D" path="res://assets/graphics/characters/hyou/vfx/frost_ward/frost_ward_crystal.png" id="5_crystal"]
+[ext_resource type="Texture2D" uid="uid://31xt2cmtrmah" path="res://assets/graphics/characters/hyou/vfx/frost_ward/frost_ward_circle.png" id="3_circle"]
+[ext_resource type="Texture2D" uid="uid://bgypyvfx1th4y" path="res://assets/graphics/characters/hyou/vfx/frost_ward/frost_ward_armed.png" id="4_armed"]
+[ext_resource type="Texture2D" uid="uid://bnrys0lg5onpu" path="res://assets/graphics/characters/hyou/vfx/frost_ward/frost_ward_crystal.png" id="5_crystal"]
 
 [resource]
 script = ExtResource("1_field")
 FieldId = "hyou_frost_ward"
-Radius = 56.0
-DurationSeconds = 7.0
-RequireExitBeforeRetrigger = true
-PerTargetCooldownSeconds = 0.25
-GroundOffset = Vector2(0, 28)
 HitProfile = ExtResource("2_hit")
-DamageMultiplier = 1.0
 CircleTexture = ExtResource("3_circle")
 ArmedTexture = ExtResource("4_armed")
 CrystalTexture = ExtResource("5_crystal")
