@@ -23,6 +23,7 @@ namespace AshesofaDyingWorld.World.Environment
         private AmbientFireflies2D _fireflies;
         private WorldAtmosphere2D _atmosphere;
         private EnvironmentShadowSystem2D _shadowSystem;
+        private EnvironmentMassShadow2D _massShadow;
         private CanvasItem _sceneCloudShadow;
         private CanvasItem _sceneColorGrade;
         private bool _reportedReady;
@@ -72,6 +73,13 @@ namespace AshesofaDyingWorld.World.Environment
                 AddChild(_shadowSystem);
             }
 
+            _massShadow = GetNodeOrNull<EnvironmentMassShadow2D>("MassShadowV51");
+            if (_massShadow == null)
+            {
+                _massShadow = new EnvironmentMassShadow2D { Name = "MassShadowV51" };
+                AddChild(_massShadow);
+            }
+
             _fireflies = GetNodeOrNull<AmbientFireflies2D>("NightFireflies");
             if (_fireflies == null)
             {
@@ -101,8 +109,8 @@ namespace AshesofaDyingWorld.World.Environment
             {
                 _reportedReady = true;
                 GD.Print(
-                    $"[EnvironmentBinder2D] READY V5.1 | gpu=global_uniforms | material_scan=OFF | vegetation=native_tree_package | " +
-                    $"shadow=ground_footprint | mass_shadow=OFF | profile={Profile?.ResourcePath ?? "<none>"}");
+                    $"[EnvironmentBinder2D] READY V5.1h | gpu=global_uniforms | material_scan=OFF | vegetation=native_tree_package | " +
+                    $"shadow=ground_footprint | mass_shadow=ON | profile={Profile?.ResourcePath ?? "<none>"}");
             }
         }
 
@@ -116,6 +124,7 @@ namespace AshesofaDyingWorld.World.Environment
             EnvironmentState state = _environment.CurrentState;
             _lighting?.ApplyEnvironment(state);
             _shadowSystem?.ApplyEnvironment(state);
+            _massShadow?.ApplyEnvironment(state);
             _fireflies?.ApplyEnvironment(state);
             _atmosphere?.ApplyEnvironment(state);
 

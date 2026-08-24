@@ -1,11 +1,9 @@
-[gd_scene load_steps=7 format=3 uid="uid://bvkmnt355ktwd"]
+[gd_scene format=3 uid="uid://bvkmnt355ktwd"]
 
 [ext_resource type="Texture2D" uid="uid://bbodahvt5v125" path="res://assets/graphics/environment/rocks/stone_variants.png" id="1_reqsy"]
-
-[ext_resource type="Shader" path="res://assets/shaders/world/rock_relight.gdshader" id="97_relight"]
-
-[ext_resource type="Script" path="res://scripts/World/Environment/ShadowCaster2D.cs" id="99_shadow"]
-[ext_resource type="Resource" path="res://data/world/shadows/rock_medium.tres" id="98_shadow_profile"]
+[ext_resource type="Shader" uid="uid://boasfh1rkvr06" path="res://assets/shaders/world/rock_relight.gdshader" id="97_relight"]
+[ext_resource type="Resource" uid="uid://ducm6gfx32j20" path="res://data/world/shadows/rock_medium.tres" id="98_shadow_profile"]
+[ext_resource type="Script" uid="uid://dpj0gwv5r1fh0" path="res://scripts/World/Environment/ShadowCaster2D.cs" id="99_shadow"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_rock_relight"]
 shader = ExtResource("97_relight")
@@ -13,6 +11,7 @@ shader_parameter/bump_pixels = 3.0
 shader_parameter/relight_strength = 0.82
 shader_parameter/highlight_gain = 0.23
 shader_parameter/shade_gain = 0.21
+shader_parameter/cavity_gain = 0.11
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_l08f3"]
 atlas = ExtResource("1_reqsy")
@@ -24,31 +23,31 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_l08f3")
 }],
-"loop": true,
+"loop": 1,
 "name": &"default",
 "speed": 5.0
 }]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_reqsy"]
-size = Vector2(401.37054, 83.30541)
+size = Vector2(401.37054, 113.59828)
 
-[node name="stone4" type="StaticBody2D"]
+[node name="stone4" type="StaticBody2D" unique_id=506800627]
 
-[node name="AssetShadow" type="Node2D" parent="."]
-z_index = -1
+[node name="AssetShadow" type="Node2D" parent="." unique_id=973295727]
 show_behind_parent = true
+z_index = -1
 script = ExtResource("99_shadow")
 SourcePath = NodePath("../AnimatedSprite2D")
 Profile = ExtResource("98_shadow_profile")
 GroundOffset = Vector2(0, -1)
 
-[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=188021303]
 material = SubResource("ShaderMaterial_rock_relight")
 position = Vector2(-1, 15)
 scale = Vector2(0.122081704, 0.13204426)
 sprite_frames = SubResource("SpriteFrames_ln8du")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-position = Vector2(-1.499999, 23.5)
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1228414508]
+position = Vector2(-1.499999, 21.5)
 scale = Vector2(0.122081704, 0.13204426)
 shape = SubResource("RectangleShape2D_reqsy")

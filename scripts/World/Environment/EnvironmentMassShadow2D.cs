@@ -17,8 +17,9 @@ namespace AshesofaDyingWorld.World.Environment
     /// </summary>
     public partial class EnvironmentMassShadow2D : Node2D
     {
-        private const string MassTexturePath = "res://assets/graphics/environment/shadows/mass_shadow_blob_v44.png";
+        private const string MassTexturePath = "res://assets/graphics/environment/shadows/v5_1/mass_shadow_blob_v51.png";
         private const float AppleClusterDistance = 165f;
+        private const float TreeClusterDistance = 148f;
         private const float BorderBand = 92f;
         private const float BorderSegmentGap = 155f;
 
@@ -102,12 +103,13 @@ namespace AshesofaDyingWorld.World.Environment
 
             if (treeRoot != null)
             {
+                BuildInteriorTreeClusters(treeRoot);
                 BuildBorderPools(treeRoot);
             }
 
             _built = true;
             GD.Print(
-                $"[EnvironmentMassShadow2D] READY V4.5 | root={sceneRoot.GetPath()} " +
+                $"[EnvironmentMassShadow2D] READY V5.1h | root={sceneRoot.GetPath()} " +
                 $"cluster_mass={_clusters.Count} border_mass={_borders.Count}");
         }
 
@@ -194,9 +196,9 @@ namespace AshesofaDyingWorld.World.Environment
 
             // Cluster mass vẫn tồn tại nhẹ lúc trưa. Khi low-sun, mass mở dài để các bóng cá thể
             // nhập vào nhau. Ban đêm giảm mạnh để moonlight không biến scene thành mảng bùn.
-            float commonVisibility = (0.70f + 0.30f * Mathf.Sqrt(key))
-                * (1f - cloud * 0.18f)
-                * Mathf.Lerp(1f, 0.24f, night);
+            float commonVisibility = (0.76f + 0.18f * Mathf.Sqrt(key))
+                * (1f - cloud * 0.10f)
+                * Mathf.Lerp(1f, 0.018f, night);
 
             Color dayTint = new(0.030f, 0.052f, 0.032f, 1f);
             Color nightTint = new(0.020f, 0.030f, 0.050f, 1f);
@@ -213,16 +215,16 @@ namespace AshesofaDyingWorld.World.Environment
                 float depth = Mathf.Lerp(cluster.NoonDepth, cluster.HorizonDepth, lengthCurve);
 
                 // Đẩy tâm ra nửa depth: đầu gần của mass vẫn nằm dưới cụm thân cây.
-                cluster.Sprite.Position = cluster.Center + direction * depth * 0.34f;
+                cluster.Sprite.Position = cluster.Center + direction * depth * 0.01f;
                 cluster.Sprite.Rotation = rotation;
                 cluster.Sprite.Scale = new Vector2(width / texW, depth / texH);
 
                 float alpha = cluster.Opacity
-                    * Mathf.Lerp(0.74f, 1.12f, lengthCurve)
+                    * Mathf.Lerp(0.80f, 1.04f, lengthCurve)
                     * commonVisibility
-                    * Mathf.Lerp(0.78f, 1f, daylight);
+                    * Mathf.Lerp(0.88f, 1f, daylight);
 
-                cluster.Sprite.Modulate = new Color(tint.R, tint.G, tint.B, Mathf.Clamp(alpha, 0f, 0.22f));
+                cluster.Sprite.Modulate = new Color(tint.R, tint.G, tint.B, Mathf.Clamp(alpha, 0f, 0.16f));
             }
 
             foreach (BorderShadow border in _borders)
@@ -236,16 +238,16 @@ namespace AshesofaDyingWorld.World.Environment
                 float depth = Mathf.Lerp(28f, 148f, lengthCurve) * Mathf.Lerp(0.58f, 1f, inwardFactor);
                 float width = border.Width * Mathf.Lerp(0.98f, 1.06f, lengthCurve);
 
-                border.Sprite.Position = border.Center + direction * depth * 0.38f;
+                border.Sprite.Position = border.Center + direction * depth * 0.28f;
                 border.Sprite.Rotation = rotation;
                 border.Sprite.Scale = new Vector2(width / texW, depth / texH);
 
-                float alpha = 0.082f
-                    * Mathf.Lerp(0.62f, 1.12f, lengthCurve)
+                float alpha = 0.068f
+                    * Mathf.Lerp(0.58f, 0.96f, lengthCurve)
                     * directionGate
                     * commonVisibility;
 
-                border.Sprite.Modulate = new Color(tint.R, tint.G, tint.B, Mathf.Clamp(alpha, 0f, 0.105f));
+                border.Sprite.Modulate = new Color(tint.R, tint.G, tint.B, Mathf.Clamp(alpha, 0f, 0.082f));
             }
         }
 
@@ -310,11 +312,82 @@ namespace AshesofaDyingWorld.World.Environment
                 {
                     Sprite = CreateMassSprite($"ClusterMass{_clusters.Count + 1}"),
                     Center = localCenter,
-                    NoonWidth = Mathf.Max(150f, spreadX + 118f),
-                    HorizonWidth = Mathf.Max(182f, spreadX + 150f),
-                    NoonDepth = Mathf.Max(72f, spreadY * 0.42f + 38f),
-                    HorizonDepth = Mathf.Max(150f, spreadY * 0.80f + 72f),
-                    Opacity = Mathf.Clamp(0.078f + (group.Count - 3) * 0.009f, 0.078f, 0.112f)
+                    NoonWidth = Mathf.Max(192f, spreadX + 146f),
+                    HorizonWidth = Mathf.Max(220f, spreadX + 176f),
+                    NoonDepth = Mathf.Max(82f, spreadY * 0.40f + 36f),
+                    HorizonDepth = Mathf.Max(148f, spreadY * 0.70f + 60f),
+                    Opacity = Mathf.Clamp(0.088f + (group.Count - 3) * 0.008f, 0.088f, 0.116f)
+                };
+
+                mass.Sprite.Position = mass.Center;
+                _clusters.Add(mass);
+            }
+        }
+
+        private void BuildInteriorTreeClusters(Node2D treeRoot)
+        {
+            List<Node2D> trees = CollectDirectNode2DChildren(treeRoot);
+            if (trees.Count < 3)
+            {
+                return;
+            }
+
+            int[] parent = new int[trees.Count];
+            for (int i = 0; i < parent.Length; i++)
+            {
+                parent[i] = i;
+            }
+
+            for (int i = 0; i < trees.Count; i++)
+            {
+                for (int j = i + 1; j < trees.Count; j++)
+                {
+                    if (trees[i].GlobalPosition.DistanceTo(trees[j].GlobalPosition) <= TreeClusterDistance)
+                    {
+                        Union(parent, i, j);
+                    }
+                }
+            }
+
+            Dictionary<int, List<Node2D>> components = new();
+            for (int i = 0; i < trees.Count; i++)
+            {
+                int root = Find(parent, i);
+                if (!components.TryGetValue(root, out List<Node2D> group))
+                {
+                    group = new List<Node2D>();
+                    components[root] = group;
+                }
+                group.Add(trees[i]);
+            }
+
+            foreach (List<Node2D> group in components.Values)
+            {
+                if (group.Count < 3)
+                {
+                    continue;
+                }
+
+                Rect2 bounds = BoundsOf(group);
+                if (bounds.Size.X > 360f || bounds.Size.Y > 360f)
+                {
+                    continue;
+                }
+
+                Vector2 globalCenter = AverageGlobalPosition(group);
+                Vector2 localCenter = ToLocal(globalCenter);
+                float spreadX = Mathf.Max(bounds.Size.X, 34f);
+                float spreadY = Mathf.Max(bounds.Size.Y, 34f);
+
+                var mass = new ClusterShadow
+                {
+                    Sprite = CreateMassSprite($"TreeClusterMass{_clusters.Count + 1}"),
+                    Center = localCenter,
+                    NoonWidth = Mathf.Max(144f, spreadX + 100f),
+                    HorizonWidth = Mathf.Max(170f, spreadX + 126f),
+                    NoonDepth = Mathf.Max(62f, spreadY * 0.31f + 24f),
+                    HorizonDepth = Mathf.Max(114f, spreadY * 0.55f + 42f),
+                    Opacity = Mathf.Clamp(0.060f + (group.Count - 3) * 0.005f, 0.060f, 0.086f)
                 };
 
                 mass.Sprite.Position = mass.Center;

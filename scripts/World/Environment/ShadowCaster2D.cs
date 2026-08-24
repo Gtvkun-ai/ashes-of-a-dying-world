@@ -39,6 +39,16 @@ namespace AshesofaDyingWorld.World.Environment
         [Export]
         public Texture2D TextureOverride { get; set; }
 
+        [ExportGroup("Footprint Variants")]
+        [Export]
+        public Texture2D CompactTextureOverride { get; set; }
+
+        [Export]
+        public Texture2D MediumTextureOverride { get; set; }
+
+        [Export]
+        public Texture2D LongTextureOverride { get; set; }
+
         [Export]
         public ShadowCasterProfile Profile { get; set; }
 
@@ -262,7 +272,7 @@ namespace AshesofaDyingWorld.World.Environment
             }
             else
             {
-                _projectedShadow.Texture = TextureOverride ?? _genericFootprint;
+                _projectedShadow.Texture = SelectFootprintTexture(0f);
                 _projectedShadow.Centered = true;
                 _projectedShadow.RegionEnabled = false;
                 _projectedShadow.Offset = Vector2.Zero;
@@ -276,6 +286,40 @@ namespace AshesofaDyingWorld.World.Environment
             _geometryReady = _projectedShadow.Texture != null;
         }
 
+
+        private Texture2D SelectFootprintTexture(float lengthCurve)
+        {
+            Texture2D compact = CompactTextureOverride ?? TextureOverride;
+            Texture2D medium = MediumTextureOverride ?? compact;
+            Texture2D longTexture = LongTextureOverride ?? medium;
+
+            if (compact == null && medium == null && longTexture == null)
+            {
+                return _genericFootprint;
+            }
+
+            bool hasVariants = CompactTextureOverride != null
+                || MediumTextureOverride != null
+                || LongTextureOverride != null;
+            if (!hasVariants)
+            {
+                return TextureOverride ?? _genericFootprint;
+            }
+
+            if (lengthCurve < 0.18f)
+            {
+                return compact ?? medium ?? longTexture ?? _genericFootprint;
+            }
+
+            if (lengthCurve < 0.60f)
+            {
+                return medium ?? compact ?? longTexture ?? _genericFootprint;
+            }
+
+            return longTexture ?? medium ?? compact ?? _genericFootprint;
+        }
+
+
         private void ApplyFootprint(EnvironmentState state)
         {
             Vector2 direction = state.ShadowDirection2D.LengthSquared() > 0.0001f
@@ -283,14 +327,20 @@ namespace AshesofaDyingWorld.World.Environment
                 : Vector2.Down;
             float length01 = Mathf.Clamp(state.ShadowLength01, 0f, 1f);
             bool artDirected = Profile.Model == ShadowCasterProfile.ProjectionModel.ArtDirectedFootprint;
-            // Elegant tree shadows stay compact for most of the day; they only lengthen decisively
-            // when the key light actually approaches the horizon. This avoids the old "dark carpet" look.
-            float lengthCurve = Mathf.Pow(length01, artDirected ? 1.10f : 0.84f);
+            float lengthCurve = Mathf.Pow(length01, artDirected ? 1.02f : 0.84f);
 
-            // V5.1.2: footprint depth and celestial reach are NOT the same thing.
-            // The old pass used castLengthWorld directly as Scale.Y, so a 64px organic mask
-            // was crushed to ~12px at noon and read as a thin saucer under the trunk.
-            // Keep a real canopy-shaped ground footprint at all times, then let low sun extend it.
+            Texture2D activeFootprint = SelectFootprintTexture(lengthCurve);
+            if (_projectedShadow.Texture != activeFootprint)
+            {
+                _projectedShadow.Texture = activeFootprint;
+            }
+
+            if (artDirected)
+            {
+                ApplyAuthoredFootprint(state, direction, lengthCurve, activeFootprint);
+                return;
+            }
+
             float celestialReachWorld = Mathf.Lerp(
                 Mathf.Max(Profile.NoonLengthWorld, 1f),
                 Mathf.Max(Profile.MaxLengthWorld, Profile.NoonLengthWorld),
@@ -301,23 +351,17 @@ namespace AshesofaDyingWorld.World.Environment
                 Mathf.Max(Profile.HorizonFlatten, Profile.NoonFlatten),
                 lengthCurve);
             float baseFootprintDepthWorld = Mathf.Max(_visibleHeightWorld * footprintFlatten, 2.5f);
-            float footprintDepthWorld = artDirected
-                ? Mathf.Max(baseFootprintDepthWorld, celestialReachWorld)
-                : celestialReachWorld;
+            float footprintDepthWorld = Mathf.Max(baseFootprintDepthWorld, celestialReachWorld);
 
             float modelWidthFactor = Profile.Model switch
             {
-                ShadowCasterProfile.ProjectionModel.ArtDirectedFootprint => Mathf.Lerp(0.78f, 0.86f, lengthCurve),
                 ShadowCasterProfile.ProjectionModel.Volume => Mathf.Lerp(0.72f, 0.86f, lengthCurve),
                 _ => Mathf.Lerp(0.52f, 0.68f, lengthCurve)
             };
 
             float widthWorld = Mathf.Max(_visibleWidthWorld * Profile.WidthScale * modelWidthFactor, 2.5f);
             Vector2 anchorGlobal = ToGlobal(_groundAnchorLocal);
-            // A slight negative overlap keeps the broad core tucked under the roots instead of
-            // starting as a detached strip in front of the tree.
-            float centerBias = artDirected ? 0.46f : 0.50f;
-            Vector2 centerGlobal = anchorGlobal + direction * (footprintDepthWorld * centerBias);
+            Vector2 centerGlobal = anchorGlobal + direction * (footprintDepthWorld * 0.50f);
             Vector2 centerLocal = ToLocal(centerGlobal);
 
             Vector2 localDir = ToLocal(anchorGlobal + direction) - ToLocal(anchorGlobal);
@@ -331,25 +375,17 @@ namespace AshesofaDyingWorld.World.Environment
             float localLength = (ToLocal(anchorGlobal + direction * footprintDepthWorld) - _groundAnchorLocal).Length();
             float localWidth = (ToLocal(anchorGlobal + side * widthWorld) - _groundAnchorLocal).Length();
 
-            Vector2 texSize = _projectedShadow.Texture?.GetSize() ?? new Vector2(64f, 64f);
+            Vector2 texSize = activeFootprint?.GetSize() ?? new Vector2(64f, 64f);
             _projectedShadow.Position = centerLocal;
             _projectedShadow.Rotation = localDir.Angle() - Mathf.Pi * 0.5f;
             _projectedShadow.Scale = new Vector2(
                 localWidth / Mathf.Max(texSize.X, 1f),
                 localLength / Mathf.Max(texSize.Y, 1f));
 
-            // Foliage footprint is art-directed, so golden-hour shadows must remain readable even
-            // when the physical key energy is low. Night is the opposite: keep mostly contact AO
-            // and let the directional cast fade almost completely.
-            float keyVisibility = artDirected
-                ? 0.78f + 0.22f * Mathf.Sqrt(Mathf.Clamp(state.KeyLightStrength01, 0f, 1f))
-                : 0.42f + 0.58f * Mathf.Sqrt(Mathf.Clamp(state.KeyLightStrength01, 0f, 1f));
-            float cloudAttenuation = 1f - Mathf.Clamp(state.Cloudiness, 0f, 1f) * (artDirected ? 0.14f : 0.24f);
-            float nightAttenuation = Mathf.Lerp(1f, artDirected ? 0.18f : 0.62f, Mathf.Clamp(state.NightFactor, 0f, 1f));
-            // Low sun lengthens the shape; it should not make the core disappear.
-            float horizonResponse = artDirected
-                ? Mathf.Lerp(1.00f, 0.92f, lengthCurve)
-                : Mathf.Lerp(0.90f, 1.08f, lengthCurve);
+            float keyVisibility = 0.42f + 0.58f * Mathf.Sqrt(Mathf.Clamp(state.KeyLightStrength01, 0f, 1f));
+            float cloudAttenuation = 1f - Mathf.Clamp(state.Cloudiness, 0f, 1f) * 0.24f;
+            float nightAttenuation = Mathf.Lerp(1f, 0.62f, Mathf.Clamp(state.NightFactor, 0f, 1f));
+            float horizonResponse = Mathf.Lerp(0.90f, 1.08f, lengthCurve);
             float alpha = Profile.Opacity
                 * Mathf.Clamp(state.ShadowStrength, 0f, 1f)
                 * keyVisibility
@@ -358,8 +394,70 @@ namespace AshesofaDyingWorld.World.Environment
                 * horizonResponse;
 
             Color nightTint = new(0.020f, 0.032f, 0.060f, 1f);
-            Color tint = Profile.Tint.Lerp(nightTint, Mathf.Clamp(state.NightFactor * 0.44f, 0f, 0.44f));
-            _projectedShadow.Modulate = new Color(tint.R, tint.G, tint.B, Mathf.Clamp(alpha, 0f, artDirected ? 0.42f : 0.56f));
+            Color tint = Profile.Tint.Lerp(nightTint, Mathf.Clamp(state.NightFactor * 0.40f, 0f, 0.40f));
+            _projectedShadow.Modulate = new Color(tint.R, tint.G, tint.B, Mathf.Clamp(alpha, 0f, 0.56f));
+            _projectedShadow.Visible = _source.Visible;
+        }
+
+        /// <summary>
+        /// V5.1d: tree footprints are already authored as compact / medium / long ground shadows.
+        /// Do NOT stretch their Y axis again. Preserve the authored aspect ratio, rotate one set
+        /// continuously with the sun, and place the near edge slightly under the roots.
+        /// </summary>
+        private void ApplyAuthoredFootprint(
+            EnvironmentState state,
+            Vector2 direction,
+            float lengthCurve,
+            Texture2D activeFootprint)
+        {
+            if (activeFootprint == null)
+            {
+                _projectedShadow.Visible = false;
+                return;
+            }
+
+            Vector2 anchorGlobal = ToGlobal(_groundAnchorLocal);
+            Vector2 localDir = ToLocal(anchorGlobal + direction) - ToLocal(anchorGlobal);
+            if (localDir.LengthSquared() < 0.0001f)
+            {
+                localDir = Vector2.Down;
+            }
+            localDir = localDir.Normalized();
+
+            Vector2 side = new(-direction.Y, direction.X);
+            float widthFactor = lengthCurve < 0.18f
+                ? 0.96f
+                : (lengthCurve < 0.60f ? 0.89f : 0.84f);
+            float targetWidthWorld = Mathf.Max(_visibleWidthWorld * Profile.WidthScale * widthFactor, 2.5f);
+            float localTargetWidth = (ToLocal(anchorGlobal + side * targetWidthWorld) - _groundAnchorLocal).Length();
+
+            Vector2 texSize = activeFootprint.GetSize();
+            float uniformScale = localTargetWidth / Mathf.Max(texSize.X, 1f);
+            float authoredDepthLocal = texSize.Y * uniformScale;
+
+            // 0.5 would place the near edge exactly at the trunk. A little less keeps the core
+            // tucked under the roots so the shadow never looks detached.
+            float centerBias = lengthCurve < 0.18f
+                ? 0.14f
+                : (lengthCurve < 0.60f ? 0.18f : 0.23f);
+            _projectedShadow.Position = _groundAnchorLocal + localDir * authoredDepthLocal * centerBias;
+            _projectedShadow.Rotation = localDir.Angle() - Mathf.Pi * 0.5f;
+            _projectedShadow.Scale = Vector2.One * uniformScale;
+
+            float keyVisibility = 0.80f + 0.20f * Mathf.Sqrt(Mathf.Clamp(state.KeyLightStrength01, 0f, 1f));
+            float cloudAttenuation = 1f - Mathf.Clamp(state.Cloudiness, 0f, 1f) * 0.12f;
+            float nightAttenuation = Mathf.Lerp(1f, 0.028f, Mathf.Clamp(state.NightFactor, 0f, 1f));
+            float horizonResponse = Mathf.Lerp(0.96f, 0.88f, lengthCurve);
+            float alpha = Profile.Opacity
+                * Mathf.Clamp(state.ShadowStrength, 0f, 1f)
+                * keyVisibility
+                * cloudAttenuation
+                * nightAttenuation
+                * horizonResponse;
+
+            Color nightTint = new(0.018f, 0.028f, 0.050f, 1f);
+            Color tint = Profile.Tint.Lerp(nightTint, Mathf.Clamp(state.NightFactor * 0.46f, 0f, 0.46f));
+            _projectedShadow.Modulate = new Color(tint.R, tint.G, tint.B, Mathf.Clamp(alpha, 0f, 0.34f));
             _projectedShadow.Visible = _source.Visible;
         }
 
