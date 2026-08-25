@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://3ovagg0v2clv"
-path="res://.godot/imported/09_1_mud_puddles water.png-3d467521264f9c47c734cc6ac7b74bf7.ctex"
+uid="uid://bwrgakaa0f4lc"
+path="res://.godot/imported/14_grass_edge_detail.png-3d4e9b6bb96b113b5c7c27d475fc1b77.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/graphics/world/whispering_fields/field_01_layers/09_1_mud_puddles water.png"
-dest_files=["res://.godot/imported/09_1_mud_puddles water.png-3d467521264f9c47c734cc6ac7b74bf7.ctex"]
+source_file="res://assets/graphics/world/whispering_fields/field_01_layers/14_grass_edge_detail.png"
+dest_files=["res://.godot/imported/14_grass_edge_detail.png-3d4e9b6bb96b113b5c7c27d475fc1b77.ctex"]
 
 [params]
 

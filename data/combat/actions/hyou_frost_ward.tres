@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://ka2t1rxetu3" path="res://scripts/Combat/Data/CombatActionData.cs" id="1_action"]
 [ext_resource type="Resource" path="res://data/combat/hit_profiles/hyou_frost_ward.tres" id="2_hit"]
 [ext_resource type="Script" uid="uid://c1n6tin5w1evj" path="res://scripts/Combat/Data/CombatActionEventData.cs" id="3_event"]
-[ext_resource type="Resource" path="res://data/combat/fields/hyou_frost_ward.tres" id="4_field"]
+[ext_resource type="Resource" uid="uid://bl6ycl6dyr3g8" path="res://data/combat/fields/hyou_frost_ward.tres" id="4_field"]
 
 [sub_resource type="Resource" id="Resource_spawn_frost_ward"]
 script = ExtResource("3_event")

@@ -1,12 +1,21 @@
-[gd_scene load_steps=11 format=3 uid="uid://dn6mkbqn5m3hq"]
+[gd_scene load_steps=13 format=3 uid="uid://dn6mkbqn5m3hq"]
 
 [ext_resource type="Texture2D" path="res://assets/graphics/environment/flora/flora_wind_small.png" id="1_atlas"]
 [ext_resource type="Script" path="res://scripts/World/Interaction/WorldInteractable.cs" id="2_interactable"]
 [ext_resource type="Texture2D" path="res://assets/graphics/environment/flora/flora_contact_shadow.png" id="3_shadow"]
 [ext_resource type="Script" path="res://scripts/World/Environment/FloraIdleAnimator.cs" id="4_animator"]
+[ext_resource type="Shader" path="res://assets/shaders/world/flora_relight.gdshader" id="5_relight"]
 
 [ext_resource type="Script" path="res://scripts/World/Environment/ShadowCaster2D.cs" id="99_shadow"]
 [ext_resource type="Resource" path="res://data/world/shadows/small_flora.tres" id="98_shadow_profile"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_flora_relight"]
+shader = ExtResource("5_relight")
+shader_parameter/relight_strength = 0.14
+shader_parameter/shade_strength = 0.11
+shader_parameter/color_cohesion = 0.06
+shader_parameter/root_contact = 0.05
+shader_parameter/cool_shadow_tint = Color(0.82, 0.9, 0.9, 1)
 
 [sub_resource type="AtlasTexture" id="Atlas_left"]
 atlas = ExtResource("1_atlas")
@@ -68,6 +77,7 @@ Profile = ExtResource("98_shadow_profile")
 GroundOffset = Vector2(0, 9)
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+material = SubResource("ShaderMaterial_flora_relight")
 texture_filter = 1
 position = Vector2(0, 21)
 scale = Vector2(1.75, 1.75)

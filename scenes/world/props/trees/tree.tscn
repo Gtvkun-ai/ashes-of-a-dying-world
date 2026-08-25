@@ -27,18 +27,18 @@ shader_parameter/rain_stiffness = 0.30
 shader_parameter/foliage_normal = ExtResource("5_normal")
 shader_parameter/foliage_ao = ExtResource("7_ao")
 shader_parameter/authored_ao_strength = 0.18
-shader_parameter/relight_strength = 0.62
-shader_parameter/sun_highlight = 0.14
-shader_parameter/shade_depth = 0.15
-shader_parameter/crown_ao = 0.082
-shader_parameter/golden_rim = 0.06
+shader_parameter/relight_strength = 0.52
+shader_parameter/sun_highlight = 0.105
+shader_parameter/shade_depth = 0.17
+shader_parameter/crown_ao = 0.105
+shader_parameter/golden_rim = 0.042
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_trunk"]
 shader = ExtResource("6_trunk_shader")
 shader_parameter/bump_pixels = 1.25
-shader_parameter/highlight_gain = 0.10
-shader_parameter/shade_gain = 0.10
-shader_parameter/root_ao = 0.07
+shader_parameter/highlight_gain = 0.075
+shader_parameter/shade_gain = 0.12
+shader_parameter/root_ao = 0.09
 
 [node name="Tree" type="StaticBody2D"]
 script = ExtResource("9_editor_preview")

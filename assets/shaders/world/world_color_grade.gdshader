@@ -34,6 +34,8 @@ uniform float night_blue_strength : hint_range(0.0, 1.0) = 0.58;
 uniform float night_exposure : hint_range(0.0, 0.5) = 0.16;
 uniform float green_tame : hint_range(0.0, 0.25) = 0.14;
 uniform float vignette_strength : hint_range(0.0, 0.15) = 0.018;
+uniform float cohesion_strength : hint_range(0.0, 0.25) = 0.08;
+uniform vec3 cohesion_tint : source_color = vec3(0.94, 0.985, 0.86);
 
 float luma(vec3 c) {
     return dot(c, vec3(0.2126, 0.7152, 0.0722));
@@ -45,6 +47,9 @@ void fragment() {
     float night = clamp(env_night, 0.0, 1.0);
     float day = clamp(env_daylight, 0.0, 1.0);
     float golden = clamp(env_golden_hour, 0.0, 1.0);
+    float key = clamp(env_key_strength, 0.0, 1.0);
+    float elevation = clamp(env_key_elevation, 0.0, 1.0);
+    float low_sun = clamp(env_shadow_length, 0.0, 1.0);
 
     c = (c - 0.5) * contrast + 0.5;
     c = max(c, vec3(0.0));
@@ -57,6 +62,19 @@ void fragment() {
     c.b += green_trim * 0.025;
 
     float y = luma(c);
+    float mid_band = smoothstep(0.10, 0.44, y) * (1.0 - smoothstep(0.86, 1.0, y));
+    vec3 cohesive = c * cohesion_tint + vec3(0.006, 0.004, -0.003) * day;
+    c = mix(c, cohesive, cohesion_strength * day * mid_band);
+    y = luma(c);
+
+    vec2 to_key = length(env_key_direction) > 0.0001 ? normalize(-env_key_direction) : vec2(0.0, -1.0);
+    vec2 p_dir = SCREEN_UV - vec2(0.5);
+    float key_side = dot(p_dir, to_key);
+    float directional_warm = smoothstep(-0.30, 0.72, key_side) * day * key * (0.40 + elevation * 0.60);
+    float directional_cool = smoothstep(-0.05, 0.78, -key_side) * day * key * (0.35 + low_sun * 0.65);
+    c += env_key_color.rgb * directional_warm * 0.013;
+    c *= mix(vec3(1.0), vec3(0.955, 0.980, 1.020), directional_cool * 0.034);
+
     float saturation = mix(day_saturation, night_saturation, night);
     saturation = mix(saturation, golden_saturation, golden * day);
     c = mix(vec3(y), c, saturation);

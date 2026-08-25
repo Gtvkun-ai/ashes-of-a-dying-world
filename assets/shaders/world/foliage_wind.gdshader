@@ -1,7 +1,7 @@
 shader_type canvas_item;
 render_mode unshaded;
 
-// Ashes Environment V5.4 - restrained foliage shape + wind.
+// Ashes Environment V5.7 - restrained foliage shape + wind.
 // Foliage owns its directional form; Light2D is ignored to prevent a second highlight pass.
 global uniform float env_time01;
 global uniform float env_daylight;
@@ -38,6 +38,10 @@ uniform float sway_speed : hint_range(0.0, 4.0) = 1.0;
 uniform float anchor_y : hint_range(0.25, 1.0) = 0.94;
 uniform float gust_strength : hint_range(0.0, 1.0) = 0.28;
 uniform float rain_stiffness : hint_range(0.0, 1.0) = 0.28;
+
+float luma(vec3 c) {
+    return dot(c, vec3(0.2126, 0.7152, 0.0722));
+}
 
 void vertex() {
     float crown = clamp((anchor_y - UV.y) / max(anchor_y, 0.001), 0.0, 1.0);
@@ -104,6 +108,16 @@ void fragment() {
 
         float wet = clamp(max(env_wetness, env_rain), 0.0, 1.0);
         result += env_key_color.rgb * lit * wet * 0.012;
+
+        // The authored canopy is deliberately punchy, but the map reads more natural if lime peaks
+        // are compressed after relighting instead of letting every tree glow equally.
+        float green_excess = max(result.g - max(result.r, result.b) * 1.03, 0.0);
+        float peak = smoothstep(0.34, 0.78, luma(result));
+        float tame = green_excess * day * (0.11 + peak * 0.10);
+        result.g -= tame;
+        result.r += tame * 0.11;
+        result.b += tame * 0.025;
+        result = mix(result, result * vec3(0.955, 0.975, 0.930), peak * day * 0.035);
     }
 
     COLOR = vec4(clamp(result, vec3(0.0), vec3(1.0)), base.a);

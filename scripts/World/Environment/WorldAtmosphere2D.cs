@@ -41,15 +41,16 @@ namespace AshesofaDyingWorld.World.Environment
 
             EnsureLayer();
 
-            float clearSky = 1f - Mathf.Clamp(state.Cloudiness * 0.78f + state.RainAmount * 0.85f, 0f, 1f);
+            float clearSky = 1f - Mathf.Clamp(state.Cloudiness * 0.78f + state.RainAmount * 0.95f, 0f, 1f);
             float lowSun = Smooth01(Mathf.InverseLerp(0.10f, 0.78f, state.ShadowLength01));
-            // Target V4 gets its golden-hour depth from material/key contrast, not a bright screen veil.
-            // Keep beams as a rare atmospheric accent only.
-            float beamIntensity = 0.075f
+            float noonHaze = Smooth01(Mathf.InverseLerp(0.35f, 0.92f, state.KeyLightElevation))
+                * (1f - lowSun * 0.62f);
+            float shaftMood = Mathf.Clamp(lowSun * 0.92f + noonHaze * 0.44f, 0f, 1f);
+            float beamIntensity = 0.225f
                 * state.Daylight
                 * Mathf.Max(state.KeyLightStrength01, 0.55f)
                 * clearSky
-                * lowSun;
+                * shaftMood;
 
             Vector2 shadowDirection = state.ShadowDirection2D.LengthSquared() > 0.0001f
                 ? state.ShadowDirection2D.Normalized()
@@ -57,7 +58,10 @@ namespace AshesofaDyingWorld.World.Environment
 
             _sunbeamMaterial?.SetShaderParameter("beam_direction", shadowDirection);
             _sunbeamMaterial?.SetShaderParameter("beam_color", WarmLight(state.KeyLightColor));
-            _sunbeamMaterial?.SetShaderParameter("intensity", Mathf.Clamp(beamIntensity, 0f, 0.085f));
+            _sunbeamMaterial?.SetShaderParameter("intensity", Mathf.Clamp(beamIntensity, 0f, 0.22f));
+            _sunbeamMaterial?.SetShaderParameter("width", Mathf.Lerp(0.26f, 0.15f, lowSun));
+            _sunbeamMaterial?.SetShaderParameter("softness", Mathf.Lerp(0.38f, 0.24f, lowSun));
+            _sunbeamMaterial?.SetShaderParameter("center", Mathf.Lerp(-0.46f, -0.18f, lowSun));
 
             float cloudCoverage = Mathf.Clamp(state.Cloudiness, 0f, 1f);
             float cloudShadowStrength = _worldLockedCloudAvailable
@@ -88,7 +92,7 @@ namespace AshesofaDyingWorld.World.Environment
             if (!_reportedReady)
             {
                 _reportedReady = true;
-                GD.Print("[WorldAtmosphere2D] READY V4 restrained beams + world-locked cloud/fog/rain");
+                GD.Print("[WorldAtmosphere2D] READY V5.6 directional forest beams + world-locked cloud/fog/rain");
             }
         }
 

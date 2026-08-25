@@ -1,13 +1,15 @@
 shader_type canvas_item;
 render_mode unshaded;
 
-// Ashes Environment V5.4 - restrained authored dirt path response.
+// Ashes Environment V5.6 - directional authored dirt path response.
 global uniform float env_daylight;
 global uniform float env_night;
 global uniform vec2 env_key_direction;
 global uniform vec4 env_key_color;
+global uniform float env_key_elevation;
 global uniform float env_key_strength;
 global uniform float env_golden_hour;
+global uniform float env_shadow_length;
 global uniform float env_rain;
 global uniform float env_wetness;
 global uniform float env_cloudiness;
@@ -33,15 +35,24 @@ void fragment() {
 
         float ao = texture(ao_map, UV).r;
         result *= 1.0 - (1.0 - ao) * ao_strength;
+        result = mix(result, result * vec3(0.965, 0.945, 0.885), day * 0.060);
 
         vec3 n = texture(normal_map, UV).rgb * 2.0 - 1.0;
+        n = normalize(vec3(n.xy, max(n.z, 0.34)));
         vec2 to_key = length(env_key_direction) > 0.0001 ? normalize(-env_key_direction) : vec2(0.0, -1.0);
-        float directional = dot(n.xy, to_key);
+        float directional = clamp(dot(n.xy, to_key) * 1.30, -1.0, 1.0);
         float key_soft = key * day * (1.0 - cloud * 0.36);
-        result *= 1.0 + directional * normal_strength * key_soft;
-        result += env_key_color.rgb * sun_gain * key_soft;
+        float lit = smoothstep(-0.18, 0.76, directional);
+        float shaded = smoothstep(0.00, 0.84, -directional);
+        float top_light = smoothstep(0.38, 0.92, n.z) * clamp(env_key_elevation, 0.0, 1.0);
 
-        result += vec3(0.10, 0.050, 0.004) * golden * golden_gain;
+        result *= 1.0 + lit * normal_strength * key_soft * (0.72 + top_light * 0.28);
+        result *= 1.0 - shaded * normal_strength * key_soft * 0.64;
+        result = mix(result, result * vec3(0.90, 0.93, 0.98), shaded * key_soft * 0.10);
+        result += env_key_color.rgb * (lit * 0.82 + top_light * 0.18) * sun_gain * key_soft;
+
+        float low_sun = clamp(env_shadow_length, 0.0, 1.0);
+        result += vec3(0.10, 0.050, 0.004) * golden * golden_gain * (0.42 + lit * 0.58 + low_sun * 0.18);
 
         float wet = clamp(max(env_wetness, env_rain), 0.0, 1.0);
         result *= 1.0 - wet * wet_darken;

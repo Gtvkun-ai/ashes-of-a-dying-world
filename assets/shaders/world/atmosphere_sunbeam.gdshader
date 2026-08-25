@@ -4,8 +4,8 @@ render_mode blend_add, unshaded;
 uniform vec2 beam_direction = vec2(0.65, 0.75);
 uniform vec4 beam_color : source_color = vec4(1.0, 0.86, 0.50, 1.0);
 uniform float intensity : hint_range(0.0, 1.0) = 0.0;
-uniform float width : hint_range(0.02, 0.60) = 0.22;
-uniform float softness : hint_range(0.01, 0.60) = 0.18;
+uniform float width : hint_range(0.02, 0.60) = 0.16;
+uniform float softness : hint_range(0.01, 0.60) = 0.28;
 uniform float center : hint_range(-1.0, 1.0) = -0.22;
 
 float hash(vec2 p) {
@@ -32,13 +32,21 @@ void fragment() {
 
         float along = dot(p, dir);
         float side = dot(p, side_axis);
-        float core = 1.0 - smoothstep(width, width + softness, abs(side - center));
-        float secondary = 0.42 * (1.0 - smoothstep(width * 0.55, width * 1.35, abs(side - center - 0.34)));
-        float entry = smoothstep(-0.72, -0.08, along);
-        float fade = 1.0 - smoothstep(0.28, 0.82, along);
-        float grain = 0.78 + 0.22 * vnoise(UV * vec2(7.0, 3.0) + dir * TIME * 0.025);
+        float shaft_a = 1.0 - smoothstep(width, width + softness, abs(side - center));
+        float shaft_b = 0.54 * (1.0 - smoothstep(width * 0.70, width * 1.92, abs(side - center - 0.34)));
+        float shaft_c = 0.38 * (1.0 - smoothstep(width * 0.58, width * 1.60, abs(side - center + 0.46)));
+        float shaft_d = 0.24 * (1.0 - smoothstep(width * 0.44, width * 1.38, abs(side - center + 0.78)));
+        float shafts = max(shaft_a, max(shaft_b, shaft_c));
+        shafts = max(shafts, shaft_d);
 
-        float alpha = (core + secondary) * entry * fade * grain * intensity;
+        float entry = smoothstep(-0.88, -0.18, along);
+        float fade = 1.0 - smoothstep(0.34, 1.02, along);
+        float haze = smoothstep(-0.20, 0.82, UV.y) * (1.0 - smoothstep(0.90, 1.05, UV.y));
+        float broken = 0.62 + 0.38 * vnoise(vec2(side * 4.6, along * 2.0) + dir * TIME * 0.018);
+        float canopy_break = smoothstep(0.24, 0.86, vnoise(UV * vec2(5.0, 3.4) + side_axis * 0.9));
+        float grain = 0.86 + 0.14 * vnoise(UV * vec2(9.0, 4.6) + dir * TIME * 0.018);
+
+        float alpha = shafts * entry * fade * haze * broken * canopy_break * grain * intensity;
         COLOR = vec4(beam_color.rgb, clamp(alpha, 0.0, 1.0) * beam_color.a);
     }
 }
