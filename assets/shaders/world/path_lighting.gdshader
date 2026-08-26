@@ -16,11 +16,22 @@ global uniform float env_cloudiness;
 
 uniform sampler2D normal_map : filter_linear, repeat_disable;
 uniform sampler2D ao_map : filter_linear, repeat_disable;
+uniform sampler2D tree_ground_influence_mask : filter_linear, repeat_disable;
+uniform vec2 tree_ground_world_size = vec2(1824.0, 1896.0);
+uniform vec2 tree_ground_world_origin = vec2(0.0, 0.0);
+uniform float tree_ground_strength : hint_range(0.0, 0.30) = 0.0;
+uniform float tree_ground_tint_strength : hint_range(0.0, 0.20) = 0.0;
+
+varying vec2 world_pos;
 uniform float normal_strength : hint_range(0.0, 0.40) = 0.12;
 uniform float ao_strength : hint_range(0.0, 0.50) = 0.19;
 uniform float sun_gain : hint_range(0.0, 0.20) = 0.020;
 uniform float golden_gain : hint_range(0.0, 0.30) = 0.065;
 uniform float wet_darken : hint_range(0.0, 0.30) = 0.075;
+
+void vertex() {
+    world_pos = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).xy;
+}
 
 void fragment() {
     vec4 base = COLOR;
@@ -36,6 +47,13 @@ void fragment() {
         float ao = texture(ao_map, UV).r;
         result *= 1.0 - (1.0 - ao) * ao_strength;
         result = mix(result, result * vec3(0.965, 0.945, 0.885), day * 0.060);
+
+        vec2 tree_uv = (world_pos - tree_ground_world_origin) / max(tree_ground_world_size, vec2(1.0));
+        tree_uv = clamp(tree_uv, vec2(0.0), vec2(1.0));
+        float tree_ground = clamp(texture(tree_ground_influence_mask, tree_uv).r, 0.0, 1.0);
+        float tree_ground_core = smoothstep(0.18, 0.82, tree_ground);
+        result *= 1.0 - tree_ground * tree_ground_strength;
+        result = mix(result, result * vec3(0.90, 0.95, 0.88), tree_ground_core * tree_ground_tint_strength);
 
         vec3 n = texture(normal_map, UV).rgb * 2.0 - 1.0;
         n = normalize(vec3(n.xy, max(n.z, 0.34)));

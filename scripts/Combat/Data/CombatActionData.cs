@@ -71,6 +71,31 @@ namespace AshesofaDyingWorld.Combat.Data
             return null;
         }
 
+        /// <summary>
+        /// Trả về field spec thật mà action sẽ spawn.
+        /// Presentation code dùng cùng một nguồn dữ liệu với SpawnField runtime để
+        /// telegraph và field không tự giữ hai scale khác nhau.
+        /// </summary>
+        public CombatFieldSpecData ResolveFieldSpec()
+        {
+            if (Events == null)
+            {
+                return null;
+            }
+
+            foreach (CombatActionEventData actionEvent in Events)
+            {
+                if (actionEvent != null
+                    && actionEvent.EventType == CombatActionEventType.SpawnField
+                    && actionEvent.FieldSpec != null)
+                {
+                    return actionEvent.FieldSpec;
+                }
+            }
+
+            return null;
+        }
+
         public string ResolveAnimation(string direction)
         {
             string safeDirection = string.IsNullOrWhiteSpace(direction) ? "down" : direction;

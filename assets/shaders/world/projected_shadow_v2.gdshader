@@ -73,13 +73,13 @@ void fragment() {
     float spread = mix(0.52, 1.55, long_shadow);
     vec2 px = TEXTURE_PIXEL_SIZE * spread;
     float raw_alpha = texture(TEXTURE, UV).a;
-    float source_alpha = raw_alpha * 0.62;
-    source_alpha += texture(TEXTURE, UV + vec2(px.x, 0.0)).a * 0.082;
-    source_alpha += texture(TEXTURE, UV - vec2(px.x, 0.0)).a * 0.082;
-    source_alpha += texture(TEXTURE, UV + vec2(0.0, px.y)).a * 0.082;
-    source_alpha += texture(TEXTURE, UV - vec2(0.0, px.y)).a * 0.082;
-    source_alpha += texture(TEXTURE, UV + px).a * 0.026;
-    source_alpha += texture(TEXTURE, UV - px).a * 0.026;
+    float source_alpha = raw_alpha * 0.72;
+    source_alpha += texture(TEXTURE, UV + vec2(px.x, 0.0)).a * 0.095;
+    source_alpha += texture(TEXTURE, UV - vec2(px.x, 0.0)).a * 0.095;
+    source_alpha += texture(TEXTURE, UV + vec2(0.0, px.y)).a * 0.095;
+    source_alpha += texture(TEXTURE, UV - vec2(0.0, px.y)).a * 0.095;
+    source_alpha += texture(TEXTURE, UV + px).a * 0.034;
+    source_alpha += texture(TEXTURE, UV - px).a * 0.034;
     source_alpha = clamp(source_alpha, 0.0, 1.0);
 
     if (raw_alpha < caster_alpha_cutoff && source_alpha < 0.018) {
@@ -89,9 +89,9 @@ void fragment() {
     // Directional fade is authored into the footprint PNG now. Keep fragment math boring
     // and stable so the shadow keeps its shape instead of turning into a blade.
     vec3 day_tint = caster_tint.rgb;
-    vec3 night_tint = vec3(0.020, 0.032, 0.060);
+    vec3 night_tint = vec3(0.026, 0.040, 0.068);
     vec3 tint = mix(day_tint, night_tint, clamp(shadow_night_factor * 0.46, 0.0, 0.46));
-    float distance_fade = mix(1.0, 0.96, long_shadow);
-    float alpha = source_alpha * caster_opacity * shadow_strength * distance_fade;
-    COLOR = vec4(tint, clamp(alpha, 0.0, 0.66));
+    float distance_fade = mix(1.02, 0.985, long_shadow);
+    float alpha = source_alpha * caster_opacity * shadow_strength * distance_fade * 1.08;
+    COLOR = vec4(tint, clamp(alpha, 0.0, 0.78));
 }

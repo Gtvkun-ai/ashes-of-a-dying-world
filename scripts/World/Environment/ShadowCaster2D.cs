@@ -440,14 +440,24 @@ namespace AshesofaDyingWorld.World.Environment
             float centerBias = lengthCurve < 0.18f
                 ? 0.14f
                 : (lengthCurve < 0.60f ? 0.18f : 0.23f);
+            if (Profile.Model == ShadowCasterProfile.ProjectionModel.ArtDirectedFootprint)
+            {
+                centerBias = lengthCurve < 0.18f
+                    ? 0.09f
+                    : (lengthCurve < 0.60f ? 0.13f : 0.18f);
+            }
             _projectedShadow.Position = _groundAnchorLocal + localDir * authoredDepthLocal * centerBias;
             _projectedShadow.Rotation = localDir.Angle() - Mathf.Pi * 0.5f;
             _projectedShadow.Scale = Vector2.One * uniformScale;
 
             float keyVisibility = 0.80f + 0.20f * Mathf.Sqrt(Mathf.Clamp(state.KeyLightStrength01, 0f, 1f));
-            float cloudAttenuation = 1f - Mathf.Clamp(state.Cloudiness, 0f, 1f) * 0.12f;
-            float nightAttenuation = Mathf.Lerp(1f, 0.028f, Mathf.Clamp(state.NightFactor, 0f, 1f));
-            float horizonResponse = Mathf.Lerp(0.96f, 0.88f, lengthCurve);
+            float cloudAttenuation = 1f - Mathf.Clamp(state.Cloudiness, 0f, 1f) * 0.10f;
+            float nightAttenuation = Mathf.Lerp(1f, 0.10f, Mathf.Clamp(state.NightFactor, 0f, 1f));
+            float horizonResponse = Mathf.Lerp(0.98f, 0.90f, lengthCurve);
+            if (Profile.Model == ShadowCasterProfile.ProjectionModel.ArtDirectedFootprint)
+            {
+                horizonResponse = Mathf.Lerp(0.99f, 0.93f, lengthCurve);
+            }
             float alpha = Profile.Opacity
                 * Mathf.Clamp(state.ShadowStrength, 0f, 1f)
                 * keyVisibility
@@ -457,7 +467,8 @@ namespace AshesofaDyingWorld.World.Environment
 
             Color nightTint = new(0.018f, 0.028f, 0.050f, 1f);
             Color tint = Profile.Tint.Lerp(nightTint, Mathf.Clamp(state.NightFactor * 0.46f, 0f, 0.46f));
-            _projectedShadow.Modulate = new Color(tint.R, tint.G, tint.B, Mathf.Clamp(alpha, 0f, 0.34f));
+            float alphaCap = Profile.Model == ShadowCasterProfile.ProjectionModel.ArtDirectedFootprint ? 0.38f : 0.34f;
+            _projectedShadow.Modulate = new Color(tint.R, tint.G, tint.B, Mathf.Clamp(alpha, 0f, alphaCap));
             _projectedShadow.Visible = _source.Visible;
         }
 

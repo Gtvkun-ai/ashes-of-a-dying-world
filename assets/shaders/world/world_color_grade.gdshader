@@ -72,8 +72,8 @@ void fragment() {
     float key_side = dot(p_dir, to_key);
     float directional_warm = smoothstep(-0.30, 0.72, key_side) * day * key * (0.40 + elevation * 0.60);
     float directional_cool = smoothstep(-0.05, 0.78, -key_side) * day * key * (0.35 + low_sun * 0.65);
-    c += env_key_color.rgb * directional_warm * 0.013;
-    c *= mix(vec3(1.0), vec3(0.955, 0.980, 1.020), directional_cool * 0.034);
+    c += env_key_color.rgb * directional_warm * 0.020;
+    c *= mix(vec3(1.0), vec3(0.948, 0.978, 1.030), directional_cool * 0.050);
 
     float saturation = mix(day_saturation, night_saturation, night);
     saturation = mix(saturation, golden_saturation, golden * day);
@@ -82,17 +82,17 @@ void fragment() {
     // Warm only the readable upper values; no orange veil over the whole scene.
     float hi = smoothstep(0.34, 0.84, y);
     float mid = smoothstep(0.22, 0.50, y) * (1.0 - smoothstep(0.70, 0.94, y));
-    c += vec3(0.13, 0.052, -0.008) * hi * golden * golden_strength;
-    c += vec3(0.040, 0.012, -0.005) * mid * golden * golden_strength * 0.34;
-    c *= mix(vec3(1.0), vec3(0.96, 0.982, 1.018), (1.0 - hi) * golden * 0.055);
+    c += vec3(0.18, 0.072, -0.010) * hi * golden * golden_strength;
+    c += vec3(0.058, 0.020, -0.006) * mid * golden * golden_strength * 0.46;
+    c *= mix(vec3(1.0), vec3(0.955, 0.980, 1.022), (1.0 - hi) * golden * 0.075);
 
     if (night > 0.001) {
-        float gamma = mix(1.0, 0.82, night * night_exposure / 0.5);
+        float gamma = mix(1.0, 0.76, night * night_exposure / 0.5);
         vec3 lifted = pow(max(c, vec3(0.0001)), vec3(gamma));
         float ny = luma(lifted);
-        vec3 moon_chroma = mix(lifted, vec3(ny) * vec3(0.56, 0.82, 1.16), night_blue_strength);
+        vec3 moon_chroma = mix(lifted, vec3(ny) * vec3(0.54, 0.80, 1.20), night_blue_strength);
         moon_chroma += vec3(0.006, 0.015, 0.032) * night;
-        c = mix(c, moon_chroma, night * 0.76);
+        c = mix(c, moon_chroma, night * 0.84);
     }
 
     float weather = clamp(env_cloudiness * 0.14 + env_fog * 0.28 + env_rain * 0.12, 0.0, 0.35);

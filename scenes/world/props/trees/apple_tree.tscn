@@ -6,6 +6,8 @@
 [ext_resource type="Texture2D" uid="uid://bhhmv34gtq45h" path="res://assets/graphics/environment/shadows/v5_1/apple_tree_footprint_compact_v51.png" id="4_shadow_compact"]
 [ext_resource type="Texture2D" uid="uid://dol71c8x8fouu" path="res://assets/graphics/environment/trees/apple_tree_canopy_normal.png" id="5_normal"]
 [ext_resource type="Shader" uid="uid://b84yu8uaktp3u" path="res://assets/shaders/world/trunk_relight.gdshader" id="6_trunk_shader"]
+[ext_resource type="Texture2D" path="res://assets/graphics/environment/shadows/v5_1/apple_tree_root_grounding_v122.png" id="16_root_grounding"]
+[ext_resource type="Shader" path="res://assets/shaders/world/root_grounding.gdshader" id="17_root_grounding_shader"]
 [ext_resource type="Texture2D" uid="uid://cr8kiw038f702" path="res://assets/graphics/environment/trees/apple_tree_canopy_ao.png" id="7_ao"]
 [ext_resource type="Texture2D" uid="uid://b8tuw4i23umnj" path="res://assets/graphics/environment/trees/apple_tree.png" id="8_full_source"]
 [ext_resource type="Script" uid="uid://ckxgd3xiumomh" path="res://scripts/World/Environment/EnvironmentTreeEditorPreview2D.cs" id="9_editor_preview"]
@@ -14,12 +16,17 @@
 [ext_resource type="Resource" uid="uid://cv6efclv08yvk" path="res://data/world/shadows/apple_tree.tres" id="98_shadow_profile"]
 [ext_resource type="Script" uid="uid://dpj0gwv5r1fh0" path="res://scripts/World/Environment/ShadowCaster2D.cs" id="99_shadow"]
 
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_root_grounding_apple"]
+shader = ExtResource("17_root_grounding_shader")
+shader_parameter/strength = 0.86
+shader_parameter/stain_multiplier = Color(0.70, 0.77, 0.66, 1)
+
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_trunk"]
 shader = ExtResource("6_trunk_shader")
 shader_parameter/bump_pixels = 1.25
 shader_parameter/highlight_gain = 0.075
 shader_parameter/shade_gain = 0.12
-shader_parameter/root_ao = 0.09
+shader_parameter/root_ao = 0.12
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_wind_apple_tree_canopy"]
 shader = ExtResource("3_wind")
@@ -61,6 +68,16 @@ Profile = ExtResource("98_shadow_profile")
 texture_filter = 1
 texture = ExtResource("8_full_source")
 offset = Vector2(0, -14)
+
+
+[node name="RootGrounding" type="Sprite2D" parent="."]
+show_behind_parent = true
+z_index = -2
+texture_filter = 1
+material = SubResource("ShaderMaterial_root_grounding_apple")
+texture = ExtResource("16_root_grounding")
+offset = Vector2(0, -14)
+
 
 [node name="Trunk" type="Sprite2D" parent="." unique_id=540762600]
 visible = false

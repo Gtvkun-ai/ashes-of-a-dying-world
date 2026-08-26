@@ -7,7 +7,9 @@
 [ext_resource type="Texture2D" path="res://assets/graphics/environment/shadows/v5_1/tree_footprint_medium_v51.png" id="14_shadow_medium"]
 [ext_resource type="Texture2D" path="res://assets/graphics/environment/shadows/v5_1/tree_footprint_long_v51.png" id="15_shadow_long"]
 [ext_resource type="Texture2D" path="res://assets/graphics/environment/trees/tree_canopy_normal.png" id="5_normal"]
+[ext_resource type="Texture2D" path="res://assets/graphics/environment/shadows/v5_1/tree_root_grounding_v122.png" id="16_root_grounding"]
 [ext_resource type="Shader" path="res://assets/shaders/world/trunk_relight.gdshader" id="6_trunk_shader"]
+[ext_resource type="Shader" path="res://assets/shaders/world/root_grounding.gdshader" id="17_root_grounding_shader"]
 [ext_resource type="Texture2D" path="res://assets/graphics/environment/trees/tree_canopy_ao.png" id="7_ao"]
 [ext_resource type="Texture2D" path="res://assets/graphics/environment/trees/tree.png" id="8_full_source"]
 [ext_resource type="Script" path="res://scripts/World/Environment/EnvironmentTreeEditorPreview2D.cs" id="9_editor_preview"]
@@ -33,12 +35,17 @@ shader_parameter/shade_depth = 0.17
 shader_parameter/crown_ao = 0.105
 shader_parameter/golden_rim = 0.042
 
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_root_grounding_tree"]
+shader = ExtResource("17_root_grounding_shader")
+shader_parameter/strength = 0.86
+shader_parameter/stain_multiplier = Color(0.70, 0.77, 0.66, 1)
+
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_trunk"]
 shader = ExtResource("6_trunk_shader")
 shader_parameter/bump_pixels = 1.25
 shader_parameter/highlight_gain = 0.075
 shader_parameter/shade_gain = 0.12
-shader_parameter/root_ao = 0.09
+shader_parameter/root_ao = 0.12
 
 [node name="Tree" type="StaticBody2D"]
 script = ExtResource("9_editor_preview")
@@ -54,13 +61,23 @@ CompactTextureOverride = ExtResource("4_shadow_compact")
 MediumTextureOverride = ExtResource("14_shadow_medium")
 LongTextureOverride = ExtResource("15_shadow_long")
 Profile = ExtResource("98_shadow_profile")
-GroundOffset = Vector2(0, 0)
+GroundOffset = Vector2(0, -1)
 
 [node name="EditorPreview" type="Sprite2D" parent="."]
 visible = false
 texture = ExtResource("8_full_source")
 offset = Vector2(0, -13)
 texture_filter = 1
+
+
+[node name="RootGrounding" type="Sprite2D" parent="."]
+show_behind_parent = true
+z_index = -2
+texture_filter = 1
+material = SubResource("ShaderMaterial_root_grounding_tree")
+texture = ExtResource("16_root_grounding")
+offset = Vector2(0, -13)
+
 
 [node name="Trunk" type="Sprite2D" parent="."]
 material = SubResource("ShaderMaterial_trunk")

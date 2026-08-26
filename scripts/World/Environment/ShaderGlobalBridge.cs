@@ -98,8 +98,8 @@ namespace AshesofaDyingWorld.World.Environment
             }
 
             float sunElevation = Mathf.Clamp(state.SunElevation, 0f, 1f);
-            float lowSun = 1f - SmoothStep(0.30f, 0.68f, sunElevation);
-            float horizonVisible = SmoothStep(0.055f, 0.18f, sunElevation);
+            float lowSun = 1f - SmoothStep(0.38f, 0.78f, sunElevation);
+            float horizonVisible = SmoothStep(0.035f, 0.24f, sunElevation);
             float goldenHour = Mathf.Clamp(state.Daylight * lowSun * horizonVisible, 0f, 1f);
             Vector2 keyDirection = state.KeyLightDirection.LengthSquared() > 0.0001f
                 ? state.KeyLightDirection.Normalized()

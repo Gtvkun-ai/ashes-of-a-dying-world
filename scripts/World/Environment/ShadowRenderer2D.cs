@@ -40,10 +40,10 @@ namespace AshesofaDyingWorld.World.Environment
 
             _sharedMaterial.SetShaderParameter("shadow_direction", direction);
             _sharedMaterial.SetShaderParameter("shadow_length01", Mathf.Clamp(state.ShadowLength01, 0f, 1f));
-            float keyVisibility = 0.46f + 0.54f * Mathf.Sqrt(Mathf.Clamp(state.KeyLightStrength01, 0f, 1f));
-            float nightAttenuation = Mathf.Lerp(1.0f, 0.66f, Mathf.Clamp(state.NightFactor, 0f, 1f));
-            float cloudAttenuation = 1.0f - Mathf.Clamp(state.Cloudiness, 0f, 1f) * 0.22f;
-            float longShadowArtBoost = Mathf.Lerp(1.0f, 1.12f, Mathf.Clamp(state.ShadowLength01, 0f, 1f));
+            float keyVisibility = 0.60f + 0.40f * Mathf.Sqrt(Mathf.Clamp(state.KeyLightStrength01, 0f, 1f));
+            float nightAttenuation = Mathf.Lerp(1.0f, 0.78f, Mathf.Clamp(state.NightFactor, 0f, 1f));
+            float cloudAttenuation = 1.0f - Mathf.Clamp(state.Cloudiness, 0f, 1f) * 0.16f;
+            float longShadowArtBoost = Mathf.Lerp(1.05f, 1.26f, Mathf.Clamp(state.ShadowLength01, 0f, 1f));
             _sharedMaterial.SetShaderParameter(
                 "shadow_strength",
                 Mathf.Clamp(state.ShadowStrength * keyVisibility * nightAttenuation * cloudAttenuation * longShadowArtBoost, 0f, 1f));
@@ -52,7 +52,7 @@ namespace AshesofaDyingWorld.World.Environment
             if (!_reportedReady)
             {
                 _reportedReady = true;
-                GD.Print("[ShadowRenderer2D] READY V4.5 | alpha-bounds footprint + mass penumbra + contact AO");
+                GD.Print("[ShadowRenderer2D] READY V4.6 | stronger TOD readability + actor/rock shadow recovery");
             }
         }
     }

@@ -47,6 +47,8 @@
 [ext_resource type="Texture2D" uid="uid://cunfpjyqlph1d" path="res://assets/graphics/world/whispering_fields/field_01_layers/pond_surface_detail.png" id="54_pond_detail"]
 [ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/14_grass_edge_detail.png" id="55_grass_edge"]
 [ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/15_grass_field_detail.png" id="56_grass_field"]
+[ext_resource type="Shader" path="res://assets/shaders/world/world_cloud_shadow.gdshader" id="57_cloud_shader"]
+[ext_resource type="Script" path="res://scripts/World/Environment/WorldCloudShadow2D.cs" id="58_cloud_controller"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ey7of"]
 texture = ExtResource("1_ey7of")
@@ -1051,6 +1053,19 @@ shader_parameter/green_tame = 0.105
 shader_parameter/vignette_strength = 0.028
 shader_parameter/cohesion_strength = 0.078
 shader_parameter/cohesion_tint = Color(0.935, 0.975, 0.865, 1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_world_cloud_v7"]
+resource_local_to_scene = true
+shader = ExtResource("57_cloud_shader")
+shader_parameter/max_shadow_strength = 0.158
+shader_parameter/max_sun_gain = 0.082
+shader_parameter/world_scale = 0.00078
+shader_parameter/shadow_softness = 0.05
+shader_parameter/fair_weather_activity = 0.17
+shader_parameter/flow_offset = Vector2(0, 0)
+shader_parameter/seed_offset = Vector2(17, 41)
+shader_parameter/density_bias = 0.0
+shader_parameter/sun_open_boost = 1.18
 
 [node name="Fields1" type="Node2D" unique_id=471014084]
 z_index = -10
@@ -2626,6 +2641,25 @@ metadata/_edit_group_ = true
 position = Vector2(1717, 929)
 
 [node name="EnvironmentFX" type="Node2D" parent="." unique_id=854656338]
+
+[node name="WorldCloudShadow" type="Polygon2D" parent="EnvironmentFX"]
+z_index = 90
+material = SubResource("ShaderMaterial_world_cloud_v7")
+polygon = PackedVector2Array(-192, -192, 2016, -192, 2016, 2088, -192, 2088)
+color = Color(1, 1, 1, 1)
+script = ExtResource("58_cloud_controller")
+RandomizeOnReady = true
+Seed = 0
+MinRetargetSeconds = 28.0
+MaxRetargetSeconds = 52.0
+BaseWindDirection = Vector2(1, 0.12)
+DirectionJitterDegrees = 18.0
+MinSpeed = 5.5
+MaxSpeed = 11.0
+TransitionResponsiveness = 0.11
+WorldScale = 0.00078
+DensityJitter = 0.062
+SunOpenJitter = 0.162
 
 [node name="WorldFxController" type="Node2D" parent="EnvironmentFX" unique_id=113631796]
 script = ExtResource("30_env_binder")

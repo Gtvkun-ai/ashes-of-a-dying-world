@@ -24,7 +24,7 @@ global uniform float env_water_ripple;
 uniform float bump_pixels : hint_range(1.0, 6.0) = 2.0;
 uniform float highlight_gain : hint_range(0.0, 0.50) = 0.12;
 uniform float shade_gain : hint_range(0.0, 0.50) = 0.12;
-uniform float root_ao : hint_range(0.0, 0.30) = 0.07;
+uniform float root_ao : hint_range(0.0, 0.30) = 0.11;
 
 float luma(vec3 c) {
     return dot(c, vec3(0.2126, 0.7152, 0.0722));
