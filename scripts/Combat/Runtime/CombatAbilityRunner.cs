@@ -223,7 +223,30 @@ namespace AshesofaDyingWorld.Combat.Runtime
         private bool ExecuteTimedBuff(SkillData skill)
         {
             ApplyTimedBuff(skill, Mathf.Max(0f, skill.Duration));
+            ApplyTimedActivationResources(skill);
             return true;
+        }
+
+        /// <summary>
+        /// Timed buffs may include a small immediate resource swing in addition to their duration effect.
+        /// This keeps tempo skills such as Hikaru Focus responsive without inventing a separate execution type.
+        /// </summary>
+        private void ApplyTimedActivationResources(SkillData skill)
+        {
+            if (skill == null || _owner?.Stats == null)
+            {
+                return;
+            }
+
+            if (skill.RestoreStaminaAmount > 0f)
+            {
+                _owner.Stats.ChangeStamina(skill.RestoreStaminaAmount);
+            }
+
+            if (skill.RestoreGuardAmount > 0f)
+            {
+                _owner.Stats.ChangeGuard(skill.RestoreGuardAmount);
+            }
         }
 
         private void ApplyTimedBuff(SkillData skill, float duration)

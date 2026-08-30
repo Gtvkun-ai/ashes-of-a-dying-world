@@ -1,22 +1,4 @@
-[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3 uid="uid://didpvlcxdi310"]
-
-[ext_resource type="Script" path="res://scripts/Combat/Abilities/SkillData.cs" id="1_skill"]
-[ext_resource type="Texture2D" path="res://data/icons/dex.tres" id="2_icon"]
+[gd_resource type="Resource" format=3]
 
 [resource]
-script = ExtResource("1_skill")
-SkillId = "hyou_crystal_step"
-SkillName = "Tinh bộ"
-Icon = ExtResource("2_icon")
-Description = "Bọc chân bằng băng mỏng, tăng 20% tốc độ di chuyển trong 10 giây."
-Category = 0
-Element = 2
-MaxLevel = 1
-DefaultUnlocked = false
-ExecutionType = 0
-Duration = 10.0
-MoveSpeedBonusPercent = 20.0
-DexterityBonusPercent = 0.0
-Cooldown = 32.0
-ManaCost = 16
-StaminaCost = 0
+resource_name = "DEPRECATED_hyou_crystal_step"

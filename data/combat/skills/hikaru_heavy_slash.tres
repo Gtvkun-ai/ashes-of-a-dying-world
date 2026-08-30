@@ -1,20 +1,4 @@
-[gd_resource type="Resource" script_class="SkillData" format=3 uid="uid://ddvvvfak6lau2"]
-
-[ext_resource type="Script" uid="uid://ck6362qi5ee48" path="res://scripts/Combat/Abilities/SkillData.cs" id="1_skill"]
-[ext_resource type="Resource" uid="uid://brhcdps2lufu" path="res://data/combat/actions/wood_sword_heavy.tres" id="2_action"]
-[ext_resource type="Texture2D" uid="uid://cdiewffjaiy8r" path="res://data/icons/str.tres" id="3_icon"]
+[gd_resource type="Resource" format=3]
 
 [resource]
-script = ExtResource("1_skill")
-SkillId = "hikaru_heavy_slash"
-SkillName = "Trảm phá"
-Icon = ExtResource("3_icon")
-Description = "Dồn trọng tâm vào một nhát chém nặng, gây 130% sát thương action với stamina phụ thấp."
-Element = 1
-DefaultUnlocked = false
-ExecutionType = 1
-CombatAction = ExtResource("2_action")
-Cooldown = 2.2
-DamageMultiplier = 1.3
-StaminaCost = 2
-AnimationName = "sword"
+resource_name = "DEPRECATED_hikaru_heavy_slash"

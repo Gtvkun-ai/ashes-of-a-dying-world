@@ -36,7 +36,13 @@ namespace AshesofaDyingWorld.Combat.Projectiles
             Vector2 origin = ResolveOrigin(attacker, originSocketPath);
             Vector2 safeDirection = ResolveReleaseAim(attacker, aimTarget, origin, spec, direction);
             var projectile = new CombatProjectile2D();
-            projectile.Initialize(attacker, action, spec, safeDirection, damageMultiplier);
+            projectile.Initialize(
+                attacker,
+                action,
+                spec,
+                safeDirection,
+                damageMultiplier,
+                aimTarget);
             worldParent.AddChild(projectile);
             projectile.GlobalPosition = origin
                 + safeDirection * Mathf.Max(0f, spec.SpawnOffset);

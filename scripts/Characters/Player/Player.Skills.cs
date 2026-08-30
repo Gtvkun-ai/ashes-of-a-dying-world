@@ -44,29 +44,20 @@ public partial class Player
             }
         }
 
-        config.ActiveSkills.Add(CreateFocusSkill());
+        SkillData focus = LoadCanonicalFocusSkill();
+        if (focus != null)
+        {
+            config.ActiveSkills.Add(focus);
+        }
+        else
+        {
+            GD.PushError("[Player] Không load được canonical Focus skill resource.");
+        }
     }
 
-    private static SkillData CreateFocusSkill()
+    private static SkillData LoadCanonicalFocusSkill()
     {
-        return new SkillData
-        {
-            SkillId = "focus",
-            SkillName = "Tập trung",
-            Icon = GD.Load<Texture2D>("res://data/icons/dex.tres"),
-            Description = "Tăng 10% tốc độ di chuyển và 10% Dexterity trong 60 giây.",
-            Category = SkillCategory.Active,
-            Element = SkillElement.None,
-            MaxLevel = 1,
-            DefaultUnlocked = true,
-            ExecutionType = SkillExecutionType.TimedBuff,
-            Duration = 60f,
-            Cooldown = 600f,
-            MoveSpeedBonusPercent = 10f,
-            DexterityBonusPercent = 10f,
-            ManaCost = 0,
-            StaminaCost = 0
-        };
+        return GD.Load<SkillData>("res://data/combat/skills/hikaru_focus.tres");
     }
 
     private void TryActivateSkillSlot(int slotIndex)
@@ -291,6 +282,15 @@ public partial class Player
         if (data == null)
         {
             return null;
+        }
+
+        if (string.Equals(data.SkillKey, "focus", StringComparison.OrdinalIgnoreCase))
+        {
+            SkillData canonicalFocus = LoadCanonicalFocusSkill();
+            if (canonicalFocus != null)
+            {
+                return canonicalFocus;
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(data.ResourcePath))

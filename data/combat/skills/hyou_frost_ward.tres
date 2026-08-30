@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="SkillData" load_steps=4 format=3]
+[gd_resource type="Resource" script_class="SkillData" load_steps=4 format=3 uid="uid://ctd73bolw74oc"]
 
 [ext_resource type="Script" path="res://scripts/Combat/Abilities/SkillData.cs" id="1_skill"]
 [ext_resource type="Resource" path="res://data/combat/actions/hyou_frost_ward.tres" id="2_action"]

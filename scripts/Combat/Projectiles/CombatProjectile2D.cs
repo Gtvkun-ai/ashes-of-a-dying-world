@@ -13,7 +13,7 @@ namespace AshesofaDyingWorld.Combat.Projectiles
     /// </summary>
     public partial class CombatProjectile2D : Node2D
     {
-        private const string VisualBuild = "v8-visual-profile-action-events";
+        private const string VisualBuild = "v9-soft-homing-target-continuity";
 
         private readonly HashSet<ulong> _hitTargets = new();
 
@@ -21,7 +21,9 @@ namespace AshesofaDyingWorld.Combat.Projectiles
         private CombatActionData _action;
         private ProjectileSpecData _spec;
         private ProjectileVisualProfileData _visual;
+        private CombatCharacter _homingTarget;
         private Vector2 _direction = Vector2.Right;
+        private Vector2 _visualCardinal = Vector2.Right;
         private float _damageMultiplier = 1f;
         private ShapeCast2D _shapeCast;
         private Node2D _visualPivot;
@@ -39,13 +41,15 @@ namespace AshesofaDyingWorld.Combat.Projectiles
             CombatActionData action,
             ProjectileSpecData spec,
             Vector2 direction,
-            float damageMultiplier = 1f)
+            float damageMultiplier = 1f,
+            CombatCharacter homingTarget = null)
         {
             _attacker = attacker;
             _action = action;
             _spec = spec;
             _damageMultiplier = Mathf.Max(0f, damageMultiplier);
             _visual = spec?.VisualProfile ?? new ProjectileVisualProfileData();
+            _homingTarget = IsValidHomingTarget(attacker, homingTarget) ? homingTarget : null;
             _direction = direction.LengthSquared() <= 0.001f
                 ? Vector2.Right
                 : direction.Normalized();
@@ -115,6 +119,9 @@ namespace AshesofaDyingWorld.Combat.Projectiles
             }
 
             float dt = Mathf.Max(0f, (float)delta);
+            UpdateSoftHoming(dt);
+            UpdateVisualHeading();
+
             Vector2 step = _direction * Mathf.Max(0f, _spec.Speed) * dt;
             if (step.LengthSquared() > 0.0001f && Sweep(step))
             {
@@ -146,6 +153,7 @@ namespace AshesofaDyingWorld.Combat.Projectiles
         private bool TryBuildAssetVisual()
         {
             Vector2 cardinal = ResolveCardinal(_direction);
+            _visualCardinal = cardinal;
             string directionName = ResolveDirectionName(cardinal);
             int row = ResolveRow(directionName);
 
@@ -394,6 +402,65 @@ namespace AshesofaDyingWorld.Combat.Projectiles
             }
 
             return false;
+        }
+
+        private void UpdateSoftHoming(float dt)
+        {
+            if (_spec == null
+                || !_spec.HomingEnabled
+                || _spec.HomingStrength <= 0.001f
+                || !IsValidHomingTarget(_attacker, _homingTarget))
+            {
+                return;
+            }
+
+            Vector2 toTarget = _homingTarget.CombatCenter - GlobalPosition;
+            float stopDistance = Mathf.Max(0f, _spec.HomingStopDistance);
+            if (toTarget.LengthSquared() <= stopDistance * stopDistance)
+            {
+                return;
+            }
+
+            Vector2 desiredDirection = toTarget.Normalized();
+            float currentAngle = _direction.Angle();
+            float desiredAngle = desiredDirection.Angle();
+            float angleDelta = Mathf.AngleDifference(currentAngle, desiredAngle);
+
+            // HomingStrength is intentionally not "snap percentage".
+            // It scales a bounded turn-rate, so 60% helps the projectile correct
+            // vertical/collision-center mismatch while a moving target can still evade.
+            float strength = Mathf.Clamp(_spec.HomingStrength, 0f, 1f);
+            float maxTurnRadians = Mathf.DegToRad(
+                Mathf.Max(0f, _spec.HomingMaxTurnDegreesPerSecond)
+                * strength
+                * Mathf.Max(0f, dt));
+
+            float appliedTurn = Mathf.Clamp(angleDelta, -maxTurnRadians, maxTurnRadians);
+            _direction = Vector2.FromAngle(currentAngle + appliedTurn).Normalized();
+        }
+
+        private void UpdateVisualHeading()
+        {
+            if (_usesAssetVisual)
+            {
+                if (_visualPivot != null && _visual.RotateSpriteTowardExactAim)
+                {
+                    _visualPivot.Rotation = _direction.Angle() - _visualCardinal.Angle();
+                }
+                return;
+            }
+
+            Rotation = _direction.Angle();
+        }
+
+        private static bool IsValidHomingTarget(CombatCharacter attacker, CombatCharacter target)
+        {
+            return attacker != null
+                && target != null
+                && GodotObject.IsInstanceValid(target)
+                && !target.IsQueuedForDeletion()
+                && target.IsAlive
+                && FactionRules.IsHostile(attacker.Faction, target.Faction);
         }
 
         private static Vector2 ResolveCardinal(Vector2 direction)

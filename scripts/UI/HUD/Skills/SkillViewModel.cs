@@ -212,6 +212,12 @@ namespace AshesofaDyingWorld.UI.HUD.Skills
                 {
                     parts.Add($"+{Mathf.RoundToInt(Definition.DexterityBonusPercent)}% DEX");
                 }
+                if (Definition.AutoEvadeChancePercent > 0f)
+                {
+                    parts.Add(Definition.AutoEvadeUseRelativeMastery
+                        ? $"Né bản năng động (mốc {Mathf.RoundToInt(Definition.AutoEvadeChancePercent)}%)"
+                        : $"{Mathf.RoundToInt(Definition.AutoEvadeChancePercent)}% né bản năng");
+                }
                 if (Definition.RestoreStaminaAmount > 0f)
                 {
                     parts.Add($"Hồi {Mathf.RoundToInt(Definition.RestoreStaminaAmount)} STA");

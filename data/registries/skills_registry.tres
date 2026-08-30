@@ -10,18 +10,10 @@ _recursive_scan = true
 _uids_to_string_ids = Dictionary[StringName, StringName]({
 &"uid://cdaoahnm2y0h1": &"hikaru_focus",
 &"uid://cqaq6w22d6hn7": &"hyou_ice_bolt",
-&"uid://ctd73bolw74oc": &"hyou_frost_focus",
-&"uid://ddvvvfak6lau2": &"hikaru_heavy_slash",
-&"uid://dfm7cur2itipt": &"hikaru_relentless_cut",
-&"uid://didpvlcxdi310": &"hyou_crystal_step",
-&"uid://dpypvx2k7ma2u": &"hikaru_quick_slash"
+&"uid://ctd73bolw74oc": &"hyou_frost_ward"
 })
 _string_ids_to_uids = Dictionary[StringName, StringName]({
 &"hikaru_focus": &"uid://cdaoahnm2y0h1",
-&"hikaru_heavy_slash": &"uid://ddvvvfak6lau2",
-&"hikaru_quick_slash": &"uid://dpypvx2k7ma2u",
-&"hikaru_relentless_cut": &"uid://dfm7cur2itipt",
-&"hyou_crystal_step": &"uid://didpvlcxdi310",
-&"hyou_frost_focus": &"uid://ctd73bolw74oc",
+&"hyou_frost_ward": &"uid://ctd73bolw74oc",
 &"hyou_ice_bolt": &"uid://cqaq6w22d6hn7"
 })

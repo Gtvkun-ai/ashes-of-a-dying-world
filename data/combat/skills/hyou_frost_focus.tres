@@ -1,18 +1,4 @@
-[gd_resource type="Resource" script_class="SkillData" format=3 uid="uid://ctd73bolw74oc"]
-
-[ext_resource type="Script" uid="uid://ck6362qi5ee48" path="res://scripts/Combat/Abilities/SkillData.cs" id="1_skill"]
-[ext_resource type="Texture2D" uid="uid://coqycmjqx6bh5" path="res://data/icons/int.tres" id="2_icon"]
+[gd_resource type="Resource" format=3]
 
 [resource]
-script = ExtResource("1_skill")
-SkillId = "hyou_frost_focus"
-SkillName = "Tâm băng"
-Icon = ExtResource("2_icon")
-Description = "Ổn định dòng hàn khí, tăng 6% tốc độ và 12% Dexterity trong 16 giây."
-Element = 2
-DefaultUnlocked = false
-Duration = 16.0
-MoveSpeedBonusPercent = 6.0
-DexterityBonusPercent = 12.0
-Cooldown = 36.0
-ManaCost = 12
+resource_name = "DEPRECATED_hyou_frost_focus"

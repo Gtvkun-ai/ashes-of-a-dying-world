@@ -79,6 +79,55 @@ namespace AshesofaDyingWorld.Core.Data
         [Export] public float MoveSpeedBonusPercent { get; set; } = 0f;
         [Export] public float DexterityBonusPercent { get; set; } = 0f;
 
+        [ExportGroup("Reactive Evasion")]
+        /// <summary>
+        /// Baseline ở kèo ngang trình. Runtime có thể scale theo level/DEX/INT/mobility
+        /// và độ khó của attack; đây không còn là xác suất cố định.
+        /// </summary>
+        [Export(PropertyHint.Range, "0,100,0.5")]
+        public float AutoEvadeChancePercent { get; set; } = 0f;
+        [Export] public bool AutoEvadeUseRelativeMastery { get; set; } = false;
+        [Export(PropertyHint.Range, "0,100,0.5")]
+        public float AutoEvadeMinChancePercent { get; set; } = 2f;
+        [Export(PropertyHint.Range, "0,100,0.5")]
+        public float AutoEvadeMaxChancePercent { get; set; } = 95f;
+
+        [ExportGroup("Reactive Evasion / Mastery Scaling")]
+        [Export(PropertyHint.Range, "0,3,0.05")]
+        public float AutoEvadeLevelDeltaWeight { get; set; } = 0.85f;
+        [Export(PropertyHint.Range, "0,2,0.05")]
+        public float AutoEvadeDexterityDeltaWeight { get; set; } = 0.35f;
+        [Export(PropertyHint.Range, "0,2,0.05")]
+        public float AutoEvadeIntelligenceDeltaWeight { get; set; } = 0.30f;
+        [Export(PropertyHint.Range, "0,0.25,0.005")]
+        public float AutoEvadeMoveSpeedDeltaWeight { get; set; } = 0.04f;
+        [Export(PropertyHint.Range, "0,20,0.5")]
+        public float AutoEvadeAttackSpeedPressureWeight { get; set; } = 8f;
+        [Export(PropertyHint.Range, "0,40,0.5")]
+        public float AutoEvadeStartupReadWeight { get; set; } = 18f;
+        [Export(PropertyHint.Range, "0,0.25,0.005")]
+        public float AutoEvadeTravelSpeedPressureWeight { get; set; } = 0.03f;
+
+        [ExportGroup("Reactive Evasion / Overmatch")]
+        [Export(PropertyHint.Range, "1,98,1")]
+        public int AutoEvadeOvermatchLevelGap { get; set; } = 25;
+        [Export(PropertyHint.Range, "1,5,0.05")]
+        public float AutoEvadeOvermatchMasteryRatio { get; set; } = 1.65f;
+
+        [ExportGroup("Reactive Evasion / Motion")]
+        [Export(PropertyHint.Range, "0,500,1")]
+        public float AutoEvadeImpulse { get; set; } = 230f;
+        [Export(PropertyHint.Range, "0,1,0.01")]
+        public float AutoEvadeInvulnerabilitySeconds { get; set; } = 0.18f;
+        [Export(PropertyHint.Range, "0,2,0.01")]
+        public float AutoEvadeInternalCooldownSeconds { get; set; } = 0.60f;
+        [Export(PropertyHint.Range, "0,2,0.01")]
+        public float AutoReengageWindowSeconds { get; set; } = 0.80f;
+        [Export(PropertyHint.Range, "0,1,0.01")]
+        public float AutoReengageDelaySeconds { get; set; } = 0.06f;
+        [Export(PropertyHint.Range, "0,500,1")]
+        public float AutoReengageImpulse { get; set; } = 165f;
+
         [ExportGroup("Instant Effect")]
         [Export] public float HealAmount { get; set; } = 0f;
         [Export] public float RestoreStaminaAmount { get; set; } = 0f;

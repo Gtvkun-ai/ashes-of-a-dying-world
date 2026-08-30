@@ -32,6 +32,12 @@ namespace AshesofaDyingWorld.Combat.Data
         [Export] public bool PierceTargets { get; set; } = false;
         [Export] public int MaxTargetHits { get; set; } = 1;
 
+        [ExportGroup("Soft Homing")]
+        [Export] public bool HomingEnabled { get; set; } = false;
+        [Export(PropertyHint.Range, "0,1,0.05")] public float HomingStrength { get; set; } = 0f;
+        [Export(PropertyHint.Range, "30,720,5")] public float HomingMaxTurnDegreesPerSecond { get; set; } = 260f;
+        [Export(PropertyHint.Range, "0,128,1")] public float HomingStopDistance { get; set; } = 10f;
+
         [ExportGroup("Collision")]
         [Export(PropertyHint.Layers2DPhysics)] public uint HurtboxCollisionMask { get; set; } = 16;
         [Export(PropertyHint.Layers2DPhysics)] public uint WorldCollisionMask { get; set; } = 8;

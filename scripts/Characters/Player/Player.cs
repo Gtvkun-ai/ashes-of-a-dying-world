@@ -54,14 +54,22 @@ public partial class Player : CombatCharacter
 
         // Dựng trạng thái kỹ năng runtime sau khi các component combat đã sẵn sàng.
         InitializeSkillCollection();
+        InitializeFlowEvasion();
         SkillCooldownHudService.GetOrCreate(GetTree());
         FloatingProgressionHudService.GetOrCreate(GetTree());
     }
 
     protected override void UpdateControlSource(float delta)
     {
-        if (!UsePlayerInput || !IsAlive)
+        if (!IsAlive)
         {
+            ResetFlowEvasionRuntime();
+            return;
+        }
+
+        if (!UsePlayerInput)
+        {
+            UpdateFlowEvasion(delta, Vector2.Zero);
             return;
         }
 
@@ -70,6 +78,8 @@ public partial class Player : CombatCharacter
         SetBlocking(wantsBlock);
 
         Vector2 inputDirection = Input.GetVector("ui_left", "ui_right", "ui_up", "ui_down");
+        UpdateFlowEvasion(delta, inputDirection);
+
         bool wantsRun = Input.IsKeyPressed(Key.Shift)
             || (InputMap.HasAction("run") && Input.IsActionPressed("run"));
         SetMoveInput(inputDirection, wantsRun);
@@ -95,6 +105,7 @@ public partial class Player : CombatCharacter
 
     public void ResetTransientStateAfterLoad()
     {
+        ResetFlowEvasionRuntime();
         ResetCombatRuntime();
     }
 }

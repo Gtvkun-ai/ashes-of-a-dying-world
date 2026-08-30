@@ -53,7 +53,8 @@ namespace AshesofaDyingWorld.Combat.Model
         InvalidRequest = 1,
         TargetDead = 2,
         FriendlyFire = 3,
-        DuplicateTarget = 4
+        DuplicateTarget = 4,
+        Evaded = 5
     }
 
     [Flags]
