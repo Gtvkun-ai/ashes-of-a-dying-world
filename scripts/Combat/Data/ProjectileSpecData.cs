@@ -37,6 +37,8 @@ namespace AshesofaDyingWorld.Combat.Data
         [Export(PropertyHint.Range, "0,1,0.05")] public float HomingStrength { get; set; } = 0f;
         [Export(PropertyHint.Range, "30,720,5")] public float HomingMaxTurnDegreesPerSecond { get; set; } = 260f;
         [Export(PropertyHint.Range, "0,128,1")] public float HomingStopDistance { get; set; } = 10f;
+        [Export(PropertyHint.Range, "0,256,1")] public float HomingCloseRangeDistance { get; set; } = 0f;
+        [Export(PropertyHint.Range, "1,4,0.05")] public float HomingCloseRangeTurnMultiplier { get; set; } = 1f;
 
         [ExportGroup("Collision")]
         [Export(PropertyHint.Layers2DPhysics)] public uint HurtboxCollisionMask { get; set; } = 16;

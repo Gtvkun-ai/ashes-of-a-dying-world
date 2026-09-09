@@ -13,7 +13,7 @@ namespace AshesofaDyingWorld.Combat.Projectiles
     /// </summary>
     public partial class CombatProjectile2D : Node2D
     {
-        private const string VisualBuild = "v9-soft-homing-target-continuity";
+        private const string VisualBuild = "v10-close-range-aim-continuity";
 
         private readonly HashSet<ulong> _hitTargets = new();
 
@@ -415,24 +415,38 @@ namespace AshesofaDyingWorld.Combat.Projectiles
             }
 
             Vector2 toTarget = _homingTarget.CombatCenter - GlobalPosition;
+            float targetDistance = toTarget.Length();
             float stopDistance = Mathf.Max(0f, _spec.HomingStopDistance);
-            if (toTarget.LengthSquared() <= stopDistance * stopDistance)
+            if (targetDistance <= stopDistance)
             {
                 return;
             }
 
-            Vector2 desiredDirection = toTarget.Normalized();
+            Vector2 desiredDirection = toTarget / Mathf.Max(0.001f, targetDistance);
             float currentAngle = _direction.Angle();
             float desiredAngle = desiredDirection.Angle();
             float angleDelta = Mathf.AngleDifference(currentAngle, desiredAngle);
 
-            // HomingStrength is intentionally not "snap percentage".
-            // It scales a bounded turn-rate, so 60% helps the projectile correct
-            // vertical/collision-center mismatch while a moving target can still evade.
             float strength = Mathf.Clamp(_spec.HomingStrength, 0f, 1f);
+
+            // Cự ly gần là nơi turn-rate cố định thất bại nặng nhất: projectile bay 320 px/s
+            // nên chỉ có vài frame để sửa sai lệch giữa CastOrigin và hurtbox thấp của slime.
+            // Ta tăng TURN RATE, không snap vị trí. Target đổi hướng/lách khỏi lane vẫn né được.
+            float closeRangeMultiplier = 1f;
+            float closeRangeDistance = Mathf.Max(0f, _spec.HomingCloseRangeDistance);
+            if (closeRangeDistance > 0.001f && targetDistance < closeRangeDistance)
+            {
+                float proximity = 1f - Mathf.Clamp(targetDistance / closeRangeDistance, 0f, 1f);
+                closeRangeMultiplier = Mathf.Lerp(
+                    1f,
+                    Mathf.Max(1f, _spec.HomingCloseRangeTurnMultiplier),
+                    proximity);
+            }
+
             float maxTurnRadians = Mathf.DegToRad(
                 Mathf.Max(0f, _spec.HomingMaxTurnDegreesPerSecond)
                 * strength
+                * closeRangeMultiplier
                 * Mathf.Max(0f, dt));
 
             float appliedTurn = Mathf.Clamp(angleDelta, -maxTurnRadians, maxTurnRadians);

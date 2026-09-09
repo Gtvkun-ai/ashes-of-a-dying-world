@@ -21,7 +21,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
     /// </summary>
     public partial class CombatDecisionAgent : Node
     {
-        private const string RuntimeBuild = "v9-spatial-line-of-fire";
+        private const string RuntimeBuild = "v10-p0-modern-movement";
 
         [Signal] public delegate void DecisionEvaluatedEventHandler(string summary);
 
@@ -49,11 +49,29 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
         [Export] public float MinimumSwitchCooldownSeconds { get; set; } = 0.12f;
         [Export(PropertyHint.Range, "0,1,0.01")] public float EmergencyThreatThreshold { get; set; } = 0.38f;
 
-        [ExportGroup("Movement")]
+        [ExportGroup("Movement / Static Clearance")]
         [Export(PropertyHint.Layers2DPhysics)] public uint ObstacleCollisionMask { get; set; } = 8;
         [Export] public float MovementProbeDistance { get; set; } = 34f;
         [Export] public float MovementArrivalDistance { get; set; } = 6f;
+
+        [ExportGroup("Movement / Global Path")]
         [Export] public float NavigationThreshold { get; set; } = 64f;
+        [Export] public float NavigationTargetRefreshDistance { get; set; } = 8f;
+        [Export] public float NavigationRepathIntervalSeconds { get; set; } = 0.25f;
+        [Export] public int PathBudgetPerPhysicsFrame { get; set; } = 4;
+
+        [ExportGroup("Movement / Dynamic Avoidance")]
+        [Export] public bool UseDynamicAvoidance { get; set; } = true;
+        [Export] public float AvoidanceRadius { get; set; } = 10f;
+        [Export] public float AvoidanceNeighborDistance { get; set; } = 70f;
+        [Export] public int AvoidanceMaxNeighbors { get; set; } = 8;
+        [Export] public float AvoidanceTimeHorizonAgents { get; set; } = 0.65f;
+        [Export] public float AvoidanceTimeHorizonObstacles { get; set; } = 0.35f;
+
+        [ExportGroup("Movement / Anti Stuck")]
+        [Export] public float StuckCheckSeconds { get; set; } = 0.60f;
+        [Export] public float StuckMoveEpsilon { get; set; } = 4f;
+        [Export] public float StuckRecoverySeconds { get; set; } = 0.55f;
 
         [ExportGroup("Profiles")]
         [Export] public CombatClassProfile ClassProfile { get; set; }
@@ -244,6 +262,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                     + LastScheduledDecision.ToCompactString() + " "
                     + $"motor={motorMode} move={LastMovementCommand.Direction} "
                     + $"slot={LastMovementCommand.DirectionSlot} anchor={LastMovementCommand.FacePosition} "
+                    + $"movement=[{_movement?.Metrics?.ToCompactString()}] "
                     + LastTrace.ToCompactString());
 
                 if (DebugFactorLogging)
@@ -256,6 +275,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
         public override void _ExitTree()
         {
             ReleaseLiveCommands();
+            _movement?.Dispose();
         }
 
         public void ResetDecisionRuntime()
@@ -272,6 +292,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             _decisionRemaining = 0f;
             _debugLogRemaining = 0f;
             _elapsedSeconds = 0f;
+            _movement?.Reset();
             ReleaseLiveCommands();
         }
 
@@ -293,6 +314,12 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                     + "\n" + LastTrace.ToDetailedString();
         }
 
+        public string GetMovementDiagnosticsSummary()
+        {
+            return _movement?.Metrics?.ToCompactString()
+                ?? "Movement metrics chưa được khởi tạo.";
+        }
+
         private void Initialize()
         {
             if (_initialized || !IsInsideTree())
@@ -310,6 +337,13 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             AddToGroup("CombatDecisionAgent");
             RayCast2D lineOfSightRay = ResolveOptionalNode<RayCast2D>(LineOfSightRayPath);
             NavigationAgent2D navigationAgent = ResolveOptionalNode<NavigationAgent2D>(NavigationAgentPath);
+            if (navigationAgent == null)
+            {
+                // P0 không bắt người dùng sửa từng scene. Agent runtime tự bám World2D navigation map;
+                // nếu map chưa có NavigationRegion2D thì global path/RVO vẫn fallback an toàn về context steering.
+                navigationAgent = new NavigationAgent2D { Name = "NavAgentRuntime" };
+                _self.AddChild(navigationAgent);
+            }
 
             // Sensor corridor được dùng chung cho perception và validation lúc đang cast.
             // Không dùng RayCast mảnh cho projectile rộng, vì AI sẽ nghĩ bắn lọt những khe mà đạn thật không lọt.
@@ -346,8 +380,20 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 ObstacleCollisionMask,
                 MovementProbeDistance,
                 MovementArrivalDistance,
-                NavigationThreshold);
-            _executor = new CombatIntentExecutor(_self, ClassProfile);
+                NavigationThreshold,
+                NavigationTargetRefreshDistance,
+                NavigationRepathIntervalSeconds,
+                PathBudgetPerPhysicsFrame,
+                UseDynamicAvoidance,
+                AvoidanceRadius,
+                AvoidanceNeighborDistance,
+                AvoidanceMaxNeighbors,
+                AvoidanceTimeHorizonAgents,
+                AvoidanceTimeHorizonObstacles,
+                StuckCheckSeconds,
+                StuckMoveEpsilon,
+                StuckRecoverySeconds);
+            _executor = new CombatIntentExecutor(_self, ClassProfile, _movement);
             _leader = ResolveLeader();
             _decisionRemaining = 0f;
             _debugLogRemaining = 0f;
