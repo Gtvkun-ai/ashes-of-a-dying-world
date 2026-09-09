@@ -6,12 +6,13 @@ using AshesofaDyingWorld.Combat.Decision.Runtime;
 namespace AshesofaDyingWorld.Combat.Decision.Movement
 {
     /// <summary>
-    /// P0 movement stack:
+    /// P1 movement stack:
     /// 1) Global path: NavigationAgent2D cho đường dài.
     /// 2) Static clearance: context steering 16 hướng né tường/đá ở cự ly gần.
     /// 3) Dynamic avoidance: preferred velocity -> RVO safe velocity khi NavAgent hỗ trợ.
     ///
-    /// Nếu thiếu NavAgent/nav map, global path + RVO tự fallback; 16-ray solver vẫn hoạt động độc lập.
+    /// P1 bổ sung spatial hash, corridor reuse, passing-side lock và adaptive ray/ShapeCast.
+    /// Nếu thiếu NavAgent/nav map, global path + RVO tự fallback; local solver vẫn hoạt động độc lập.
     /// </summary>
     public sealed class CombatMovementSolver
     {
@@ -36,6 +37,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
         private float _progressSampleTime;
         private float _stuckRecoveryUntil;
         private int _stuckSideSign;
+        private ulong _nextMotorProbeTickMs;
         private ulong _nextFreeProbeTickMs;
         private ulong _lastCollisionSampleFrame = ulong.MaxValue;
         private bool _hasMotorNavigationTarget;
@@ -52,14 +54,20 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             float arrivalDistance,
             float navigationThreshold,
             float navigationTargetRefreshDistance = 8f,
+            float navigationPathReuseDistance = 16f,
             float navigationRepathIntervalSeconds = 0.25f,
+            float navigationMaxTargetReuseSeconds = 0.55f,
             int pathBudgetPerPhysicsFrame = 4,
+            bool useForwardShapeClearance = true,
+            float movementBodyProbeRadius = 7f,
             bool useDynamicAvoidance = true,
             float avoidanceRadius = 10f,
             float avoidanceNeighborDistance = 70f,
             int avoidanceMaxNeighbors = 8,
             float avoidanceTimeHorizonAgents = 0.65f,
             float avoidanceTimeHorizonObstacles = 0.35f,
+            float avoidancePassingLockSeconds = 0.75f,
+            float avoidanceHeadOnBiasStrength = 0.09f,
             float stuckCheckSeconds = 0.60f,
             float stuckMoveEpsilon = 4f,
             float stuckRecoverySeconds = 0.55f)
@@ -80,9 +88,17 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
                 _arrivalDistance,
                 navigationThreshold,
                 navigationTargetRefreshDistance,
+                navigationPathReuseDistance,
                 navigationRepathIntervalSeconds,
+                navigationMaxTargetReuseSeconds,
                 pathBudgetPerPhysicsFrame);
-            _staticClearance = new CombatStaticClearance(self, obstacleMask, probeDistance, _metrics);
+            _staticClearance = new CombatStaticClearance(
+                self,
+                obstacleMask,
+                probeDistance,
+                _metrics,
+                useForwardShapeClearance,
+                movementBodyProbeRadius);
             _dynamicAvoidance = new CombatDynamicAvoidance(
                 self,
                 navigationAgent,
@@ -92,7 +108,9 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
                 avoidanceNeighborDistance,
                 avoidanceMaxNeighbors,
                 avoidanceTimeHorizonAgents,
-                avoidanceTimeHorizonObstacles);
+                avoidanceTimeHorizonObstacles,
+                avoidancePassingLockSeconds,
+                avoidanceHeadOnBiasStrength);
         }
 
         public MovementCommand Solve(
@@ -145,12 +163,17 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
                     safeAnchor,
                     desiredDirection,
                     anchorDistance,
-                    snapshot.TimeSeconds,
                     IsRecoveringFromStuck);
 
+                float movementSpeedFraction = Mathf.Clamp(
+                    _self.Velocity.Length() / Mathf.Max(1f, _self.RunSpeed),
+                    0f,
+                    1.25f);
                 _staticClearance.Refresh(
                     snapshot.SelfPosition,
-                    IsRecoveringFromStuck || snapshot.NearObstacle || snapshot.IsCornered);
+                    desiredDirection,
+                    IsRecoveringFromStuck || snapshot.NearObstacle || snapshot.IsCornered,
+                    movementSpeedFraction);
 
                 int bestSlot = -1;
                 float bestScore = -1f;
@@ -275,22 +298,37 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             }
 
             Vector2 velocity = preferredVelocity;
+            float speed = preferredVelocity.Length();
             if (_hasMotorNavigationTarget)
             {
-                float speed = preferredVelocity.Length();
                 Vector2 direction = preferredVelocity / Mathf.Max(speed, 0.001f);
                 float distance = _self.CombatCenter.DistanceTo(_motorNavigationTarget);
-                float timeSeconds = Time.GetTicksMsec() / 1000f;
                 Vector2 pathDirection = _globalPath.ResolveDirection(
                     _self.CombatCenter,
                     _motorNavigationTarget,
                     direction,
                     distance,
-                    timeSeconds,
                     false);
                 velocity = pathDirection * speed;
             }
 
+            // P1: local clearance không còn bị khóa theo DecisionIntervalSeconds.
+            // Vùng trống update thưa, gần obstacle update nhanh; cognition vẫn giữ nhịp thấp.
+            ulong now = Time.GetTicksMsec();
+            Vector2 localDesired = velocity / Mathf.Max(speed, 0.001f);
+            if (now >= _nextMotorProbeTickMs)
+            {
+                _nextMotorProbeTickMs = now + (_staticClearance.IsNearObstacle ? 17UL : 50UL);
+                float speedFraction = Mathf.Clamp(speed / Mathf.Max(1f, _self.RunSpeed), 0f, 1.25f);
+                _staticClearance.Refresh(
+                    _self.CombatCenter,
+                    localDesired,
+                    IsRecoveringFromStuck || _staticClearance.IsNearObstacle,
+                    speedFraction);
+            }
+
+            Vector2 localDirection = ResolveLocalClearanceDirection(localDesired);
+            velocity = localDirection * speed;
             return _dynamicAvoidance.ResolveVelocity(velocity);
         }
 
@@ -312,52 +350,26 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             float speed = preferredVelocity.Length();
             Vector2 directDirection = preferredVelocity / speed;
             float distance = selfPosition.DistanceTo(targetPosition);
-            float timeSeconds = Time.GetTicksMsec() / 1000f;
             Vector2 desired = _globalPath.ResolveDirection(
                 selfPosition,
                 targetPosition,
                 directDirection,
                 distance,
-                timeSeconds,
                 false);
 
             ulong now = Time.GetTicksMsec();
             if (now >= _nextFreeProbeTickMs)
             {
                 _nextFreeProbeTickMs = now + (_staticClearance.IsNearObstacle ? 34UL : 67UL);
-                _staticClearance.Refresh(selfPosition, _staticClearance.IsNearObstacle);
+                float speedFraction = Mathf.Clamp(speed / Mathf.Max(1f, _self.RunSpeed), 0f, 1.25f);
+                _staticClearance.Refresh(
+                    selfPosition,
+                    desired,
+                    _staticClearance.IsNearObstacle,
+                    speedFraction);
             }
 
-            int bestSlot = 0;
-            float bestScore = float.NegativeInfinity;
-            Vector2 bestDirection = desired;
-            for (int slot = 0; slot < DirectionCount; slot++)
-            {
-                float angle = Mathf.Tau * slot / DirectionCount;
-                Vector2 direction = Vector2.Right.Rotated(angle);
-                float alignment = Mathf.Max(0f, direction.Dot(desired));
-                float danger = _staticClearance.GetDanger(slot);
-                float score = alignment * alignment * (1f - danger);
-                float side = Cross(desired, direction) * _preferredSideSign;
-                if (side > 0.10f)
-                {
-                    score += 0.015f;
-                }
-
-                if (score > bestScore)
-                {
-                    bestScore = score;
-                    bestSlot = slot;
-                    bestDirection = direction;
-                }
-            }
-
-            float localDanger = _staticClearance.GetDanger(bestSlot);
-            float localWeight = localDanger > 0.25f ? 0.82f : 0.62f;
-            Vector2 localDirection = bestDirection * localWeight + desired * (1f - localWeight);
-            localDirection = localDirection.LengthSquared() > 0.001f
-                ? localDirection.Normalized()
-                : desired;
+            Vector2 localDirection = ResolveLocalClearanceDirection(desired);
             return _dynamicAvoidance.ResolveVelocity(localDirection * speed);
         }
 
@@ -374,6 +386,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             _stuckRecoveryUntil = 0f;
             _hasMotorNavigationTarget = false;
             _lastCollisionSampleFrame = ulong.MaxValue;
+            _nextMotorProbeTickMs = 0;
+            _nextFreeProbeTickMs = 0;
             IsRecoveringFromStuck = false;
             _globalPath.Reset();
             _dynamicAvoidance.ResetVelocity();
@@ -405,6 +419,49 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             {
                 _metrics.RecordCollisionFrame(contacts);
             }
+        }
+
+        private Vector2 ResolveLocalClearanceDirection(Vector2 desired)
+        {
+            if (desired.LengthSquared() <= 0.001f)
+            {
+                return Vector2.Zero;
+            }
+
+            Vector2 normalizedDesired = desired.Normalized();
+            int bestSlot = 0;
+            float bestScore = float.NegativeInfinity;
+            Vector2 bestDirection = normalizedDesired;
+            for (int slot = 0; slot < DirectionCount; slot++)
+            {
+                float angle = Mathf.Tau * slot / DirectionCount;
+                Vector2 direction = Vector2.Right.Rotated(angle);
+                float alignment = Mathf.Max(0f, direction.Dot(normalizedDesired));
+                float danger = _staticClearance.GetDanger(slot);
+                float score = alignment * alignment * (1f - danger);
+                float side = Cross(normalizedDesired, direction) * _preferredSideSign;
+                if (side > 0.10f)
+                {
+                    score += 0.012f;
+                }
+
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    bestSlot = slot;
+                    bestDirection = direction;
+                }
+            }
+
+            float localDanger = _staticClearance.GetDanger(bestSlot);
+            if (localDanger <= 0.02f)
+            {
+                return normalizedDesired;
+            }
+
+            float localWeight = localDanger > 0.25f ? 0.84f : 0.60f;
+            Vector2 blended = bestDirection * localWeight + normalizedDesired * (1f - localWeight);
+            return blended.LengthSquared() > 0.001f ? blended.Normalized() : bestDirection;
         }
 
         private Vector2 ResolveDesiredDirection(

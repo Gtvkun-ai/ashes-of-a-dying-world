@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Godot;
 using AshesofaDyingWorld.Combat.Actors;
 using AshesofaDyingWorld.Combat.Decision.Model;
@@ -17,6 +18,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Party
         private readonly float _searchRadius;
         private readonly float _leaderDangerRadius;
         private readonly float _backlineOffset;
+        private readonly List<CombatCharacter> _spatialQueryBuffer = new(24);
 
         public PartyTacticalDirector(
             SceneTree tree,
@@ -80,10 +82,11 @@ namespace AshesofaDyingWorld.Combat.Decision.Party
             CombatCharacter best = null;
             float bestScore = float.NegativeInfinity;
             float dangerRadiusSquared = _leaderDangerRadius * _leaderDangerRadius;
-            foreach (Node node in _tree.GetNodesInGroup("Combatant"))
+            CombatSpatialIndex.QueryRadius(_tree, leader.CombatCenter, _leaderDangerRadius, _spatialQueryBuffer);
+            for (int i = 0; i < _spatialQueryBuffer.Count; i++)
             {
-                if (node is not CombatCharacter hostile
-                    || !IsHostile(actor, hostile)
+                CombatCharacter hostile = _spatialQueryBuffer[i];
+                if (!IsHostile(actor, hostile)
                     || hostile.CombatCenter.DistanceSquaredTo(leader.CombatCenter) > dangerRadiusSquared)
                 {
                     continue;
@@ -122,18 +125,12 @@ namespace AshesofaDyingWorld.Combat.Decision.Party
                 return null;
             }
 
-            foreach (Node node in _tree.GetNodesInGroup("Combatant"))
-            {
-                if (node is CombatCharacter candidate
-                    && candidate.GetInstanceId() == blackboard.CurrentTargetId.Value
-                    && IsHostile(actor, candidate)
-                    && actor.CombatCenter.DistanceSquaredTo(candidate.CombatCenter) <= _searchRadius * _searchRadius * 1.5f)
-                {
-                    return candidate;
-                }
-            }
-
-            return null;
+            CombatCharacter candidate = CombatSpatialIndex.FindById(_tree, blackboard.CurrentTargetId.Value);
+            return candidate != null
+                && IsHostile(actor, candidate)
+                && actor.CombatCenter.DistanceSquaredTo(candidate.CombatCenter) <= _searchRadius * _searchRadius * 1.5f
+                    ? candidate
+                    : null;
         }
 
         private CombatCharacter FindNearestHostile(CombatCharacter actor)
@@ -145,9 +142,11 @@ namespace AshesofaDyingWorld.Combat.Decision.Party
 
             CombatCharacter nearest = null;
             float bestDistanceSquared = _searchRadius * _searchRadius;
-            foreach (Node node in _tree.GetNodesInGroup("Combatant"))
+            CombatSpatialIndex.QueryRadius(_tree, actor.CombatCenter, _searchRadius, _spatialQueryBuffer);
+            for (int i = 0; i < _spatialQueryBuffer.Count; i++)
             {
-                if (node is not CombatCharacter candidate || !IsHostile(actor, candidate))
+                CombatCharacter candidate = _spatialQueryBuffer[i];
+                if (!IsHostile(actor, candidate))
                 {
                     continue;
                 }

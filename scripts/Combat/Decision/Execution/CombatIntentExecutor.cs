@@ -435,18 +435,12 @@ namespace AshesofaDyingWorld.Combat.Decision.Execution
                 return null;
             }
 
-            foreach (Node node in _self.GetTree().GetNodesInGroup("Combatant"))
-            {
-                if (node is CombatCharacter combatant
-                    && combatant.GetInstanceId() == instanceId.Value
-                    && combatant.IsAlive
-                    && !combatant.IsQueuedForDeletion())
-                {
-                    return combatant;
-                }
-            }
-
-            return null;
+            CombatCharacter combatant = CombatSpatialIndex.FindById(_self.GetTree(), instanceId.Value);
+            return combatant != null
+                && combatant.IsAlive
+                && !combatant.IsQueuedForDeletion()
+                    ? combatant
+                    : null;
         }
 
         private static bool IsCastIntent(CombatIntentType type)

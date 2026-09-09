@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Godot;
 using AshesofaDyingWorld.Combat.Actors;
 using AshesofaDyingWorld.Combat.Data;
@@ -21,6 +22,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
         private readonly IThreatPredictor _threatPredictor;
         private readonly float _enemySearchRadius;
         private readonly float _leaderDangerRadius;
+        private readonly List<CombatCharacter> _spatialQueryBuffer = new(24);
 
         public CombatPerception(
             SceneTree tree,
@@ -185,10 +187,12 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 return null;
             }
 
-            foreach (Node node in _tree.GetNodesInGroup("Combatant"))
+            // P1: broad-phase bằng spatial hash. Toàn bộ scene chỉ quét group Combatant 1 lần / physics frame.
+            CombatSpatialIndex.QueryRadius(_tree, self.CombatCenter, _enemySearchRadius, _spatialQueryBuffer);
+            for (int i = 0; i < _spatialQueryBuffer.Count; i++)
             {
-                if (node is not CombatCharacter candidate
-                    || !IsValidHostile(self, candidate, _enemySearchRadius))
+                CombatCharacter candidate = _spatialQueryBuffer[i];
+                if (!IsValidHostile(self, candidate, _enemySearchRadius))
                 {
                     continue;
                 }
@@ -208,20 +212,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
 
         private CombatCharacter FindCombatantById(ulong instanceId)
         {
-            if (_tree == null)
-            {
-                return null;
-            }
-
-            foreach (Node node in _tree.GetNodesInGroup("Combatant"))
-            {
-                if (node is CombatCharacter combatant && combatant.GetInstanceId() == instanceId)
-                {
-                    return combatant;
-                }
-            }
-
-            return null;
+            return CombatSpatialIndex.FindById(_tree, instanceId);
         }
 
         private bool IsActorThreatened(CombatCharacter actor, float radius)
@@ -232,10 +223,11 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             }
 
             float radiusSquared = radius * radius;
-            foreach (Node node in _tree.GetNodesInGroup("Combatant"))
+            CombatSpatialIndex.QueryRadius(_tree, actor.CombatCenter, radius, _spatialQueryBuffer);
+            for (int i = 0; i < _spatialQueryBuffer.Count; i++)
             {
-                if (node is not CombatCharacter hostile
-                    || hostile == actor
+                CombatCharacter hostile = _spatialQueryBuffer[i];
+                if (hostile == actor
                     || !hostile.IsAlive
                     || !FactionRules.IsHostile(hostile.Faction, actor.Faction))
                 {

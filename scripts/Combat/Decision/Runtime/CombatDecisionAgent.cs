@@ -21,7 +21,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
     /// </summary>
     public partial class CombatDecisionAgent : Node
     {
-        private const string RuntimeBuild = "v10-p0-modern-movement";
+        private const string RuntimeBuild = "v11-p1-scalable-movement";
 
         [Signal] public delegate void DecisionEvaluatedEventHandler(string summary);
 
@@ -53,11 +53,15 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
         [Export(PropertyHint.Layers2DPhysics)] public uint ObstacleCollisionMask { get; set; } = 8;
         [Export] public float MovementProbeDistance { get; set; } = 34f;
         [Export] public float MovementArrivalDistance { get; set; } = 6f;
+        [Export] public bool UseForwardShapeClearance { get; set; } = true;
+        [Export] public float MovementBodyProbeRadius { get; set; } = 7f;
 
         [ExportGroup("Movement / Global Path")]
         [Export] public float NavigationThreshold { get; set; } = 64f;
         [Export] public float NavigationTargetRefreshDistance { get; set; } = 8f;
+        [Export] public float NavigationPathReuseDistance { get; set; } = 16f;
         [Export] public float NavigationRepathIntervalSeconds { get; set; } = 0.25f;
+        [Export] public float NavigationMaxTargetReuseSeconds { get; set; } = 0.55f;
         [Export] public int PathBudgetPerPhysicsFrame { get; set; } = 4;
 
         [ExportGroup("Movement / Dynamic Avoidance")]
@@ -67,6 +71,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
         [Export] public int AvoidanceMaxNeighbors { get; set; } = 8;
         [Export] public float AvoidanceTimeHorizonAgents { get; set; } = 0.65f;
         [Export] public float AvoidanceTimeHorizonObstacles { get; set; } = 0.35f;
+        [Export] public float AvoidancePassingLockSeconds { get; set; } = 0.75f;
+        [Export(PropertyHint.Range, "0.025,0.20,0.005")] public float AvoidanceHeadOnBiasStrength { get; set; } = 0.09f;
 
         [ExportGroup("Movement / Anti Stuck")]
         [Export] public float StuckCheckSeconds { get; set; } = 0.60f;
@@ -263,6 +269,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                     + $"motor={motorMode} move={LastMovementCommand.Direction} "
                     + $"slot={LastMovementCommand.DirectionSlot} anchor={LastMovementCommand.FacePosition} "
                     + $"movement=[{_movement?.Metrics?.ToCompactString()}] "
+                    + $"spatial=[{CombatSpatialIndex.GetDiagnosticsSummary()}] "
                     + LastTrace.ToCompactString());
 
                 if (DebugFactorLogging)
@@ -316,8 +323,9 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
 
         public string GetMovementDiagnosticsSummary()
         {
-            return _movement?.Metrics?.ToCompactString()
+            string movement = _movement?.Metrics?.ToCompactString()
                 ?? "Movement metrics chưa được khởi tạo.";
+            return movement + $" spatial=[{CombatSpatialIndex.GetDiagnosticsSummary()}]";
         }
 
         private void Initialize()
@@ -382,14 +390,20 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 MovementArrivalDistance,
                 NavigationThreshold,
                 NavigationTargetRefreshDistance,
+                NavigationPathReuseDistance,
                 NavigationRepathIntervalSeconds,
+                NavigationMaxTargetReuseSeconds,
                 PathBudgetPerPhysicsFrame,
+                UseForwardShapeClearance,
+                MovementBodyProbeRadius,
                 UseDynamicAvoidance,
                 AvoidanceRadius,
                 AvoidanceNeighborDistance,
                 AvoidanceMaxNeighbors,
                 AvoidanceTimeHorizonAgents,
                 AvoidanceTimeHorizonObstacles,
+                AvoidancePassingLockSeconds,
+                AvoidanceHeadOnBiasStrength,
                 StuckCheckSeconds,
                 StuckMoveEpsilon,
                 StuckRecoverySeconds);
@@ -413,19 +427,9 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 return;
             }
 
-            CombatCharacter target = null;
-            if (snapshot.TargetId.HasValue && GetTree() != null)
-            {
-                foreach (Node node in GetTree().GetNodesInGroup("Combatant"))
-                {
-                    if (node is CombatCharacter combatant
-                        && combatant.GetInstanceId() == snapshot.TargetId.Value)
-                    {
-                        target = combatant;
-                        break;
-                    }
-                }
-            }
+            CombatCharacter target = snapshot.TargetId.HasValue
+                ? CombatSpatialIndex.FindById(GetTree(), snapshot.TargetId.Value)
+                : null;
 
             CompanionTargetIndicatorService.GetOrCreate(GetTree())?
                 .SetTarget(_self, target, snapshot.HasLineOfSight);
@@ -546,22 +550,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
 
         private CombatCharacter ResolveCombatantById(ulong instanceId)
         {
-            if (GetTree() == null)
-            {
-                return null;
-            }
-
-            foreach (Node node in GetTree().GetNodesInGroup("Combatant"))
-            {
-                if (node is CombatCharacter combatant
-                    && combatant.GetInstanceId() == instanceId
-                    && combatant.IsAlive)
-                {
-                    return combatant;
-                }
-            }
-
-            return null;
+            CombatCharacter combatant = CombatSpatialIndex.FindById(GetTree(), instanceId);
+            return combatant != null && combatant.IsAlive ? combatant : null;
         }
 
         private void CancelInvalidProjectileCast()
