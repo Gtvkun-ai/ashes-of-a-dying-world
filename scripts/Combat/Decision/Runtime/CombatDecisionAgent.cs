@@ -21,7 +21,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
     /// </summary>
     public partial class CombatDecisionAgent : Node
     {
-        private const string RuntimeBuild = "v11-p1-scalable-movement";
+        private const string RuntimeBuild = "v12-p2-movement-benchmark";
 
         [Signal] public delegate void DecisionEvaluatedEventHandler(string summary);
 
@@ -79,6 +79,15 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
         [Export] public float StuckMoveEpsilon { get; set; } = 4f;
         [Export] public float StuckRecoverySeconds { get; set; } = 0.55f;
 
+        [ExportGroup("Movement / Benchmark P2")]
+        [Export] public bool MovementBenchmarkAutoStart { get; set; } = false;
+        [Export] public string MovementBenchmarkLabel { get; set; } = "p1-default";
+        [Export] public float MovementBenchmarkSegmentTimeoutSeconds { get; set; } = 4f;
+        [Export] public float MovementBenchmarkTargetShiftResetDistance { get; set; } = 28f;
+        [Export(PropertyHint.Range, "0,1,0.01")] public float MovementBenchmarkMinSuccessRate { get; set; } = 0.98f;
+        [Export(PropertyHint.Range, "0,0.25,0.005")] public float MovementBenchmarkMaxCollisionRate { get; set; } = 0.01f;
+        [Export] public float MovementBenchmarkCpuBudgetUsec { get; set; } = 250f;
+
         [ExportGroup("Profiles")]
         [Export] public CombatClassProfile ClassProfile { get; set; }
         [Export] public CombatDoctrineProfile DoctrineProfile { get; set; }
@@ -95,6 +104,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
         public MovementCommand LastMovementCommand { get; private set; }
         public CombatRoleAssignment? LastRoleAssignment { get; private set; }
         public CombatBlackboard Blackboard => _blackboard;
+        public string RuntimeBuildId => RuntimeBuild;
         public CombatCharacter ControlledCharacter => _self;
         public CombatSnapshot LastSnapshot => _lastSnapshot;
         public bool HasSnapshot => _hasSnapshot;
@@ -325,7 +335,85 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
         {
             string movement = _movement?.Metrics?.ToCompactString()
                 ?? "Movement metrics chưa được khởi tạo.";
-            return movement + $" spatial=[{CombatSpatialIndex.GetDiagnosticsSummary()}]";
+            string benchmark = _movement?.Benchmark?.ToCompactString() ?? "bench=unavailable";
+            return movement + $" spatial=[{CombatSpatialIndex.GetDiagnosticsSummary()}] {benchmark}";
+        }
+
+        public bool IsMovementBenchmarkRunning => _movement?.Benchmark?.IsRunning == true;
+
+        public void StartMovementBenchmark(string label = "")
+        {
+            if (_movement?.Benchmark == null)
+            {
+                return;
+            }
+
+            if (!UseDecisionCore || ShadowMode)
+            {
+                GD.PushWarning($"[MovementBenchmark] Bỏ qua actor={_self?.CombatantId ?? "unknown"}: benchmark locomotion cần UseDecisionCore=true và ShadowMode=false.");
+                return;
+            }
+
+            string resolvedLabel = string.IsNullOrWhiteSpace(label)
+                ? MovementBenchmarkLabel
+                : label;
+            _movement.Benchmark.Start(resolvedLabel);
+            GD.Print($"[MovementBenchmark] START actor={_self?.CombatantId ?? "unknown"} label={resolvedLabel}");
+        }
+
+        public CombatMovementBenchmarkSnapshot StopMovementBenchmark()
+        {
+            CombatMovementBenchmarkSnapshot snapshot = _movement?.Benchmark?.Stop() ?? default;
+            if (_movement?.Benchmark != null)
+            {
+                GD.Print($"[MovementBenchmark] STOP actor={_self?.CombatantId ?? "unknown"} {_movement.Benchmark.ToCompactString()}");
+            }
+            return snapshot;
+        }
+
+        public void ToggleMovementBenchmark()
+        {
+            if (_movement?.Benchmark == null)
+            {
+                return;
+            }
+
+            if (_movement.Benchmark.IsRunning)
+            {
+                StopMovementBenchmark();
+            }
+            else
+            {
+                StartMovementBenchmark();
+            }
+        }
+
+        public CombatMovementBenchmarkSnapshot GetMovementBenchmarkSnapshot()
+        {
+            return _movement?.Benchmark?.Snapshot() ?? default;
+        }
+
+        public Godot.Collections.Dictionary GetMovementBenchmarkConfigPayload()
+        {
+            return new Godot.Collections.Dictionary
+            {
+                ["decision_interval_seconds"] = DecisionIntervalSeconds,
+                ["probe_distance"] = MovementProbeDistance,
+                ["body_probe_radius"] = MovementBodyProbeRadius,
+                ["forward_shape_clearance"] = UseForwardShapeClearance,
+                ["navigation_threshold"] = NavigationThreshold,
+                ["path_reuse_distance"] = NavigationPathReuseDistance,
+                ["repath_interval_seconds"] = NavigationRepathIntervalSeconds,
+                ["path_budget_per_physics_frame"] = PathBudgetPerPhysicsFrame,
+                ["dynamic_avoidance"] = UseDynamicAvoidance,
+                ["avoidance_radius"] = AvoidanceRadius,
+                ["avoidance_neighbor_distance"] = AvoidanceNeighborDistance,
+                ["avoidance_max_neighbors"] = AvoidanceMaxNeighbors,
+                ["time_horizon_agents"] = AvoidanceTimeHorizonAgents,
+                ["time_horizon_obstacles"] = AvoidanceTimeHorizonObstacles,
+                ["passing_lock_seconds"] = AvoidancePassingLockSeconds,
+                ["head_on_bias_strength"] = AvoidanceHeadOnBiasStrength
+            };
         }
 
         private void Initialize()
@@ -406,12 +494,21 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 AvoidanceHeadOnBiasStrength,
                 StuckCheckSeconds,
                 StuckMoveEpsilon,
-                StuckRecoverySeconds);
+                StuckRecoverySeconds,
+                MovementBenchmarkSegmentTimeoutSeconds,
+                MovementBenchmarkTargetShiftResetDistance,
+                MovementBenchmarkMinSuccessRate,
+                MovementBenchmarkMaxCollisionRate,
+                MovementBenchmarkCpuBudgetUsec);
             _executor = new CombatIntentExecutor(_self, ClassProfile, _movement);
             _leader = ResolveLeader();
             _decisionRemaining = 0f;
             _debugLogRemaining = 0f;
             _initialized = true;
+            if (MovementBenchmarkAutoStart && UseDecisionCore && !ShadowMode)
+            {
+                StartMovementBenchmark();
+            }
             if (DebugLogging)
             {
                 GD.Print(

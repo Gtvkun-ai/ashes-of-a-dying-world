@@ -6,8 +6,8 @@ using AshesofaDyingWorld.Combat.Decision.Runtime;
 namespace AshesofaDyingWorld.Combat.Decision.Debug
 {
     /// <summary>
-    /// Overlay QA nhẹ, tự dựng UI. F6 panel, F7 anchor/range,
-    /// F8 movement slots, F11 dump JSON.
+    /// Overlay QA nhẹ, tự dựng UI. F6 panel, F7 anchor/range, F8 movement slots.
+    /// P2: F9 bật/tắt movement benchmark, F10 export benchmark JSON, F11 dump decision trace.
     /// </summary>
     public partial class CombatDecisionDebugOverlay : CanvasLayer
     {
@@ -83,6 +83,9 @@ namespace AshesofaDyingWorld.Combat.Decision.Debug
                 return;
             }
 
+            // Không giành Ctrl+F9/F10/F12 của debug time/speed/weather hiện có trong project.
+            bool hasModifier = key.CtrlPressed || key.AltPressed || key.ShiftPressed || key.MetaPressed;
+
             switch (key.Keycode)
             {
                 case Key.F6:
@@ -101,6 +104,14 @@ namespace AshesofaDyingWorld.Combat.Decision.Debug
                 case Key.F8:
                     _showSlots = !_showSlots;
                     UpdateWorldFlags();
+                    GetViewport().SetInputAsHandled();
+                    break;
+                case Key.F9 when !hasModifier:
+                    MovementBenchmarkCoordinator.ToggleAll(_agent.GetTree());
+                    GetViewport().SetInputAsHandled();
+                    break;
+                case Key.F10 when !hasModifier:
+                    MovementBenchmarkExporter.ExportScene(_agent.GetTree());
                     GetViewport().SetInputAsHandled();
                     break;
                 case Key.F11:
@@ -158,7 +169,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Debug
         {
             if (_agent.LastTrace == null)
             {
-                return "COMBAT DECISION CORE\nĐang chờ decision trace...\n\nF6 panel  F7 anchor  F8 slots  F11 dump JSON";
+                return "COMBAT DECISION CORE\nĐang chờ decision trace...\n\nF6 panel  F7 anchor  F8 slots  F9 benchmark  F10 export bench  F11 trace";
             }
 
             DecisionTrace trace = _agent.LastTrace;
@@ -185,6 +196,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Debug
                 .Append(" slot=").Append(_agent.LastMovementCommand.DirectionSlot)
                 .Append(" score=").Append(_agent.LastMovementCommand.Score.ToString("0.00"))
                 .Append(" run=").Append(_agent.LastMovementCommand.WantsRun ? "yes" : "no").AppendLine();
+            builder.Append("Movement: ").Append(_agent.GetMovementDiagnosticsSummary()).AppendLine();
             builder.AppendLine("Candidates:");
 
             int written = 0;
@@ -209,7 +221,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Debug
             builder.AppendLine();
             builder.Append("F6 panel  F7 anchor[").Append(_showAnchor ? "on" : "off")
                 .Append("]  F8 slots[").Append(_showSlots ? "on" : "off")
-                .Append("]  F11 dump JSON");
+                .Append("]  F9 bench[").Append(_agent.IsMovementBenchmarkRunning ? "run" : "off")
+                .Append("]  F10 export bench  F11 trace");
             return builder.ToString();
         }
 

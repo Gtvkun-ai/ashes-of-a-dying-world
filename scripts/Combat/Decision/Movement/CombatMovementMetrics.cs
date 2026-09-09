@@ -3,7 +3,7 @@ using Godot;
 namespace AshesofaDyingWorld.Combat.Decision.Movement
 {
     /// <summary>
-    /// Metrics P1 cho movement benchmark.
+    /// Metrics P2 cho movement benchmark.
     /// Ngoài baseline collision/stuck/CPU của P0, P1 đo thêm path reuse/budget deferral,
     /// mức probe 4/8/16 hướng, ShapeCast thân và số lần khóa passing-side head-on.
     /// </summary>
@@ -26,8 +26,11 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
         public ulong AvoidanceCorrections { get; private set; }
         public ulong PassingSideLocks { get; private set; }
         public ulong SolverMicroseconds { get; private set; }
+        public ulong MotorTicks { get; private set; }
+        public ulong MotorMicroseconds { get; private set; }
 
         private ulong _solveStartUsec;
+        private ulong _motorStartUsec;
 
         public void BeginSolve()
         {
@@ -41,6 +44,25 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             if (now >= _solveStartUsec)
             {
                 SolverMicroseconds += now - _solveStartUsec;
+            }
+        }
+
+        /// <summary>
+        /// P2 đo luôn local motor/RVO ở physics-rate. P0/P1 chỉ đo Solve() nên CPU benchmark trước đây
+        /// chưa phản ánh phần chạy 30-60 Hz quan trọng nhất của locomotion.
+        /// </summary>
+        public void BeginMotor()
+        {
+            MotorTicks++;
+            _motorStartUsec = Time.GetTicksUsec();
+        }
+
+        public void EndMotor()
+        {
+            ulong now = Time.GetTicksUsec();
+            if (now >= _motorStartUsec)
+            {
+                MotorMicroseconds += now - _motorStartUsec;
             }
         }
 
@@ -94,7 +116,10 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             AvoidanceCorrections = 0;
             PassingSideLocks = 0;
             SolverMicroseconds = 0;
+            MotorTicks = 0;
+            MotorMicroseconds = 0;
             _solveStartUsec = 0;
+            _motorStartUsec = 0;
         }
 
         public string ToCompactString()
@@ -102,7 +127,10 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             double averageUsec = SolverTicks > 0
                 ? (double)SolverMicroseconds / SolverTicks
                 : 0.0;
-            return $"ticks={SolverTicks} cpu={averageUsec:0.0}us "
+            double averageMotorUsec = MotorTicks > 0
+                ? (double)MotorMicroseconds / MotorTicks
+                : 0.0;
+            return $"ticks={SolverTicks}/{MotorTicks} cpu={averageUsec:0.0}/{averageMotorUsec:0.0}us "
                 + $"probe={ProbeSamples}+{ShapeProbeSamples}s mode={SparseProbeRefreshes}/{HalfProbeRefreshes}/{DenseProbeRefreshes} "
                 + $"path={PathRequests}/{PathDirectionsUsed} reuse={PathReuseHits} defer={PathBudgetDeferrals} "
                 + $"stuck={StuckEvents} collision={CollisionFrames}/{CollisionContacts} "

@@ -361,7 +361,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Execution
             Vector2 safeVelocity = _movementSolver?.ResolveFreeMovementVelocity(
                 selfPosition,
                 anchor,
-                preferredVelocity) ?? preferredVelocity;
+                preferredVelocity,
+                FollowStopDistance) ?? preferredVelocity;
 
             if (safeVelocity.LengthSquared() <= 0.001f)
             {

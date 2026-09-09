@@ -6,12 +6,13 @@ using AshesofaDyingWorld.Combat.Decision.Runtime;
 namespace AshesofaDyingWorld.Combat.Decision.Movement
 {
     /// <summary>
-    /// P1 movement stack:
+    /// P2 movement stack + runtime benchmark:
     /// 1) Global path: NavigationAgent2D cho đường dài.
     /// 2) Static clearance: context steering 16 hướng né tường/đá ở cự ly gần.
     /// 3) Dynamic avoidance: preferred velocity -> RVO safe velocity khi NavAgent hỗ trợ.
     ///
     /// P1 bổ sung spatial hash, corridor reuse, passing-side lock và adaptive ray/ShapeCast.
+    /// P2 bổ sung runtime benchmark để đo success/collision/time/path stretch/jitter/CPU trước khi đổi thuật toán.
     /// Nếu thiếu NavAgent/nav map, global path + RVO tự fallback; local solver vẫn hoạt động độc lập.
     /// </summary>
     public sealed class CombatMovementSolver
@@ -29,6 +30,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
         private readonly CombatGlobalPathPlanner _globalPath;
         private readonly CombatStaticClearance _staticClearance;
         private readonly CombatDynamicAvoidance _dynamicAvoidance;
+        private readonly CombatMovementBenchmark _benchmark;
 
         private int _lastDirectionSlot = -1;
         private bool _lastHadMovement;
@@ -44,6 +46,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
         private Vector2 _motorNavigationTarget;
 
         public CombatMovementMetrics Metrics => _metrics;
+        public CombatMovementBenchmark Benchmark => _benchmark;
         public bool IsRecoveringFromStuck { get; private set; }
 
         public CombatMovementSolver(
@@ -70,7 +73,12 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             float avoidanceHeadOnBiasStrength = 0.09f,
             float stuckCheckSeconds = 0.60f,
             float stuckMoveEpsilon = 4f,
-            float stuckRecoverySeconds = 0.55f)
+            float stuckRecoverySeconds = 0.55f,
+            float benchmarkSegmentTimeoutSeconds = 4f,
+            float benchmarkTargetShiftResetDistance = 28f,
+            float benchmarkMinSuccessRate = 0.98f,
+            float benchmarkMaxCollisionRate = 0.01f,
+            float benchmarkCpuBudgetUsec = 250f)
         {
             _self = self;
             _arrivalDistance = Mathf.Max(1f, arrivalDistance);
@@ -111,6 +119,14 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
                 avoidanceTimeHorizonObstacles,
                 avoidancePassingLockSeconds,
                 avoidanceHeadOnBiasStrength);
+            _benchmark = new CombatMovementBenchmark(
+                self,
+                _metrics,
+                benchmarkSegmentTimeoutSeconds,
+                benchmarkTargetShiftResetDistance,
+                benchmarkMinSuccessRate,
+                benchmarkMaxCollisionRate,
+                benchmarkCpuBudgetUsec);
         }
 
         public MovementCommand Solve(
@@ -291,45 +307,62 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
         /// </summary>
         public Vector2 ResolveMotorVelocity(Vector2 preferredVelocity)
         {
-            SampleCollisionBaseline();
-            if (_self == null || preferredVelocity.LengthSquared() <= 0.001f)
+            _metrics.BeginMotor();
+            try
             {
-                return Vector2.Zero;
-            }
+                SampleCollisionBaseline();
+                if (_self == null || preferredVelocity.LengthSquared() <= 0.001f)
+                {
+                    if (_hasMotorNavigationTarget)
+                    {
+                        _benchmark.Observe(_motorNavigationTarget, _arrivalDistance, Vector2.Zero);
+                    }
+                    return Vector2.Zero;
+                }
 
-            Vector2 velocity = preferredVelocity;
-            float speed = preferredVelocity.Length();
-            if (_hasMotorNavigationTarget)
+                Vector2 velocity = preferredVelocity;
+                float speed = preferredVelocity.Length();
+                if (_hasMotorNavigationTarget)
+                {
+                    Vector2 direction = preferredVelocity / Mathf.Max(speed, 0.001f);
+                    float distance = _self.CombatCenter.DistanceTo(_motorNavigationTarget);
+                    Vector2 pathDirection = _globalPath.ResolveDirection(
+                        _self.CombatCenter,
+                        _motorNavigationTarget,
+                        direction,
+                        distance,
+                        false);
+                    velocity = pathDirection * speed;
+                }
+
+                // P1: local clearance không còn bị khóa theo DecisionIntervalSeconds.
+                // Vùng trống update thưa, gần obstacle update nhanh; cognition vẫn giữ nhịp thấp.
+                ulong now = Time.GetTicksMsec();
+                Vector2 localDesired = velocity / Mathf.Max(speed, 0.001f);
+                if (now >= _nextMotorProbeTickMs)
+                {
+                    _nextMotorProbeTickMs = now + (_staticClearance.IsNearObstacle ? 17UL : 50UL);
+                    float speedFraction = Mathf.Clamp(speed / Mathf.Max(1f, _self.RunSpeed), 0f, 1.25f);
+                    _staticClearance.Refresh(
+                        _self.CombatCenter,
+                        localDesired,
+                        IsRecoveringFromStuck || _staticClearance.IsNearObstacle,
+                        speedFraction);
+                }
+
+                Vector2 localDirection = ResolveLocalClearanceDirection(localDesired);
+                velocity = localDirection * speed;
+                Vector2 safeVelocity = _dynamicAvoidance.ResolveVelocity(velocity);
+                if (_hasMotorNavigationTarget)
+                {
+                    _benchmark.Observe(_motorNavigationTarget, _arrivalDistance, safeVelocity);
+                }
+                return safeVelocity;
+            }
+            finally
             {
-                Vector2 direction = preferredVelocity / Mathf.Max(speed, 0.001f);
-                float distance = _self.CombatCenter.DistanceTo(_motorNavigationTarget);
-                Vector2 pathDirection = _globalPath.ResolveDirection(
-                    _self.CombatCenter,
-                    _motorNavigationTarget,
-                    direction,
-                    distance,
-                    false);
-                velocity = pathDirection * speed;
+                _metrics.EndMotor();
             }
-
-            // P1: local clearance không còn bị khóa theo DecisionIntervalSeconds.
-            // Vùng trống update thưa, gần obstacle update nhanh; cognition vẫn giữ nhịp thấp.
-            ulong now = Time.GetTicksMsec();
-            Vector2 localDesired = velocity / Mathf.Max(speed, 0.001f);
-            if (now >= _nextMotorProbeTickMs)
-            {
-                _nextMotorProbeTickMs = now + (_staticClearance.IsNearObstacle ? 17UL : 50UL);
-                float speedFraction = Mathf.Clamp(speed / Mathf.Max(1f, _self.RunSpeed), 0f, 1.25f);
-                _staticClearance.Refresh(
-                    _self.CombatCenter,
-                    localDesired,
-                    IsRecoveringFromStuck || _staticClearance.IsNearObstacle,
-                    speedFraction);
-            }
-
-            Vector2 localDirection = ResolveLocalClearanceDirection(localDesired);
-            velocity = localDirection * speed;
-            return _dynamicAvoidance.ResolveVelocity(velocity);
         }
 
         /// <summary>
@@ -339,38 +372,51 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
         public Vector2 ResolveFreeMovementVelocity(
             Vector2 selfPosition,
             Vector2 targetPosition,
-            Vector2 preferredVelocity)
+            Vector2 preferredVelocity,
+            float successDistance = 0f)
         {
-            SampleCollisionBaseline();
-            if (_self == null || preferredVelocity.LengthSquared() <= 0.001f)
+            _metrics.BeginMotor();
+            try
             {
-                return Vector2.Zero;
-            }
+                SampleCollisionBaseline();
+                float benchmarkArrival = successDistance > 0f ? successDistance : _arrivalDistance;
+                if (_self == null || preferredVelocity.LengthSquared() <= 0.001f)
+                {
+                    _benchmark.Observe(targetPosition, benchmarkArrival, Vector2.Zero);
+                    return Vector2.Zero;
+                }
 
-            float speed = preferredVelocity.Length();
-            Vector2 directDirection = preferredVelocity / speed;
-            float distance = selfPosition.DistanceTo(targetPosition);
-            Vector2 desired = _globalPath.ResolveDirection(
-                selfPosition,
-                targetPosition,
-                directDirection,
-                distance,
-                false);
-
-            ulong now = Time.GetTicksMsec();
-            if (now >= _nextFreeProbeTickMs)
-            {
-                _nextFreeProbeTickMs = now + (_staticClearance.IsNearObstacle ? 34UL : 67UL);
-                float speedFraction = Mathf.Clamp(speed / Mathf.Max(1f, _self.RunSpeed), 0f, 1.25f);
-                _staticClearance.Refresh(
+                float speed = preferredVelocity.Length();
+                Vector2 directDirection = preferredVelocity / speed;
+                float distance = selfPosition.DistanceTo(targetPosition);
+                Vector2 desired = _globalPath.ResolveDirection(
                     selfPosition,
-                    desired,
-                    _staticClearance.IsNearObstacle,
-                    speedFraction);
-            }
+                    targetPosition,
+                    directDirection,
+                    distance,
+                    false);
 
-            Vector2 localDirection = ResolveLocalClearanceDirection(desired);
-            return _dynamicAvoidance.ResolveVelocity(localDirection * speed);
+                ulong now = Time.GetTicksMsec();
+                if (now >= _nextFreeProbeTickMs)
+                {
+                    _nextFreeProbeTickMs = now + (_staticClearance.IsNearObstacle ? 34UL : 67UL);
+                    float speedFraction = Mathf.Clamp(speed / Mathf.Max(1f, _self.RunSpeed), 0f, 1.25f);
+                    _staticClearance.Refresh(
+                        selfPosition,
+                        desired,
+                        _staticClearance.IsNearObstacle,
+                        speedFraction);
+                }
+
+                Vector2 localDirection = ResolveLocalClearanceDirection(desired);
+                Vector2 safeVelocity = _dynamicAvoidance.ResolveVelocity(localDirection * speed);
+                _benchmark.Observe(targetPosition, benchmarkArrival, safeVelocity);
+                return safeVelocity;
+            }
+            finally
+            {
+                _metrics.EndMotor();
+            }
         }
 
         public void StopMotor()
@@ -392,6 +438,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             _globalPath.Reset();
             _dynamicAvoidance.ResetVelocity();
             _metrics.Reset();
+            _benchmark.Reset();
         }
 
         public void Dispose()
