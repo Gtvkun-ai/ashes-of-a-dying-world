@@ -119,7 +119,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
                 && (request.Action.Tags & CombatActionTag.Heavy) != CombatActionTag.None;
             bool strong = result.Shattered
                 || heavy
-                || profile.LaunchHeight > 0f
+                || (int)result.Reaction >= (int)ImpactReactionType.Stagger
                 || result.GuardBroken;
 
             SpawnImpact(
@@ -173,6 +173,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
                 "wood_sword_light_2" => _swingLight2Cue,
                 "wood_sword_heavy" => _swingHeavyCue,
                 "slime_bite" => _slimeAttackCue,
+                "slime_pounce" => _slimeAttackCue,
                 _ => null
             };
 

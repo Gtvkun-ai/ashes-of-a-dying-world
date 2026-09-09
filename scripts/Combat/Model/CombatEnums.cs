@@ -47,6 +47,21 @@ namespace AshesofaDyingWorld.Combat.Model
         None = 4
     }
 
+    /// <summary>
+    /// Mức phản ứng vật lý sau khi so Impact của đòn đánh với Stability của mục tiêu.
+    /// Enum này chỉ mô tả kết quả; animation cụ thể vẫn do actor/presentation quyết định.
+    /// </summary>
+    public enum ImpactReactionType
+    {
+        Absorb = 0,
+        Flinch = 1,
+        Shove = 2,
+        Knockback = 3,
+        Stagger = 4,
+        Knockdown = 5,
+        Launch = 6
+    }
+
     public enum HitRejectionReason
     {
         None = 0,

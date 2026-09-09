@@ -6,6 +6,7 @@
 script = ExtResource("1_profile")
 ProfileId = "slime_basic"
 ExperienceReward = 20
+BodyMass = 0.7
 Strength = 4
 Dexterity = 3
 Intelligence = 0

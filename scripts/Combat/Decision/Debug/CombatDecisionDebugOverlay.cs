@@ -7,7 +7,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Debug
 {
     /// <summary>
     /// Overlay QA nhẹ, tự dựng UI. F6 panel, F7 anchor/range, F8 movement slots.
-    /// P2: F9 bật/tắt movement benchmark, F10 export benchmark JSON, F11 dump decision trace.
+    /// P2: F12 bật/tắt movement benchmark, F10 export benchmark JSON, F11 dump decision trace.
     /// </summary>
     public partial class CombatDecisionDebugOverlay : CanvasLayer
     {
@@ -106,7 +106,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Debug
                     UpdateWorldFlags();
                     GetViewport().SetInputAsHandled();
                     break;
-                case Key.F9 when !hasModifier:
+                case Key.F12 when !hasModifier:
                     MovementBenchmarkCoordinator.ToggleAll(_agent.GetTree());
                     GetViewport().SetInputAsHandled();
                     break;
@@ -169,7 +169,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Debug
         {
             if (_agent.LastTrace == null)
             {
-                return "COMBAT DECISION CORE\nĐang chờ decision trace...\n\nF6 panel  F7 anchor  F8 slots  F9 benchmark  F10 export bench  F11 trace";
+                return "COMBAT DECISION CORE\nĐang chờ decision trace...\n\nF6 panel  F7 anchor  F8 slots  F12 benchmark  F10 export bench  F11 trace";
             }
 
             DecisionTrace trace = _agent.LastTrace;
@@ -221,7 +221,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Debug
             builder.AppendLine();
             builder.Append("F6 panel  F7 anchor[").Append(_showAnchor ? "on" : "off")
                 .Append("]  F8 slots[").Append(_showSlots ? "on" : "off")
-                .Append("]  F9 bench[").Append(_agent.IsMovementBenchmarkRunning ? "run" : "off")
+                .Append("]  F12 bench[").Append(_agent.IsMovementBenchmarkRunning ? "run" : "off")
                 .Append("]  F10 export bench  F11 trace");
             return builder.ToString();
         }

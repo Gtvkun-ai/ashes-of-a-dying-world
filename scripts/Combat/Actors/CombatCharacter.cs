@@ -65,6 +65,10 @@ namespace AshesofaDyingWorld.Combat.Actors
         public bool IsPerformingAttack => Actions?.IsRunning == true;
         public Vector2 FacingDirection => DirectionToVector(_facingCardinal);
         public string FacingCardinal => _facingCardinal;
+
+        // Velocity dùng riêng cho tính momentum khi va chạm. Không cộng external knockback cũ để
+        // một actor đang bị hất không vô tình biến cú đánh kế tiếp thành đòn siêu nặng.
+        public Vector2 ImpactVelocity => _locomotionVelocity + (Actions?.MovementVelocity ?? Vector2.Zero);
         public Vector2 CombatCenter => _hurtboxShape != null
             && GodotObject.IsInstanceValid(_hurtboxShape)
                 ? _hurtboxShape.GlobalPosition
