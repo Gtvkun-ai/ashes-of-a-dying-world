@@ -180,6 +180,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Debug
                 .Append("  State: ").Append(snapshot.SelfState)
                 .Append("  Target: ").Append(snapshot.TargetId?.ToString() ?? "none").AppendLine();
             builder.Append("Distance: ").Append(snapshot.TargetDistance.ToString("0.0"))
+                .Append("  Vision: ").Append(snapshot.TargetVisible ? "visible" : (snapshot.TargetFromMemory ? "memory" : "no"))
                 .Append("  LOS: ").Append(snapshot.HasLineOfSight ? "yes" : "no")
                 .Append("  Threat: ").Append(snapshot.ThreatSeverity.ToString("0.00"))
                 .Append("  ETA: ").Append(snapshot.ThreatEtaSeconds.ToString("0.00")).AppendLine();

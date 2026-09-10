@@ -86,6 +86,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Debug
                     ["target_id"] = snapshot.TargetId?.ToString() ?? "",
                     ["target_position"] = Vector(snapshot.TargetPosition),
                     ["distance"] = snapshot.TargetDistance,
+                    ["target_visible"] = snapshot.TargetVisible,
+                    ["target_from_memory"] = snapshot.TargetFromMemory,
                     ["line_of_sight"] = snapshot.HasLineOfSight,
                     ["threat_eta"] = snapshot.ThreatEtaSeconds,
                     ["threat_severity"] = snapshot.ThreatSeverity,

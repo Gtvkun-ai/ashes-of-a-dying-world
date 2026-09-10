@@ -10,16 +10,46 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
 {
     /// <summary>
     /// Cổng duy nhất đọc thế giới cho Decision Core.
-    /// Những sensor chưa tồn tại vẫn để false thay vì bịa dữ liệu, nhưng resource pool
-    /// được chụp đầy đủ để phân biệt "không có mana" và "đã cạn mana".
+    ///
+    /// P3.2 tách ba khái niệm vốn trước đây bị trộn vào nhau:
+    /// - Awareness: actor tồn tại trong bán kính query.
+    /// - Vision: thật sự nhìn thấy (range/FOV/elevation/world LOS).
+    /// - Line of fire: projectile corridor có bắn tới target hay không.
+    ///
+    /// Nhờ vậy enemy ở sau cliff/tường không còn được acquire chỉ vì nằm trong EnemySearchRadius.
     /// </summary>
     public sealed class CombatPerception : ICombatPerception
     {
+        private readonly struct ResolvedTarget
+        {
+            public CombatCharacter Actor { get; }
+            public bool Visible { get; }
+            public bool FromMemory { get; }
+            public bool ThreatOverride { get; }
+
+            public ResolvedTarget(
+                CombatCharacter actor,
+                bool visible,
+                bool fromMemory,
+                bool threatOverride)
+            {
+                Actor = actor;
+                Visible = visible;
+                FromMemory = fromMemory;
+                ThreatOverride = threatOverride;
+            }
+
+            public static ResolvedTarget None => new(null, false, false, false);
+        }
+
         private readonly SceneTree _tree;
         private readonly RayCast2D _lineOfSightRay;
         private readonly CombatLineOfFireSensor _lineOfFireSensor;
         private readonly ProjectileSpecData _primaryProjectileSpec;
         private readonly IThreatPredictor _threatPredictor;
+        private readonly CombatEngagementPolicy _engagementPolicy;
+        private readonly CombatVisionSensor _visionSensor;
+        private readonly float _targetMemorySeconds;
         private readonly float _enemySearchRadius;
         private readonly float _leaderDangerRadius;
         private readonly List<CombatCharacter> _spatialQueryBuffer = new(24);
@@ -30,15 +60,26 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             CombatLineOfFireSensor lineOfFireSensor,
             ProjectileSpecData primaryProjectileSpec,
             IThreatPredictor threatPredictor,
-            float enemySearchRadius,
-            float leaderDangerRadius)
+            CombatEngagementPolicy engagementPolicy,
+            float leaderDangerRadius,
+            CombatVisionSensor visionSensor = null,
+            float targetMemorySeconds = 1.25f)
         {
             _tree = tree;
             _lineOfSightRay = lineOfSightRay;
             _lineOfFireSensor = lineOfFireSensor;
             _primaryProjectileSpec = primaryProjectileSpec;
             _threatPredictor = threatPredictor;
-            _enemySearchRadius = Mathf.Max(1f, enemySearchRadius);
+            _engagementPolicy = engagementPolicy ?? new CombatEngagementPolicy(240f, false, 240f, 300f, 240f, 300f, 99999f);
+            _visionSensor = visionSensor ?? new CombatVisionSensor(
+                lineOfSightRay,
+                _engagementPolicy.SensorRadius,
+                360f,
+                true,
+                8,
+                false);
+            _targetMemorySeconds = Mathf.Max(0f, targetMemorySeconds);
+            _enemySearchRadius = Mathf.Max(1f, _engagementPolicy.SensorRadius);
             _leaderDangerRadius = Mathf.Max(1f, leaderDangerRadius);
         }
 
@@ -49,42 +90,61 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             CombatBlackboard blackboard,
             float timeSeconds)
         {
-            CombatCharacter target = ResolveTarget(self, assignment, blackboard);
+            blackboard?.PruneVisualMemory(timeSeconds, _targetMemorySeconds);
+            ResolvedTarget resolved = ResolveTarget(self, leader, assignment, blackboard, timeSeconds);
+            CombatCharacter target = resolved.Actor;
             bool hasTarget = IsUsable(target) && target.IsAlive;
-            Vector2 targetPosition = hasTarget ? target.CombatCenter : blackboard.LastKnownTargetPosition;
+
+            // Chỉ visual contact mới được cập nhật LastKnownTargetPosition.
+            // Khi target khuất tường, dùng đúng vị trí nhìn thấy cuối cùng thay vì đọc CombatCenter hiện tại.
+            if (hasTarget && resolved.Visible)
+            {
+                blackboard?.RecordVisualContact(target, timeSeconds);
+            }
+
+            Vector2 targetPosition = Vector2.Zero;
+            if (hasTarget)
+            {
+                targetPosition = resolved.Visible || resolved.ThreatOverride
+                    ? target.CombatCenter
+                    : (blackboard?.LastKnownTargetPosition ?? target.CombatCenter);
+            }
+            else if (blackboard != null)
+            {
+                targetPosition = blackboard.LastKnownTargetPosition;
+            }
+
             Vector2 toTarget = hasTarget ? targetPosition - self.CombatCenter : Vector2.Zero;
             float targetDistance = toTarget.Length();
             Vector2 directionToTarget = targetDistance > 0.001f
                 ? toTarget / targetDistance
                 : Vector2.Zero;
 
-            bool hasLineOfSight = hasTarget && HasLineOfSight(self, target);
-            bool targetFacingSelf = hasTarget
+            // Snapshot LOS vẫn mang nghĩa "đường hành động/bắn sạch" để evaluator hiện tại không gãy.
+            // Vision được expose riêng bằng TargetVisible/TargetFromMemory.
+            bool hasLineOfSight = hasTarget
+                && resolved.Visible
+                && HasLineOfSight(self, target);
+
+            // Không đọc state/facing thật của actor đang khuất: đó cũng là một dạng wall-hack.
+            bool hasLiveTargetKnowledge = hasTarget && (resolved.Visible || resolved.ThreatOverride);
+            bool targetFacingSelf = hasLiveTargetKnowledge
                 && directionToTarget != Vector2.Zero
                 && target.FacingDirection.Dot(-directionToTarget) >= 0.35f;
-            CombatStateId? targetState = hasTarget && target.StateMachine != null
+            CombatStateId? targetState = hasLiveTargetKnowledge && target.StateMachine != null
                 ? target.StateMachine.Current
                 : null;
             bool targetInRecovery = targetState == CombatStateId.AttackRecovery;
-            bool targetIsCasting = hasTarget
+            bool targetIsCasting = hasLiveTargetKnowledge
                 && target.Actions?.CurrentAction?.DeliveryMode == CombatDeliveryMode.Projectile;
 
-            ThreatAssessment threat = hasTarget
+            ThreatAssessment threat = hasLiveTargetKnowledge
                 ? _threatPredictor.EvaluateThreats(self, target, targetDistance)
                 : ThreatAssessment.None;
 
-            if (hasTarget)
+            if (blackboard != null)
             {
-                blackboard.CurrentTargetId = target.GetInstanceId();
-                blackboard.LastKnownTargetPosition = targetPosition;
-                if (hasLineOfSight)
-                {
-                    blackboard.LastSeenTargetTime = Mathf.Max(0f, timeSeconds);
-                }
-            }
-            else
-            {
-                blackboard.CurrentTargetId = null;
+                blackboard.CurrentTargetId = hasTarget ? target.GetInstanceId() : null;
             }
 
             bool hasLeader = IsUsable(leader) && leader.IsAlive;
@@ -101,7 +161,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             if (hasTarget && directionToTarget.LengthSquared() > 0.001f)
             {
                 Vector2 tangent = new Vector2(-directionToTarget.Y, directionToTarget.X)
-                    * (blackboard.OrbitSide < 0 ? -1f : 1f);
+                    * ((blackboard?.OrbitSide ?? 1) < 0 ? -1f : 1f);
                 safeRetreatVector = (-directionToTarget * 0.86f + tangent * 0.52f).Normalized();
                 hasSafeRetreatVector = safeRetreatVector.LengthSquared() > 0.001f;
             }
@@ -136,6 +196,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 targetDistance,
                 directionToTarget,
                 hasLineOfSight,
+                resolved.Visible,
+                resolved.FromMemory,
                 targetFacingSelf,
                 targetInRecovery,
                 targetIsCasting,
@@ -155,44 +217,93 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 timeSeconds);
         }
 
-        private CombatCharacter ResolveTarget(
+        private ResolvedTarget ResolveTarget(
             CombatCharacter self,
+            CombatCharacter leader,
             CombatRoleAssignment? assignment,
-            CombatBlackboard blackboard)
+            CombatBlackboard blackboard,
+            float timeSeconds)
         {
+            // Director chỉ được vượt Vision khi enemy đang thật sự startup/active vào leader.
+            // Đây là "shared threat" của party, không phải radar xuyên tường cho mọi hostile gần leader.
             if (assignment.HasValue)
             {
                 CombatCharacter assigned = assignment.Value.PriorityTarget;
-                if (IsValidHostile(self, assigned, _enemySearchRadius * 1.5f))
+                bool immediateLeaderThreat = IsSpecificActorThreatening(
+                    leader,
+                    assigned,
+                    _leaderDangerRadius);
+                if (IsValidHostile(self, assigned, _engagementPolicy.GetRetentionRadius(leader))
+                    && _engagementPolicy.AllowsRetain(self, leader, assigned, immediateLeaderThreat))
                 {
-                    return assigned;
+                    CombatVisionResult vision = _visionSensor.Evaluate(self, assigned);
+                    if (vision.Visible)
+                    {
+                        return new ResolvedTarget(assigned, true, false, false);
+                    }
+
+                    if (immediateLeaderThreat)
+                    {
+                        return new ResolvedTarget(assigned, false, false, true);
+                    }
+
+                    if (blackboard?.HasFreshVisualMemory(assigned, timeSeconds, _targetMemorySeconds) == true)
+                    {
+                        return new ResolvedTarget(assigned, false, true, false);
+                    }
                 }
             }
 
-            // Hysteresis mục tiêu: giữ target hiện tại xa hơn search radius một chút,
-            // tránh flip giữa hai quái chỉ vì chênh vài pixel.
-            if (blackboard.CurrentTargetId.HasValue)
+            // Hysteresis target cũ: còn nhìn thấy thì refresh memory; khuất thì chỉ giữ đúng MemorySeconds.
+            if (blackboard != null && blackboard.CurrentTargetId.HasValue)
             {
                 CombatCharacter remembered = FindCombatantById(blackboard.CurrentTargetId.Value);
-                if (IsValidHostile(self, remembered, _enemySearchRadius * 1.25f))
+                bool immediateLeaderThreat = IsSpecificActorThreatening(
+                    leader,
+                    remembered,
+                    _leaderDangerRadius);
+                if (IsValidHostile(self, remembered, _engagementPolicy.GetRetentionRadius(leader))
+                    && _engagementPolicy.AllowsRetain(self, leader, remembered, immediateLeaderThreat))
                 {
-                    return remembered;
+                    CombatVisionResult vision = _visionSensor.Evaluate(self, remembered);
+                    if (vision.Visible)
+                    {
+                        return new ResolvedTarget(remembered, true, false, false);
+                    }
+
+                    if (immediateLeaderThreat)
+                    {
+                        return new ResolvedTarget(remembered, false, false, true);
+                    }
+
+                    if (blackboard.HasFreshVisualMemory(remembered, timeSeconds, _targetMemorySeconds))
+                    {
+                        return new ResolvedTarget(remembered, false, true, false);
+                    }
                 }
             }
 
             CombatCharacter nearest = null;
-            float bestDistanceSquared = _enemySearchRadius * _enemySearchRadius;
+            float queryRadius = _engagementPolicy.GetPassiveQueryRadius(leader);
+            float bestDistanceSquared = queryRadius * queryRadius;
             if (_tree == null)
             {
-                return null;
+                return ResolvedTarget.None;
             }
 
-            // P1: broad-phase bằng spatial hash. Toàn bộ scene chỉ quét group Combatant 1 lần / physics frame.
-            CombatSpatialIndex.QueryRadius(_tree, self.CombatCenter, _enemySearchRadius, _spatialQueryBuffer);
+            // Awareness/spatial hash tìm candidate rẻ. Vision mới là gate acquire thật sự.
+            CombatSpatialIndex.QueryRadius(_tree, self.CombatCenter, queryRadius, _spatialQueryBuffer);
             for (int i = 0; i < _spatialQueryBuffer.Count; i++)
             {
                 CombatCharacter candidate = _spatialQueryBuffer[i];
-                if (!IsValidHostile(self, candidate, _enemySearchRadius))
+                if (!IsValidHostile(self, candidate, queryRadius)
+                    || !_engagementPolicy.AllowsPassiveAcquire(self, leader, candidate))
+                {
+                    continue;
+                }
+
+                CombatVisionResult vision = _visionSensor.Evaluate(self, candidate);
+                if (!vision.Visible)
                 {
                     continue;
                 }
@@ -207,7 +318,9 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 bestDistanceSquared = distanceSquared;
             }
 
-            return nearest;
+            return nearest != null
+                ? new ResolvedTarget(nearest, true, false, false)
+                : ResolvedTarget.None;
         }
 
         private CombatCharacter FindCombatantById(ulong instanceId)
@@ -234,21 +347,12 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                     continue;
                 }
 
-                float distanceSquared = actor.CombatCenter.DistanceSquaredTo(hostile.CombatCenter);
-                if (distanceSquared > radiusSquared || hostile.StateMachine == null)
+                if (hostile.CombatCenter.DistanceSquaredTo(actor.CombatCenter) > radiusSquared)
                 {
                     continue;
                 }
 
-                CombatStateId state = hostile.StateMachine.Current;
-                if (state != CombatStateId.AttackStartup && state != CombatStateId.AttackActive)
-                {
-                    continue;
-                }
-
-                Vector2 toActor = actor.CombatCenter - hostile.CombatCenter;
-                if (toActor.LengthSquared() > 0.001f
-                    && hostile.FacingDirection.Dot(toActor.Normalized()) >= 0.25f)
+                if (IsSpecificActorThreatening(actor, hostile, radius))
                 {
                     return true;
                 }
@@ -257,6 +361,35 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             return false;
         }
 
+        private static bool IsSpecificActorThreatening(
+            CombatCharacter protectedActor,
+            CombatCharacter hostile,
+            float radius)
+        {
+            if (!IsUsable(protectedActor)
+                || !IsUsable(hostile)
+                || !hostile.IsAlive
+                || hostile.StateMachine == null
+                || hostile.CombatCenter.DistanceSquaredTo(protectedActor.CombatCenter) > radius * radius)
+            {
+                return false;
+            }
+
+            CombatStateId state = hostile.StateMachine.Current;
+            if (state != CombatStateId.AttackStartup && state != CombatStateId.AttackActive)
+            {
+                return false;
+            }
+
+            Vector2 toProtected = protectedActor.CombatCenter - hostile.CombatCenter;
+            return toProtected.LengthSquared() <= 0.001f
+                || hostile.FacingDirection.Dot(toProtected.Normalized()) >= 0.25f;
+        }
+
+        /// <summary>
+        /// Line-of-fire tactical query. Tên interface giữ lại để không phá API cũ;
+        /// đây KHÔNG còn là gate acquire target của P3.2.
+        /// </summary>
         public bool HasLineOfSight(CombatCharacter self, CombatCharacter target)
         {
             if (!IsUsable(self) || !IsUsable(target))
@@ -264,8 +397,6 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 return false;
             }
 
-            // Với ranged AI, "thấy mục tiêu" thực tế phải có nghĩa là viên đạn thật đi tới được mục tiêu.
-            // ShapeCast dùng cùng bán kính/mask với projectile nên cây, tường và đồng đội đều có ý nghĩa.
             if (_lineOfFireSensor != null && GodotObject.IsInstanceValid(_lineOfFireSensor))
             {
                 LineOfFireResult line = _lineOfFireSensor.Query(self, target, _primaryProjectileSpec);
@@ -275,14 +406,15 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 }
             }
 
-            // Fallback cho actor/class chưa có projectile profile. Ray này chỉ dùng world LOS;
-            // không còn bỏ qua đồng minh bằng policy cũ vì friendly fire hiện là luật vật lý thật.
+            // Fallback dùng world LOS ray. Với Hyou bình thường ShapeCast ở trên sẽ là đường chính.
             if (_lineOfSightRay == null || !GodotObject.IsInstanceValid(_lineOfSightRay))
             {
                 return false;
             }
 
+            _lineOfSightRay.GlobalPosition = self.CombatCenter;
             _lineOfSightRay.ClearExceptions();
+            _lineOfSightRay.AddException(self);
             _lineOfSightRay.TargetPosition = _lineOfSightRay.ToLocal(target.CombatCenter);
             _lineOfSightRay.ForceRaycastUpdate();
             if (!_lineOfSightRay.IsColliding())
@@ -297,6 +429,16 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             }
 
             return collider is Node colliderNode && target.IsAncestorOf(colliderNode);
+        }
+
+        public bool CanSeeTarget(CombatCharacter self, CombatCharacter target)
+        {
+            return _visionSensor?.CanSee(self, target) == true;
+        }
+
+        public string GetVisionDiagnosticsSummary()
+        {
+            return _visionSensor?.ToCompactString() ?? "vision=unavailable";
         }
 
         private static bool IsValidHostile(CombatCharacter self, CombatCharacter candidate, float radius)

@@ -4,25 +4,33 @@ using AshesofaDyingWorld.Combat.Actors;
 namespace AshesofaDyingWorld.Combat.Decision.Movement
 {
     /// <summary>
-    /// P2 runtime benchmark cho movement.
-    /// Mục tiêu không phải "chấm điểm cho đẹp" mà tạo số liệu lặp lại được trước khi đổi thuật toán:
-    /// success / collision / time / path stretch / jitter / CPU.
+    /// P2.1 runtime benchmark cho movement.
     ///
-    /// Segment chỉ được tính khi AI thật sự đang có mục tiêu di chuyển. Nếu anchor đổi quá xa giữa chừng
-    /// (ví dụ target chạy sang vị trí khác), segment được abort chứ không tính fail để tránh phạt sai.
+    /// Điểm sửa quan trọng so với P2 cũ:
+    /// - Follow KHÔNG còn coi formation anchor đang chạy là một target tĩnh rồi abort liên tục.
+    /// - StaticPath, Follow và CombatPositioning có tiêu chí đo riêng.
+    /// - "collision" dùng blocking collision thật (va đập làm mất tiến độ), không dùng mọi slide contact.
+    ///
+    /// Benchmark chỉ đo, tuyệt đối không đổi steering/pathfinding để tránh thước đo tự can thiệp vào bài test.
     /// </summary>
     public sealed class CombatMovementBenchmark
     {
+        private const int FollowHistogramBucketCount = 65;
+        private const float FollowHistogramBucketPixels = 8f;
+        private const int MinimumDynamicSampleFrames = 30;
+
         private readonly CombatCharacter _self;
         private readonly CombatMovementMetrics _metrics;
         private readonly float _segmentTimeoutSeconds;
         private readonly float _targetShiftResetDistance;
         private readonly float _minSuccessRate;
-        private readonly float _maxCollisionRate;
+        private readonly float _minFollowBandRate;
+        private readonly float _maxBlockingCollisionRate;
         private readonly float _cpuBudgetUsec;
 
         private bool _running;
         private string _label = "movement";
+        private CombatMovementBenchmarkMode _mode = CombatMovementBenchmarkMode.Follow;
         private ulong _startedAtMs;
         private ulong _lastObserveMs;
         private ulong _lastObserveFrame = ulong.MaxValue;
@@ -30,6 +38,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
         private Vector2 _lastObservedVelocity;
         private bool _hasLastObservation;
 
+        // Segment dùng cho StaticPath và CombatPositioning.
         private bool _segmentActive;
         private Vector2 _segmentTarget;
         private float _segmentSuccessDistance;
@@ -48,10 +57,27 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
         private int _completedVelocityTransitions;
         private ulong _sampledPhysicsFrames;
 
+        // Follow dùng live anchor. Không có khái niệm "target moved => abort".
+        private ulong _followSampleFrames;
+        private ulong _followInsideBandFrames;
+        private float _followErrorSum;
+        private float _followMaxError;
+        private float _followBandDistance;
+        private readonly ulong[] _followErrorHistogram = new ulong[FollowHistogramBucketCount];
+        private float _followJitterDegrees;
+        private int _followVelocityTransitions;
+        private bool _followCatchupActive;
+        private float _followCatchupSeconds;
+        private int _followCatchupEvents;
+        private float _followCatchupSecondsSum;
+        private float _followCatchupMaxSeconds;
+
         private ulong _startSolverTicks;
         private ulong _startMotorTicks;
-        private ulong _startCollisionFrames;
-        private ulong _startCollisionContacts;
+        private ulong _startRawCollisionFrames;
+        private ulong _startRawCollisionContacts;
+        private ulong _startBlockingCollisionFrames;
+        private ulong _startBlockingCollisionContacts;
         private ulong _startSolverMicroseconds;
         private ulong _startMotorMicroseconds;
         private ulong _startPathRequests;
@@ -66,6 +92,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
 
         public bool IsRunning => _running;
         public string Label => _label;
+        public CombatMovementBenchmarkMode Mode => _mode;
 
         public CombatMovementBenchmark(
             CombatCharacter self,
@@ -73,7 +100,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             float segmentTimeoutSeconds = 4f,
             float targetShiftResetDistance = 28f,
             float minSuccessRate = 0.98f,
-            float maxCollisionRate = 0.01f,
+            float minFollowBandRate = 0.90f,
+            float maxBlockingCollisionRate = 0.03f,
             float cpuBudgetUsec = 250f)
         {
             _self = self;
@@ -81,14 +109,16 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             _segmentTimeoutSeconds = Mathf.Clamp(segmentTimeoutSeconds, 0.5f, 20f);
             _targetShiftResetDistance = Mathf.Max(4f, targetShiftResetDistance);
             _minSuccessRate = Mathf.Clamp(minSuccessRate, 0f, 1f);
-            _maxCollisionRate = Mathf.Clamp(maxCollisionRate, 0f, 1f);
+            _minFollowBandRate = Mathf.Clamp(minFollowBandRate, 0f, 1f);
+            _maxBlockingCollisionRate = Mathf.Clamp(maxBlockingCollisionRate, 0f, 1f);
             _cpuBudgetUsec = Mathf.Max(1f, cpuBudgetUsec);
         }
 
-        public void Start(string label = "movement")
+        public void Start(string label = "movement", CombatMovementBenchmarkMode mode = CombatMovementBenchmarkMode.Follow)
         {
             ResetCounters();
             _label = string.IsNullOrWhiteSpace(label) ? "movement" : label.Trim();
+            _mode = mode;
             _running = true;
             _startedAtMs = Time.GetTicksMsec();
             CaptureMetricBaseline();
@@ -98,7 +128,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
         {
             if (_running && _segmentActive)
             {
-                // Segment dang dở khi user dừng benchmark không được tính fail.
+                // User chủ động dừng giữa một episode thì không tính fail.
                 AbortSegment();
             }
 
@@ -110,65 +140,28 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
         {
             bool wasRunning = _running;
             string label = _label;
+            CombatMovementBenchmarkMode mode = _mode;
             ResetCounters();
             CaptureMetricBaseline();
             _running = wasRunning;
             _label = label;
+            _mode = mode;
             _startedAtMs = wasRunning ? Time.GetTicksMsec() : 0UL;
         }
 
         /// <summary>
-        /// Gọi tối đa 1 lần / physics frame cho mỗi actor. Hàm dùng vị trí thực tế hiện tại của CharacterBody2D,
-        /// nên path length phản ánh kết quả sau MoveAndSlide của frame trước thay vì chỉ tích phân command mong muốn.
+        /// Bài A -> B tĩnh. Chỉ mode này mới abort khi target bị dịch quá xa,
+        /// vì target di chuyển trong bài static nghĩa là setup test đã đổi giữa chừng.
         /// </summary>
-        public void Observe(Vector2 targetPosition, float successDistance, Vector2 safeVelocity)
+        public void ObserveStaticPath(Vector2 targetPosition, float successDistance, Vector2 safeVelocity)
         {
-            if (!_running || _self == null || !GodotObject.IsInstanceValid(_self))
+            if (_mode != CombatMovementBenchmarkMode.StaticPath
+                || !TryBeginObservation(safeVelocity, out Vector2 currentPosition, out float activeDelta, out float stepDistance, out float turnDegrees))
             {
                 return;
             }
 
-            ulong frame = Engine.GetPhysicsFrames();
-            if (_lastObserveFrame == frame)
-            {
-                return;
-            }
-            _lastObserveFrame = frame;
-            _sampledPhysicsFrames++;
-
-            ulong nowMs = Time.GetTicksMsec();
-            Vector2 currentPosition = _self.CombatCenter;
             float clampedSuccessDistance = Mathf.Max(1f, successDistance);
-
-            float activeDelta = 0f;
-            if (_hasLastObservation)
-            {
-                ulong gapMs = nowMs >= _lastObserveMs ? nowMs - _lastObserveMs : 0UL;
-                // Gap lớn thường là attack/cast/pause. Không cộng thời gian đó vào movement benchmark.
-                if (gapMs <= 250UL)
-                {
-                    activeDelta = Mathf.Clamp(gapMs / 1000f, 0f, 0.25f);
-                    if (_segmentActive)
-                    {
-                        _segmentPathLength += currentPosition.DistanceTo(_lastObservedPosition);
-                    }
-                }
-
-                if (safeVelocity.LengthSquared() > 1f && _lastObservedVelocity.LengthSquared() > 1f)
-                {
-                    float dot = Mathf.Clamp(
-                        safeVelocity.Normalized().Dot(_lastObservedVelocity.Normalized()),
-                        -1f,
-                        1f);
-                    float turnDegrees = Mathf.RadToDeg(Mathf.Acos(dot));
-                    if (_segmentActive)
-                    {
-                        _segmentJitterDegrees += turnDegrees;
-                        _segmentVelocityTransitions++;
-                    }
-                }
-            }
-
             if (!_segmentActive)
             {
                 BeginSegment(targetPosition, clampedSuccessDistance, currentPosition);
@@ -179,43 +172,143 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
                 BeginSegment(targetPosition, clampedSuccessDistance, currentPosition);
             }
 
-            if (_segmentActive)
+            UpdateActiveSegment(currentPosition, activeDelta, stepDistance, turnDegrees, _segmentTarget);
+        }
+
+        /// <summary>
+        /// Formation follow: targetPosition là anchor SỐNG, có thể đổi mỗi frame.
+        /// Đo error/band/catch-up trực tiếp thay vì cố biến nó thành segment target đứng yên.
+        /// </summary>
+        public void ObserveFollow(
+            Vector2 targetPosition,
+            float stopDistance,
+            float followBandDistance,
+            Vector2 safeVelocity)
+        {
+            if (_mode == CombatMovementBenchmarkMode.StaticPath)
             {
-                _segmentActiveSeconds += activeDelta;
-                float remaining = currentPosition.DistanceTo(_segmentTarget);
-                if (remaining <= _segmentSuccessDistance)
-                {
-                    CompleteSegment(success: true);
-                }
-                else if (_segmentActiveSeconds >= _segmentTimeoutSeconds)
-                {
-                    CompleteSegment(success: false);
-                }
+                ObserveStaticPath(targetPosition, stopDistance, safeVelocity);
+                return;
             }
 
-            _lastObservedPosition = currentPosition;
-            _lastObservedVelocity = safeVelocity;
-            _lastObserveMs = nowMs;
-            _hasLastObservation = true;
+            if (_mode != CombatMovementBenchmarkMode.Follow
+                || !TryBeginObservation(safeVelocity, out Vector2 currentPosition, out float activeDelta, out _, out float turnDegrees))
+            {
+                return;
+            }
+
+            float band = Mathf.Max(Mathf.Max(1f, stopDistance), followBandDistance);
+            float error = currentPosition.DistanceTo(targetPosition);
+            _followBandDistance = band;
+            _followSampleFrames++;
+            _followErrorSum += error;
+            _followMaxError = Mathf.Max(_followMaxError, error);
+            _followJitterDegrees += turnDegrees;
+            if (turnDegrees > 0f)
+            {
+                _followVelocityTransitions++;
+            }
+
+            int bucket = Mathf.Clamp(
+                Mathf.FloorToInt(error / FollowHistogramBucketPixels),
+                0,
+                FollowHistogramBucketCount - 1);
+            _followErrorHistogram[bucket]++;
+
+            bool insideBand = error <= band;
+            if (insideBand)
+            {
+                _followInsideBandFrames++;
+                if (_followCatchupActive)
+                {
+                    _followCatchupEvents++;
+                    _followCatchupSecondsSum += _followCatchupSeconds;
+                    _followCatchupMaxSeconds = Mathf.Max(_followCatchupMaxSeconds, _followCatchupSeconds);
+                    _followCatchupActive = false;
+                    _followCatchupSeconds = 0f;
+                }
+            }
+            else
+            {
+                if (!_followCatchupActive)
+                {
+                    _followCatchupActive = true;
+                    _followCatchupSeconds = 0f;
+                }
+                _followCatchupSeconds += activeDelta;
+            }
+        }
+
+        /// <summary>
+        /// Combat positioning dùng live tactical anchor. Target được phép đổi mỗi frame;
+        /// episode thành công khi AI vào lại success band trước timeout.
+        /// </summary>
+        public void ObserveCombatPositioning(Vector2 targetPosition, float successDistance, Vector2 safeVelocity)
+        {
+            if (_mode == CombatMovementBenchmarkMode.StaticPath)
+            {
+                // Cho phép dùng cùng motor trong scene test A->B mà không phải thêm một đường code riêng.
+                ObserveStaticPath(targetPosition, successDistance, safeVelocity);
+                return;
+            }
+
+            if (_mode != CombatMovementBenchmarkMode.CombatPositioning
+                || !TryBeginObservation(safeVelocity, out Vector2 currentPosition, out float activeDelta, out float stepDistance, out float turnDegrees))
+            {
+                return;
+            }
+
+            float clampedSuccessDistance = Mathf.Max(1f, successDistance);
+            float remaining = currentPosition.DistanceTo(targetPosition);
+            if (!_segmentActive && remaining > clampedSuccessDistance)
+            {
+                BeginSegment(targetPosition, clampedSuccessDistance, currentPosition);
+            }
+
+            if (_segmentActive)
+            {
+                // Không freeze target: combat anchor thay đổi là bình thường.
+                _segmentTarget = targetPosition;
+                _segmentSuccessDistance = clampedSuccessDistance;
+                UpdateActiveSegment(currentPosition, activeDelta, stepDistance, turnDegrees, targetPosition);
+            }
         }
 
         public CombatMovementBenchmarkSnapshot Snapshot()
         {
             int completed = _successfulSegments + _failedSegments;
-            float successRate = completed > 0 ? (float)_successfulSegments / completed : 0f;
-            ulong collisionFrames = Delta(_metrics?.CollisionFrames ?? 0UL, _startCollisionFrames);
-            ulong collisionContacts = Delta(_metrics?.CollisionContacts ?? 0UL, _startCollisionContacts);
-            float collisionRate = _sampledPhysicsFrames > 0
-                ? (float)collisionFrames / _sampledPhysicsFrames
+            float segmentSuccessRate = completed > 0 ? (float)_successfulSegments / completed : 0f;
+            float followBandRate = _followSampleFrames > 0
+                ? (float)_followInsideBandFrames / _followSampleFrames
                 : 0f;
-            float averageSeconds = completed > 0 ? _completedSeconds / completed : 0f;
-            float averagePathStretch = completed > 0 ? _completedPathStretchSum / completed : 0f;
-            float averageJitter = _completedVelocityTransitions > 0
-                ? _completedJitterDegreesSum / _completedVelocityTransitions
-                : 0f;
+            float successRate = _mode == CombatMovementBenchmarkMode.Follow
+                ? followBandRate
+                : ResolveDynamicSuccessRate(completed, segmentSuccessRate);
 
             ulong solverTicks = Delta(_metrics?.SolverTicks ?? 0UL, _startSolverTicks);
             ulong motorTicks = Delta(_metrics?.MotorTicks ?? 0UL, _startMotorTicks);
+            ulong rawCollisionFrames = Delta(_metrics?.RawCollisionFrames ?? 0UL, _startRawCollisionFrames);
+            ulong rawCollisionContacts = Delta(_metrics?.RawCollisionContacts ?? 0UL, _startRawCollisionContacts);
+            ulong blockingCollisionFrames = Delta(_metrics?.BlockingCollisionFrames ?? 0UL, _startBlockingCollisionFrames);
+            ulong blockingCollisionContacts = Delta(_metrics?.BlockingCollisionContacts ?? 0UL, _startBlockingCollisionContacts);
+            // Collision được sample ở local motor. Dùng motor ticks làm mẫu số để mode Follow không bị
+            // méo rate khi giữa benchmark có vài frame combat/attack không được tính vào follow samples.
+            ulong collisionSampleFrames = motorTicks > 0 ? motorTicks : _sampledPhysicsFrames;
+            float rawCollisionRate = collisionSampleFrames > 0
+                ? (float)rawCollisionFrames / collisionSampleFrames
+                : 0f;
+            float blockingCollisionRate = collisionSampleFrames > 0
+                ? (float)blockingCollisionFrames / collisionSampleFrames
+                : 0f;
+
+            float averageSeconds = _mode == CombatMovementBenchmarkMode.Follow
+                ? (_followCatchupEvents > 0 ? _followCatchupSecondsSum / _followCatchupEvents : 0f)
+                : (completed > 0 ? _completedSeconds / completed : 0f);
+            float averagePathStretch = completed > 0 ? _completedPathStretchSum / completed : 0f;
+            float averageJitter = _mode == CombatMovementBenchmarkMode.Follow
+                ? (_followVelocityTransitions > 0 ? _followJitterDegrees / _followVelocityTransitions : 0f)
+                : (_completedVelocityTransitions > 0 ? _completedJitterDegreesSum / _completedVelocityTransitions : 0f);
+
             ulong solverUsec = Delta(_metrics?.SolverMicroseconds ?? 0UL, _startSolverMicroseconds);
             ulong motorUsec = Delta(_metrics?.MotorMicroseconds ?? 0UL, _startMotorMicroseconds);
             ulong cpuTicks = solverTicks + motorTicks;
@@ -225,32 +318,56 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
                 ? Mathf.Max(0f, (Time.GetTicksMsec() - _startedAtMs) / 1000f)
                 : 0f;
 
-            bool hasGateSample = completed > 0 && _sampledPhysicsFrames > 0;
+            float averageFollowError = _followSampleFrames > 0
+                ? _followErrorSum / _followSampleFrames
+                : 0f;
+            float p95FollowError = ResolveFollowPercentile(0.95f);
+            float averageCatchupSeconds = _followCatchupEvents > 0
+                ? _followCatchupSecondsSum / _followCatchupEvents
+                : 0f;
+
+            bool hasGateSample = _mode == CombatMovementBenchmarkMode.Follow
+                ? _followSampleFrames >= MinimumDynamicSampleFrames
+                : (_mode == CombatMovementBenchmarkMode.CombatPositioning
+                    ? (_sampledPhysicsFrames >= MinimumDynamicSampleFrames || completed > 0)
+                    : completed > 0);
+
+            float requiredSuccessRate = _mode == CombatMovementBenchmarkMode.Follow
+                ? _minFollowBandRate
+                : _minSuccessRate;
             bool hardGatePass = hasGateSample
-                && successRate >= _minSuccessRate
-                && collisionRate <= _maxCollisionRate;
+                && successRate >= requiredSuccessRate
+                && blockingCollisionRate <= _maxBlockingCollisionRate;
 
             float score = ComputeScore(
                 hardGatePass,
                 successRate,
-                collisionRate,
+                blockingCollisionRate,
                 averageSeconds,
                 averagePathStretch,
                 averageJitter,
-                averageCpuUsec);
+                averageCpuUsec,
+                averageFollowError,
+                p95FollowError,
+                _followBandDistance);
 
             return new CombatMovementBenchmarkSnapshot(
                 _label,
+                _mode,
                 _running,
                 elapsedSeconds,
                 _sampledPhysicsFrames,
+                hasGateSample,
                 _successfulSegments,
                 _failedSegments,
                 _abortedSegments,
                 successRate,
-                collisionFrames,
-                collisionContacts,
-                collisionRate,
+                rawCollisionFrames,
+                rawCollisionContacts,
+                rawCollisionRate,
+                blockingCollisionFrames,
+                blockingCollisionContacts,
+                blockingCollisionRate,
                 averageSeconds,
                 averagePathStretch,
                 averageJitter,
@@ -258,8 +375,19 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
                 hardGatePass,
                 score,
                 _minSuccessRate,
-                _maxCollisionRate,
+                _minFollowBandRate,
+                _maxBlockingCollisionRate,
                 _cpuBudgetUsec,
+                _followSampleFrames,
+                _followInsideBandFrames,
+                followBandRate,
+                _followBandDistance,
+                averageFollowError,
+                p95FollowError,
+                _followMaxError,
+                _followCatchupEvents,
+                averageCatchupSeconds,
+                _followCatchupMaxSeconds,
                 solverTicks,
                 motorTicks,
                 Delta(_metrics?.PathRequests ?? 0UL, _startPathRequests),
@@ -276,14 +404,77 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
         public string ToCompactString()
         {
             CombatMovementBenchmarkSnapshot snapshot = Snapshot();
-            string gate = snapshot.CompletedSegments <= 0
+            string gate = !snapshot.HasQualitySample
                 ? "gate=WAIT"
                 : (snapshot.HardGatePass ? "gate=PASS" : "gate=FAIL");
-            return $"bench={snapshot.Label} {gate} score={snapshot.Score:0.0} "
+
+            if (snapshot.Mode == CombatMovementBenchmarkMode.Follow)
+            {
+                return $"bench={snapshot.Label} mode=follow {gate} score={snapshot.Score:0.0} "
+                    + $"band={snapshot.FollowBandRate:P0} err={snapshot.AverageFollowError:0.0}/p95={snapshot.P95FollowError:0.0}px "
+                    + $"block={snapshot.BlockingCollisionRate:P1} raw={snapshot.RawCollisionRate:P1} "
+                    + $"catch={snapshot.AverageCatchupSeconds:0.00}s cpu={snapshot.AverageCpuUsec:0.0}us";
+            }
+
+            return $"bench={snapshot.Label} mode={snapshot.Mode.ToString().ToLowerInvariant()} {gate} score={snapshot.Score:0.0} "
                 + $"success={snapshot.SuccessfulSegments}/{snapshot.CompletedSegments}({snapshot.SuccessRate:P0}) "
-                + $"collision={snapshot.CollisionRate:P1} time={snapshot.AverageSeconds:0.00}s "
-                + $"stretch={snapshot.AveragePathStretch:0.00} jitter={snapshot.AverageJitterDegrees:0.0}deg "
-                + $"cpu={snapshot.AverageCpuUsec:0.0}us";
+                + $"block={snapshot.BlockingCollisionRate:P1} raw={snapshot.RawCollisionRate:P1} "
+                + $"time={snapshot.AverageSeconds:0.00}s stretch={snapshot.AveragePathStretch:0.00} "
+                + $"jitter={snapshot.AverageJitterDegrees:0.0}deg cpu={snapshot.AverageCpuUsec:0.0}us";
+        }
+
+        private bool TryBeginObservation(
+            Vector2 safeVelocity,
+            out Vector2 currentPosition,
+            out float activeDelta,
+            out float stepDistance,
+            out float turnDegrees)
+        {
+            currentPosition = Vector2.Zero;
+            activeDelta = 0f;
+            stepDistance = 0f;
+            turnDegrees = 0f;
+
+            if (!_running || _self == null || !GodotObject.IsInstanceValid(_self))
+            {
+                return false;
+            }
+
+            ulong frame = Engine.GetPhysicsFrames();
+            if (_lastObserveFrame == frame)
+            {
+                return false;
+            }
+            _lastObserveFrame = frame;
+            _sampledPhysicsFrames++;
+
+            ulong nowMs = Time.GetTicksMsec();
+            currentPosition = _self.CombatCenter;
+            if (_hasLastObservation)
+            {
+                ulong gapMs = nowMs >= _lastObserveMs ? nowMs - _lastObserveMs : 0UL;
+                // Attack/cast/pause dài không được tính như movement bị chậm.
+                if (gapMs <= 250UL)
+                {
+                    activeDelta = Mathf.Clamp(gapMs / 1000f, 0f, 0.25f);
+                    stepDistance = currentPosition.DistanceTo(_lastObservedPosition);
+                }
+
+                if (safeVelocity.LengthSquared() > 1f && _lastObservedVelocity.LengthSquared() > 1f)
+                {
+                    float dot = Mathf.Clamp(
+                        safeVelocity.Normalized().Dot(_lastObservedVelocity.Normalized()),
+                        -1f,
+                        1f);
+                    turnDegrees = Mathf.RadToDeg(Mathf.Acos(dot));
+                }
+            }
+
+            _lastObservedPosition = currentPosition;
+            _lastObservedVelocity = safeVelocity;
+            _lastObserveMs = nowMs;
+            _hasLastObservation = true;
+            return true;
         }
 
         private void BeginSegment(Vector2 targetPosition, float successDistance, Vector2 currentPosition)
@@ -302,6 +493,37 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             _segmentActiveSeconds = 0f;
             _segmentJitterDegrees = 0f;
             _segmentVelocityTransitions = 0;
+        }
+
+        private void UpdateActiveSegment(
+            Vector2 currentPosition,
+            float activeDelta,
+            float stepDistance,
+            float turnDegrees,
+            Vector2 liveTarget)
+        {
+            if (!_segmentActive)
+            {
+                return;
+            }
+
+            _segmentActiveSeconds += activeDelta;
+            _segmentPathLength += stepDistance;
+            _segmentJitterDegrees += turnDegrees;
+            if (turnDegrees > 0f)
+            {
+                _segmentVelocityTransitions++;
+            }
+
+            float remaining = currentPosition.DistanceTo(liveTarget);
+            if (remaining <= _segmentSuccessDistance)
+            {
+                CompleteSegment(success: true);
+            }
+            else if (_segmentActiveSeconds >= _segmentTimeoutSeconds)
+            {
+                CompleteSegment(success: false);
+            }
         }
 
         private void CompleteSegment(bool success)
@@ -346,36 +568,102 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             _segmentVelocityTransitions = 0;
         }
 
+        private float ResolveDynamicSuccessRate(int completed, float segmentSuccessRate)
+        {
+            if (_mode == CombatMovementBenchmarkMode.StaticPath)
+            {
+                return segmentSuccessRate;
+            }
+
+            if (completed > 0)
+            {
+                return segmentSuccessRate;
+            }
+
+            // CombatPositioning mà đã sample đủ và không hề mở episode nghĩa là actor luôn ở trong band.
+            if (_mode == CombatMovementBenchmarkMode.CombatPositioning
+                && _sampledPhysicsFrames >= MinimumDynamicSampleFrames
+                && !_segmentActive)
+            {
+                return 1f;
+            }
+
+            return 0f;
+        }
+
         private float ComputeScore(
             bool hardGatePass,
             float successRate,
-            float collisionRate,
+            float blockingCollisionRate,
             float averageSeconds,
             float pathStretch,
             float jitterDegrees,
-            float cpuUsec)
+            float cpuUsec,
+            float averageFollowError,
+            float p95FollowError,
+            float followBandDistance)
         {
-            // Research yêu cầu success + collision là hard gate. Nếu gate rớt thì không dùng "game feel"
-            // để cứu điểm. Score 0 giúp bảng A/B không vô tình chọn preset mượt mắt nhưng hay va chạm.
+            // success/band + blocking collision là hard gate. Không để "mượt mắt" cứu một AI hay kẹt.
             if (!hardGatePass)
             {
                 return 0f;
             }
 
-            float successQuality = Mathf.Clamp(successRate, 0f, 1f);
-            float collisionQuality = 1f - Mathf.Clamp(collisionRate / Mathf.Max(0.0001f, _maxCollisionRate), 0f, 1f);
-            float timeQuality = 1f - Mathf.Clamp(averageSeconds / _segmentTimeoutSeconds, 0f, 1f);
-            float pathQuality = pathStretch <= 0f ? 0f : 1f / Mathf.Max(1f, pathStretch);
-            float jitterQuality = 1f - Mathf.Clamp(jitterDegrees / 45f, 0f, 1f);
+            float collisionQuality = 1f - Mathf.Clamp(
+                blockingCollisionRate / Mathf.Max(0.0001f, _maxBlockingCollisionRate),
+                0f,
+                1f);
             float cpuQuality = 1f - Mathf.Clamp(cpuUsec / _cpuBudgetUsec, 0f, 1f);
 
-            float weighted = 0.35f * successQuality
+            if (_mode == CombatMovementBenchmarkMode.Follow)
+            {
+                float band = Mathf.Max(1f, followBandDistance);
+                float errorQuality = 1f - Mathf.Clamp(averageFollowError / (band * 1.5f), 0f, 1f);
+                float p95Quality = 1f - Mathf.Clamp(p95FollowError / (band * 2f), 0f, 1f);
+                float jitterQuality = 1f - Mathf.Clamp(jitterDegrees / 60f, 0f, 1f);
+                float weighted = 0.45f * Mathf.Clamp(successRate, 0f, 1f)
+                    + 0.20f * collisionQuality
+                    + 0.15f * errorQuality
+                    + 0.10f * p95Quality
+                    + 0.05f * jitterQuality
+                    + 0.05f * cpuQuality;
+                return Mathf.Clamp(weighted * 100f, 0f, 100f);
+            }
+
+            float successQuality = Mathf.Clamp(successRate, 0f, 1f);
+            float timeQuality = 1f - Mathf.Clamp(averageSeconds / _segmentTimeoutSeconds, 0f, 1f);
+            float pathQuality = pathStretch <= 0f ? 1f : 1f / Mathf.Max(1f, pathStretch);
+            float jitterQualityStatic = 1f - Mathf.Clamp(jitterDegrees / 45f, 0f, 1f);
+            float weightedStatic = 0.35f * successQuality
                 + 0.25f * collisionQuality
                 + 0.10f * timeQuality
                 + 0.15f * pathQuality
-                + 0.10f * jitterQuality
+                + 0.10f * jitterQualityStatic
                 + 0.05f * cpuQuality;
-            return Mathf.Clamp(weighted * 100f, 0f, 100f);
+            return Mathf.Clamp(weightedStatic * 100f, 0f, 100f);
+        }
+
+        private float ResolveFollowPercentile(float percentile)
+        {
+            if (_followSampleFrames <= 0)
+            {
+                return 0f;
+            }
+
+            ulong wanted = (ulong)Mathf.CeilToInt((float)_followSampleFrames * Mathf.Clamp(percentile, 0f, 1f));
+            wanted = wanted > 0 ? wanted : 1UL;
+            ulong running = 0;
+            for (int i = 0; i < _followErrorHistogram.Length; i++)
+            {
+                running += _followErrorHistogram[i];
+                if (running >= wanted)
+                {
+                    // Bucket cuối là overflow; trả mốc dưới thay vì bịa độ chính xác không có.
+                    return i * FollowHistogramBucketPixels;
+                }
+            }
+
+            return (FollowHistogramBucketCount - 1) * FollowHistogramBucketPixels;
         }
 
         private void CaptureMetricBaseline()
@@ -387,8 +675,10 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
 
             _startSolverTicks = _metrics.SolverTicks;
             _startMotorTicks = _metrics.MotorTicks;
-            _startCollisionFrames = _metrics.CollisionFrames;
-            _startCollisionContacts = _metrics.CollisionContacts;
+            _startRawCollisionFrames = _metrics.RawCollisionFrames;
+            _startRawCollisionContacts = _metrics.RawCollisionContacts;
+            _startBlockingCollisionFrames = _metrics.BlockingCollisionFrames;
+            _startBlockingCollisionContacts = _metrics.BlockingCollisionContacts;
             _startSolverMicroseconds = _metrics.SolverMicroseconds;
             _startMotorMicroseconds = _metrics.MotorMicroseconds;
             _startPathRequests = _metrics.PathRequests;
@@ -419,6 +709,23 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             _completedJitterDegreesSum = 0f;
             _completedVelocityTransitions = 0;
             _sampledPhysicsFrames = 0;
+
+            _followSampleFrames = 0;
+            _followInsideBandFrames = 0;
+            _followErrorSum = 0f;
+            _followMaxError = 0f;
+            _followBandDistance = 0f;
+            for (int i = 0; i < _followErrorHistogram.Length; i++)
+            {
+                _followErrorHistogram[i] = 0;
+            }
+            _followJitterDegrees = 0f;
+            _followVelocityTransitions = 0;
+            _followCatchupActive = false;
+            _followCatchupSeconds = 0f;
+            _followCatchupEvents = 0;
+            _followCatchupSecondsSum = 0f;
+            _followCatchupMaxSeconds = 0f;
         }
 
         private static ulong Delta(ulong current, ulong baseline)
@@ -431,17 +738,29 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
     public readonly struct CombatMovementBenchmarkSnapshot
     {
         public string Label { get; }
+        public CombatMovementBenchmarkMode Mode { get; }
         public bool IsRunning { get; }
         public float ElapsedSeconds { get; }
         public ulong SampledPhysicsFrames { get; }
+        public bool HasQualitySample { get; }
         public int SuccessfulSegments { get; }
         public int FailedSegments { get; }
         public int AbortedSegments { get; }
         public int CompletedSegments => SuccessfulSegments + FailedSegments;
         public float SuccessRate { get; }
-        public ulong CollisionFrames { get; }
-        public ulong CollisionContacts { get; }
-        public float CollisionRate { get; }
+
+        public ulong RawCollisionFrames { get; }
+        public ulong RawCollisionContacts { get; }
+        public float RawCollisionRate { get; }
+        public ulong BlockingCollisionFrames { get; }
+        public ulong BlockingCollisionContacts { get; }
+        public float BlockingCollisionRate { get; }
+
+        // Alias tương thích code debug cũ: từ P2.1 "Collision" mặc định nghĩa là BLOCKING collision.
+        public ulong CollisionFrames => BlockingCollisionFrames;
+        public ulong CollisionContacts => BlockingCollisionContacts;
+        public float CollisionRate => BlockingCollisionRate;
+
         public float AverageSeconds { get; }
         public float AveragePathStretch { get; }
         public float AverageJitterDegrees { get; }
@@ -449,8 +768,22 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
         public bool HardGatePass { get; }
         public float Score { get; }
         public float MinSuccessRate { get; }
-        public float MaxCollisionRate { get; }
+        public float MinFollowBandRate { get; }
+        public float MaxBlockingCollisionRate { get; }
+        public float MaxCollisionRate => MaxBlockingCollisionRate;
         public float CpuBudgetUsec { get; }
+
+        public ulong FollowSampleFrames { get; }
+        public ulong FollowInsideBandFrames { get; }
+        public float FollowBandRate { get; }
+        public float FollowBandDistance { get; }
+        public float AverageFollowError { get; }
+        public float P95FollowError { get; }
+        public float MaxFollowError { get; }
+        public int FollowCatchupEvents { get; }
+        public float AverageCatchupSeconds { get; }
+        public float MaxCatchupSeconds { get; }
+
         public ulong SolverTicks { get; }
         public ulong MotorTicks { get; }
         public ulong PathRequests { get; }
@@ -465,16 +798,21 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
 
         public CombatMovementBenchmarkSnapshot(
             string label,
+            CombatMovementBenchmarkMode mode,
             bool isRunning,
             float elapsedSeconds,
             ulong sampledPhysicsFrames,
+            bool hasQualitySample,
             int successfulSegments,
             int failedSegments,
             int abortedSegments,
             float successRate,
-            ulong collisionFrames,
-            ulong collisionContacts,
-            float collisionRate,
+            ulong rawCollisionFrames,
+            ulong rawCollisionContacts,
+            float rawCollisionRate,
+            ulong blockingCollisionFrames,
+            ulong blockingCollisionContacts,
+            float blockingCollisionRate,
             float averageSeconds,
             float averagePathStretch,
             float averageJitterDegrees,
@@ -482,8 +820,19 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             bool hardGatePass,
             float score,
             float minSuccessRate,
-            float maxCollisionRate,
+            float minFollowBandRate,
+            float maxBlockingCollisionRate,
             float cpuBudgetUsec,
+            ulong followSampleFrames,
+            ulong followInsideBandFrames,
+            float followBandRate,
+            float followBandDistance,
+            float averageFollowError,
+            float p95FollowError,
+            float maxFollowError,
+            int followCatchupEvents,
+            float averageCatchupSeconds,
+            float maxCatchupSeconds,
             ulong solverTicks,
             ulong motorTicks,
             ulong pathRequests,
@@ -497,16 +846,21 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             ulong stuckEvents)
         {
             Label = label;
+            Mode = mode;
             IsRunning = isRunning;
             ElapsedSeconds = elapsedSeconds;
             SampledPhysicsFrames = sampledPhysicsFrames;
+            HasQualitySample = hasQualitySample;
             SuccessfulSegments = successfulSegments;
             FailedSegments = failedSegments;
             AbortedSegments = abortedSegments;
             SuccessRate = successRate;
-            CollisionFrames = collisionFrames;
-            CollisionContacts = collisionContacts;
-            CollisionRate = collisionRate;
+            RawCollisionFrames = rawCollisionFrames;
+            RawCollisionContacts = rawCollisionContacts;
+            RawCollisionRate = rawCollisionRate;
+            BlockingCollisionFrames = blockingCollisionFrames;
+            BlockingCollisionContacts = blockingCollisionContacts;
+            BlockingCollisionRate = blockingCollisionRate;
             AverageSeconds = averageSeconds;
             AveragePathStretch = averagePathStretch;
             AverageJitterDegrees = averageJitterDegrees;
@@ -514,8 +868,19 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             HardGatePass = hardGatePass;
             Score = score;
             MinSuccessRate = minSuccessRate;
-            MaxCollisionRate = maxCollisionRate;
+            MinFollowBandRate = minFollowBandRate;
+            MaxBlockingCollisionRate = maxBlockingCollisionRate;
             CpuBudgetUsec = cpuBudgetUsec;
+            FollowSampleFrames = followSampleFrames;
+            FollowInsideBandFrames = followInsideBandFrames;
+            FollowBandRate = followBandRate;
+            FollowBandDistance = followBandDistance;
+            AverageFollowError = averageFollowError;
+            P95FollowError = p95FollowError;
+            MaxFollowError = maxFollowError;
+            FollowCatchupEvents = followCatchupEvents;
+            AverageCatchupSeconds = averageCatchupSeconds;
+            MaxCatchupSeconds = maxCatchupSeconds;
             SolverTicks = solverTicks;
             MotorTicks = motorTicks;
             PathRequests = pathRequests;

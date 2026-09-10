@@ -6,14 +6,14 @@ using AshesofaDyingWorld.Combat.Decision.Runtime;
 namespace AshesofaDyingWorld.Combat.Decision.Movement
 {
     /// <summary>
-    /// P2 movement stack + runtime benchmark:
+    /// P3 movement stack:
+    /// 0) World topology: hiểu tầng thấp/tầng cao và route qua StairLink khi khác elevation.
     /// 1) Global path: NavigationAgent2D cho đường dài.
     /// 2) Static clearance: context steering 16 hướng né tường/đá ở cự ly gần.
     /// 3) Dynamic avoidance: preferred velocity -> RVO safe velocity khi NavAgent hỗ trợ.
     ///
-    /// P1 bổ sung spatial hash, corridor reuse, passing-side lock và adaptive ray/ShapeCast.
-    /// P2 bổ sung runtime benchmark để đo success/collision/time/path stretch/jitter/CPU trước khi đổi thuật toán.
-    /// Nếu thiếu NavAgent/nav map, global path + RVO tự fallback; local solver vẫn hoạt động độc lập.
+    /// P1: spatial hash/corridor reuse/passing-side/adaptive probes. P2: benchmark runtime.
+    /// P3 không bắt NavMesh mới: semantic topology đặt waypoint cầu thang trước global/local avoidance.
     /// </summary>
     public sealed class CombatMovementSolver
     {
@@ -25,12 +25,14 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
         private readonly float _stuckMoveEpsilon;
         private readonly float _stuckRecoverySeconds;
         private readonly int _preferredSideSign;
+        private readonly float _followBenchmarkBandDistance;
 
         private readonly CombatMovementMetrics _metrics;
         private readonly CombatGlobalPathPlanner _globalPath;
         private readonly CombatStaticClearance _staticClearance;
         private readonly CombatDynamicAvoidance _dynamicAvoidance;
         private readonly CombatMovementBenchmark _benchmark;
+        private readonly CombatElevationRouter _elevationRouter;
 
         private int _lastDirectionSlot = -1;
         private bool _lastHadMovement;
@@ -42,12 +44,17 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
         private ulong _nextMotorProbeTickMs;
         private ulong _nextFreeProbeTickMs;
         private ulong _lastCollisionSampleFrame = ulong.MaxValue;
+        private Vector2 _lastResolvedMotorVelocity = Vector2.Zero;
         private bool _hasMotorNavigationTarget;
+        // Final target dùng benchmark; path target có thể là chân/đầu cầu thang do P3 topology router chọn.
         private Vector2 _motorNavigationTarget;
+        private Vector2 _motorPathTarget;
+        private Vector2 _motorSemanticTarget;
 
         public CombatMovementMetrics Metrics => _metrics;
         public CombatMovementBenchmark Benchmark => _benchmark;
         public bool IsRecoveringFromStuck { get; private set; }
+        public string TopologyDiagnostics => _elevationRouter?.ToCompactString() ?? "topology=unavailable";
 
         public CombatMovementSolver(
             CombatCharacter self,
@@ -77,8 +84,13 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             float benchmarkSegmentTimeoutSeconds = 4f,
             float benchmarkTargetShiftResetDistance = 28f,
             float benchmarkMinSuccessRate = 0.98f,
-            float benchmarkMaxCollisionRate = 0.01f,
-            float benchmarkCpuBudgetUsec = 250f)
+            float benchmarkMinFollowBandRate = 0.90f,
+            float benchmarkMaxBlockingCollisionRate = 0.03f,
+            float benchmarkFollowBandDistance = 42f,
+            float benchmarkCpuBudgetUsec = 250f,
+            bool useWorldTopology = true,
+            bool topologyFailClosed = true,
+            bool topologyDebugLogging = false)
         {
             _self = self;
             _arrivalDistance = Mathf.Max(1f, arrivalDistance);
@@ -87,6 +99,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             _stuckRecoverySeconds = Mathf.Max(0.20f, stuckRecoverySeconds);
             _preferredSideSign = self != null && (self.GetInstanceId() & 1UL) == 0UL ? 1 : -1;
             _stuckSideSign = _preferredSideSign;
+            _followBenchmarkBandDistance = Mathf.Max(4f, benchmarkFollowBandDistance);
 
             _metrics = new CombatMovementMetrics();
             _globalPath = new CombatGlobalPathPlanner(
@@ -125,8 +138,14 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
                 benchmarkSegmentTimeoutSeconds,
                 benchmarkTargetShiftResetDistance,
                 benchmarkMinSuccessRate,
-                benchmarkMaxCollisionRate,
+                benchmarkMinFollowBandRate,
+                benchmarkMaxBlockingCollisionRate,
                 benchmarkCpuBudgetUsec);
+            _elevationRouter = new CombatElevationRouter(
+                self,
+                useWorldTopology,
+                topologyFailClosed,
+                topologyDebugLogging);
         }
 
         public MovementCommand Solve(
@@ -148,25 +167,52 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
                     return MovementCommand.Stop(snapshot.TargetPosition);
                 }
 
-                Vector2 safeAnchor = _self.ClampWorldPointToLevelBounds(pose.Anchor, 6f);
-                _motorNavigationTarget = safeAnchor;
+                Vector2 finalAnchor = _self.ClampWorldPointToLevelBounds(pose.Anchor, 6f);
+                Vector2 semanticTarget = snapshot.HasTarget ? snapshot.TargetPosition : finalAnchor;
+                CombatElevationRouter.RouteResult topologyRoute = _elevationRouter.Resolve(
+                    snapshot.SelfPosition,
+                    finalAnchor,
+                    semanticTarget);
+                Vector2 safeAnchor = _self.ClampWorldPointToLevelBounds(topologyRoute.MovementTarget, 6f);
+
+                _motorNavigationTarget = finalAnchor;
+                _motorPathTarget = safeAnchor;
+                _motorSemanticTarget = semanticTarget;
                 _hasMotorNavigationTarget = true;
+
                 Vector2 toAnchor = safeAnchor - snapshot.SelfPosition;
                 float anchorDistance = toAnchor.Length();
-                bool rangeSatisfied = !snapshot.HasTarget
-                    || (snapshot.TargetDistance >= pose.DesiredRangeMin
-                        && snapshot.TargetDistance <= pose.DesiredRangeMax);
-                bool isContinuousStrafe = pose.Mode == CombatMovementMode.StrafeLeft
-                    || pose.Mode == CombatMovementMode.StrafeRight;
+                float finalAnchorDistance = finalAnchor.DistanceTo(snapshot.SelfPosition);
+                bool rangeSatisfied = !topologyRoute.IsTopologyRouted
+                    && (!snapshot.HasTarget
+                        || (snapshot.TargetDistance >= pose.DesiredRangeMin
+                            && snapshot.TargetDistance <= pose.DesiredRangeMax));
+                bool isContinuousStrafe = !topologyRoute.IsTopologyRouted
+                    && (pose.Mode == CombatMovementMode.StrafeLeft
+                        || pose.Mode == CombatMovementMode.StrafeRight);
 
-                if (anchorDistance <= _arrivalDistance && rangeSatisfied && !isContinuousStrafe)
+                if (!topologyRoute.HasRoute)
                 {
                     _lastDirectionSlot = -1;
                     ResetProgress(snapshot.SelfPosition, snapshot.TimeSeconds);
                     return MovementCommand.Stop(snapshot.TargetPosition);
                 }
 
-                Vector2 desiredDirection = ResolveDesiredDirection(snapshot, pose, toAnchor);
+                if (!topologyRoute.IsTopologyRouted
+                    && finalAnchorDistance <= _arrivalDistance
+                    && rangeSatisfied
+                    && !isContinuousStrafe)
+                {
+                    _lastDirectionSlot = -1;
+                    ResetProgress(snapshot.SelfPosition, snapshot.TimeSeconds);
+                    return MovementCommand.Stop(snapshot.TargetPosition);
+                }
+
+                // Khi đang đổi tầng, topology có quyền ưu tiên hơn strafe/backpedal combat.
+                // Nếu không, AI có thể biết cầu thang ở đâu nhưng utility lại kéo nó chạy ngang khỏi cầu thang.
+                Vector2 desiredDirection = topologyRoute.IsTopologyRouted
+                    ? SafeNormalize(toAnchor)
+                    : ResolveDesiredDirection(snapshot, pose, toAnchor);
                 if (desiredDirection.LengthSquared() <= 0.001f)
                 {
                     ResetProgress(snapshot.SelfPosition, snapshot.TimeSeconds);
@@ -217,12 +263,12 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
                     float predictedDistance = snapshot.HasTarget
                         ? (snapshot.SelfPosition + direction * 18f).DistanceTo(snapshot.TargetPosition)
                         : 0f;
-                    float rangeInterest = snapshot.HasTarget
+                    float rangeInterest = snapshot.HasTarget && !topologyRoute.IsTopologyRouted
                         ? ScorePredictedRange(predictedDistance, pose.DesiredRangeMin, pose.DesiredRangeMax)
                         : 1f;
                     interest = Mathf.Clamp(0.72f * interest + 0.28f * rangeInterest, 0f, 1f);
 
-                    float danger = SampleDanger(slot, snapshot, direction, pose);
+                    float danger = SampleDanger(slot, snapshot, direction, pose, topologyRoute.IsTopologyRouted);
                     float score = interest * (1f - danger);
 
                     if (slot == _lastDirectionSlot)
@@ -277,6 +323,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
 
                 _lastDirectionSlot = bestSlot;
                 bool wantsRun = pose.Mode == CombatMovementMode.PanicEvade
+                    || (topologyRoute.IsTopologyRouted && anchorDistance >= 72f)
                     || anchorDistance >= 112f
                     || (pose.Mode == CombatMovementMode.Approach
                         && snapshot.TargetDistance >= pose.DesiredRangeMax + 70f);
@@ -310,13 +357,14 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             _metrics.BeginMotor();
             try
             {
-                SampleCollisionBaseline();
+                SampleCollisionOutcome();
                 if (_self == null || preferredVelocity.LengthSquared() <= 0.001f)
                 {
                     if (_hasMotorNavigationTarget)
                     {
-                        _benchmark.Observe(_motorNavigationTarget, _arrivalDistance, Vector2.Zero);
+                        _benchmark.ObserveCombatPositioning(_motorNavigationTarget, _arrivalDistance, Vector2.Zero);
                     }
+                    _lastResolvedMotorVelocity = Vector2.Zero;
                     return Vector2.Zero;
                 }
 
@@ -324,11 +372,25 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
                 float speed = preferredVelocity.Length();
                 if (_hasMotorNavigationTarget)
                 {
-                    Vector2 direction = preferredVelocity / Mathf.Max(speed, 0.001f);
-                    float distance = _self.CombatCenter.DistanceTo(_motorNavigationTarget);
-                    Vector2 pathDirection = _globalPath.ResolveDirection(
+                    CombatElevationRouter.RouteResult topologyRoute = _elevationRouter.Resolve(
                         _self.CombatCenter,
                         _motorNavigationTarget,
+                        _motorSemanticTarget);
+                    if (!topologyRoute.HasRoute)
+                    {
+                        _lastResolvedMotorVelocity = Vector2.Zero;
+                        return Vector2.Zero;
+                    }
+
+                    _motorPathTarget = topologyRoute.MovementTarget;
+                    Vector2 toPathTarget = _motorPathTarget - _self.CombatCenter;
+                    Vector2 direction = topologyRoute.IsTopologyRouted && toPathTarget.LengthSquared() > 0.001f
+                        ? toPathTarget.Normalized()
+                        : preferredVelocity / Mathf.Max(speed, 0.001f);
+                    float distance = _self.CombatCenter.DistanceTo(_motorPathTarget);
+                    Vector2 pathDirection = _globalPath.ResolveDirection(
+                        _self.CombatCenter,
+                        _motorPathTarget,
                         direction,
                         distance,
                         false);
@@ -355,8 +417,9 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
                 Vector2 safeVelocity = _dynamicAvoidance.ResolveVelocity(velocity);
                 if (_hasMotorNavigationTarget)
                 {
-                    _benchmark.Observe(_motorNavigationTarget, _arrivalDistance, safeVelocity);
+                    _benchmark.ObserveCombatPositioning(_motorNavigationTarget, _arrivalDistance, safeVelocity);
                 }
+                _lastResolvedMotorVelocity = safeVelocity;
                 return safeVelocity;
             }
             finally
@@ -378,20 +441,44 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             _metrics.BeginMotor();
             try
             {
-                SampleCollisionBaseline();
+                SampleCollisionOutcome();
                 float benchmarkArrival = successDistance > 0f ? successDistance : _arrivalDistance;
                 if (_self == null || preferredVelocity.LengthSquared() <= 0.001f)
                 {
-                    _benchmark.Observe(targetPosition, benchmarkArrival, Vector2.Zero);
+                    _benchmark.ObserveFollow(
+                        targetPosition,
+                        benchmarkArrival,
+                        _followBenchmarkBandDistance,
+                        Vector2.Zero);
+                    _lastResolvedMotorVelocity = Vector2.Zero;
                     return Vector2.Zero;
                 }
 
                 float speed = preferredVelocity.Length();
-                Vector2 directDirection = preferredVelocity / speed;
-                float distance = selfPosition.DistanceTo(targetPosition);
-                Vector2 desired = _globalPath.ResolveDirection(
+                CombatElevationRouter.RouteResult topologyRoute = _elevationRouter.Resolve(
                     selfPosition,
                     targetPosition,
+                    targetPosition);
+                if (!topologyRoute.HasRoute)
+                {
+                    _benchmark.ObserveFollow(
+                        targetPosition,
+                        benchmarkArrival,
+                        _followBenchmarkBandDistance,
+                        Vector2.Zero);
+                    _lastResolvedMotorVelocity = Vector2.Zero;
+                    return Vector2.Zero;
+                }
+
+                Vector2 movementTarget = topologyRoute.MovementTarget;
+                Vector2 toMovementTarget = movementTarget - selfPosition;
+                Vector2 directDirection = topologyRoute.IsTopologyRouted && toMovementTarget.LengthSquared() > 0.001f
+                    ? toMovementTarget.Normalized()
+                    : preferredVelocity / speed;
+                float distance = selfPosition.DistanceTo(movementTarget);
+                Vector2 desired = _globalPath.ResolveDirection(
+                    selfPosition,
+                    movementTarget,
                     directDirection,
                     distance,
                     false);
@@ -410,7 +497,12 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
 
                 Vector2 localDirection = ResolveLocalClearanceDirection(desired);
                 Vector2 safeVelocity = _dynamicAvoidance.ResolveVelocity(localDirection * speed);
-                _benchmark.Observe(targetPosition, benchmarkArrival, safeVelocity);
+                _benchmark.ObserveFollow(
+                    targetPosition,
+                    benchmarkArrival,
+                    _followBenchmarkBandDistance,
+                    safeVelocity);
+                _lastResolvedMotorVelocity = safeVelocity;
                 return safeVelocity;
             }
             finally
@@ -422,6 +514,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
         public void StopMotor()
         {
             _dynamicAvoidance.ResetVelocity();
+            _lastResolvedMotorVelocity = Vector2.Zero;
         }
 
         public void Reset()
@@ -431,11 +524,16 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             _progressInitialized = false;
             _stuckRecoveryUntil = 0f;
             _hasMotorNavigationTarget = false;
+            _motorNavigationTarget = Vector2.Zero;
+            _motorPathTarget = Vector2.Zero;
+            _motorSemanticTarget = Vector2.Zero;
             _lastCollisionSampleFrame = ulong.MaxValue;
+            _lastResolvedMotorVelocity = Vector2.Zero;
             _nextMotorProbeTickMs = 0;
             _nextFreeProbeTickMs = 0;
             IsRecoveringFromStuck = false;
             _globalPath.Reset();
+            _elevationRouter.Reset();
             _dynamicAvoidance.ResetVelocity();
             _metrics.Reset();
             _benchmark.Reset();
@@ -447,7 +545,14 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             _staticClearance.Dispose();
         }
 
-        private void SampleCollisionBaseline()
+        /// <summary>
+        /// Godot giữ slide collision của MoveAndSlide vừa chạy. DecisionAgent là child của actor nên ở
+        /// frame hiện tại ta đối chiếu contact đó với safe velocity mà motor đã ra ở frame trước.
+        ///
+        /// Raw contact chỉ là telemetry. Blocking contact mới là lỗi chất lượng: mặt va chạm phải thật sự
+        /// nằm trước hướng đi VÀ vận tốc tiến bị hụt đáng kể. Đi men dọc tường không còn bị chấm như crash.
+        /// </summary>
+        private void SampleCollisionOutcome()
         {
             if (_self == null || !GodotObject.IsInstanceValid(_self))
             {
@@ -462,9 +567,54 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
 
             _lastCollisionSampleFrame = frame;
             int contacts = _self.GetSlideCollisionCount();
-            if (contacts > 0)
+            if (contacts <= 0)
             {
-                _metrics.RecordCollisionFrame(contacts);
+                return;
+            }
+
+            _metrics.RecordRawCollisionFrame(contacts);
+
+            float expectedSpeed = _lastResolvedMotorVelocity.Length();
+            if (expectedSpeed <= 4f)
+            {
+                return;
+            }
+
+            Vector2 moveDirection = _lastResolvedMotorVelocity / expectedSpeed;
+            float actualForwardSpeed = Mathf.Max(0f, _self.GetRealVelocity().Dot(moveDirection));
+            float forwardLoss = 1f - Mathf.Clamp(actualForwardSpeed / expectedSpeed, 0f, 1f);
+            if (forwardLoss < 0.20f)
+            {
+                // Vẫn tiến gần đủ tốc độ: đây thường chỉ là contact trượt/tangent vô hại.
+                return;
+            }
+
+            int blockingContacts = 0;
+            for (int i = 0; i < contacts; i++)
+            {
+                KinematicCollision2D collision = _self.GetSlideCollision(i);
+                if (collision == null)
+                {
+                    continue;
+                }
+
+                Vector2 normal = collision.GetNormal();
+                if (normal.LengthSquared() <= 0.001f)
+                {
+                    continue;
+                }
+
+                // Normal hướng ra khỏi mặt va chạm. Giá trị dương ở đây nghĩa là actor đang lao vào mặt đó.
+                float headOn = -moveDirection.Dot(normal.Normalized());
+                if (headOn >= 0.35f)
+                {
+                    blockingContacts++;
+                }
+            }
+
+            if (blockingContacts > 0)
+            {
+                _metrics.RecordBlockingCollisionFrame(blockingContacts);
             }
         }
 
@@ -537,11 +687,12 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             int slot,
             in CombatSnapshot snapshot,
             Vector2 direction,
-            in CombatPose pose)
+            in CombatPose pose,
+            bool ignoreCombatRange)
         {
             float danger = _staticClearance.GetDanger(slot);
 
-            if (snapshot.HasTarget)
+            if (snapshot.HasTarget && !ignoreCombatRange)
             {
                 bool movingTowardTarget = direction.Dot(snapshot.DirectionToTarget) > 0.35f;
                 if (snapshot.TargetDistance < pose.DesiredRangeMin && movingTowardTarget)

@@ -21,7 +21,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
     /// </summary>
     public partial class CombatDecisionAgent : Node
     {
-        private const string RuntimeBuild = "v12-p2-movement-benchmark";
+        private const string RuntimeBuild = "v13.2-p3.2-vision-memory";
 
         [Signal] public delegate void DecisionEvaluatedEventHandler(string summary);
 
@@ -38,10 +38,31 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
 
         [ExportGroup("Perception")]
         [Export] public float DecisionIntervalSeconds { get; set; } = 0.15f;
+        // Sensor ceiling: AI có thể biết actor tồn tại trong vùng này, nhưng P3.1 không tự động engage toàn bộ vùng.
         [Export] public float EnemySearchRadius { get; set; } = 240f;
         [Export] public float ThreatDangerRange { get; set; } = 78f;
         [Export] public float LeaderDangerRadius { get; set; } = 86f;
         [Export(PropertyHint.Range, "-1,1,0.01")] public float ThreatFacingDot { get; set; } = 0.3f;
+
+        [ExportGroup("Perception / Vision P3.2")]
+        // Awareness radius chỉ tìm candidate. Vision mới quyết định target có được acquire thật hay không.
+        [Export] public bool UseVisionPerception { get; set; } = true;
+        [Export] public float VisionRange { get; set; } = 170f;
+        // Companion mặc định 360° để không ngơ với quái sau lưng; LOS vẫn chặn tường/cliff.
+        [Export(PropertyHint.Range, "30,360,5")] public float VisionFovDegrees { get; set; } = 360f;
+        [Export] public bool RequireVisionLineOfSight { get; set; } = true;
+        [Export(PropertyHint.Layers2DPhysics)] public uint VisionOcclusionMask { get; set; } = 8;
+        [Export] public bool RequireSameElevationForVision { get; set; } = true;
+        [Export] public float TargetVisualMemorySeconds { get; set; } = 1.25f;
+
+        [ExportGroup("Perception / Companion Engagement P3.1")]
+        // Companion không còn coi mọi hostile trong EnemySearchRadius là lý do để bỏ leader lao đi.
+        [Export] public bool UseCompanionEngagementLeash { get; set; } = true;
+        [Export] public float PassiveEnemyAcquireRadius { get; set; } = 125f;
+        [Export] public float TargetRetentionRadius { get; set; } = 175f;
+        [Export] public float LeaderPassiveEngagementRadius { get; set; } = 150f;
+        [Export] public float LeaderCombatLeashRadius { get; set; } = 190f;
+        [Export] public float ForceFollowLeaderDistance { get; set; } = 165f;
 
         [ExportGroup("Scheduler")]
         [Export(PropertyHint.Range, "0,1,0.01")] public float SwitchScoreMargin { get; set; } = 0.14f;
@@ -64,6 +85,13 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
         [Export] public float NavigationMaxTargetReuseSeconds { get; set; } = 0.55f;
         [Export] public int PathBudgetPerPhysicsFrame { get; set; } = 4;
 
+        [ExportGroup("Movement / World Topology P3")]
+        // Bật semantic low/high/stairs. Nếu map chưa có WorldNavigationTopology2D thì tự fallback direct.
+        [Export] public bool UseWorldTopology { get; set; } = true;
+        // Khác tầng nhưng thiếu StairLink thì đứng lại thay vì đâm cliff vô hạn.
+        [Export] public bool TopologyFailClosed { get; set; } = true;
+        [Export] public bool TopologyDebugLogging { get; set; } = false;
+
         [ExportGroup("Movement / Dynamic Avoidance")]
         [Export] public bool UseDynamicAvoidance { get; set; } = true;
         [Export] public float AvoidanceRadius { get; set; } = 10f;
@@ -74,18 +102,26 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
         [Export] public float AvoidancePassingLockSeconds { get; set; } = 0.75f;
         [Export(PropertyHint.Range, "0.025,0.20,0.005")] public float AvoidanceHeadOnBiasStrength { get; set; } = 0.09f;
 
+        [ExportGroup("Movement / Ally Body Policy")]
+        [Export] public bool UseSoftAllyBodyCollisions { get; set; } = true;
+        [Export] public float AllyCollisionRefreshSeconds { get; set; } = 0.50f;
+
         [ExportGroup("Movement / Anti Stuck")]
         [Export] public float StuckCheckSeconds { get; set; } = 0.60f;
         [Export] public float StuckMoveEpsilon { get; set; } = 4f;
         [Export] public float StuckRecoverySeconds { get; set; } = 0.55f;
 
-        [ExportGroup("Movement / Benchmark P2")]
+        [ExportGroup("Movement / Benchmark P2.1")]
         [Export] public bool MovementBenchmarkAutoStart { get; set; } = false;
-        [Export] public string MovementBenchmarkLabel { get; set; } = "p1-default";
+        [Export] public CombatMovementBenchmarkMode MovementBenchmarkMode { get; set; } = CombatMovementBenchmarkMode.Follow;
+        [Export] public string MovementBenchmarkLabel { get; set; } = "p2-follow-default";
         [Export] public float MovementBenchmarkSegmentTimeoutSeconds { get; set; } = 4f;
         [Export] public float MovementBenchmarkTargetShiftResetDistance { get; set; } = 28f;
         [Export(PropertyHint.Range, "0,1,0.01")] public float MovementBenchmarkMinSuccessRate { get; set; } = 0.98f;
-        [Export(PropertyHint.Range, "0,0.25,0.005")] public float MovementBenchmarkMaxCollisionRate { get; set; } = 0.01f;
+        [Export(PropertyHint.Range, "0,1,0.01")] public float MovementBenchmarkMinFollowBandRate { get; set; } = 0.90f;
+        [Export] public float MovementBenchmarkFollowBandDistance { get; set; } = 42f;
+        // Tên property giữ lại để scene cũ không gãy; từ P2.1 đây là BLOCKING collision, không phải mọi slide contact.
+        [Export(PropertyHint.Range, "0,0.25,0.005")] public float MovementBenchmarkMaxCollisionRate { get; set; } = 0.03f;
         [Export] public float MovementBenchmarkCpuBudgetUsec { get; set; } = 250f;
 
         [ExportGroup("Profiles")]
@@ -114,6 +150,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
         private CombatCharacter _self;
         private CombatCharacter _leader;
         private ICombatPerception _perception;
+        private CombatVisionSensor _visionSensor;
+        private CombatEngagementPolicy _engagementPolicy;
         private CombatLineOfFireSensor _lineOfFireSensor;
         private ProjectileSpecData _primaryProjectileSpec;
         private ITacticalEvaluator _evaluator;
@@ -121,10 +159,12 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
         private PartyTacticalDirector _director;
         private CombatSpacingController _spacing;
         private CombatMovementSolver _movement;
+        private CombatAllyCollisionPolicy _allyCollisionPolicy;
         private CombatIntentExecutor _executor;
         private float _decisionRemaining;
         private float _debugLogRemaining;
         private float _elapsedSeconds;
+        private float _allyCollisionRefreshRemaining;
         private CombatSnapshot _lastSnapshot;
         private MovementCommand _plannedMovementCommand;
         private bool _hasSnapshot;
@@ -167,6 +207,16 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             }
 
             bool liveControl = UseDecisionCore && !ShadowMode;
+            if (liveControl && UseSoftAllyBodyCollisions)
+            {
+                _allyCollisionRefreshRemaining -= dt;
+                if (_allyCollisionRefreshRemaining <= 0f)
+                {
+                    _allyCollisionRefreshRemaining = Mathf.Max(0.10f, AllyCollisionRefreshSeconds);
+                    _allyCollisionPolicy?.Refresh();
+                }
+            }
+
             bool evaluatedThisFrame = false;
 
             // Tactical cognition chạy ở nhịp thấp. Utility không cần tranh nhau từng physics frame.
@@ -174,7 +224,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             {
                 _decisionRemaining = Mathf.Max(0.05f, DecisionIntervalSeconds);
                 RefreshLeaderIfNeeded();
-                LastRoleAssignment = _director.GetAssignment(_self, _leader, _blackboard);
+                LastRoleAssignment = _director.GetAssignment(_self, _leader, _blackboard, _elapsedSeconds);
                 LastRoleAssignment = ApplyCompanionCommandRoleOverride(LastRoleAssignment);
 
                 CombatSnapshot snapshot = _perception.BuildSnapshot(
@@ -280,6 +330,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                     + $"slot={LastMovementCommand.DirectionSlot} anchor={LastMovementCommand.FacePosition} "
                     + $"movement=[{_movement?.Metrics?.ToCompactString()}] "
                     + $"spatial=[{CombatSpatialIndex.GetDiagnosticsSummary()}] "
+                    + $"vision=[{_visionSensor?.ToCompactString()}] "
                     + LastTrace.ToCompactString());
 
                 if (DebugFactorLogging)
@@ -309,7 +360,9 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             _decisionRemaining = 0f;
             _debugLogRemaining = 0f;
             _elapsedSeconds = 0f;
+            _allyCollisionRefreshRemaining = 0f;
             _movement?.Reset();
+            _visionSensor?.ResetDiagnostics();
             ReleaseLiveCommands();
         }
 
@@ -336,7 +389,19 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             string movement = _movement?.Metrics?.ToCompactString()
                 ?? "Movement metrics chưa được khởi tạo.";
             string benchmark = _movement?.Benchmark?.ToCompactString() ?? "bench=unavailable";
-            return movement + $" spatial=[{CombatSpatialIndex.GetDiagnosticsSummary()}] {benchmark}";
+            string topology = _movement?.TopologyDiagnostics ?? "topology=unavailable";
+            string vision = _visionSensor?.ToCompactString() ?? "vision=unavailable";
+            return movement + $" spatial=[{CombatSpatialIndex.GetDiagnosticsSummary()}] [{vision}] {topology} {benchmark}";
+        }
+
+        public string GetMovementTopologySummary()
+        {
+            return _movement?.TopologyDiagnostics ?? "topology=unavailable";
+        }
+
+        public string GetPerceptionDiagnosticsSummary()
+        {
+            return _visionSensor?.ToCompactString() ?? "vision=unavailable";
         }
 
         public bool IsMovementBenchmarkRunning => _movement?.Benchmark?.IsRunning == true;
@@ -357,8 +422,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             string resolvedLabel = string.IsNullOrWhiteSpace(label)
                 ? MovementBenchmarkLabel
                 : label;
-            _movement.Benchmark.Start(resolvedLabel);
-            GD.Print($"[MovementBenchmark] START actor={_self?.CombatantId ?? "unknown"} label={resolvedLabel}");
+            _movement.Benchmark.Start(resolvedLabel, MovementBenchmarkMode);
+            GD.Print($"[MovementBenchmark] START actor={_self?.CombatantId ?? "unknown"} mode={MovementBenchmarkMode} label={resolvedLabel}");
         }
 
         public CombatMovementBenchmarkSnapshot StopMovementBenchmark()
@@ -397,7 +462,26 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
         {
             return new Godot.Collections.Dictionary
             {
+                ["benchmark_mode"] = MovementBenchmarkMode.ToString(),
+                ["benchmark_follow_band_distance"] = MovementBenchmarkFollowBandDistance,
+                ["benchmark_min_follow_band_rate"] = MovementBenchmarkMinFollowBandRate,
+                ["benchmark_max_blocking_collision_rate"] = MovementBenchmarkMaxCollisionRate,
+                ["soft_ally_body_collisions"] = UseSoftAllyBodyCollisions,
                 ["decision_interval_seconds"] = DecisionIntervalSeconds,
+                ["enemy_sensor_radius"] = EnemySearchRadius,
+                ["vision_enabled"] = UseVisionPerception,
+                ["vision_range"] = VisionRange,
+                ["vision_fov_degrees"] = VisionFovDegrees,
+                ["vision_require_los"] = RequireVisionLineOfSight,
+                ["vision_occlusion_mask"] = (long)VisionOcclusionMask,
+                ["vision_same_elevation"] = RequireSameElevationForVision,
+                ["vision_memory_seconds"] = TargetVisualMemorySeconds,
+                ["companion_engagement_leash"] = UseCompanionEngagementLeash,
+                ["passive_enemy_acquire_radius"] = PassiveEnemyAcquireRadius,
+                ["target_retention_radius"] = TargetRetentionRadius,
+                ["leader_passive_engagement_radius"] = LeaderPassiveEngagementRadius,
+                ["leader_combat_leash_radius"] = LeaderCombatLeashRadius,
+                ["force_follow_leader_distance"] = ForceFollowLeaderDistance,
                 ["probe_distance"] = MovementProbeDistance,
                 ["body_probe_radius"] = MovementBodyProbeRadius,
                 ["forward_shape_clearance"] = UseForwardShapeClearance,
@@ -405,6 +489,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 ["path_reuse_distance"] = NavigationPathReuseDistance,
                 ["repath_interval_seconds"] = NavigationRepathIntervalSeconds,
                 ["path_budget_per_physics_frame"] = PathBudgetPerPhysicsFrame,
+                ["world_topology"] = UseWorldTopology,
+                ["topology_fail_closed"] = TopologyFailClosed,
                 ["dynamic_avoidance"] = UseDynamicAvoidance,
                 ["avoidance_radius"] = AvoidanceRadius,
                 ["avoidance_neighbor_distance"] = AvoidanceNeighborDistance,
@@ -432,6 +518,23 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
 
             AddToGroup("CombatDecisionAgent");
             RayCast2D lineOfSightRay = ResolveOptionalNode<RayCast2D>(LineOfSightRayPath);
+            if (lineOfSightRay == null)
+            {
+                // P3.2 không bắt mọi actor scene phải có sẵn LoSRay. Runtime ray chỉ nhìn world mask,
+                // hoàn toàn tách khỏi projectile corridor/ally collision.
+                lineOfSightRay = new RayCast2D
+                {
+                    Name = "VisionRayRuntime",
+                    Enabled = true,
+                    CollisionMask = VisionOcclusionMask,
+                    CollideWithAreas = false,
+                    CollideWithBodies = true,
+                    ExcludeParent = true,
+                    TargetPosition = Vector2.Zero
+                };
+                _self.AddChild(lineOfSightRay);
+            }
+
             NavigationAgent2D navigationAgent = ResolveOptionalNode<NavigationAgent2D>(NavigationAgentPath);
             if (navigationAgent == null)
             {
@@ -441,8 +544,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 _self.AddChild(navigationAgent);
             }
 
-            // Sensor corridor được dùng chung cho perception và validation lúc đang cast.
-            // Không dùng RayCast mảnh cho projectile rộng, vì AI sẽ nghĩ bắn lọt những khe mà đạn thật không lọt.
+            // Projectile corridor chỉ dùng cho line-of-fire/validation lúc cast. Vision P3.2 dùng world RayCast riêng,
+            // vì "nhìn thấy" và "bắn lọt" là hai câu hỏi khác nhau.
             _lineOfFireSensor = new CombatLineOfFireSensor { Name = "LineOfFireSensorRuntime" };
             // Dựng ShapeCast khi sensor còn detached, rồi mới attach cả cụm ở deferred frame.
             // Như vậy không có AddChild chen vào lúc scene tree đang setup children.
@@ -450,15 +553,36 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             CallDeferred("add_child", _lineOfFireSensor);
             _primaryProjectileSpec = ClassProfile?.GetPrimarySkill()?.CombatAction?.ResolveProjectileSpec();
 
+            float effectiveVisionRange = UseVisionPerception
+                ? Mathf.Min(Mathf.Max(1f, VisionRange), Mathf.Max(1f, EnemySearchRadius))
+                : Mathf.Max(1f, EnemySearchRadius);
+            _visionSensor = new CombatVisionSensor(
+                lineOfSightRay,
+                effectiveVisionRange,
+                UseVisionPerception ? VisionFovDegrees : 360f,
+                UseVisionPerception && RequireVisionLineOfSight,
+                VisionOcclusionMask,
+                UseVisionPerception && RequireSameElevationForVision);
+
             var threatPredictor = new ThreatPredictor(ThreatDangerRange, ThreatFacingDot);
+            _engagementPolicy = new CombatEngagementPolicy(
+                EnemySearchRadius,
+                UseCompanionEngagementLeash,
+                PassiveEnemyAcquireRadius,
+                TargetRetentionRadius,
+                LeaderPassiveEngagementRadius,
+                LeaderCombatLeashRadius,
+                ForceFollowLeaderDistance);
             _perception = new CombatPerception(
                 GetTree(),
                 lineOfSightRay,
                 _lineOfFireSensor,
                 _primaryProjectileSpec,
                 threatPredictor,
-                EnemySearchRadius,
-                LeaderDangerRadius);
+                _engagementPolicy,
+                LeaderDangerRadius,
+                _visionSensor,
+                TargetVisualMemorySeconds);
             _evaluator = new TacticalEvaluator();
             _scheduler = new CombatActionScheduler(
                 SwitchScoreMargin,
@@ -468,7 +592,10 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             _director = new PartyTacticalDirector(
                 GetTree(),
                 EnemySearchRadius,
-                LeaderDangerRadius);
+                LeaderDangerRadius,
+                _engagementPolicy,
+                _visionSensor,
+                TargetVisualMemorySeconds);
             _spacing = new CombatSpacingController();
             _movement = new CombatMovementSolver(
                 _self,
@@ -498,10 +625,21 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 MovementBenchmarkSegmentTimeoutSeconds,
                 MovementBenchmarkTargetShiftResetDistance,
                 MovementBenchmarkMinSuccessRate,
+                MovementBenchmarkMinFollowBandRate,
                 MovementBenchmarkMaxCollisionRate,
-                MovementBenchmarkCpuBudgetUsec);
+                MovementBenchmarkFollowBandDistance,
+                MovementBenchmarkCpuBudgetUsec,
+                UseWorldTopology,
+                TopologyFailClosed,
+                TopologyDebugLogging);
             _executor = new CombatIntentExecutor(_self, ClassProfile, _movement);
             _leader = ResolveLeader();
+            if (UseSoftAllyBodyCollisions)
+            {
+                _allyCollisionPolicy = new CombatAllyCollisionPolicy(_self);
+                _allyCollisionPolicy.Refresh();
+            }
+            _allyCollisionRefreshRemaining = Mathf.Max(0.10f, AllyCollisionRefreshSeconds);
             _decisionRemaining = 0f;
             _debugLogRemaining = 0f;
             _initialized = true;
@@ -529,7 +667,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 : null;
 
             CompanionTargetIndicatorService.GetOrCreate(GetTree())?
-                .SetTarget(_self, target, snapshot.HasLineOfSight);
+                .SetTarget(_self, target, snapshot.TargetVisible);
         }
 
         /// <summary>
@@ -541,6 +679,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
         {
             if (_lineOfFireSensor == null
                 || !snapshot.HasTarget
+                || !snapshot.TargetVisible
                 || snapshot.HasLineOfSight
                 || !snapshot.CanMove
                 || !snapshot.TargetId.HasValue)
@@ -761,6 +900,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 && activePartyCharacter != _leader)
             {
                 _leader = activePartyCharacter;
+                _allyCollisionRefreshRemaining = 0f;
                 return;
             }
 
@@ -770,6 +910,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 || !_leader.IsAlive)
             {
                 _leader = ResolveLeader();
+                _allyCollisionRefreshRemaining = 0f;
             }
         }
 

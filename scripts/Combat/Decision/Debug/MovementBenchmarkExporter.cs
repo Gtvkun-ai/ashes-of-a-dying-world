@@ -5,9 +5,8 @@ using AshesofaDyingWorld.Combat.Decision.Runtime;
 namespace AshesofaDyingWorld.Combat.Decision.Debug
 {
     /// <summary>
-    /// Xuất benchmark movement P2 ra JSON để so A/B giữa các lần chạy.
-    /// Có cả payload per-agent và aggregate scene cho circle-swap / crossing / doorway.
-    /// File chỉ chứa telemetry debug, không chạm save game/schema gameplay.
+    /// Export benchmark P2.1. Schema v2 cố ý ghi rõ "blocking collision" và "raw slide contact"
+    /// để JSON không còn làm người đọc tưởng mọi lần chạm tường đều là pathfinding failure.
     /// </summary>
     public static class MovementBenchmarkExporter
     {
@@ -48,22 +47,29 @@ namespace AshesofaDyingWorld.Combat.Decision.Debug
 
             var agents = new Godot.Collections.Array();
             int agentCount = 0;
+            int qualitySampleAgents = 0;
             int successful = 0;
             int failed = 0;
             int aborted = 0;
             ulong sampledFrames = 0;
-            ulong collisionFrames = 0;
-            ulong collisionContacts = 0;
-            float weightedSeconds = 0f;
-            float weightedStretch = 0f;
-            float weightedJitter = 0f;
+            ulong motorTicksTotal = 0;
+            ulong rawCollisionFrames = 0;
+            ulong rawCollisionContacts = 0;
+            ulong blockingCollisionFrames = 0;
+            ulong blockingCollisionContacts = 0;
+            ulong followFrames = 0;
+            ulong followInsideFrames = 0;
+            float weightedFollowError = 0f;
+            float weightedFollowP95 = 0f;
             float weightedCpu = 0f;
             ulong weightedCpuTicks = 0;
-            bool anyCompleted = false;
-            bool allAgentsHaveSamples = true;
-            bool allHardGatesPass = true;
+            float weightedSuccess = 0f;
             float weightedScore = 0f;
+            ulong weightedQualitySamples = 0;
+            bool allHardGatesPass = true;
             string sceneLabel = "movement";
+            string sceneMode = string.Empty;
+            bool mixedModes = false;
 
             foreach (Node node in tree.GetNodesInGroup("CombatDecisionAgent"))
             {
@@ -77,9 +83,14 @@ namespace AshesofaDyingWorld.Combat.Decision.Debug
                 }
 
                 CombatMovementBenchmarkSnapshot snapshot = agent.GetMovementBenchmarkSnapshot();
-                if (agentCount == 0 && !string.IsNullOrWhiteSpace(snapshot.Label))
+                if (agentCount == 0)
                 {
-                    sceneLabel = snapshot.Label;
+                    sceneLabel = string.IsNullOrWhiteSpace(snapshot.Label) ? "movement" : snapshot.Label;
+                    sceneMode = snapshot.Mode.ToString();
+                }
+                else if (sceneMode != snapshot.Mode.ToString())
+                {
+                    mixedModes = true;
                 }
 
                 agents.Add(BuildAgentPayload(agent, snapshot));
@@ -88,22 +99,38 @@ namespace AshesofaDyingWorld.Combat.Decision.Debug
                 failed += snapshot.FailedSegments;
                 aborted += snapshot.AbortedSegments;
                 sampledFrames += snapshot.SampledPhysicsFrames;
-                collisionFrames += snapshot.CollisionFrames;
-                collisionContacts += snapshot.CollisionContacts;
+                motorTicksTotal += snapshot.MotorTicks;
+                rawCollisionFrames += snapshot.RawCollisionFrames;
+                rawCollisionContacts += snapshot.RawCollisionContacts;
+                blockingCollisionFrames += snapshot.BlockingCollisionFrames;
+                blockingCollisionContacts += snapshot.BlockingCollisionContacts;
 
-                int completed = snapshot.CompletedSegments;
-                if (completed > 0)
+                if (snapshot.HasQualitySample)
                 {
-                    anyCompleted = true;
-                    weightedSeconds += snapshot.AverageSeconds * completed;
-                    weightedStretch += snapshot.AveragePathStretch * completed;
-                    weightedJitter += snapshot.AverageJitterDegrees * completed;
-                    weightedScore += snapshot.Score * completed;
+                    qualitySampleAgents++;
                     allHardGatesPass &= snapshot.HardGatePass;
                 }
                 else
                 {
-                    allAgentsHaveSamples = false;
+                    allHardGatesPass = false;
+                }
+
+                ulong qualityWeight = snapshot.Mode == CombatMovementBenchmarkMode.Follow
+                    ? snapshot.FollowSampleFrames
+                    : (snapshot.CompletedSegments > 0 ? (ulong)snapshot.CompletedSegments : 1UL);
+                if (qualityWeight > 0)
+                {
+                    weightedSuccess += snapshot.SuccessRate * qualityWeight;
+                    weightedScore += snapshot.Score * qualityWeight;
+                    weightedQualitySamples += qualityWeight;
+                }
+
+                if (snapshot.FollowSampleFrames > 0)
+                {
+                    followFrames += snapshot.FollowSampleFrames;
+                    followInsideFrames += snapshot.FollowInsideBandFrames;
+                    weightedFollowError += snapshot.AverageFollowError * snapshot.FollowSampleFrames;
+                    weightedFollowP95 += snapshot.P95FollowError * snapshot.FollowSampleFrames;
                 }
 
                 ulong cpuTicks = snapshot.SolverTicks + snapshot.MotorTicks;
@@ -120,15 +147,16 @@ namespace AshesofaDyingWorld.Combat.Decision.Debug
                 return string.Empty;
             }
 
-            int totalCompleted = successful + failed;
-            float successRate = totalCompleted > 0 ? (float)successful / totalCompleted : 0f;
-            float collisionRate = sampledFrames > 0 ? (float)collisionFrames / sampledFrames : 0f;
-            float avgSeconds = totalCompleted > 0 ? weightedSeconds / totalCompleted : 0f;
-            float avgStretch = totalCompleted > 0 ? weightedStretch / totalCompleted : 0f;
-            float avgJitter = totalCompleted > 0 ? weightedJitter / totalCompleted : 0f;
+            float successRate = weightedQualitySamples > 0 ? weightedSuccess / weightedQualitySamples : 0f;
+            ulong collisionSampleFrames = motorTicksTotal > 0 ? motorTicksTotal : sampledFrames;
+            float rawCollisionRate = collisionSampleFrames > 0 ? (float)rawCollisionFrames / collisionSampleFrames : 0f;
+            float blockingCollisionRate = collisionSampleFrames > 0 ? (float)blockingCollisionFrames / collisionSampleFrames : 0f;
+            float followBandRate = followFrames > 0 ? (float)followInsideFrames / followFrames : 0f;
+            float avgFollowError = followFrames > 0 ? weightedFollowError / followFrames : 0f;
+            float avgFollowP95 = followFrames > 0 ? weightedFollowP95 / followFrames : 0f;
             float avgCpu = weightedCpuTicks > 0 ? weightedCpu / weightedCpuTicks : 0f;
-            float sceneScore = totalCompleted > 0 ? weightedScore / totalCompleted : 0f;
-            string gate = !anyCompleted || !allAgentsHaveSamples
+            float sceneScore = weightedQualitySamples > 0 ? weightedScore / weightedQualitySamples : 0f;
+            string gate = qualitySampleAgents < agentCount
                 ? "WAIT"
                 : (allHardGatesPass ? "PASS" : "FAIL");
             if (gate != "PASS")
@@ -138,23 +166,30 @@ namespace AshesofaDyingWorld.Combat.Decision.Debug
 
             var payload = new Godot.Collections.Dictionary
             {
-                ["schema"] = "combat_movement_benchmark_scene_v1",
+                ["schema"] = "combat_movement_benchmark_scene_v2",
                 ["label"] = sceneLabel,
+                ["mode"] = mixedModes ? "Mixed" : sceneMode,
                 ["agent_count"] = agentCount,
+                ["quality_sample_agents"] = qualitySampleAgents,
                 ["hard_gate"] = gate,
                 ["score"] = sceneScore,
                 ["aggregate"] = new Godot.Collections.Dictionary
                 {
                     ["success_segments"] = successful,
                     ["failed_segments"] = failed,
-                    ["aborted_target_moved"] = aborted,
-                    ["success_rate"] = successRate,
-                    ["collision_frames"] = (long)collisionFrames,
-                    ["collision_contacts"] = (long)collisionContacts,
-                    ["collision_rate"] = collisionRate,
-                    ["average_seconds"] = avgSeconds,
-                    ["average_path_stretch"] = avgStretch,
-                    ["average_jitter_degrees"] = avgJitter,
+                    ["aborted_segments"] = aborted,
+                    ["primary_success_rate"] = successRate,
+                    ["sampled_physics_frames"] = (long)sampledFrames,
+                    ["blocking_collision_frames"] = (long)blockingCollisionFrames,
+                    ["blocking_collision_contacts"] = (long)blockingCollisionContacts,
+                    ["blocking_collision_rate"] = blockingCollisionRate,
+                    ["raw_slide_contact_frames"] = (long)rawCollisionFrames,
+                    ["raw_slide_contacts"] = (long)rawCollisionContacts,
+                    ["raw_slide_contact_rate"] = rawCollisionRate,
+                    ["follow_sample_frames"] = (long)followFrames,
+                    ["follow_band_rate"] = followBandRate,
+                    ["average_follow_error_px"] = avgFollowError,
+                    ["average_agent_p95_follow_error_px"] = avgFollowP95,
                     ["average_cpu_usec"] = avgCpu
                 },
                 ["agents"] = agents
@@ -183,40 +218,70 @@ namespace AshesofaDyingWorld.Combat.Decision.Debug
             CombatMovementBenchmarkSnapshot snapshot)
         {
             float elapsed = Mathf.Max(0.001f, snapshot.ElapsedSeconds);
-            string gate = snapshot.CompletedSegments <= 0
+            string gate = !snapshot.HasQualitySample
                 ? "WAIT"
                 : (snapshot.HardGatePass ? "PASS" : "FAIL");
 
+            var quality = new Godot.Collections.Dictionary
+            {
+                ["success_segments"] = snapshot.SuccessfulSegments,
+                ["failed_segments"] = snapshot.FailedSegments,
+                ["aborted_segments"] = snapshot.AbortedSegments,
+                ["primary_success_rate"] = snapshot.SuccessRate,
+                ["average_seconds"] = snapshot.AverageSeconds,
+                ["average_path_stretch"] = snapshot.AveragePathStretch,
+                ["average_jitter_degrees"] = snapshot.AverageJitterDegrees,
+                ["average_cpu_usec"] = snapshot.AverageCpuUsec,
+                ["blocking_collision"] = new Godot.Collections.Dictionary
+                {
+                    ["frames"] = (long)snapshot.BlockingCollisionFrames,
+                    ["contacts"] = (long)snapshot.BlockingCollisionContacts,
+                    ["rate"] = snapshot.BlockingCollisionRate
+                },
+                ["raw_slide_contact"] = new Godot.Collections.Dictionary
+                {
+                    ["frames"] = (long)snapshot.RawCollisionFrames,
+                    ["contacts"] = (long)snapshot.RawCollisionContacts,
+                    ["rate"] = snapshot.RawCollisionRate
+                }
+            };
+
+            if (snapshot.Mode == CombatMovementBenchmarkMode.Follow)
+            {
+                quality["follow"] = new Godot.Collections.Dictionary
+                {
+                    ["sample_frames"] = (long)snapshot.FollowSampleFrames,
+                    ["inside_band_frames"] = (long)snapshot.FollowInsideBandFrames,
+                    ["band_distance_px"] = snapshot.FollowBandDistance,
+                    ["band_rate"] = snapshot.FollowBandRate,
+                    ["average_error_px"] = snapshot.AverageFollowError,
+                    ["p95_error_px"] = snapshot.P95FollowError,
+                    ["max_error_px"] = snapshot.MaxFollowError,
+                    ["catchup_events"] = snapshot.FollowCatchupEvents,
+                    ["average_catchup_seconds"] = snapshot.AverageCatchupSeconds,
+                    ["max_catchup_seconds"] = snapshot.MaxCatchupSeconds
+                };
+            }
+
             return new Godot.Collections.Dictionary
             {
-                ["schema"] = "combat_movement_benchmark_v1",
+                ["schema"] = "combat_movement_benchmark_v2",
                 ["runtime_build"] = agent.RuntimeBuildId,
                 ["actor"] = agent.ControlledCharacter?.CombatantId ?? "unknown",
                 ["label"] = snapshot.Label,
+                ["mode"] = snapshot.Mode.ToString(),
                 ["running"] = snapshot.IsRunning,
                 ["elapsed_seconds"] = snapshot.ElapsedSeconds,
                 ["hard_gate"] = gate,
                 ["score"] = snapshot.Score,
                 ["thresholds"] = new Godot.Collections.Dictionary
                 {
-                    ["min_success_rate"] = snapshot.MinSuccessRate,
-                    ["max_collision_rate"] = snapshot.MaxCollisionRate,
+                    ["min_static_or_positioning_success_rate"] = snapshot.MinSuccessRate,
+                    ["min_follow_band_rate"] = snapshot.MinFollowBandRate,
+                    ["max_blocking_collision_rate"] = snapshot.MaxBlockingCollisionRate,
                     ["cpu_budget_usec"] = snapshot.CpuBudgetUsec
                 },
-                ["quality"] = new Godot.Collections.Dictionary
-                {
-                    ["success_segments"] = snapshot.SuccessfulSegments,
-                    ["failed_segments"] = snapshot.FailedSegments,
-                    ["aborted_target_moved"] = snapshot.AbortedSegments,
-                    ["success_rate"] = snapshot.SuccessRate,
-                    ["collision_frames"] = (long)snapshot.CollisionFrames,
-                    ["collision_contacts"] = (long)snapshot.CollisionContacts,
-                    ["collision_rate"] = snapshot.CollisionRate,
-                    ["average_seconds"] = snapshot.AverageSeconds,
-                    ["average_path_stretch"] = snapshot.AveragePathStretch,
-                    ["average_jitter_degrees"] = snapshot.AverageJitterDegrees,
-                    ["average_cpu_usec"] = snapshot.AverageCpuUsec
-                },
+                ["quality"] = quality,
                 ["rates_hz"] = new Godot.Collections.Dictionary
                 {
                     ["tactical_solve"] = snapshot.SolverTicks / elapsed,
@@ -239,6 +304,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Debug
                     ["passing_side_locks"] = (long)snapshot.PassingSideLocks,
                     ["stuck_events"] = (long)snapshot.StuckEvents
                 },
+                ["topology"] = agent.GetMovementTopologySummary(),
                 ["movement_config"] = agent.GetMovementBenchmarkConfigPayload()
             };
         }

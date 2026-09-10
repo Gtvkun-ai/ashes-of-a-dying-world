@@ -49,6 +49,9 @@
 [ext_resource type="Texture2D" path="res://assets/graphics/world/whispering_fields/field_01_layers/15_grass_field_detail.png" id="56_grass_field"]
 [ext_resource type="Shader" path="res://assets/shaders/world/world_cloud_shadow.gdshader" id="57_cloud_shader"]
 [ext_resource type="Script" path="res://scripts/World/Environment/WorldCloudShadow2D.cs" id="58_cloud_controller"]
+[ext_resource type="Script" path="res://scripts/World/Navigation/WorldNavigationTopology2D.cs" id="59_world_topology"]
+[ext_resource type="Script" path="res://scripts/World/Navigation/ElevationRegion2D.cs" id="60_elevation_region"]
+[ext_resource type="Script" path="res://scripts/World/Navigation/StairLink2D.cs" id="61_stair_link"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ey7of"]
 texture = ExtResource("1_ey7of")
@@ -1073,6 +1076,30 @@ y_sort_enabled = true
 script = ExtResource("13_gamelevel")
 
 [node name="CollisionMap" type="Node2D" parent="." unique_id=723657698]
+
+[node name="WorldNavigationTopology" type="Node2D" parent="."]
+script = ExtResource("59_world_topology")
+DefaultElevation = 0
+DebugLogging = false
+
+[node name="HighGround" type="Polygon2D" parent="WorldNavigationTopology"]
+visible = false
+polygon = PackedVector2Array(1144, 0, 1824, 0, 1824, 592, 1620, 592, 1592, 576, 1488, 576, 1420, 568, 1360, 540, 1220, 528, 1152, 432)
+script = ExtResource("60_elevation_region")
+RegionId = "field01_high_northeast"
+ElevationLevel = 1
+Priority = 10
+
+[node name="Stairs_NE_01" type="Node2D" parent="WorldNavigationTopology"]
+script = ExtResource("61_stair_link")
+LinkId = "field01_stairs_ne_01"
+FromElevation = 0
+ToElevation = 1
+FromPoint = Vector2(1525, 872)
+ToPoint = Vector2(1525, 526)
+EntryRadius = 30.0
+ExitRadius = 30.0
+Bidirectional = true
 
 [node name="field1" type="TileMapLayer" parent="CollisionMap" unique_id=2135139217]
 visible = false

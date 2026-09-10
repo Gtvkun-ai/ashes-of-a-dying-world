@@ -20,8 +20,16 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
         public ulong PathReuseHits { get; private set; }
         public ulong PathBudgetDeferrals { get; private set; }
         public ulong StuckEvents { get; private set; }
-        public ulong CollisionFrames { get; private set; }
-        public ulong CollisionContacts { get; private set; }
+        // Raw = mọi slide contact Godot báo. Blocking = contact thật sự cắt tiến độ về phía trước.
+        // Benchmark P2.1 dùng Blocking làm quality gate; Raw chỉ giữ để chẩn đoán.
+        public ulong RawCollisionFrames { get; private set; }
+        public ulong RawCollisionContacts { get; private set; }
+        public ulong BlockingCollisionFrames { get; private set; }
+        public ulong BlockingCollisionContacts { get; private set; }
+
+        // Alias tương thích debug cũ: từ P2.1 CollisionFrames/Contacts nghĩa là blocking collision.
+        public ulong CollisionFrames => BlockingCollisionFrames;
+        public ulong CollisionContacts => BlockingCollisionContacts;
         public ulong AvoidanceSubmissions { get; private set; }
         public ulong AvoidanceCorrections { get; private set; }
         public ulong PassingSideLocks { get; private set; }
@@ -89,10 +97,16 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
         public void RecordPathBudgetDeferral() => PathBudgetDeferrals++;
         public void RecordStuck() => StuckEvents++;
         public void RecordPassingSideLock() => PassingSideLocks++;
-        public void RecordCollisionFrame(int contacts)
+        public void RecordRawCollisionFrame(int contacts)
         {
-            CollisionFrames++;
-            CollisionContacts += (ulong)(contacts > 0 ? contacts : 0);
+            RawCollisionFrames++;
+            RawCollisionContacts += (ulong)(contacts > 0 ? contacts : 0);
+        }
+
+        public void RecordBlockingCollisionFrame(int contacts)
+        {
+            BlockingCollisionFrames++;
+            BlockingCollisionContacts += (ulong)(contacts > 0 ? contacts : 0);
         }
         public void RecordAvoidanceSubmission() => AvoidanceSubmissions++;
         public void RecordAvoidanceCorrection() => AvoidanceCorrections++;
@@ -110,8 +124,10 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             PathReuseHits = 0;
             PathBudgetDeferrals = 0;
             StuckEvents = 0;
-            CollisionFrames = 0;
-            CollisionContacts = 0;
+            RawCollisionFrames = 0;
+            RawCollisionContacts = 0;
+            BlockingCollisionFrames = 0;
+            BlockingCollisionContacts = 0;
             AvoidanceSubmissions = 0;
             AvoidanceCorrections = 0;
             PassingSideLocks = 0;
@@ -133,7 +149,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             return $"ticks={SolverTicks}/{MotorTicks} cpu={averageUsec:0.0}/{averageMotorUsec:0.0}us "
                 + $"probe={ProbeSamples}+{ShapeProbeSamples}s mode={SparseProbeRefreshes}/{HalfProbeRefreshes}/{DenseProbeRefreshes} "
                 + $"path={PathRequests}/{PathDirectionsUsed} reuse={PathReuseHits} defer={PathBudgetDeferrals} "
-                + $"stuck={StuckEvents} collision={CollisionFrames}/{CollisionContacts} "
+                + $"stuck={StuckEvents} block={BlockingCollisionFrames}/{BlockingCollisionContacts} raw={RawCollisionFrames}/{RawCollisionContacts} "
                 + $"rvo={AvoidanceCorrections}/{AvoidanceSubmissions} pass={PassingSideLocks}";
         }
     }

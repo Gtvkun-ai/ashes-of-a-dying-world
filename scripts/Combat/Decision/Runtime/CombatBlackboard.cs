@@ -1,6 +1,7 @@
 using Godot;
 using System.Collections.Generic;
 using AshesofaDyingWorld.Combat.Decision.Model;
+using AshesofaDyingWorld.Combat.Actors;
 
 namespace AshesofaDyingWorld.Combat.Decision.Runtime
 {
@@ -16,6 +17,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
         public ulong? CurrentTargetId { get; set; }
         public Vector2 LastKnownTargetPosition { get; set; }
         public float LastSeenTargetTime { get; set; }
+        // P3.2: memory phải gắn với đúng actor; chỉ có timestamp=0 không đủ để phân biệt "chưa từng thấy".
+        public ulong? LastSeenTargetId { get; private set; }
         public CombatIntent? CurrentIntent { get; set; }
         public float IntentLockRemaining { get; set; }
         public float IntentCooldownRemaining { get; set; }
@@ -62,6 +65,55 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
 
             TickCooldownDictionary(ActionCooldowns, dt);
             TickCooldownDictionary(FailedActionCooldowns, dt);
+        }
+
+
+        /// <summary>
+        /// Ghi một lần nhìn thấy thật sự. Khi target khuất tường, AI chỉ được dùng vị trí này
+        /// trong MemorySeconds; tuyệt đối không cập nhật bằng tọa độ thật khi đang khuất.
+        /// </summary>
+        public void RecordVisualContact(CombatCharacter target, float timeSeconds)
+        {
+            if (target == null || !GodotObject.IsInstanceValid(target))
+            {
+                return;
+            }
+
+            LastSeenTargetId = target.GetInstanceId();
+            LastKnownTargetPosition = target.CombatCenter;
+            LastSeenTargetTime = Mathf.Max(0f, timeSeconds);
+        }
+
+        public bool HasFreshVisualMemory(CombatCharacter target, float timeSeconds, float memorySeconds)
+        {
+            if (target == null
+                || !GodotObject.IsInstanceValid(target)
+                || !LastSeenTargetId.HasValue
+                || LastSeenTargetId.Value != target.GetInstanceId())
+            {
+                return false;
+            }
+
+            float age = Mathf.Max(0f, timeSeconds - LastSeenTargetTime);
+            return age <= Mathf.Max(0f, memorySeconds);
+        }
+
+        public void PruneVisualMemory(float timeSeconds, float memorySeconds)
+        {
+            if (!LastSeenTargetId.HasValue)
+            {
+                return;
+            }
+
+            float age = Mathf.Max(0f, timeSeconds - LastSeenTargetTime);
+            if (age <= Mathf.Max(0f, memorySeconds))
+            {
+                return;
+            }
+
+            LastSeenTargetId = null;
+            LastKnownTargetPosition = Vector2.Zero;
+            LastSeenTargetTime = 0f;
         }
 
         public void RecordCommittedIntent(CombatIntent intent, bool didSwitch)
@@ -196,6 +248,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             CurrentTargetId = null;
             LastKnownTargetPosition = Vector2.Zero;
             LastSeenTargetTime = 0f;
+            LastSeenTargetId = null;
             CurrentIntent = null;
             IntentLockRemaining = 0f;
             IntentCooldownRemaining = 0f;

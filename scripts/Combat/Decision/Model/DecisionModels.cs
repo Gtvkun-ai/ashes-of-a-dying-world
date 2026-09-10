@@ -107,6 +107,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Model
             var builder = new StringBuilder();
             builder.Append("target=").Append(Snapshot.TargetId?.ToString() ?? "none");
             builder.Append(" distance=").Append(Snapshot.TargetDistance.ToString("0.0"));
+            builder.Append(" vision=").Append(Snapshot.TargetVisible ? "visible" : (Snapshot.TargetFromMemory ? "memory" : "no"));
             builder.Append(" los=").Append(Snapshot.HasLineOfSight ? "yes" : "no");
             builder.Append(" threat=").Append(Snapshot.ThreatSeverity.ToString("0.00"));
             builder.Append(" leaderDanger=").Append(Snapshot.LeaderThreatened ? "yes" : "no");

@@ -342,6 +342,13 @@ namespace AshesofaDyingWorld.Combat.Decision.Execution
 
             if (anchorDistance <= FollowStopDistance)
             {
+                // Vẫn sample benchmark khi đã đứng đúng formation. P2 cũ chỉ đo lúc đang chạy nên
+                // follow success dễ bị méo về 0 dù Hyou đã bám đúng anchor phần lớn thời gian.
+                _movementSolver?.ResolveFreeMovementVelocity(
+                    selfPosition,
+                    anchor,
+                    Vector2.Zero,
+                    FollowStopDistance);
                 _self.StopMoveInput();
                 _movementSolver?.StopMotor();
                 return MovementCommand.Stop(anchor);
