@@ -32,6 +32,8 @@ animations = [{
 size = Vector2(50, 26)
 
 [node name="stone4" type="StaticBody2D" unique_id=506800627]
+collision_layer = 8
+collision_mask = 0
 
 [node name="AssetShadow" type="Node2D" parent="." unique_id=973295727]
 show_behind_parent = true

@@ -83,6 +83,11 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
         private ulong _startPathRequests;
         private ulong _startPathReuseHits;
         private ulong _startPathBudgetDeferrals;
+        private ulong _startGridPathRequests;
+        private ulong _startGridPathSuccesses;
+        private ulong _startGridPathFailures;
+        private ulong _startGridPathDirectionsUsed;
+        private ulong _startGridCellSamples;
         private ulong _startProbeSamples;
         private ulong _startShapeProbeSamples;
         private ulong _startAvoidanceSubmissions;
@@ -393,6 +398,11 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
                 Delta(_metrics?.PathRequests ?? 0UL, _startPathRequests),
                 Delta(_metrics?.PathReuseHits ?? 0UL, _startPathReuseHits),
                 Delta(_metrics?.PathBudgetDeferrals ?? 0UL, _startPathBudgetDeferrals),
+                Delta(_metrics?.GridPathRequests ?? 0UL, _startGridPathRequests),
+                Delta(_metrics?.GridPathSuccesses ?? 0UL, _startGridPathSuccesses),
+                Delta(_metrics?.GridPathFailures ?? 0UL, _startGridPathFailures),
+                Delta(_metrics?.GridPathDirectionsUsed ?? 0UL, _startGridPathDirectionsUsed),
+                Delta(_metrics?.GridCellSamples ?? 0UL, _startGridCellSamples),
                 Delta(_metrics?.ProbeSamples ?? 0UL, _startProbeSamples),
                 Delta(_metrics?.ShapeProbeSamples ?? 0UL, _startShapeProbeSamples),
                 Delta(_metrics?.AvoidanceSubmissions ?? 0UL, _startAvoidanceSubmissions),
@@ -684,6 +694,11 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             _startPathRequests = _metrics.PathRequests;
             _startPathReuseHits = _metrics.PathReuseHits;
             _startPathBudgetDeferrals = _metrics.PathBudgetDeferrals;
+            _startGridPathRequests = _metrics.GridPathRequests;
+            _startGridPathSuccesses = _metrics.GridPathSuccesses;
+            _startGridPathFailures = _metrics.GridPathFailures;
+            _startGridPathDirectionsUsed = _metrics.GridPathDirectionsUsed;
+            _startGridCellSamples = _metrics.GridCellSamples;
             _startProbeSamples = _metrics.ProbeSamples;
             _startShapeProbeSamples = _metrics.ShapeProbeSamples;
             _startAvoidanceSubmissions = _metrics.AvoidanceSubmissions;
@@ -789,6 +804,11 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
         public ulong PathRequests { get; }
         public ulong PathReuseHits { get; }
         public ulong PathBudgetDeferrals { get; }
+        public ulong GridPathRequests { get; }
+        public ulong GridPathSuccesses { get; }
+        public ulong GridPathFailures { get; }
+        public ulong GridPathDirectionsUsed { get; }
+        public ulong GridCellSamples { get; }
         public ulong ProbeSamples { get; }
         public ulong ShapeProbeSamples { get; }
         public ulong AvoidanceSubmissions { get; }
@@ -838,6 +858,11 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             ulong pathRequests,
             ulong pathReuseHits,
             ulong pathBudgetDeferrals,
+            ulong gridPathRequests,
+            ulong gridPathSuccesses,
+            ulong gridPathFailures,
+            ulong gridPathDirectionsUsed,
+            ulong gridCellSamples,
             ulong probeSamples,
             ulong shapeProbeSamples,
             ulong avoidanceSubmissions,
@@ -886,6 +911,11 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             PathRequests = pathRequests;
             PathReuseHits = pathReuseHits;
             PathBudgetDeferrals = pathBudgetDeferrals;
+            GridPathRequests = gridPathRequests;
+            GridPathSuccesses = gridPathSuccesses;
+            GridPathFailures = gridPathFailures;
+            GridPathDirectionsUsed = gridPathDirectionsUsed;
+            GridCellSamples = gridCellSamples;
             ProbeSamples = probeSamples;
             ShapeProbeSamples = shapeProbeSamples;
             AvoidanceSubmissions = avoidanceSubmissions;

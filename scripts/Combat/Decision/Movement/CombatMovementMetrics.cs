@@ -19,6 +19,11 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
         public ulong PathDirectionsUsed { get; private set; }
         public ulong PathReuseHits { get; private set; }
         public ulong PathBudgetDeferrals { get; private set; }
+        public ulong GridPathRequests { get; private set; }
+        public ulong GridPathSuccesses { get; private set; }
+        public ulong GridPathFailures { get; private set; }
+        public ulong GridPathDirectionsUsed { get; private set; }
+        public ulong GridCellSamples { get; private set; }
         public ulong StuckEvents { get; private set; }
         // Raw = mọi slide contact Godot báo. Blocking = contact thật sự cắt tiến độ về phía trước.
         // Benchmark P2.1 dùng Blocking làm quality gate; Raw chỉ giữ để chẩn đoán.
@@ -95,6 +100,11 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
         public void RecordPathDirectionUsed() => PathDirectionsUsed++;
         public void RecordPathReuse() => PathReuseHits++;
         public void RecordPathBudgetDeferral() => PathBudgetDeferrals++;
+        public void RecordGridPathRequest() => GridPathRequests++;
+        public void RecordGridPathSuccess() => GridPathSuccesses++;
+        public void RecordGridPathFailure() => GridPathFailures++;
+        public void RecordGridPathDirectionUsed() => GridPathDirectionsUsed++;
+        public void RecordGridCellSample() => GridCellSamples++;
         public void RecordStuck() => StuckEvents++;
         public void RecordPassingSideLock() => PassingSideLocks++;
         public void RecordRawCollisionFrame(int contacts)
@@ -123,6 +133,11 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             PathDirectionsUsed = 0;
             PathReuseHits = 0;
             PathBudgetDeferrals = 0;
+            GridPathRequests = 0;
+            GridPathSuccesses = 0;
+            GridPathFailures = 0;
+            GridPathDirectionsUsed = 0;
+            GridCellSamples = 0;
             StuckEvents = 0;
             RawCollisionFrames = 0;
             RawCollisionContacts = 0;
@@ -149,6 +164,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             return $"ticks={SolverTicks}/{MotorTicks} cpu={averageUsec:0.0}/{averageMotorUsec:0.0}us "
                 + $"probe={ProbeSamples}+{ShapeProbeSamples}s mode={SparseProbeRefreshes}/{HalfProbeRefreshes}/{DenseProbeRefreshes} "
                 + $"path={PathRequests}/{PathDirectionsUsed} reuse={PathReuseHits} defer={PathBudgetDeferrals} "
+                + $"grid={GridPathSuccesses}/{GridPathRequests} fail={GridPathFailures} use={GridPathDirectionsUsed} cells={GridCellSamples} "
                 + $"stuck={StuckEvents} block={BlockingCollisionFrames}/{BlockingCollisionContacts} raw={RawCollisionFrames}/{RawCollisionContacts} "
                 + $"rvo={AvoidanceCorrections}/{AvoidanceSubmissions} pass={PassingSideLocks}";
         }

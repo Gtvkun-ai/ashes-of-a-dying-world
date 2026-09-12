@@ -14,7 +14,6 @@ GraphPosition = Vector2(80, 150)
 SkillPointCost = 0
 GrantedByDefault = true
 
-
 [sub_resource type="Resource" id="Branch_discipline"]
 script = ExtResource("2_branch")
 BranchId = "hikaru_core"

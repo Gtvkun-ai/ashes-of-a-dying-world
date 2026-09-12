@@ -21,7 +21,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
     /// </summary>
     public partial class CombatDecisionAgent : Node
     {
-        private const string RuntimeBuild = "v13.2-p3.2-vision-memory";
+        private const string RuntimeBuild = "v14-p4-shared-world-grid";
 
         [Signal] public delegate void DecisionEvaluatedEventHandler(string summary);
 
@@ -390,13 +390,19 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
                 ?? "Movement metrics chưa được khởi tạo.";
             string benchmark = _movement?.Benchmark?.ToCompactString() ?? "bench=unavailable";
             string topology = _movement?.TopologyDiagnostics ?? "topology=unavailable";
+            string pathing = _movement?.PathDiagnostics ?? "path=unavailable";
             string vision = _visionSensor?.ToCompactString() ?? "vision=unavailable";
-            return movement + $" spatial=[{CombatSpatialIndex.GetDiagnosticsSummary()}] [{vision}] {topology} {benchmark}";
+            return movement + $" spatial=[{CombatSpatialIndex.GetDiagnosticsSummary()}] [{vision}] {topology} {pathing} {benchmark}";
         }
 
         public string GetMovementTopologySummary()
         {
             return _movement?.TopologyDiagnostics ?? "topology=unavailable";
+        }
+
+        public string GetMovementPathSummary()
+        {
+            return _movement?.PathDiagnostics ?? "path=unavailable";
         }
 
         public string GetPerceptionDiagnosticsSummary()
@@ -539,7 +545,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Runtime
             if (navigationAgent == null)
             {
                 // P0 không bắt người dùng sửa từng scene. Agent runtime tự bám World2D navigation map;
-                // nếu map chưa có NavigationRegion2D thì global path/RVO vẫn fallback an toàn về context steering.
+                // Nếu map chưa có NavigationRegion2D, global path dùng physics-grid fallback;
+                // RVO vẫn dùng agent này cho dynamic avoidance.
                 navigationAgent = new NavigationAgent2D { Name = "NavAgentRuntime" };
                 _self.AddChild(navigationAgent);
             }

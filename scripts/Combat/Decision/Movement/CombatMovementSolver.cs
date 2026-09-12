@@ -26,6 +26,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
         private readonly float _stuckRecoverySeconds;
         private readonly int _preferredSideSign;
         private readonly float _followBenchmarkBandDistance;
+        private readonly uint _obstacleMask;
+        private readonly float _bodyProbeRadius;
 
         private readonly CombatMovementMetrics _metrics;
         private readonly CombatGlobalPathPlanner _globalPath;
@@ -45,6 +47,9 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
         private ulong _nextFreeProbeTickMs;
         private ulong _lastCollisionSampleFrame = ulong.MaxValue;
         private Vector2 _lastResolvedMotorVelocity = Vector2.Zero;
+        private Vector2 _lastBlockingNormal = Vector2.Zero;
+        private ulong _blockingRecoveryUntilMs;
+        private int _blockingRecoverySideSign;
         private bool _hasMotorNavigationTarget;
         // Final target dùng benchmark; path target có thể là chân/đầu cầu thang do P3 topology router chọn.
         private Vector2 _motorNavigationTarget;
@@ -55,6 +60,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
         public CombatMovementBenchmark Benchmark => _benchmark;
         public bool IsRecoveringFromStuck { get; private set; }
         public string TopologyDiagnostics => _elevationRouter?.ToCompactString() ?? "topology=unavailable";
+        public string PathDiagnostics => _globalPath?.ToCompactString() ?? "path=unavailable";
 
         public CombatMovementSolver(
             CombatCharacter self,
@@ -99,7 +105,10 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             _stuckRecoverySeconds = Mathf.Max(0.20f, stuckRecoverySeconds);
             _preferredSideSign = self != null && (self.GetInstanceId() & 1UL) == 0UL ? 1 : -1;
             _stuckSideSign = _preferredSideSign;
+            _blockingRecoverySideSign = _preferredSideSign;
             _followBenchmarkBandDistance = Mathf.Max(4f, benchmarkFollowBandDistance);
+            _obstacleMask = obstacleMask;
+            _bodyProbeRadius = Mathf.Clamp(movementBodyProbeRadius, 2f, Mathf.Max(8f, probeDistance) * 0.40f);
 
             _metrics = new CombatMovementMetrics();
             _globalPath = new CombatGlobalPathPlanner(
@@ -112,7 +121,9 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
                 navigationPathReuseDistance,
                 navigationRepathIntervalSeconds,
                 navigationMaxTargetReuseSeconds,
-                pathBudgetPerPhysicsFrame);
+                pathBudgetPerPhysicsFrame,
+                obstacleMask,
+                movementBodyProbeRadius);
             _staticClearance = new CombatStaticClearance(
                 self,
                 obstacleMask,
@@ -169,10 +180,12 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
 
                 Vector2 finalAnchor = _self.ClampWorldPointToLevelBounds(pose.Anchor, 6f);
                 Vector2 semanticTarget = snapshot.HasTarget ? snapshot.TargetPosition : finalAnchor;
+                Vector2 navigationOffset = _self.MovementCenter - snapshot.SelfPosition;
+                Vector2 navigationSelfPosition = snapshot.SelfPosition + navigationOffset;
                 CombatElevationRouter.RouteResult topologyRoute = _elevationRouter.Resolve(
-                    snapshot.SelfPosition,
-                    finalAnchor,
-                    semanticTarget);
+                    navigationSelfPosition,
+                    finalAnchor + navigationOffset,
+                    semanticTarget + navigationOffset);
                 Vector2 safeAnchor = _self.ClampWorldPointToLevelBounds(topologyRoute.MovementTarget, 6f);
 
                 _motorNavigationTarget = finalAnchor;
@@ -180,7 +193,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
                 _motorSemanticTarget = semanticTarget;
                 _hasMotorNavigationTarget = true;
 
-                Vector2 toAnchor = safeAnchor - snapshot.SelfPosition;
+                Vector2 toAnchor = safeAnchor - navigationSelfPosition;
                 float anchorDistance = toAnchor.Length();
                 float finalAnchorDistance = finalAnchor.DistanceTo(snapshot.SelfPosition);
                 bool rangeSatisfied = !topologyRoute.IsTopologyRouted
@@ -221,7 +234,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
 
                 IsRecoveringFromStuck = UpdateStuckState(snapshot, anchorDistance);
                 desiredDirection = _globalPath.ResolveDirection(
-                    snapshot.SelfPosition,
+                    navigationSelfPosition,
                     safeAnchor,
                     desiredDirection,
                     anchorDistance,
@@ -232,7 +245,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
                     0f,
                     1.25f);
                 _staticClearance.Refresh(
-                    snapshot.SelfPosition,
+                    navigationSelfPosition,
                     desiredDirection,
                     IsRecoveringFromStuck || snapshot.NearObstacle || snapshot.IsCornered,
                     movementSpeedFraction);
@@ -372,10 +385,13 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
                 float speed = preferredVelocity.Length();
                 if (_hasMotorNavigationTarget)
                 {
+                    Vector2 combatCenter = _self.CombatCenter;
+                    Vector2 navigationOffset = _self.MovementCenter - combatCenter;
+                    Vector2 navigationSelfPosition = combatCenter + navigationOffset;
                     CombatElevationRouter.RouteResult topologyRoute = _elevationRouter.Resolve(
-                        _self.CombatCenter,
-                        _motorNavigationTarget,
-                        _motorSemanticTarget);
+                        navigationSelfPosition,
+                        _motorNavigationTarget + navigationOffset,
+                        _motorSemanticTarget + navigationOffset);
                     if (!topologyRoute.HasRoute)
                     {
                         _lastResolvedMotorVelocity = Vector2.Zero;
@@ -383,13 +399,13 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
                     }
 
                     _motorPathTarget = topologyRoute.MovementTarget;
-                    Vector2 toPathTarget = _motorPathTarget - _self.CombatCenter;
+                    Vector2 toPathTarget = _motorPathTarget - navigationSelfPosition;
                     Vector2 direction = topologyRoute.IsTopologyRouted && toPathTarget.LengthSquared() > 0.001f
                         ? toPathTarget.Normalized()
                         : preferredVelocity / Mathf.Max(speed, 0.001f);
-                    float distance = _self.CombatCenter.DistanceTo(_motorPathTarget);
+                    float distance = navigationSelfPosition.DistanceTo(_motorPathTarget);
                     Vector2 pathDirection = _globalPath.ResolveDirection(
-                        _self.CombatCenter,
+                        navigationSelfPosition,
                         _motorPathTarget,
                         direction,
                         distance,
@@ -400,21 +416,30 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
                 // P1: local clearance không còn bị khóa theo DecisionIntervalSeconds.
                 // Vùng trống update thưa, gần obstacle update nhanh; cognition vẫn giữ nhịp thấp.
                 ulong now = Time.GetTicksMsec();
+                bool blockingRecovery = IsBlockingRecoveryActive();
                 Vector2 localDesired = velocity / Mathf.Max(speed, 0.001f);
+                if (blockingRecovery)
+                {
+                    localDesired = ResolveBlockingRecoveryDirection(localDesired);
+                }
                 if (now >= _nextMotorProbeTickMs)
                 {
                     _nextMotorProbeTickMs = now + (_staticClearance.IsNearObstacle ? 17UL : 50UL);
                     float speedFraction = Mathf.Clamp(speed / Mathf.Max(1f, _self.RunSpeed), 0f, 1.25f);
                     _staticClearance.Refresh(
-                        _self.CombatCenter,
+                        _self.MovementCenter,
                         localDesired,
-                        IsRecoveringFromStuck || _staticClearance.IsNearObstacle,
+                        blockingRecovery || IsRecoveringFromStuck || _staticClearance.IsNearObstacle,
                         speedFraction);
                 }
 
                 Vector2 localDirection = ResolveLocalClearanceDirection(localDesired);
                 velocity = localDirection * speed;
                 Vector2 safeVelocity = _dynamicAvoidance.ResolveVelocity(velocity);
+                if (blockingRecovery)
+                {
+                    safeVelocity *= 0.72f;
+                }
                 if (_hasMotorNavigationTarget)
                 {
                     _benchmark.ObserveCombatPositioning(_motorNavigationTarget, _arrivalDistance, safeVelocity);
@@ -455,10 +480,13 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
                 }
 
                 float speed = preferredVelocity.Length();
+                Vector2 navigationOffset = _self.MovementCenter - selfPosition;
+                Vector2 navigationSelfPosition = selfPosition + navigationOffset;
+                Vector2 navigationTarget = targetPosition + navigationOffset;
                 CombatElevationRouter.RouteResult topologyRoute = _elevationRouter.Resolve(
-                    selfPosition,
-                    targetPosition,
-                    targetPosition);
+                    navigationSelfPosition,
+                    navigationTarget,
+                    navigationTarget);
                 if (!topologyRoute.HasRoute)
                 {
                     _benchmark.ObserveFollow(
@@ -471,32 +499,41 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
                 }
 
                 Vector2 movementTarget = topologyRoute.MovementTarget;
-                Vector2 toMovementTarget = movementTarget - selfPosition;
+                Vector2 toMovementTarget = movementTarget - navigationSelfPosition;
                 Vector2 directDirection = topologyRoute.IsTopologyRouted && toMovementTarget.LengthSquared() > 0.001f
                     ? toMovementTarget.Normalized()
                     : preferredVelocity / speed;
-                float distance = selfPosition.DistanceTo(movementTarget);
+                float distance = navigationSelfPosition.DistanceTo(movementTarget);
                 Vector2 desired = _globalPath.ResolveDirection(
-                    selfPosition,
+                    navigationSelfPosition,
                     movementTarget,
                     directDirection,
                     distance,
                     false);
 
                 ulong now = Time.GetTicksMsec();
+                bool blockingRecovery = IsBlockingRecoveryActive();
+                if (blockingRecovery)
+                {
+                    desired = ResolveBlockingRecoveryDirection(desired);
+                }
                 if (now >= _nextFreeProbeTickMs)
                 {
                     _nextFreeProbeTickMs = now + (_staticClearance.IsNearObstacle ? 34UL : 67UL);
                     float speedFraction = Mathf.Clamp(speed / Mathf.Max(1f, _self.RunSpeed), 0f, 1.25f);
                     _staticClearance.Refresh(
-                        selfPosition,
+                        navigationSelfPosition,
                         desired,
-                        _staticClearance.IsNearObstacle,
+                        blockingRecovery || _staticClearance.IsNearObstacle,
                         speedFraction);
                 }
 
                 Vector2 localDirection = ResolveLocalClearanceDirection(desired);
                 Vector2 safeVelocity = _dynamicAvoidance.ResolveVelocity(localDirection * speed);
+                if (blockingRecovery)
+                {
+                    safeVelocity *= 0.72f;
+                }
                 _benchmark.ObserveFollow(
                     targetPosition,
                     benchmarkArrival,
@@ -509,6 +546,92 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             {
                 _metrics.EndMotor();
             }
+        }
+
+        public Vector2 ResolveFollowAnchor(
+            Vector2 selfPosition,
+            Vector2 leaderPosition,
+            Vector2 preferredAnchor,
+            Vector2 followForward,
+            float followSide)
+        {
+            if (_self == null || !GodotObject.IsInstanceValid(_self))
+            {
+                return preferredAnchor;
+            }
+
+            Vector2 clampedPreferred = _self.ClampWorldPointToLevelBounds(preferredAnchor, 6f);
+            Vector2 navigationOffset = _self.MovementCenter - selfPosition;
+            Vector2 navigationSelfPosition = selfPosition + navigationOffset;
+            Vector2 navigationLeaderPosition = leaderPosition + navigationOffset;
+            if (IsFollowAnchorUsable(
+                navigationSelfPosition,
+                navigationLeaderPosition,
+                clampedPreferred + navigationOffset))
+            {
+                return clampedPreferred;
+            }
+
+            Vector2 forward = followForward.LengthSquared() > 0.001f
+                ? followForward.Normalized()
+                : Vector2.Down;
+            Vector2 side = new(-forward.Y, forward.X);
+            float radius = Mathf.Clamp(leaderPosition.DistanceTo(clampedPreferred), 32f, 78f);
+
+            Vector2[] basis =
+            {
+                -forward + side * followSide * 0.44f,
+                -forward - side * followSide * 0.44f,
+                side * followSide,
+                -side * followSide,
+                -forward,
+                forward * 0.35f + side * followSide,
+                forward * 0.35f - side * followSide
+            };
+            float[] distanceScales = { 1f, 0.78f, 1.22f };
+
+            Vector2 best = clampedPreferred;
+            float bestScore = float.NegativeInfinity;
+            for (int d = 0; d < distanceScales.Length; d++)
+            {
+                float candidateRadius = radius * distanceScales[d];
+                for (int i = 0; i < basis.Length; i++)
+                {
+                    Vector2 direction = basis[i].LengthSquared() > 0.001f
+                        ? basis[i].Normalized()
+                        : -forward;
+                    Vector2 candidate = _self.ClampWorldPointToLevelBounds(
+                        leaderPosition + direction * candidateRadius,
+                        6f);
+                    if (!IsFollowAnchorUsable(
+                        navigationSelfPosition,
+                        navigationLeaderPosition,
+                        candidate + navigationOffset))
+                    {
+                        continue;
+                    }
+
+                    float score = 5f;
+                    score -= candidate.DistanceTo(clampedPreferred) * 0.018f;
+                    score -= candidate.DistanceTo(selfPosition) * 0.0025f;
+                    if (i <= 1)
+                    {
+                        score += 0.4f;
+                    }
+                    if (d == 0)
+                    {
+                        score += 0.2f;
+                    }
+
+                    if (score > bestScore)
+                    {
+                        bestScore = score;
+                        best = candidate;
+                    }
+                }
+            }
+
+            return bestScore > float.NegativeInfinity ? best : clampedPreferred;
         }
 
         public void StopMotor()
@@ -529,6 +652,9 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             _motorSemanticTarget = Vector2.Zero;
             _lastCollisionSampleFrame = ulong.MaxValue;
             _lastResolvedMotorVelocity = Vector2.Zero;
+            _lastBlockingNormal = Vector2.Zero;
+            _blockingRecoveryUntilMs = 0;
+            _blockingRecoverySideSign = _preferredSideSign;
             _nextMotorProbeTickMs = 0;
             _nextFreeProbeTickMs = 0;
             IsRecoveringFromStuck = false;
@@ -541,6 +667,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
 
         public void Dispose()
         {
+            _globalPath.Dispose();
             _dynamicAvoidance.Dispose();
             _staticClearance.Dispose();
         }
@@ -590,6 +717,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             }
 
             int blockingContacts = 0;
+            Vector2 blockingNormalSum = Vector2.Zero;
             for (int i = 0; i < contacts; i++)
             {
                 KinematicCollision2D collision = _self.GetSlideCollision(i);
@@ -609,13 +737,74 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
                 if (headOn >= 0.35f)
                 {
                     blockingContacts++;
+                    blockingNormalSum += normal.Normalized() * headOn;
                 }
             }
 
             if (blockingContacts > 0)
             {
                 _metrics.RecordBlockingCollisionFrame(blockingContacts);
+                if (blockingNormalSum.LengthSquared() > 0.001f)
+                {
+                    Vector2 normal = blockingNormalSum.Normalized();
+                    if (_lastBlockingNormal.LengthSquared() > 0.001f
+                        && normal.Dot(_lastBlockingNormal) < 0.35f)
+                    {
+                        _blockingRecoverySideSign *= -1;
+                    }
+                    _lastBlockingNormal = normal;
+                    _blockingRecoveryUntilMs = Time.GetTicksMsec() + 420UL;
+                    _nextMotorProbeTickMs = 0;
+                    _nextFreeProbeTickMs = 0;
+                }
             }
+        }
+
+        private bool IsBlockingRecoveryActive()
+        {
+            return _blockingRecoveryUntilMs > Time.GetTicksMsec()
+                && _lastBlockingNormal.LengthSquared() > 0.001f;
+        }
+
+        private Vector2 ResolveBlockingRecoveryDirection(Vector2 desired)
+        {
+            Vector2 normal = _lastBlockingNormal.LengthSquared() > 0.001f
+                ? _lastBlockingNormal.Normalized()
+                : Vector2.Zero;
+            Vector2 wanted = desired.LengthSquared() > 0.001f
+                ? desired.Normalized()
+                : Vector2.Zero;
+            if (normal == Vector2.Zero)
+            {
+                return wanted;
+            }
+
+            Vector2 tangent = new(-normal.Y, normal.X);
+            if (wanted.LengthSquared() > 0.001f)
+            {
+                float tangentDot = tangent.Dot(wanted);
+                if (Mathf.Abs(tangentDot) > 0.08f)
+                {
+                    tangent *= Mathf.Sign(tangentDot);
+                    _blockingRecoverySideSign = tangentDot >= 0f ? 1 : -1;
+                }
+                else
+                {
+                    tangent *= _blockingRecoverySideSign;
+                }
+            }
+            else
+            {
+                tangent *= _blockingRecoverySideSign;
+            }
+
+            Vector2 escape = tangent * 0.88f + normal * 0.34f;
+            if (wanted.LengthSquared() > 0.001f && wanted.Dot(normal) > 0.25f)
+            {
+                escape += wanted * 0.18f;
+            }
+
+            return escape.LengthSquared() > 0.001f ? escape.Normalized() : normal;
         }
 
         private Vector2 ResolveLocalClearanceDirection(Vector2 desired)
@@ -659,6 +848,60 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             float localWeight = localDanger > 0.25f ? 0.84f : 0.60f;
             Vector2 blended = bestDirection * localWeight + normalizedDesired * (1f - localWeight);
             return blended.LengthSquared() > 0.001f ? blended.Normalized() : bestDirection;
+        }
+
+        private bool IsFollowAnchorUsable(Vector2 selfPosition, Vector2 leaderPosition, Vector2 anchor)
+        {
+            return !IsCircleBlocked(anchor)
+                && !IsSegmentBlocked(leaderPosition, anchor)
+                && !IsSegmentBlocked(selfPosition, anchor);
+        }
+
+        private bool IsCircleBlocked(Vector2 center)
+        {
+            if (_self?.GetWorld2D()?.DirectSpaceState == null)
+            {
+                return false;
+            }
+
+            if (IsPointBlocked(center))
+            {
+                return true;
+            }
+
+            float radius = Mathf.Max(2f, _bodyProbeRadius);
+            return IsPointBlocked(center + Vector2.Right * radius)
+                || IsPointBlocked(center + Vector2.Left * radius)
+                || IsPointBlocked(center + Vector2.Up * radius)
+                || IsPointBlocked(center + Vector2.Down * radius);
+        }
+
+        private bool IsPointBlocked(Vector2 point)
+        {
+            var query = new PhysicsPointQueryParameters2D
+            {
+                Position = point,
+                CollisionMask = _obstacleMask,
+                CollideWithAreas = false,
+                CollideWithBodies = true
+            };
+            return _self.GetWorld2D().DirectSpaceState.IntersectPoint(query, 1).Count > 0;
+        }
+
+        private bool IsSegmentBlocked(Vector2 from, Vector2 to)
+        {
+            if (_self?.GetWorld2D()?.DirectSpaceState == null || from.DistanceSquaredTo(to) <= 1f)
+            {
+                return false;
+            }
+
+            PhysicsRayQueryParameters2D query = PhysicsRayQueryParameters2D.Create(
+                from,
+                to,
+                _obstacleMask);
+            query.CollideWithAreas = false;
+            query.CollideWithBodies = true;
+            return _self.GetWorld2D().DirectSpaceState.IntersectRay(query).Count > 0;
         }
 
         private Vector2 ResolveDesiredDirection(

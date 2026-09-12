@@ -312,6 +312,12 @@ namespace AshesofaDyingWorld.Combat.Decision.Execution
             Vector2 anchor = leaderPosition
                 - _followForward * FollowRadiusBehind
                 + side * (FollowRadiusSide * _followSide);
+            anchor = _movementSolver?.ResolveFollowAnchor(
+                selfPosition,
+                leaderPosition,
+                anchor,
+                _followForward,
+                _followSide) ?? anchor;
             Vector2 toAnchor = anchor - selfPosition;
 
             // Tách thân mềm nếu Player quay lại đè đúng lên Hyou.

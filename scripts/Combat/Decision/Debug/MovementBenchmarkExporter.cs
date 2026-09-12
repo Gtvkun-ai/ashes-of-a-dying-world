@@ -297,6 +297,11 @@ namespace AshesofaDyingWorld.Combat.Decision.Debug
                     ["path_requests"] = (long)snapshot.PathRequests,
                     ["path_reuse_hits"] = (long)snapshot.PathReuseHits,
                     ["path_budget_deferrals"] = (long)snapshot.PathBudgetDeferrals,
+                    ["grid_path_requests"] = (long)snapshot.GridPathRequests,
+                    ["grid_path_successes"] = (long)snapshot.GridPathSuccesses,
+                    ["grid_path_failures"] = (long)snapshot.GridPathFailures,
+                    ["grid_path_directions_used"] = (long)snapshot.GridPathDirectionsUsed,
+                    ["grid_cell_samples"] = (long)snapshot.GridCellSamples,
                     ["ray_probe_samples"] = (long)snapshot.ProbeSamples,
                     ["shape_probe_samples"] = (long)snapshot.ShapeProbeSamples,
                     ["rvo_submissions"] = (long)snapshot.AvoidanceSubmissions,
@@ -305,6 +310,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Debug
                     ["stuck_events"] = (long)snapshot.StuckEvents
                 },
                 ["topology"] = agent.GetMovementTopologySummary(),
+                ["pathing"] = agent.GetMovementPathSummary(),
                 ["movement_config"] = agent.GetMovementBenchmarkConfigPayload()
             };
         }
