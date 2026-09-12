@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="CombatActionData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/Combat/Data/CombatActionData.cs" id="1"]
+[ext_resource type="Resource" path="res://data/combat/hit_profiles/slime_shove.tres" id="2"]
+
+[resource]
+script = ExtResource("1")
+ActionId = "slime_shove"
+Tags = 5
+AnimationTemplate = "at_{dir}"
+StartFrame = 0
+ActiveStartFrame = 3
+ActiveEndFrame = 3
+EndFrame = 4
+PlaybackSpeedMultiplier = 1.08
+StartupSeconds = 0.24
+ActiveSeconds = 0.16
+RecoverySeconds = 0.24
+# Cho AI đủ thời gian buffer hit 2 sau khi nhận hit-confirm ở frame active.
+InputBufferSeconds = 0.34
+StaminaCost = 0.0
+LungeSpeed = 195.0
+HitProfile = ExtResource("2")

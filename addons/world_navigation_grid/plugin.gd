@@ -239,6 +239,7 @@ func _on_grid_data_changed() -> void:
 
 func _sync_preview_visibility() -> void:
 	if not is_instance_valid(_edited_grid):
+		update_overlays()
 		return
 	var visible := is_instance_valid(_toolbar) and _toolbar.visible and _overlay_button.button_pressed
 	_edited_grid.call("SetEditorPreviewVisible", visible)
@@ -267,6 +268,7 @@ func _on_mode_pressed(mode: PaintMode) -> void:
 	_sync_preview_visibility()
 	if mode == PaintMode.VIEW and is_instance_valid(_edited_grid):
 		_edited_grid.call("ClearEditorBrushPreview")
+		update_overlays()
 
 
 func _on_brush_changed(_value: float) -> void:

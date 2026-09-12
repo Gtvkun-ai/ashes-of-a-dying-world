@@ -1,4 +1,5 @@
 using Godot;
+using System;
 using AshesofaDyingWorld.Combat.Data;
 using AshesofaDyingWorld.Combat.Model;
 using AshesofaDyingWorld.Combat.Projectiles;
@@ -20,6 +21,11 @@ namespace AshesofaDyingWorld.Combat.Actors
     {
         [Signal] public delegate void HitResolvedEventHandler(float hpDamage, bool blocked, bool guardBroken);
         [Signal] public delegate void DefeatedEventHandler(Node attacker);
+
+        // Event C# dành cho AI của attacker: chỉ phát sau khi target đã resolve hit thành công.
+        // Slime dùng signal này như một "hit confirm" thật để quyết định có nối combo hay không,
+        // thay vì đoán dựa trên khoảng cách/animation rồi spam follow-up khi đòn đầu đã hụt.
+        public event Action<CombatCharacter, CombatActionData, HitResult> HitDealt;
 
         [ExportGroup("Combat Identity")]
         [Export] public string CombatantId { get; set; } = "combatant";
@@ -437,7 +443,7 @@ namespace AshesofaDyingWorld.Combat.Actors
             Vector2 safeDirection = attackDirection.LengthSquared() <= 0.001f
                 ? (target.CombatCenter - hitOrigin).Normalized()
                 : attackDirection.Normalized();
-            return target.ReceiveHit(new HitRequest
+            HitResult result = target.ReceiveHit(new HitRequest
             {
                 Attacker = this,
                 Target = target,
@@ -447,6 +453,15 @@ namespace AshesofaDyingWorld.Combat.Actors
                 HitOrigin = hitOrigin,
                 AttackDirection = safeDirection
             });
+
+            // Chỉ emit hit-confirm cho hit đã thực sự được resolver chấp nhận.
+            // Event nằm ở attacker để AI có thể phản ứng với kết quả mà không kéo dependency ngược từ target.
+            if (result != null && result.Applied)
+            {
+                HitDealt?.Invoke(target, action, result);
+            }
+
+            return result;
         }
 
         public virtual HitResult ReceiveHit(HitRequest request)
@@ -515,8 +530,26 @@ namespace AshesofaDyingWorld.Combat.Actors
             }
             else if (result.HitstunSeconds > 0f)
             {
-                Actions?.Cancel();
-                StateMachine.EnterHitstun(result.HitstunSeconds);
+                bool actionRunning = Actions?.IsRunning == true;
+                CombatActionData currentAction = Actions?.CurrentAction;
+                bool actionUninterruptible = currentAction != null
+                    && (currentAction.Tags & CombatActionTag.Uninterruptible) != CombatActionTag.None;
+                bool shouldInterrupt = CombatReactionPolicy.ShouldInterruptActiveAction(
+                    result.Reaction,
+                    actionRunning,
+                    actionUninterruptible);
+
+                if (shouldInterrupt)
+                {
+                    Actions?.Cancel();
+                    StateMachine.EnterHitstun(result.HitstunSeconds);
+                }
+                else if (!actionRunning)
+                {
+                    // Khi actor đang rảnh, Flinch/Shove vẫn tạo hitstun ngắn để hit có cảm giác.
+                    // Khi đang đánh, reaction mềm không được phá combo/pounce chỉ vì có HitstunSeconds.
+                    StateMachine.EnterHitstun(result.HitstunSeconds);
+                }
             }
 
             if (result.Knockback != Vector2.Zero && (!result.WasBlocked || result.GuardBroken))

@@ -79,8 +79,10 @@ namespace AshesofaDyingWorld.Combat.Runtime
                     return fieldSpawned;
 
                 case CombatActionEventType.PresentationCue:
-                    // Cột sống đã có cue id và thời điểm chuẩn; audio/VFX service có thể bind sau
-                    // mà không phải sửa ActionRunner. Không claim đã phát thứ chưa có service.
+                    // PresentationCue chỉ mang timing + cue id; VFX/audio cụ thể vẫn thuộc FeedbackService.
+                    // Nhờ vậy action resource quyết định "khi nào", còn presentation quyết định "vẽ gì".
+                    CombatFeedbackService.GetOrCreate(owner.GetTree())?
+                        .PlayActionEvent(owner, action, actionEvent);
                     return true;
 
                 case CombatActionEventType.SelfEffect:

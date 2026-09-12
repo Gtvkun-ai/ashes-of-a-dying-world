@@ -1,7 +1,22 @@
-[gd_resource type="Resource" script_class="CombatActionData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="CombatActionData" load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/Combat/Data/CombatActionData.cs" id="1"]
 [ext_resource type="Resource" path="res://data/combat/hit_profiles/slime_pounce.tres" id="2"]
+[ext_resource type="Script" path="res://scripts/Combat/Data/CombatActionEventData.cs" id="3_event"]
+
+[sub_resource type="Resource" id="Resource_pounce_charge"]
+script = ExtResource("3_event")
+EventId = "slime_pounce_charge"
+EventType = 1
+TriggerFrame = 0
+CueId = &"slime_pounce_charge"
+
+[sub_resource type="Resource" id="Resource_pounce_land"]
+script = ExtResource("3_event")
+EventId = "slime_pounce_land"
+EventType = 1
+TriggerFrame = 3
+CueId = &"slime_pounce_land"
 
 [resource]
 script = ExtResource("1")
@@ -16,7 +31,7 @@ PlaybackSpeedMultiplier = 1.05
 ScalePlaybackWithAttackSpeed = true
 StartupSeconds = 0.34
 ActiveSeconds = 0.20
-RecoverySeconds = 0.48
+RecoverySeconds = 0.52
 InputBufferSeconds = 0.0
 StaminaCost = 0.0
 # Slime scene đang dùng ActionLungeMultiplier=0.12, nên 520 -> ~62 px/s runtime.
@@ -24,3 +39,4 @@ StaminaCost = 0.0
 LungeSpeed = 520.0
 MovementInputMultiplier = 0.0
 HitProfile = ExtResource("2")
+Events = Array[ExtResource("3_event")]([SubResource("Resource_pounce_charge"), SubResource("Resource_pounce_land")])

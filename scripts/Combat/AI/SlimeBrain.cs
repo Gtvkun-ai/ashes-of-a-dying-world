@@ -1,6 +1,7 @@
 using Godot;
 using AshesofaDyingWorld.Combat.Actors;
 using AshesofaDyingWorld.Combat.Data;
+using AshesofaDyingWorld.Combat.Model;
 using AshesofaDyingWorld.Combat.Runtime;
 
 namespace AshesofaDyingWorld.Combat.AI
@@ -12,7 +13,7 @@ namespace AshesofaDyingWorld.Combat.AI
     /// </summary>
     public partial class SlimeBrain : Node
     {
-        private const string RuntimeBuild = "v8-impact-pounce";
+        private const string RuntimeBuild = "v11-stable-threat-reactions";
         private enum EnemyState
         {
             Wander,
@@ -31,6 +32,11 @@ namespace AshesofaDyingWorld.Combat.AI
         [ExportGroup("Threat / Targeting")]
         [Export] public float ProvokedTargetMemorySeconds { get; set; } = 4.5f;
         [Export] public float TargetSwitchAdvantage { get; set; } = 18f;
+        // Sau khi vừa chốt target, slime giữ quyết định một nhịp để Hyou/Hikaru không cướp aggro qua lại mỗi hit.
+        [Export] public float TargetCommitSeconds { get; set; } = 1.10f;
+        // Challenger ở xa vẫn có thể kéo aggro nếu gây đủ damage trong một cửa sổ ngắn.
+        [Export] public float ThreatBurstWindowSeconds { get; set; } = 1.60f;
+        [Export] public float ThreatBurstDamageThreshold { get; set; } = 55f;
         [Export] public float RetaliationLeashMultiplier { get; set; } = 1.15f;
         [Export] public bool UseCombatSpawnLeash { get; set; } = false;
         [Export] public float TargetForgetRadius { get; set; } = 360f;
@@ -46,14 +52,22 @@ namespace AshesofaDyingWorld.Combat.AI
         [Export] public float AxisSwitchBias { get; set; } = 1.3f;
         [Export] public float AttackCooldown { get; set; } = 0.65f;
 
+        [ExportGroup("Combo Pressure")]
+        // Shove chỉ được nối bite sau hit-confirm thật. Chance giúp common slime nguy hiểm nhưng không máy móc 100%.
+        [Export(PropertyHint.Range, "0,1,0.05")] public float ComboFollowupChance { get; set; } = 0.70f;
+        [Export] public float ComboFollowupMaxDistance { get; set; } = 44f;
+        [Export] public float ComboFollowupLaneTolerance { get; set; } = 20f;
+        [Export] public float PostComboRepositionSeconds { get; set; } = 0.34f;
+
         [ExportGroup("Pounce Skill")]
         [Export] public CombatActionData PounceAction { get; set; }
-        [Export(PropertyHint.Range, "0,1,0.05")] public float PounceChance { get; set; } = 0.28f;
-        [Export] public float PounceMinDistance { get; set; } = 29f;
-        [Export] public float PounceMaxDistance { get; set; } = 54f;
-        [Export] public float PounceLaneTolerance { get; set; } = 15f;
-        [Export] public float PounceCooldown { get; set; } = 3.0f;
-        [Export] public float PounceDecisionInterval { get; set; } = 0.45f;
+        [Export(PropertyHint.Range, "0,1,0.05")] public float PounceChance { get; set; } = 0.55f;
+        [Export] public float PounceMinDistance { get; set; } = 34f;
+        [Export] public float PounceMaxDistance { get; set; } = 66f;
+        [Export] public float PounceLaneTolerance { get; set; } = 18f;
+        [Export] public float PounceCooldown { get; set; } = 3.4f;
+        [Export] public float PounceDecisionInterval { get; set; } = 0.35f;
+        [Export] public float PostPounceRecoverySeconds { get; set; } = 0.26f;
 
         [ExportGroup("Wander")]
         [Export] public float WanderRadius { get; set; } = 70f;
@@ -71,15 +85,35 @@ namespace AshesofaDyingWorld.Combat.AI
         private float _attackCooldownRemaining;
         private float _pounceCooldownRemaining;
         private float _pounceDecisionRemaining;
+        private float _postComboRepositionRemaining;
+        private float _postPounceRecoveryRemaining;
         private float _targetRefreshRemaining;
         private float _wanderRetargetRemaining;
         private float _provokedTargetRemaining;
+        private float _targetCommitRemaining;
+        private CombatCharacter _threatChallenger;
+        private float _threatChallengerDamage;
+        private float _threatChallengerWindowRemaining;
         private bool _escapingTargetOverlap;
+        private bool _shoveHitConfirmed;
+        private bool _comboBuffered;
 
         public override void _Ready()
         {
             _rng.Randomize();
             CallDeferred(nameof(Initialize));
+        }
+
+        public override void _ExitTree()
+        {
+            if (_character != null && GodotObject.IsInstanceValid(_character))
+            {
+                _character.HitDealt -= OnHitDealt;
+                if (_character.Actions != null)
+                {
+                    _character.Actions.ActionFinished -= OnActionFinished;
+                }
+            }
         }
 
         public override void _PhysicsProcess(double delta)
@@ -94,9 +128,17 @@ namespace AshesofaDyingWorld.Combat.AI
             _attackCooldownRemaining = Mathf.Max(0f, _attackCooldownRemaining - dt);
             _pounceCooldownRemaining = Mathf.Max(0f, _pounceCooldownRemaining - dt);
             _pounceDecisionRemaining = Mathf.Max(0f, _pounceDecisionRemaining - dt);
+            _postComboRepositionRemaining = Mathf.Max(0f, _postComboRepositionRemaining - dt);
+            _postPounceRecoveryRemaining = Mathf.Max(0f, _postPounceRecoveryRemaining - dt);
             _targetRefreshRemaining -= dt;
             _wanderRetargetRemaining -= dt;
             _provokedTargetRemaining = Mathf.Max(0f, _provokedTargetRemaining - dt);
+            _targetCommitRemaining = Mathf.Max(0f, _targetCommitRemaining - dt);
+            _threatChallengerWindowRemaining = Mathf.Max(0f, _threatChallengerWindowRemaining - dt);
+            if (_threatChallengerWindowRemaining <= 0f)
+            {
+                ResetThreatChallenger();
+            }
 
             if (_targetRefreshRemaining <= 0f)
             {
@@ -145,6 +187,12 @@ namespace AshesofaDyingWorld.Combat.AI
             }
 
             _spawnPosition = _character.GlobalPosition;
+            // HitDealt là nguồn hit-confirm thật; ActionFinished dùng để đóng nhịp combo/reposition.
+            _character.HitDealt += OnHitDealt;
+            if (_character.Actions != null)
+            {
+                _character.Actions.ActionFinished += OnActionFinished;
+            }
             ChooseWanderTarget();
             if (DebugTargeting)
             {
@@ -157,10 +205,21 @@ namespace AshesofaDyingWorld.Combat.AI
 
         private void RunCombat()
         {
+            if (_postPounceRecoveryRemaining > 0f)
+            {
+                // Pounce mạnh phải có cửa punish thật: sau khi đáp xong slime đứng khựng một nhịp,
+                // không lập tức quay sang chase/ủi ở physics frame kế tiếp.
+                _state = EnemyState.Reposition;
+                _character.StopMoveInput();
+                return;
+            }
+
             if (_character.IsPerformingAttack)
             {
                 _state = EnemyState.Attack;
                 _character.StopMoveInput();
+                // Chỉ có shove đã hit-confirm mới được thử buffer bite. Miss/block sạch sẽ dừng ở hit 1.
+                TryBufferShoveFollowup();
                 return;
             }
 
@@ -178,6 +237,17 @@ namespace AshesofaDyingWorld.Combat.AI
             _character.FaceDirection(_approachFacing);
             _character.SetBlocking(false);
 
+            if (_postComboRepositionRemaining > 0f)
+            {
+                _state = EnemyState.Reposition;
+                Vector2 awayAfterCombo = CombatSteering.SafeAwayDirection(
+                    _character.CombatCenter,
+                    _target.CombatCenter,
+                    -_approachFacing);
+                _character.SetMoveInput(awayAfterCombo, false, true);
+                return;
+            }
+
             float separationExit = Mathf.Max(
                 MinimumAttackDistance + 1f,
                 MinimumAttackDistance + TargetSeparationExitMargin);
@@ -192,6 +262,7 @@ namespace AshesofaDyingWorld.Combat.AI
                 _character.StopMoveInput();
                 if (_character.RequestAttack())
                 {
+                    BeginShoveDecision();
                     _attackCooldownRemaining = AttackCooldown;
                 }
                 return;
@@ -250,6 +321,113 @@ namespace AshesofaDyingWorld.Combat.AI
             _character.SetMoveInput(moveDirection, false, true);
         }
 
+        private void BeginShoveDecision()
+        {
+            _shoveHitConfirmed = false;
+            _comboBuffered = false;
+        }
+
+        private void OnHitDealt(CombatCharacter target, CombatActionData action, HitResult result)
+        {
+            if (target != _target
+                || action == null
+                || action.ActionId != "slime_shove"
+                || result == null
+                || !result.Applied)
+            {
+                return;
+            }
+
+            // Block sạch không mở combo. Guard break vẫn được xem là hit-confirm hợp lệ.
+            if (result.WasBlocked && !result.GuardBroken)
+            {
+                return;
+            }
+
+            _shoveHitConfirmed = true;
+            // Buffer ngay trong hit callback để không phụ thuộc thứ tự _PhysicsProcess giữa
+            // ActionRunner, hitbox và Brain ở frame active cuối cùng.
+            TryBufferShoveFollowup();
+        }
+
+        private void OnActionFinished(CombatActionData action, bool completed)
+        {
+            if (action == null)
+            {
+                return;
+            }
+
+            if (action.ActionId == "slime_shove")
+            {
+                // Quyết định follow-up chỉ sống trong đúng action shove hiện tại.
+                _shoveHitConfirmed = false;
+                return;
+            }
+
+            if (action.ActionId == "slime_pounce")
+            {
+                _shoveHitConfirmed = false;
+                _comboBuffered = false;
+                if (completed)
+                {
+                    _postPounceRecoveryRemaining = Mathf.Max(0f, PostPounceRecoverySeconds);
+                }
+                return;
+            }
+
+            if (action.ActionId == "slime_bite")
+            {
+                _shoveHitConfirmed = false;
+                _comboBuffered = false;
+                if (completed)
+                {
+                    // Sau combo cho player một cửa phản công ngắn thay vì nối pounce ngay lập tức.
+                    _postComboRepositionRemaining = Mathf.Max(0f, PostComboRepositionSeconds);
+                }
+            }
+        }
+
+        private void TryBufferShoveFollowup()
+        {
+            CombatActionData action = _character?.Actions?.CurrentAction;
+            if (action == null
+                || action.ActionId != "slime_shove"
+                || !_shoveHitConfirmed
+                || _comboBuffered
+                || !IsValidHostile(_target))
+            {
+                return;
+            }
+
+            Vector2 toTarget = _target.CombatCenter - _character.CombatCenter;
+            float directDistance = toTarget.Length();
+            Vector2 facing = _character.FacingDirection;
+            if (facing.LengthSquared() <= 0.001f)
+            {
+                facing = _approachFacing;
+            }
+            facing = facing.Normalized();
+            Vector2 side = new Vector2(-facing.Y, facing.X);
+            float forwardDistance = toTarget.Dot(facing);
+            float lateralDistance = Mathf.Abs(toTarget.Dot(side));
+
+            if (directDistance > Mathf.Max(1f, ComboFollowupMaxDistance)
+                || forwardDistance <= 0f
+                || lateralDistance > Mathf.Max(1f, ComboFollowupLaneTolerance))
+            {
+                return;
+            }
+
+            // Đánh dấu trước khi roll để không reroll 60 lần/giây trong cùng một active frame.
+            _comboBuffered = true;
+            if (_rng.Randf() > Mathf.Clamp(ComboFollowupChance, 0f, 1f))
+            {
+                return;
+            }
+
+            _character.RequestAttack();
+        }
+
         private bool TryStartPounce(CombatSteering.CardinalApproach approach)
         {
             if (PounceAction == null
@@ -287,6 +465,8 @@ namespace AshesofaDyingWorld.Combat.AI
                 return false;
             }
 
+            _shoveHitConfirmed = false;
+            _comboBuffered = false;
             _pounceCooldownRemaining = Mathf.Max(0.25f, PounceCooldown);
             _attackCooldownRemaining = Mathf.Max(AttackCooldown, 0.4f);
             return true;
@@ -323,9 +503,9 @@ namespace AshesofaDyingWorld.Combat.AI
         }
 
         /// <summary>
-        /// Khi slime bị đánh, kẻ gây sát thương phải trở thành mục tiêu ngay cả khi đứng ngoài
-        /// AggroRadius thường. Đây là phản ứng trả đũa, không phải mở rộng tầm nhìn toàn cục.
-        /// Nhờ vậy Hyou có thể đứng ở cự ly pháp sư nhưng không được bắn miễn phí.
+        /// Damage tạo threat nhưng không còn cướp target vô điều kiện.
+        /// Slime chỉ đổi sang attacker mới khi: chưa có target, target cũ đã quá xa,
+        /// challenger gần hơn rõ rệt, hoặc challenger gây đủ burst damage trong một cửa sổ ngắn.
         /// </summary>
         public void NotifyProvoked(CombatCharacter attacker, float hpDamage = 0f)
         {
@@ -338,16 +518,85 @@ namespace AshesofaDyingWorld.Combat.AI
                 return;
             }
 
-            // Không dùng spawn leash để từ chối kẻ vừa gây damage. Nếu projectile đã
-            // chạm slime thì attacker là mối đe dọa thật, bất kể slime sinh ra ở đâu.
-            _provokedTargetRemaining = Mathf.Max(0.1f, ProvokedTargetMemorySeconds);
-            SetTarget(attacker, hpDamage > 0f ? "damaged" : "provoked");
+            if (!IsValidHostile(_target))
+            {
+                _provokedTargetRemaining = Mathf.Max(0.1f, ProvokedTargetMemorySeconds);
+                SetTarget(attacker, hpDamage > 0f ? "damaged_acquire" : "provoked_acquire");
+                return;
+            }
+
+            if (attacker == _target)
+            {
+                // Đánh đúng target hiện tại chỉ refresh memory; không tạo challenger giả.
+                _provokedTargetRemaining = Mathf.Max(0.1f, ProvokedTargetMemorySeconds);
+                ResetThreatChallenger();
+                return;
+            }
+
+            // Field/status 0 HP damage không được cướp aggro khỏi target đang hợp lệ.
+            // Nó vẫn có thể acquire ở nhánh phía trên nếu slime chưa có target nào.
+            if (hpDamage <= 0f)
+            {
+                if (DebugTargeting)
+                {
+                    GD.Print(
+                        $"[SlimeBrain] THREAT slime={_character.CombatantId} challenger={attacker.CombatantId} "
+                        + "reason=zero_damage_ignored");
+                }
+                return;
+            }
+
+            float currentDistance = _character.CombatCenter.DistanceTo(_target.CombatCenter);
+            float challengerDistance = _character.CombatCenter.DistanceTo(attacker.CombatCenter);
+            float retentionRadius = Mathf.Max(AggroRadius * 1.2f, TargetForgetRadius);
+            bool currentOutsideRetention = currentDistance > retentionRadius;
+
+            if (currentOutsideRetention)
+            {
+                _provokedTargetRemaining = Mathf.Max(0.1f, ProvokedTargetMemorySeconds);
+                SetTarget(attacker, "damaged_replacement");
+                return;
+            }
+
+            if (_threatChallenger != attacker || _threatChallengerWindowRemaining <= 0f)
+            {
+                _threatChallenger = attacker;
+                _threatChallengerDamage = 0f;
+            }
+
+            _threatChallengerDamage += Mathf.Max(0f, hpDamage);
+            _threatChallengerWindowRemaining = Mathf.Max(0.1f, ThreatBurstWindowSeconds);
+
+            if (DebugTargeting)
+            {
+                GD.Print(
+                    $"[SlimeBrain] THREAT slime={_character.CombatantId} current={_target.CombatantId} "
+                    + $"challenger={attacker.CombatantId} burst={_threatChallengerDamage:0.0}/{ThreatBurstDamageThreshold:0.0} "
+                    + $"distance={challengerDistance:0.0}/{currentDistance:0.0} commit={_targetCommitRemaining:0.00}");
+            }
+
+            bool challengerClearlyCloser = challengerDistance + Mathf.Max(0f, TargetSwitchAdvantage) < currentDistance;
+            bool burstThreat = _threatChallengerDamage >= Mathf.Max(0.1f, ThreatBurstDamageThreshold);
+            bool commitExpired = _targetCommitRemaining <= 0f;
+
+            if (commitExpired && (challengerClearlyCloser || burstThreat))
+            {
+                _provokedTargetRemaining = Mathf.Max(0.1f, ProvokedTargetMemorySeconds);
+                SetTarget(attacker, challengerClearlyCloser ? "damaged_closer" : "damaged_burst");
+            }
+        }
+
+        private void ResetThreatChallenger()
+        {
+            _threatChallenger = null;
+            _threatChallengerDamage = 0f;
+            _threatChallengerWindowRemaining = 0f;
         }
 
         private void RefreshTarget()
         {
-            // Mục tiêu vừa gây sát thương có quyền ưu tiên ngắn hạn. Không để refresh định kỳ
-            // lập tức kéo slime trở lại Player trong khi Hyou vừa bắn trúng nó.
+            // Target đã được chốt bởi retaliation có quyền ưu tiên ngắn hạn. Refresh định kỳ
+            // không được phá quyết định đó chỉ vì một hostile khác tình cờ đứng gần hơn vài pixel.
             if (_provokedTargetRemaining > 0f
                 && IsValidHostile(_target)
                 && _character.CombatCenter.DistanceTo(_target.CombatCenter)
@@ -422,6 +671,10 @@ namespace AshesofaDyingWorld.Combat.AI
 
             _target = target;
             _escapingTargetOverlap = false;
+            _targetCommitRemaining = _target == null
+                ? 0f
+                : Mathf.Max(0f, TargetCommitSeconds);
+            ResetThreatChallenger();
             _approachFacing = _target == null
                 ? _character.FacingDirection
                 : CombatSteering.ResolveStableCardinalFacing(

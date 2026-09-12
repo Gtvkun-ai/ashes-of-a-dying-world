@@ -22,6 +22,18 @@ namespace AshesofaDyingWorld.Combat.Runtime
         private const string ParryFlashFramesPath = "res://assets/graphics/vfx/combat/defense/parry_flash_frames.tres";
         private const string ParryRingFramesPath = "res://assets/graphics/vfx/combat/defense/parry_ring_frames.tres";
 
+        // Bộ VFX slime mới dùng chung layout 6 frame ngang, mỗi cell 362x724.
+        // TextureFilter của CombatSpriteVfx2D là Nearest nên scale nhỏ vẫn giữ chất pixel.
+        private const int SlimeVfxFrameWidth = 362;
+        private const int SlimeVfxFrameHeight = 724;
+        private const int SlimeVfxFrameCount = 6;
+        private const string SlimePounceChargePath = "res://assets/graphics/vfx/combat/slime/slime_pounce_charge.png";
+        private const string SlimePounceLandPath = "res://assets/graphics/vfx/combat/slime/slime_pounce_land.png";
+        private const string SlimeShoveImpactPath = "res://assets/graphics/vfx/combat/slime/slime_shove_impact.png";
+        private const string SlimeBiteSnapPath = "res://assets/graphics/vfx/combat/slime/slime_bite_snap.png";
+        private const string SlimeSlideDustPath = "res://assets/graphics/vfx/combat/slime/impact_slide_dust.png";
+        private const string SlimeLaunchPopPath = "res://assets/graphics/vfx/combat/slime/impact_launch_pop.png";
+
         private readonly RandomNumberGenerator _rng = new();
         private float _shakeRemaining;
         private float _shakeDuration;
@@ -47,6 +59,11 @@ namespace AshesofaDyingWorld.Combat.Runtime
         private AudioCueData _iceCastCue;
         private AudioCueData _iceReleaseCue;
         private AudioCueData _slimeAttackCue;
+        // Cue riêng cho từng pha slime. Giữ slime_attack làm fallback để patch không im tiếng nếu asset mới lỗi/import chậm.
+        private AudioCueData _slimeShoveCue;
+        private AudioCueData _slimeBiteSnapCue;
+        private AudioCueData _slimePounceChargeCue;
+        private AudioCueData _slimePounceLandCue;
         private AudioCueData _slimeHurtCue;
         private AudioCueData _slimeDeathCue;
         private AudioCueData _buffActivateCue;
@@ -122,17 +139,35 @@ namespace AshesofaDyingWorld.Combat.Runtime
                 || (int)result.Reaction >= (int)ImpactReactionType.Stagger
                 || result.GuardBroken;
 
-            SpawnImpact(
-                target.CombatCenter,
-                direction,
-                profile.ImpactVfxScale * (strong ? 1.25f : 1f),
-                ice,
-                result.WasBlocked,
-                result.Shattered,
-                heavy,
-                result.GuardBroken);
+            float visualStrength = profile.ImpactVfxScale * (strong ? 1.25f : 1f);
+            bool customSlimeImpact = !result.WasBlocked
+                && TrySpawnSlimeHitFeedback(attacker, target, request, result, direction, visualStrength);
+
+            // Guard/block vẫn dùng feedback phòng thủ chung. Hit slime thường đã có art riêng nên
+            // không chồng thêm physical_hit_light lên trên, tránh một cú va mà nổ hai ngôn ngữ VFX.
+            if (!customSlimeImpact)
+            {
+                SpawnImpact(
+                    target.CombatCenter,
+                    direction,
+                    visualStrength,
+                    ice,
+                    result.WasBlocked,
+                    result.Shattered,
+                    heavy,
+                    result.GuardBroken);
+            }
+
+            SpawnSlimeReactionVfx(target, request, result, direction, visualStrength);
             AddCameraShake(profile.CameraShakeStrength * (strong ? 1.3f : 1f), strong ? 0.16f : 0.10f);
-            PlayImpactAudio(target, ice, heavy, result, freezeStarted);
+
+            // Shove/Bite có cue tiếp xúc riêng. Khi cue riêng đã phát thì không layer thêm
+            // physical_hit_light/heavy chung, tránh một cú chạm nghe thành hai impact chồng nhau.
+            bool customSlimeAudio = TryPlaySlimeHitAudio(request, result);
+            if (!customSlimeAudio)
+            {
+                PlayImpactAudio(target, ice, heavy, result, freezeStarted);
+            }
 
             if (target.Faction == CombatFaction.Player && result.HpDamage > 0f)
             {
@@ -172,8 +207,6 @@ namespace AshesofaDyingWorld.Combat.Runtime
                 "wood_sword_light_1" => _swingLight1Cue,
                 "wood_sword_light_2" => _swingLight2Cue,
                 "wood_sword_heavy" => _swingHeavyCue,
-                "slime_bite" => _slimeAttackCue,
-                "slime_pounce" => _slimeAttackCue,
                 _ => null
             };
 
@@ -207,8 +240,14 @@ namespace AshesofaDyingWorld.Combat.Runtime
         /// </summary>
         public void PlayActionEvent(CombatCharacter actor, CombatActionData action, CombatActionEventData actionEvent)
         {
-            if (actor == null || action == null || actionEvent == null || AudioManager.Instance == null)
+            if (actor == null || action == null || actionEvent == null)
             {
+                return;
+            }
+
+            if (actionEvent.EventType == CombatActionEventType.PresentationCue)
+            {
+                PlaySlimePresentationCue(actor, actionEvent.CueId);
                 return;
             }
 
@@ -216,9 +255,47 @@ namespace AshesofaDyingWorld.Combat.Runtime
                 && actionEvent.EventType == CombatActionEventType.SpawnProjectile;
             bool wardRelease = action.ActionId == "hyou_frost_ward"
                 && actionEvent.EventType == CombatActionEventType.SpawnField;
-            if ((iceRelease || wardRelease) && _iceReleaseCue != null)
+            if ((iceRelease || wardRelease) && _iceReleaseCue != null && AudioManager.Instance != null)
             {
                 AudioManager.Instance.PlaySfx(_iceReleaseCue);
+            }
+        }
+
+        private void PlaySlimePresentationCue(CombatCharacter actor, StringName cueId)
+        {
+            Node parent = GetTree()?.CurrentScene ?? GetTree()?.Root;
+            if (parent == null || actor == null)
+            {
+                return;
+            }
+
+            string cue = cueId.ToString();
+            Vector2 groundPosition = actor.CombatCenter + Vector2.Down * 7f;
+            switch (cue)
+            {
+                case "slime_pounce_charge":
+                    SpawnSlimeSheetVfx(
+                        parent,
+                        groundPosition,
+                        SlimePounceChargePath,
+                        14f,
+                        0.085f,
+                        0f,
+                        "SlimePounceCharge");
+                    PlaySlimeCue(_slimePounceChargeCue ?? _slimeAttackCue);
+                    break;
+
+                case "slime_pounce_land":
+                    SpawnSlimeSheetVfx(
+                        parent,
+                        groundPosition + actor.FacingDirection * 3f,
+                        SlimePounceLandPath,
+                        22f,
+                        0.09f,
+                        0f,
+                        "SlimePounceLand");
+                    PlaySlimeCue(_slimePounceLandCue ?? _slimeAttackCue);
+                    break;
             }
         }
 
@@ -274,6 +351,155 @@ namespace AshesofaDyingWorld.Combat.Runtime
             UpdateCameraShake(dt);
             UpdateDamageFlash(dt);
             UpdateDamageDirection(dt);
+        }
+
+        /// <summary>
+        /// Âm thanh contact riêng của shove/bite chỉ phát khi hit thật đã được resolver chấp nhận.
+        /// Block sạch trả false để hệ thống tiếp tục dùng block_impact chung.
+        /// </summary>
+        private bool TryPlaySlimeHitAudio(HitRequest request, HitResult result)
+        {
+            if (request?.Action == null
+                || result == null
+                || !result.Applied
+                || (result.WasBlocked && !result.GuardBroken))
+            {
+                return false;
+            }
+
+            AudioCueData cue = request.Action.ActionId switch
+            {
+                "slime_shove" => _slimeShoveCue ?? _slimeAttackCue,
+                "slime_bite" => _slimeBiteSnapCue ?? _slimeAttackCue,
+                _ => null
+            };
+
+            if (cue == null || AudioManager.Instance == null)
+            {
+                return false;
+            }
+
+            AudioManager.Instance.PlaySfx(cue);
+            return true;
+        }
+
+        private static void PlaySlimeCue(AudioCueData cue)
+        {
+            if (cue != null && AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlaySfx(cue);
+            }
+        }
+
+        private bool TrySpawnSlimeHitFeedback(
+            CombatCharacter attacker,
+            CombatCharacter target,
+            HitRequest request,
+            HitResult result,
+            Vector2 direction,
+            float strength)
+        {
+            string actionId = request?.Action?.ActionId ?? string.Empty;
+            Node parent = GetTree()?.CurrentScene ?? GetTree()?.Root;
+            if (parent == null || target == null)
+            {
+                return false;
+            }
+
+            float rotation = direction.LengthSquared() > 0.001f ? direction.Angle() : 0f;
+            switch (actionId)
+            {
+                case "slime_shove":
+                    return SpawnSlimeSheetVfx(
+                        parent,
+                        target.CombatCenter,
+                        SlimeShoveImpactPath,
+                        24f,
+                        Mathf.Clamp(0.085f * strength, 0.065f, 0.12f),
+                        rotation,
+                        "SlimeShoveImpact");
+
+                case "slime_bite":
+                    return SpawnSlimeSheetVfx(
+                        parent,
+                        target.CombatCenter,
+                        SlimeBiteSnapPath,
+                        25f,
+                        Mathf.Clamp(0.078f * strength, 0.06f, 0.105f),
+                        rotation,
+                        "SlimeBiteSnap");
+
+                case "slime_pounce":
+                    // Pounce đã có land cue theo frame và reaction VFX theo kết quả hit.
+                    // Trả true để không chồng physical hit generic lên cú đáp.
+                    return true;
+
+                default:
+                    return false;
+            }
+        }
+
+        private void SpawnSlimeReactionVfx(
+            CombatCharacter target,
+            HitRequest request,
+            HitResult result,
+            Vector2 direction,
+            float strength)
+        {
+            string actionId = request?.Action?.ActionId ?? string.Empty;
+            if (target == null
+                || result == null
+                || (result.WasBlocked && !result.GuardBroken)
+                || !actionId.StartsWith("slime_"))
+            {
+                return;
+            }
+
+            Node parent = GetTree()?.CurrentScene ?? GetTree()?.Root;
+            if (parent == null)
+            {
+                return;
+            }
+
+            float rotation = direction.LengthSquared() > 0.001f ? direction.Angle() : 0f;
+            Vector2 footPosition = target.CombatCenter + Vector2.Down * 10f;
+            switch (result.Reaction)
+            {
+                case ImpactReactionType.Launch:
+                    SpawnSlimeSheetVfx(
+                        parent,
+                        target.CombatCenter,
+                        SlimeLaunchPopPath,
+                        22f,
+                        Mathf.Clamp(0.082f * strength, 0.07f, 0.12f),
+                        rotation,
+                        "SlimeLaunchPop");
+                    break;
+
+                case ImpactReactionType.Shove:
+                    SpawnSlimeSheetVfx(
+                        parent,
+                        footPosition,
+                        SlimeSlideDustPath,
+                        24f,
+                        Mathf.Clamp(0.060f * strength, 0.05f, 0.085f),
+                        rotation,
+                        "SlimeSlideDust");
+                    break;
+
+                case ImpactReactionType.Knockback:
+                case ImpactReactionType.Stagger:
+                case ImpactReactionType.Knockdown:
+                    SpawnSlimeSheetVfx(
+                        parent,
+                        footPosition,
+                        SlimeSlideDustPath,
+                        24f,
+                        Mathf.Clamp(0.073f * strength, 0.06f, 0.105f),
+                        rotation,
+                        "SlimeSlideDust");
+                    break;
+            }
         }
 
         private void SpawnImpact(
@@ -372,6 +598,28 @@ namespace AshesofaDyingWorld.Combat.Runtime
             }
 
             SpawnProceduralImpact(parent, worldPosition, direction, strength, ice, false, shattered);
+        }
+
+        private static bool SpawnSlimeSheetVfx(
+            Node parent,
+            Vector2 worldPosition,
+            string texturePath,
+            float fps,
+            float scale,
+            float rotation,
+            string nodeName)
+        {
+            return SpawnSheetVfx(
+                parent,
+                worldPosition,
+                texturePath,
+                SlimeVfxFrameWidth,
+                SlimeVfxFrameHeight,
+                SlimeVfxFrameCount,
+                fps,
+                scale,
+                rotation,
+                nodeName);
         }
 
         private static bool SpawnSheetVfx(
@@ -606,6 +854,18 @@ namespace AshesofaDyingWorld.Combat.Runtime
 
             _slimeAttackCue = CreateCue(
                 "res://assets/audio/sfx/combat/slime/slime_attack.wav", 3f, 0.98f, 1.03f);
+
+            // Bộ cue combat mới: contact ngắn cho shove/bite, telegraph + land cho pounce.
+            // Pitch chỉ random nhẹ để nhiều slime không nghe như cùng một sample copy-paste.
+            _slimeShoveCue = CreateCue(
+                "res://assets/audio/sfx/combat/slime/slime_shove.mp3", 7f, 0.97f, 1.03f);
+            _slimeBiteSnapCue = CreateCue(
+                "res://assets/audio/sfx/combat/slime/slime_bite_snap.mp3", 6f, 0.98f, 1.04f);
+            _slimePounceChargeCue = CreateCue(
+                "res://assets/audio/sfx/combat/slime/slime_pounce_charge.mp3", -4f, 0.98f, 1.02f);
+            _slimePounceLandCue = CreateCue(
+                "res://assets/audio/sfx/combat/slime/slime_pounce_land.mp3", -2f, 0.97f, 1.03f);
+
             _slimeHurtCue = CreateCue(
                 "res://assets/audio/sfx/combat/slime/slime_hurt.wav", 3f, 0.98f, 1.03f);
             _slimeDeathCue = CreateCue(
