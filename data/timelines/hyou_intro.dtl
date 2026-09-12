@@ -1,0 +1,10 @@
+join Hyou
+Hyou: Ngươi... ngươi có thể thấy ta sao?
+Hyou: Lâu lắm rồi ta không gặp một linh hồn còn sống.
+
+- Ai ngươi vậy?
+    Hyou: Ta là Hyou. Kẻ bị ràng buộc với thế giới đang tàn lụi này.
+    Hyou: Ngươi cũng cảm nhận được nó không? Hơi thở của thế giới đang tắt dần...
+- Thôi ta phải đi.
+    Hyou: Được rồi. Cẩn thận trên đường.
+leave Hyou

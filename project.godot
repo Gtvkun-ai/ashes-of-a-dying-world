@@ -31,12 +31,17 @@ SceneManager="*res://scripts/App/SceneManager.cs"
 
 directories/dch_directory={}
 directories/dtl_directory={
+"hyou_intro": "res://data/timelines/hyou_intro.dtl",
 "timeline": "res://timeline.dtl"
 }
-layout/style_directory={}
+layout/style_directory={
+"": "res://scenes/ui/dialog/jrpg_style.tres",
+"JRPG Style": "res://scenes/ui/dialog/jrpg_style.tres",
+"Speaker Textbox Style": "res://addons/dialogic/Modules/DefaultLayoutParts/Style_SpeakerTextbox/speaker_textbox_style.tres"
+}
 glossary/default_case_sensitive=true
-layout/style_list=[]
-layout/default_style="Default"
+layout/style_list=["res://scenes/ui/dialog/jrpg_style.tres", "res://addons/dialogic/Modules/DefaultLayoutParts/Style_SpeakerTextbox/speaker_textbox_style.tres"]
+layout/default_style="res://scenes/ui/dialog/jrpg_style.tres"
 variables={}
 extensions_folder="res://addons/dialogic_additions"
 text/letter_speed=0.01

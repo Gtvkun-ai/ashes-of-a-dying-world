@@ -19,6 +19,7 @@
 
 [ext_resource type="Script" path="res://scripts/World/Environment/ShadowCaster2D.cs" id="99_shadow"]
 [ext_resource type="Resource" path="res://data/world/shadows/character.tres" id="98_shadow_profile"]
+[ext_resource type="Script" uid="uid://djy3qgwtaev6v" path="res://scripts/World/Interaction/DialogicInteractable.cs" id="100_dialog"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_sxeu7"]
 size = Vector2(11, 6)
@@ -214,3 +215,13 @@ Enabled = true
 VisibleByDefault = false
 RefreshSeconds = 0.15
 MaxCandidates = 6
+
+[node name="DialogicInteractable" type="Node2D" parent="."]
+script = ExtResource("100_dialog")
+TimelineName = "hyou_intro"
+DisplayName = "Hyou"
+PromptVerb = "N\u00f3i chuy\u1ec7n"
+InteractionRadius = 60.0
+Replayable = true
+EmitDialogueCompletedEvent = true
+DialogueId = "hyou_intro"
