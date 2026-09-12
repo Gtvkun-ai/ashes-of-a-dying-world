@@ -5,6 +5,7 @@ using AshesofaDyingWorld.Combat.Data;
 using AshesofaDyingWorld.Core.Data;
 using AshesofaDyingWorld.Core.Managers;
 using AshesofaDyingWorld.Core.Skills;
+using AshesofaDyingWorld.UI.HUD.Skills;
 
 namespace AshesofaDyingWorld.UI.HUD
 {
@@ -95,7 +96,7 @@ namespace AshesofaDyingWorld.UI.HUD
                 if (view.Skill != skill)
                 {
                     view.Skill = skill;
-                    view.Icon.Texture = skill?.Icon;
+                    view.Icon.Texture = SkillIconResolver.Resolve(skill);
                     view.PreviousRemaining = 0f;
                 }
 
@@ -181,6 +182,7 @@ namespace AshesofaDyingWorld.UI.HUD
                 {
                     ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
                     StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+                    TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
                     MouseFilter = Control.MouseFilterEnum.Ignore,
                     Position = new Vector2(3f, 3f),
                     Size = new Vector2(32f, 32f)

@@ -40,6 +40,7 @@ namespace AshesofaDyingWorld.UI.Skills
             ExpandIcon = true;
             IconAlignment = HorizontalAlignment.Center;
             VerticalIconAlignment = VerticalAlignment.Top;
+            TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
             AddThemeConstantOverride("icon_max_width", 46);
             AddThemeFontSizeOverride("font_size", 11);
             AddThemeColorOverride("font_color", ResolveTextColor(state));
