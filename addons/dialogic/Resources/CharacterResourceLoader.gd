@@ -4,17 +4,14 @@ extends ResourceFormatLoader
 
 
 
-## Returns all excepted extenstions
+## .dch files hiện dùng .tres format chuẩn của Godot → dùng built-in loader thay vì custom loader này.
+## Custom loader này chỉ hỗ trợ format dict text cũ và bị broken với format hiện tại.
 func _get_recognized_extensions() -> PackedStringArray:
-	return PackedStringArray(["dch"])
+	return PackedStringArray()
 
 
 ## Returns "Resource" if this file can/should be loaded by this script
 func _get_resource_type(path: String) -> String:
-	var ext := path.get_extension().to_lower()
-	if ext == "dch":
-		return "Resource"
-
 	return ""
 
 
@@ -34,16 +31,15 @@ func _handles_type(typename: StringName) -> bool:
 
 ## Parse the file and return a resource
 func _load(path: String, _original_path: String, _use_sub_threads: bool, _cache_mode: int) -> Variant:
-#	print('[Dialogic] Reimporting character "' , path, '"')
-	var file := FileAccess.open(path, FileAccess.READ)
+	# .dch files hiện dùng Godot .tres format (standard resource format).
+	# Không thể dùng dict_to_inst(str_to_var(...)) vì format đã thay đổi.
+	# Dùng ResourceLoader với CACHE_MODE_IGNORE để load theo Godot built-in loader.
+	var res := ResourceLoader.load(path, "Resource", ResourceLoader.CACHE_MODE_IGNORE_DEEP)
+	if res == null:
+		push_error("[Dialogic] Cannot load character resource: " + path)
+		return ERR_CANT_OPEN
+	return res
 
-	if not file:
-		# For now, just let editor know that for some reason you can't
-		# read the file.
-		print("[Dialogic] Error opening file:", FileAccess.get_open_error())
-		return FileAccess.get_open_error()
-
-	return dict_to_inst(str_to_var(file.get_as_text()))
 
 
 func _get_dependencies(path:String, _add_type:bool) -> PackedStringArray:
