@@ -18,7 +18,21 @@ namespace AshesofaDyingWorld.Combat.Data
         [Export] public float GuardDamage { get; set; } = 12f;
         [Export] public float PoiseDamage { get; set; } = 10f;
         [Export] public float HitstunSeconds { get; set; } = 0.12f;
+
+        // Tên field cũ được giữ để không làm gãy .tres. Runtime hiểu đây là vận tốc knockback ban đầu (px/s),
+        // không phải Newton force liên tục. Mass/Momentum/DEF sẽ scale giá trị này trong ImpactReactionResolver.
         [Export] public float KnockbackForce { get; set; } = 80f;
+
+        [ExportGroup("Impact / Reaction")]
+        // 0 = tự suy ra từ PoiseDamage + KnockbackForce để resource cũ vẫn chạy an toàn.
+        [Export] public float ImpactPower { get; set; } = 0f;
+        [Export(PropertyHint.Range, "0,1,0.05")] public float BodyMassInfluence { get; set; } = 0.15f;
+        [Export(PropertyHint.Range, "0,1,0.05")] public float MomentumInfluence { get; set; } = 0.10f;
+        [Export] public float ReferenceImpactSpeed { get; set; } = 100f;
+        [Export] public bool CanKnockdown { get; set; } = false;
+        [Export] public bool CanLaunch { get; set; } = false;
+
+        // Legacy override: chỉ giữ cho resource cũ/skill đặc biệt. Đòn thường nên để resolver tự quyết định.
         [Export] public bool ForceStagger { get; set; } = false;
         [Export] public float ForcedStaggerSeconds { get; set; } = 0.28f;
         [Export] public float LaunchHeight { get; set; } = 0f;

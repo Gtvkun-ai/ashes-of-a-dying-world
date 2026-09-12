@@ -104,22 +104,23 @@ namespace AshesofaDyingWorld.Combat.Runtime
                 }
             }
 
-            Vector2 direction = request.AttackDirection;
-            if (direction == Vector2.Zero)
-            {
-                direction = (target.GlobalPosition - attacker.GlobalPosition).Normalized();
-            }
+            // Damage/Poise giải quyết trước; Impact dùng trạng thái Poise sau hit để biết target
+            // còn trụ vững hay đã bị bào mòn đến ngưỡng mất thăng bằng.
+            ImpactResolution impact = ImpactReactionResolver.Resolve(
+                request,
+                wasBlocked,
+                guardBroken,
+                staggered,
+                shattered);
 
-            float knockbackResistance = target.Stats?.GetKnockbackResistance() ?? 0f;
-            float knockbackMultiplier = shattered
-                ? Mathf.Max(1f, profile.ShatterKnockbackMultiplier)
-                : 1f;
-            Vector2 knockback = direction.Normalized()
-                * profile.KnockbackForce
-                * knockbackMultiplier
-                * (1f - knockbackResistance);
             bool killed = target.Stats != null && target.Stats.CurrentHP <= 0f;
-            bool forceStagger = profile.ForceStagger || shattered;
+            bool reactionStaggered = (int)impact.Reaction >= (int)ImpactReactionType.Stagger;
+            float reactionHitstun = impact.Reaction switch
+            {
+                ImpactReactionType.Absorb => 0f,
+                ImpactReactionType.Flinch => Mathf.Max(0f, profile.HitstunSeconds) * 0.65f,
+                _ => Mathf.Max(0f, profile.HitstunSeconds)
+            };
 
             return new HitResult
             {
@@ -131,16 +132,22 @@ namespace AshesofaDyingWorld.Combat.Runtime
                 PoiseDamage = poiseDamage,
                 WasBlocked = wasBlocked,
                 GuardBroken = guardBroken,
-                Staggered = staggered || forceStagger,
+                Staggered = reactionStaggered,
                 Killed = killed,
                 Shattered = shattered,
-                HitstunSeconds = profile.HitstunSeconds,
-                ForcedStaggerSeconds = forceStagger ? Mathf.Max(0.08f, profile.ForcedStaggerSeconds) : 0f,
+                Reaction = impact.Reaction,
+                EffectiveImpact = impact.ImpactPower,
+                EffectiveStability = impact.Stability,
+                ImpactRatio = impact.ImpactRatio,
+                MassFactor = impact.MassFactor,
+                MomentumFactor = impact.MomentumFactor,
+                HitstunSeconds = reactionHitstun,
+                ForcedStaggerSeconds = impact.ReactionLockSeconds,
                 HitStopSeconds = Mathf.Max(0f, profile.HitStopSeconds),
                 HitFlashSeconds = Mathf.Max(0f, profile.HitFlashSeconds),
-                LaunchHeight = Mathf.Max(0f, profile.LaunchHeight),
-                LaunchDuration = Mathf.Max(0.05f, profile.LaunchDuration),
-                Knockback = knockback
+                LaunchHeight = impact.LaunchHeight,
+                LaunchDuration = impact.LaunchDuration,
+                Knockback = impact.KnockbackVelocity
             };
         }
     }

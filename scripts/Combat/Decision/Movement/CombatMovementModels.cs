@@ -40,14 +40,20 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
         }
     }
 
+    /// <summary>
+    /// Lệnh movement P0 dùng preferred velocity thay vì chỉ direction.
+    /// Direction vẫn giữ để debug/API cũ dễ đọc; PreferredVelocity mới là đầu vào thật cho local avoidance/RVO.
+    /// </summary>
     public readonly struct MovementCommand
     {
         public Vector2 Direction { get; }
+        public Vector2 PreferredVelocity { get; }
         public bool WantsRun { get; }
         public bool PreserveFacing { get; }
         public Vector2 FacePosition { get; }
         public int DirectionSlot { get; }
         public float Score { get; }
+        public float SpeedScale { get; }
 
         public bool HasMovement => Direction.LengthSquared() > 0.001f;
 
@@ -57,19 +63,33 @@ namespace AshesofaDyingWorld.Combat.Decision.Movement
             bool preserveFacing,
             Vector2 facePosition,
             int directionSlot,
-            float score)
+            float score,
+            float speedScale = 1f,
+            Vector2 preferredVelocity = default)
         {
             Direction = direction.LengthSquared() <= 0.001f ? Vector2.Zero : direction.Normalized();
+            PreferredVelocity = preferredVelocity.LengthSquared() <= 0.001f
+                ? Direction
+                : preferredVelocity;
             WantsRun = wantsRun;
             PreserveFacing = preserveFacing;
             FacePosition = facePosition;
             DirectionSlot = directionSlot;
             Score = Mathf.Clamp(score, 0f, 1f);
+            SpeedScale = Direction == Vector2.Zero ? 1f : Mathf.Clamp(speedScale, 0.08f, 1f);
         }
 
         public static MovementCommand Stop(Vector2 facePosition)
         {
-            return new MovementCommand(Vector2.Zero, false, true, facePosition, -1, 1f);
+            return new MovementCommand(
+                Vector2.Zero,
+                false,
+                true,
+                facePosition,
+                -1,
+                1f,
+                1f,
+                Vector2.Zero);
         }
     }
 }

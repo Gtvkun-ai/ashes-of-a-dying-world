@@ -33,6 +33,7 @@ namespace AshesofaDyingWorld.Combat.Actors
         [Export] public NodePath EquipmentPath { get; set; } = new NodePath("EquipmentManager");
         [Export] public NodePath HurtboxPath { get; set; } = new NodePath("Hurtbox");
         [Export] public NodePath WeaponSpritePath { get; set; } = new NodePath("WeaponSprite");
+        [Export] public NodePath MovementCollisionPath { get; set; } = new NodePath("CollisionShape2D");
 
         [ExportGroup("Movement")]
         [Export] public float Speed { get; set; } = 100f;
@@ -65,10 +66,18 @@ namespace AshesofaDyingWorld.Combat.Actors
         public bool IsPerformingAttack => Actions?.IsRunning == true;
         public Vector2 FacingDirection => DirectionToVector(_facingCardinal);
         public string FacingCardinal => _facingCardinal;
+
+        // Velocity dùng riêng cho tính momentum khi va chạm. Không cộng external knockback cũ để
+        // một actor đang bị hất không vô tình biến cú đánh kế tiếp thành đòn siêu nặng.
+        public Vector2 ImpactVelocity => _locomotionVelocity + (Actions?.MovementVelocity ?? Vector2.Zero);
         public Vector2 CombatCenter => _hurtboxShape != null
             && GodotObject.IsInstanceValid(_hurtboxShape)
                 ? _hurtboxShape.GlobalPosition
                 : (_hurtbox?.GlobalPosition ?? GlobalPosition);
+        public Vector2 MovementCenter => _movementCollisionShape != null
+            && GodotObject.IsInstanceValid(_movementCollisionShape)
+                ? _movementCollisionShape.GlobalPosition
+                : GlobalPosition;
 
         public WeaponMovesetData ActiveMoveset
         {
@@ -83,6 +92,7 @@ namespace AshesofaDyingWorld.Combat.Actors
         private AnimatedSprite2D _weaponSprite;
         private Area2D _hurtbox;
         private CollisionShape2D _hurtboxShape;
+        private CollisionShape2D _movementCollisionShape;
         private CombatHitbox _combatHitbox;
         private Vector2 _moveCommand;
         private bool _runCommand;
@@ -287,6 +297,12 @@ namespace AshesofaDyingWorld.Combat.Actors
             return new Vector2(
                 Mathf.Clamp(worldPoint.X, minX, maxX),
                 Mathf.Clamp(worldPoint.Y, minY, maxY));
+        }
+
+        public bool TryGetLevelBounds(out Rect2 bounds)
+        {
+            bounds = _levelBounds;
+            return KeepInsideLevelBounds && _hasLevelBounds;
         }
 
         public void SetBlocking(bool value)
@@ -744,6 +760,9 @@ namespace AshesofaDyingWorld.Combat.Actors
             Equipment = ResolveNode<EquipmentManager>(EquipmentPath, "EquipmentManager");
             _hurtbox = ResolveNode<Area2D>(HurtboxPath, "Hurtbox");
             _hurtboxShape = ResolveHurtboxShape(_hurtbox);
+            _movementCollisionShape = ResolveNode<CollisionShape2D>(
+                MovementCollisionPath,
+                "CollisionShape2D");
             _weaponSprite = ResolveNode<AnimatedSprite2D>(WeaponSpritePath, "WeaponSprite");
             ResolveBodySprite();
 

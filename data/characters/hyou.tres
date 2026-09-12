@@ -22,6 +22,7 @@ Avatar = ExtResource("1_dor51")
 BodyScene = ExtResource("3_tmsvj")
 CharacterRace = ExtResource("2_pl1xm")
 BalanceProfile = ExtResource("6_balance")
+BodyMass = 0.92
 ActiveSkills = Array[Resource]([ExtResource("4_ice_bolt"), ExtResource("7_frost_ward")])
 ComboSequence = Array[Resource]([ExtResource("4_ice_bolt")])
 SkillTree = ExtResource("5_skill_tree")

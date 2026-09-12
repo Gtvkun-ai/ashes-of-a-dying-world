@@ -16,6 +16,15 @@ namespace AshesofaDyingWorld.Combat.Model
         public bool Staggered { get; init; }
         public bool Killed { get; init; }
         public bool Shattered { get; init; }
+
+        // Chẩn đoán Impact: giữ lại trong HitResult để debug/tune trực tiếp khi combat đang chạy.
+        public ImpactReactionType Reaction { get; init; } = ImpactReactionType.Absorb;
+        public float EffectiveImpact { get; init; }
+        public float EffectiveStability { get; init; }
+        public float ImpactRatio { get; init; }
+        public float MassFactor { get; init; } = 1f;
+        public float MomentumFactor { get; init; } = 1f;
+
         public float HitstunSeconds { get; init; }
         public float ForcedStaggerSeconds { get; init; }
         public float HitStopSeconds { get; init; }

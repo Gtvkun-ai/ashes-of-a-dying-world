@@ -48,6 +48,8 @@ shader_parameter/shade_gain = 0.12
 shader_parameter/root_ao = 0.12
 
 [node name="Tree" type="StaticBody2D"]
+collision_layer = 8
+collision_mask = 0
 script = ExtResource("9_editor_preview")
 
 [node name="AssetShadow" type="Node2D" parent="."]

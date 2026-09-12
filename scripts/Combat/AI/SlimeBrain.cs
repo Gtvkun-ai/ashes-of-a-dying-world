@@ -1,5 +1,6 @@
 using Godot;
 using AshesofaDyingWorld.Combat.Actors;
+using AshesofaDyingWorld.Combat.Data;
 using AshesofaDyingWorld.Combat.Runtime;
 
 namespace AshesofaDyingWorld.Combat.AI
@@ -11,7 +12,7 @@ namespace AshesofaDyingWorld.Combat.AI
     /// </summary>
     public partial class SlimeBrain : Node
     {
-        private const string RuntimeBuild = "v7-smoother-melee";
+        private const string RuntimeBuild = "v8-impact-pounce";
         private enum EnemyState
         {
             Wander,
@@ -45,6 +46,15 @@ namespace AshesofaDyingWorld.Combat.AI
         [Export] public float AxisSwitchBias { get; set; } = 1.3f;
         [Export] public float AttackCooldown { get; set; } = 0.65f;
 
+        [ExportGroup("Pounce Skill")]
+        [Export] public CombatActionData PounceAction { get; set; }
+        [Export(PropertyHint.Range, "0,1,0.05")] public float PounceChance { get; set; } = 0.28f;
+        [Export] public float PounceMinDistance { get; set; } = 29f;
+        [Export] public float PounceMaxDistance { get; set; } = 54f;
+        [Export] public float PounceLaneTolerance { get; set; } = 15f;
+        [Export] public float PounceCooldown { get; set; } = 3.0f;
+        [Export] public float PounceDecisionInterval { get; set; } = 0.45f;
+
         [ExportGroup("Wander")]
         [Export] public float WanderRadius { get; set; } = 70f;
         [Export] public float WanderRetargetMin { get; set; } = 1.2f;
@@ -59,6 +69,8 @@ namespace AshesofaDyingWorld.Combat.AI
         private Vector2 _approachFacing = Vector2.Down;
         private EnemyState _state = EnemyState.Wander;
         private float _attackCooldownRemaining;
+        private float _pounceCooldownRemaining;
+        private float _pounceDecisionRemaining;
         private float _targetRefreshRemaining;
         private float _wanderRetargetRemaining;
         private float _provokedTargetRemaining;
@@ -80,6 +92,8 @@ namespace AshesofaDyingWorld.Combat.AI
 
             float dt = (float)delta;
             _attackCooldownRemaining = Mathf.Max(0f, _attackCooldownRemaining - dt);
+            _pounceCooldownRemaining = Mathf.Max(0f, _pounceCooldownRemaining - dt);
+            _pounceDecisionRemaining = Mathf.Max(0f, _pounceDecisionRemaining - dt);
             _targetRefreshRemaining -= dt;
             _wanderRetargetRemaining -= dt;
             _provokedTargetRemaining = Mathf.Max(0f, _provokedTargetRemaining - dt);
@@ -210,6 +224,13 @@ namespace AshesofaDyingWorld.Combat.AI
                 return;
             }
 
+            // Pounce chỉ được cân nhắc ở khoảng cách vừa: đủ xa để nhìn ra cú nhảy,
+            // nhưng không spam random mỗi physics frame. Nếu roll fail, decision interval giữ AI ổn định.
+            if (TryStartPounce(approach))
+            {
+                return;
+            }
+
             if (approach.CanAttack)
             {
                 _state = EnemyState.Attack;
@@ -227,6 +248,48 @@ namespace AshesofaDyingWorld.Combat.AI
                 ? toSlot.Normalized()
                 : (approach.TooFar ? _approachFacing : -_approachFacing);
             _character.SetMoveInput(moveDirection, false, true);
+        }
+
+        private bool TryStartPounce(CombatSteering.CardinalApproach approach)
+        {
+            if (PounceAction == null
+                || _pounceCooldownRemaining > 0f
+                || _pounceDecisionRemaining > 0f
+                || _attackCooldownRemaining > 0f
+                || approach.DirectDistance < Mathf.Max(0f, PounceMinDistance)
+                || approach.DirectDistance > Mathf.Max(PounceMinDistance, PounceMaxDistance)
+                || approach.ForwardDistance <= 0f
+                || approach.LateralDistance > Mathf.Max(1f, PounceLaneTolerance))
+            {
+                return false;
+            }
+
+            _pounceDecisionRemaining = Mathf.Max(0.1f, PounceDecisionInterval);
+            if (_rng.Randf() > Mathf.Clamp(PounceChance, 0f, 1f))
+            {
+                return false;
+            }
+
+            _state = EnemyState.Attack;
+            _escapingTargetOverlap = false;
+            _character.StopMoveInput();
+            _character.FaceDirection(_approachFacing);
+
+            // Dùng ability-action entry point để pounce không chen vào light-combo index.
+            // AimTarget được truyền vào để sau này telegraph/homing nhẹ có cùng nguồn target thật.
+            bool started = _character.Actions?.TryStartAbilityAction(
+                PounceAction,
+                _approachFacing,
+                _target,
+                1f) == true;
+            if (!started)
+            {
+                return false;
+            }
+
+            _pounceCooldownRemaining = Mathf.Max(0.25f, PounceCooldown);
+            _attackCooldownRemaining = Mathf.Max(AttackCooldown, 0.4f);
+            return true;
         }
 
         private void RunReturnOrWander()

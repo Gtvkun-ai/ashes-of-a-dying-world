@@ -30,16 +30,21 @@ namespace AshesofaDyingWorld.Combat.Decision.Execution
 
         private readonly CombatCharacter _self;
         private readonly CombatClassProfile _classProfile;
+        private readonly CombatMovementSolver _movementSolver;
         private readonly float _followSide;
 
         private Vector2 _followForward = Vector2.Down;
         private bool _followForwardInitialized;
         private bool _followRunLatched;
 
-        public CombatIntentExecutor(CombatCharacter self, CombatClassProfile classProfile)
+        public CombatIntentExecutor(
+            CombatCharacter self,
+            CombatClassProfile classProfile,
+            CombatMovementSolver movementSolver = null)
         {
             _self = self;
             _classProfile = classProfile;
+            _movementSolver = movementSolver;
             _followSide = self != null && (self.GetInstanceId() & 1UL) == 0UL ? 1f : -1f;
         }
 
@@ -192,6 +197,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Execution
                 || _self.StateMachine?.CanMove != true)
             {
                 _self.StopMoveInput();
+                _movementSolver?.StopMotor();
                 return MovementCommand.Stop(tacticalMovement.FacePosition);
             }
 
@@ -201,14 +207,49 @@ namespace AshesofaDyingWorld.Combat.Decision.Execution
                 {
                     _self.FaceToward(tacticalMovement.FacePosition);
                 }
+
+                float baseSpeed = tacticalMovement.WantsRun ? _self.RunSpeed : _self.Speed;
+                Vector2 preferredVelocity = tacticalMovement.PreferredVelocity;
+                // Command cũ/ngoài P0 có thể chỉ chứa vector hướng đơn vị. Nâng nó thành velocity thật.
+                if (preferredVelocity.LengthSquared() <= 2.25f)
+                {
+                    preferredVelocity = tacticalMovement.Direction
+                        * baseSpeed
+                        * tacticalMovement.SpeedScale;
+                }
+
+                Vector2 safeVelocity = _movementSolver?.ResolveMotorVelocity(preferredVelocity)
+                    ?? preferredVelocity;
+                if (safeVelocity.LengthSquared() <= 0.001f)
+                {
+                    _self.StopMoveInput();
+                    _movementSolver?.StopMotor();
+                    return MovementCommand.Stop(tacticalMovement.FacePosition);
+                }
+
+                Vector2 safeDirection = safeVelocity.Normalized();
+                float safeSpeedScale = Mathf.Clamp(
+                    safeVelocity.Length() / Mathf.Max(1f, baseSpeed),
+                    0.08f,
+                    1f);
                 _self.SetMoveInput(
-                    tacticalMovement.Direction,
+                    safeDirection,
                     tacticalMovement.WantsRun,
-                    tacticalMovement.PreserveFacing);
-                return tacticalMovement;
+                    tacticalMovement.PreserveFacing,
+                    safeSpeedScale);
+                return new MovementCommand(
+                    safeDirection,
+                    tacticalMovement.WantsRun,
+                    tacticalMovement.PreserveFacing,
+                    tacticalMovement.FacePosition,
+                    tacticalMovement.DirectionSlot,
+                    tacticalMovement.Score,
+                    safeSpeedScale,
+                    safeVelocity);
             }
 
             _self.StopMoveInput();
+            _movementSolver?.StopMotor();
             return MovementCommand.Stop(tacticalMovement.FacePosition);
         }
 
@@ -221,6 +262,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Execution
 
             _self.StopMoveInput();
             _self.SetBlocking(false);
+            _movementSolver?.StopMotor();
             _followRunLatched = false;
             _followForwardInitialized = false;
         }
@@ -234,6 +276,7 @@ namespace AshesofaDyingWorld.Combat.Decision.Execution
                 || _self.IsPerformingAttack)
             {
                 _self.StopMoveInput();
+                _movementSolver?.StopMotor();
                 _followRunLatched = false;
                 return MovementCommand.Stop(IsUsable(leader) ? leader.CombatCenter : _self.CombatCenter);
             }
@@ -269,6 +312,12 @@ namespace AshesofaDyingWorld.Combat.Decision.Execution
             Vector2 anchor = leaderPosition
                 - _followForward * FollowRadiusBehind
                 + side * (FollowRadiusSide * _followSide);
+            anchor = _movementSolver?.ResolveFollowAnchor(
+                selfPosition,
+                leaderPosition,
+                anchor,
+                _followForward,
+                _followSide) ?? anchor;
             Vector2 toAnchor = anchor - selfPosition;
 
             // Tách thân mềm nếu Player quay lại đè đúng lên Hyou.
@@ -299,7 +348,15 @@ namespace AshesofaDyingWorld.Combat.Decision.Execution
 
             if (anchorDistance <= FollowStopDistance)
             {
+                // Vẫn sample benchmark khi đã đứng đúng formation. P2 cũ chỉ đo lúc đang chạy nên
+                // follow success dễ bị méo về 0 dù Hyou đã bám đúng anchor phần lớn thời gian.
+                _movementSolver?.ResolveFreeMovementVelocity(
+                    selfPosition,
+                    anchor,
+                    Vector2.Zero,
+                    FollowStopDistance);
                 _self.StopMoveInput();
+                _movementSolver?.StopMotor();
                 return MovementCommand.Stop(anchor);
             }
 
@@ -312,15 +369,37 @@ namespace AshesofaDyingWorld.Combat.Decision.Execution
                     0.18f,
                     1f);
 
-            _self.SetMoveInput(direction, _followRunLatched, false, speedScale);
+            float baseSpeed = _followRunLatched ? _self.RunSpeed : _self.Speed;
+            Vector2 preferredVelocity = direction * baseSpeed * speedScale;
+            Vector2 safeVelocity = _movementSolver?.ResolveFreeMovementVelocity(
+                selfPosition,
+                anchor,
+                preferredVelocity,
+                FollowStopDistance) ?? preferredVelocity;
+
+            if (safeVelocity.LengthSquared() <= 0.001f)
+            {
+                _self.StopMoveInput();
+                _movementSolver?.StopMotor();
+                return MovementCommand.Stop(anchor);
+            }
+
+            Vector2 safeDirection = safeVelocity.Normalized();
+            float safeSpeedScale = Mathf.Clamp(
+                safeVelocity.Length() / Mathf.Max(1f, baseSpeed),
+                0.08f,
+                1f);
+            _self.SetMoveInput(safeDirection, _followRunLatched, false, safeSpeedScale);
             float score = Mathf.Clamp(anchorDistance / FollowSlowDistance, 0f, 1f);
             return new MovementCommand(
-                direction,
+                safeDirection,
                 _followRunLatched,
                 false,
                 anchor,
                 -2, // -2 = formation follow, để log không còn giả vờ move=(0,0).
-                score);
+                score,
+                safeSpeedScale,
+                safeVelocity);
         }
 
         private SkillData ResolveSkill(string actionId)
@@ -370,18 +449,12 @@ namespace AshesofaDyingWorld.Combat.Decision.Execution
                 return null;
             }
 
-            foreach (Node node in _self.GetTree().GetNodesInGroup("Combatant"))
-            {
-                if (node is CombatCharacter combatant
-                    && combatant.GetInstanceId() == instanceId.Value
-                    && combatant.IsAlive
-                    && !combatant.IsQueuedForDeletion())
-                {
-                    return combatant;
-                }
-            }
-
-            return null;
+            CombatCharacter combatant = CombatSpatialIndex.FindById(_self.GetTree(), instanceId.Value);
+            return combatant != null
+                && combatant.IsAlive
+                && !combatant.IsQueuedForDeletion()
+                    ? combatant
+                    : null;
         }
 
         private static bool IsCastIntent(CombatIntentType type)

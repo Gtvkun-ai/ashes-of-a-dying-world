@@ -49,6 +49,8 @@ shader_parameter/rain_stiffness = 0.32
 size = Vector2(32, 62)
 
 [node name="apple tree" type="StaticBody2D" unique_id=516426036]
+collision_layer = 8
+collision_mask = 0
 script = ExtResource("9_editor_preview")
 
 [node name="AssetShadow" type="Node2D" parent="." unique_id=1922227248]

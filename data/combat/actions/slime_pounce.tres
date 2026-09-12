@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="CombatActionData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/Combat/Data/CombatActionData.cs" id="1"]
+[ext_resource type="Resource" path="res://data/combat/hit_profiles/slime_pounce.tres" id="2"]
+
+[resource]
+script = ExtResource("1")
+ActionId = "slime_pounce"
+Tags = 6
+AnimationTemplate = "pounce_{dir}"
+StartFrame = 0
+ActiveStartFrame = 3
+ActiveEndFrame = 3
+EndFrame = 4
+PlaybackSpeedMultiplier = 1.05
+ScalePlaybackWithAttackSpeed = true
+StartupSeconds = 0.34
+ActiveSeconds = 0.20
+RecoverySeconds = 0.48
+InputBufferSeconds = 0.0
+StaminaCost = 0.0
+# Slime scene đang dùng ActionLungeMultiplier=0.12, nên 520 -> ~62 px/s runtime.
+# Con số lớn ở resource là chủ ý để pounce thật sự có closing speed cho momentum resolver.
+LungeSpeed = 520.0
+MovementInputMultiplier = 0.0
+HitProfile = ExtResource("2")

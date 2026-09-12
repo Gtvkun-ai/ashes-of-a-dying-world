@@ -44,9 +44,42 @@ namespace AshesofaDyingWorld.Combat.Projectiles
                 damageMultiplier,
                 aimTarget);
             worldParent.AddChild(projectile);
-            projectile.GlobalPosition = origin
-                + safeDirection * Mathf.Max(0f, spec.SpawnOffset);
+
+            // SpawnOffset là khoảng hở presentation, không được phép biến thành một cú
+            // "teleport xuyên target". Ở cự ly gần trước đây Ice Bolt có thể spawn 20 px
+            // về phía trước trong khi slime chỉ cách hơn 20 px một chút -> viên đạn bắt đầu
+            // ở cạnh/sau hurtbox rồi bay tiếp, nhìn như aim ngu dù target đang đứng ngay đó.
+            float spawnOffset = ResolveSafeSpawnOffset(
+                origin,
+                aimTarget,
+                spec,
+                Mathf.Max(0f, spec.SpawnOffset));
+            projectile.GlobalPosition = origin + safeDirection * spawnOffset;
             return projectile;
+        }
+
+        private static float ResolveSafeSpawnOffset(
+            Vector2 origin,
+            CombatCharacter target,
+            ProjectileSpecData spec,
+            float requestedOffset)
+        {
+            if (requestedOffset <= 0f
+                || target == null
+                || !GodotObject.IsInstanceValid(target)
+                || target.IsQueuedForDeletion()
+                || !target.IsAlive)
+            {
+                return Mathf.Max(0f, requestedOffset);
+            }
+
+            float distanceToTarget = origin.DistanceTo(target.CombatCenter);
+
+            // Chừa projectile radius + một ít margin trước tâm target. Nếu target ở quá gần,
+            // offset sẽ tự co về 0 thay vì spawn viên đạn ở phía bên kia đối tượng.
+            float targetClearance = Mathf.Max(6f, (spec?.Radius ?? 0f) * 1.25f);
+            float maximumSafeOffset = Mathf.Max(0f, distanceToTarget - targetClearance);
+            return Mathf.Min(Mathf.Max(0f, requestedOffset), maximumSafeOffset);
         }
 
         private static Vector2 ResolveReleaseAim(

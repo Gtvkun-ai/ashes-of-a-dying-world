@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Godot;
 using AshesofaDyingWorld.Combat.Actors;
 using AshesofaDyingWorld.Combat.Decision.Model;
@@ -17,23 +18,35 @@ namespace AshesofaDyingWorld.Combat.Decision.Party
         private readonly float _searchRadius;
         private readonly float _leaderDangerRadius;
         private readonly float _backlineOffset;
+        private readonly CombatEngagementPolicy _engagementPolicy;
+        private readonly CombatVisionSensor _visionSensor;
+        private readonly float _targetMemorySeconds;
+        private readonly List<CombatCharacter> _spatialQueryBuffer = new(24);
 
         public PartyTacticalDirector(
             SceneTree tree,
             float searchRadius,
             float leaderDangerRadius,
+            CombatEngagementPolicy engagementPolicy = null,
+            CombatVisionSensor visionSensor = null,
+            float targetMemorySeconds = 1.25f,
             float backlineOffset = 48f)
         {
             _tree = tree;
             _searchRadius = Mathf.Max(1f, searchRadius);
             _leaderDangerRadius = Mathf.Max(1f, leaderDangerRadius);
+            _engagementPolicy = engagementPolicy
+                ?? new CombatEngagementPolicy(_searchRadius, false, _searchRadius, _searchRadius * 1.25f, _searchRadius, _searchRadius * 1.25f, 99999f);
+            _visionSensor = visionSensor;
+            _targetMemorySeconds = Mathf.Max(0f, targetMemorySeconds);
             _backlineOffset = Mathf.Max(8f, backlineOffset);
         }
 
         public CombatRoleAssignment? GetAssignment(
             CombatCharacter actor,
             CombatCharacter leader,
-            CombatBlackboard blackboard)
+            CombatBlackboard blackboard,
+            float timeSeconds = 0f)
         {
             if (!IsUsable(actor))
             {
@@ -41,15 +54,20 @@ namespace AshesofaDyingWorld.Combat.Decision.Party
             }
 
             CombatCharacter priorityTarget = FindLeaderThreat(actor, leader)
-                ?? FindRememberedTarget(actor, blackboard)
-                ?? FindNearestHostile(actor);
+                ?? FindRememberedTarget(actor, leader, blackboard, timeSeconds)
+                ?? FindNearestHostile(actor, leader);
 
             Vector2 anchor = actor.CombatCenter;
             if (IsUsable(leader))
             {
                 if (IsUsable(priorityTarget))
                 {
-                    Vector2 leaderToTarget = priorityTarget.CombatCenter - leader.CombatCenter;
+                    bool sharedThreat = IsImmediateLeaderThreat(leader, priorityTarget);
+                    bool visibleNow = _visionSensor == null || _visionSensor.CanSee(actor, priorityTarget);
+                    Vector2 knownTargetPosition = visibleNow || sharedThreat
+                        ? priorityTarget.CombatCenter
+                        : (blackboard?.LastKnownTargetPosition ?? priorityTarget.CombatCenter);
+                    Vector2 leaderToTarget = knownTargetPosition - leader.CombatCenter;
                     Vector2 awayFromTarget = leaderToTarget.LengthSquared() <= 0.001f
                         ? -leader.FacingDirection
                         : -leaderToTarget.Normalized();
@@ -80,22 +98,25 @@ namespace AshesofaDyingWorld.Combat.Decision.Party
             CombatCharacter best = null;
             float bestScore = float.NegativeInfinity;
             float dangerRadiusSquared = _leaderDangerRadius * _leaderDangerRadius;
-            foreach (Node node in _tree.GetNodesInGroup("Combatant"))
+            CombatSpatialIndex.QueryRadius(_tree, leader.CombatCenter, _leaderDangerRadius, _spatialQueryBuffer);
+            for (int i = 0; i < _spatialQueryBuffer.Count; i++)
             {
-                if (node is not CombatCharacter hostile
-                    || !IsHostile(actor, hostile)
+                CombatCharacter hostile = _spatialQueryBuffer[i];
+                if (!IsHostile(actor, hostile)
                     || hostile.CombatCenter.DistanceSquaredTo(leader.CombatCenter) > dangerRadiusSquared)
                 {
                     continue;
                 }
 
                 CombatStateId state = hostile.StateMachine?.Current ?? CombatStateId.Locomotion;
-                float stateScore = state switch
+                // P3.2: "leader threat" là threat thật, không phải enemy chỉ đứng gần leader.
+                // Nếu không gate state ở đây, proximity+facing có thể biến một slime idle thành wall-hack override.
+                if (state != CombatStateId.AttackStartup && state != CombatStateId.AttackActive)
                 {
-                    CombatStateId.AttackActive => 1f,
-                    CombatStateId.AttackStartup => 0.82f,
-                    _ => 0.18f
-                };
+                    continue;
+                }
+
+                float stateScore = state == CombatStateId.AttackActive ? 1f : 0.82f;
                 Vector2 toLeader = leader.CombatCenter - hostile.CombatCenter;
                 float facingScore = toLeader.LengthSquared() <= 0.001f
                     ? 1f
@@ -115,39 +136,49 @@ namespace AshesofaDyingWorld.Combat.Decision.Party
             return bestScore >= 0.34f ? best : null;
         }
 
-        private CombatCharacter FindRememberedTarget(CombatCharacter actor, CombatBlackboard blackboard)
+        private CombatCharacter FindRememberedTarget(
+            CombatCharacter actor,
+            CombatCharacter leader,
+            CombatBlackboard blackboard,
+            float timeSeconds)
         {
             if (_tree == null || blackboard == null || !blackboard.CurrentTargetId.HasValue)
             {
                 return null;
             }
 
-            foreach (Node node in _tree.GetNodesInGroup("Combatant"))
-            {
-                if (node is CombatCharacter candidate
-                    && candidate.GetInstanceId() == blackboard.CurrentTargetId.Value
-                    && IsHostile(actor, candidate)
-                    && actor.CombatCenter.DistanceSquaredTo(candidate.CombatCenter) <= _searchRadius * _searchRadius * 1.5f)
-                {
-                    return candidate;
-                }
-            }
+            CombatCharacter candidate = CombatSpatialIndex.FindById(_tree, blackboard.CurrentTargetId.Value);
+            bool leaderEmergency = IsImmediateLeaderThreat(leader, candidate);
+            bool visibleNow = candidate != null
+                && (_visionSensor == null || _visionSensor.CanSee(actor, candidate));
+            bool freshMemory = candidate != null
+                && blackboard.HasFreshVisualMemory(candidate, timeSeconds, _targetMemorySeconds);
 
-            return null;
+            return candidate != null
+                && IsHostile(actor, candidate)
+                && _engagementPolicy.AllowsRetain(actor, leader, candidate, leaderEmergency)
+                && (leaderEmergency || visibleNow || freshMemory)
+                    ? candidate
+                    : null;
         }
 
-        private CombatCharacter FindNearestHostile(CombatCharacter actor)
+        private CombatCharacter FindNearestHostile(CombatCharacter actor, CombatCharacter leader)
         {
             if (_tree == null)
             {
                 return null;
             }
 
+            float queryRadius = _engagementPolicy.GetPassiveQueryRadius(leader);
             CombatCharacter nearest = null;
-            float bestDistanceSquared = _searchRadius * _searchRadius;
-            foreach (Node node in _tree.GetNodesInGroup("Combatant"))
+            float bestDistanceSquared = queryRadius * queryRadius;
+            CombatSpatialIndex.QueryRadius(_tree, actor.CombatCenter, queryRadius, _spatialQueryBuffer);
+            for (int i = 0; i < _spatialQueryBuffer.Count; i++)
             {
-                if (node is not CombatCharacter candidate || !IsHostile(actor, candidate))
+                CombatCharacter candidate = _spatialQueryBuffer[i];
+                if (!IsHostile(actor, candidate)
+                    || !_engagementPolicy.AllowsPassiveAcquire(actor, leader, candidate)
+                    || (_visionSensor != null && !_visionSensor.CanSee(actor, candidate)))
                 {
                     continue;
                 }
@@ -161,6 +192,28 @@ namespace AshesofaDyingWorld.Combat.Decision.Party
             }
 
             return nearest;
+        }
+
+        private bool IsImmediateLeaderThreat(CombatCharacter leader, CombatCharacter hostile)
+        {
+            if (!IsUsable(leader)
+                || !IsUsable(hostile)
+                || hostile.StateMachine == null
+                || hostile.CombatCenter.DistanceSquaredTo(leader.CombatCenter)
+                    > _leaderDangerRadius * _leaderDangerRadius)
+            {
+                return false;
+            }
+
+            CombatStateId state = hostile.StateMachine.Current;
+            if (state != CombatStateId.AttackStartup && state != CombatStateId.AttackActive)
+            {
+                return false;
+            }
+
+            Vector2 toLeader = leader.CombatCenter - hostile.CombatCenter;
+            return toLeader.LengthSquared() <= 0.001f
+                || hostile.FacingDirection.Dot(toLeader.Normalized()) >= 0.25f;
         }
 
         private static bool IsHostile(CombatCharacter actor, CombatCharacter candidate)

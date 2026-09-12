@@ -72,6 +72,9 @@ namespace AshesofaDyingWorld.Combat.Decision.Model
         public float TargetDistance { get; }
         public Vector2 DirectionToTarget { get; }
         public bool HasLineOfSight { get; }
+        // P3.2: vision thật và memory tách khỏi line-of-fire.
+        public bool TargetVisible { get; }
+        public bool TargetFromMemory { get; }
         public bool TargetFacingSelf { get; }
         public bool TargetInRecovery { get; }
         public bool TargetIsCasting { get; }
@@ -113,6 +116,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Model
             float targetDistance,
             Vector2 directionToTarget,
             bool hasLineOfSight,
+            bool targetVisible,
+            bool targetFromMemory,
             bool targetFacingSelf,
             bool targetInRecovery,
             bool targetIsCasting,
@@ -147,6 +152,8 @@ namespace AshesofaDyingWorld.Combat.Decision.Model
             TargetDistance = Mathf.Max(0f, targetDistance);
             DirectionToTarget = directionToTarget;
             HasLineOfSight = hasLineOfSight;
+            TargetVisible = targetVisible;
+            TargetFromMemory = targetFromMemory;
             TargetFacingSelf = targetFacingSelf;
             TargetInRecovery = targetInRecovery;
             TargetIsCasting = targetIsCasting;

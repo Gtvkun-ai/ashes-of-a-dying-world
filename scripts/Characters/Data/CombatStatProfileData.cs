@@ -15,6 +15,11 @@ namespace AshesofaDyingWorld.Core.Data
         [ExportGroup("Progression Reward")]
         [Export(PropertyHint.Range, "0,100000,1")] public int ExperienceReward { get; set; } = 0;
 
+        [ExportGroup("Physical Body")]
+        // Khối lượng tương đối cho combat, không phải kg thật. Human chuẩn = 1.0.
+        // Không scale trực tiếp theo level để tránh slime lv99 tự nhiên nặng như xe tải.
+        [Export(PropertyHint.Range, "0.1,10,0.05")] public float BodyMass { get; set; } = 1f;
+
         [ExportGroup("Attributes")]
         [Export] public int Strength { get; set; } = 0;
         [Export] public int Dexterity { get; set; } = 0;

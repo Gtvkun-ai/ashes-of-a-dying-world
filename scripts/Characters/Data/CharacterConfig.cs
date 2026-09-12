@@ -18,6 +18,10 @@ namespace AshesofaDyingWorld.Core.Data
 		[Export(PropertyHint.Range, "1,99")] public int MaxLevel {get; set;} = 99;
 		[Export] public PowerBalanceData BalanceProfile { get; set; }
 
+		[ExportGroup("Physical Body")]
+		// Mass tương đối dùng cho va chạm/ủi/hất. Human chuẩn = 1.0; không hiểu là kg thật.
+		[Export(PropertyHint.Range, "0.1,10,0.05")] public float BodyMass { get; set; } = 1f;
+
 		//Kỹ năng và combo riêng
 		[ExportGroup("Combat Abilities")]
 		[Export] public Array<SkillData> ActiveSkills {get; set;}

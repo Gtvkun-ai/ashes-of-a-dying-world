@@ -36,6 +36,8 @@ namespace AshesofaDyingWorld.Entities.Player
         [Export] public float ManualArmor { get; set; } = 0f;
         [Export] public float ManualMagicResistance { get; set; } = 0f;
         [Export] public float ManualAttackSpeed { get; set; } = 1f;
+        // Fallback cho scene cũ chưa có CombatStatProfileData. Human chuẩn = 1.0.
+        [Export(PropertyHint.Range, "0.1,10,0.05")] public float ManualBodyMass { get; set; } = 1f;
 
         [ExportGroup("Regeneration")]
         [Export] public float ManaRegenRate { get; set; } = 0f;
@@ -80,6 +82,7 @@ namespace AshesofaDyingWorld.Entities.Player
         public float MagicResistance { get; private set; }
         public float AttackSpeed { get; private set; } = 1f;
         public float MitigationCurveConstant { get; private set; } = 100f;
+        public float BodyMass { get; private set; } = 1f;
 
         // Modifier được tách theo nguồn để skill/status không giẫm lên nhau.
         // Bản cũ chỉ có một giá trị mỗi attribute nên buff A tắt là tiện tay xóa luôn buff B.
@@ -536,11 +539,23 @@ namespace AshesofaDyingWorld.Entities.Player
             };
         }
 
+        /// <summary>
+        /// Kháng displacement nhỏ từ DEF. Mass và Poise/Stability đã được tính ở resolver riêng,
+        /// nên DEF không còn biến nhân vật thành "cục bê tông" với 75% knockback resistance.
+        /// Curve có diminishing return và cap 25% để armor hỗ trợ nhưng không ghi đè cảm giác trọng lượng.
+        /// </summary>
+        public float GetImpactControlResistance()
+        {
+            int defense = Mathf.Max(0, GetAttributeValue(AttributeType.Defense));
+            float weightedDefense = defense * 0.6f;
+            float curved = weightedDefense / (100f + weightedDefense);
+            return Mathf.Clamp(curved, 0f, 0.25f);
+        }
+
+        // API cũ giữ lại để save/UI/code ngoài không gãy; semantics mới dùng resistance của Impact system.
         public float GetKnockbackResistance()
         {
-            int vitality = GetAttributeValue(AttributeType.Vitality);
-            int defense = GetAttributeValue(AttributeType.Defense);
-            return Mathf.Clamp((vitality * 0.0125f) + (defense * 0.0075f), 0f, 0.75f);
+            return GetImpactControlResistance();
         }
 
         // API cũ được giữ để save/UI hoặc code ngoài không gãy trong một lần chuyển đổi.
@@ -576,6 +591,7 @@ namespace AshesofaDyingWorld.Entities.Player
                 Armor = Mathf.Max(0f, profile.Armor);
                 MagicResistance = Mathf.Max(0f, profile.MagicResistance);
                 AttackSpeed = Mathf.Clamp(profile.AttackSpeed, 0.25f, 4f);
+                BodyMass = Mathf.Clamp(profile.BodyMass, 0.1f, 10f);
 
                 ManaRegenRate = Mathf.Max(0f, profile.ManaRegenRate);
                 StaminaRegenRate = Mathf.Max(0f, profile.StaminaRegenRate);
@@ -600,6 +616,7 @@ namespace AshesofaDyingWorld.Entities.Player
             Armor = Mathf.Max(0f, ManualArmor);
             MagicResistance = Mathf.Max(0f, ManualMagicResistance);
             AttackSpeed = Mathf.Clamp(ManualAttackSpeed, 0.25f, 4f);
+            BodyMass = Mathf.Clamp(ManualBodyMass, 0.1f, 10f);
             MitigationCurveConstant = 100f;
         }
 
@@ -620,6 +637,8 @@ namespace AshesofaDyingWorld.Entities.Player
             int intelligence = GetAttributeValue(AttributeType.Intelligence);
             int spirit = GetAttributeValue(AttributeType.Spirit);
             PowerBalanceData balance = ConfigData.BalanceProfile;
+            // BodyMass thuộc body/species/config, không scale theo level hoặc DEF.
+            BodyMass = Mathf.Clamp(ConfigData.BodyMass, 0.1f, 10f);
 
             float weaponDamage = EquipmentMgr?.GetTotalBaseValue(EquipmentSlot.MainHand) ?? 0f;
             float equipmentArmor = (EquipmentMgr?.GetTotalBaseValue(EquipmentSlot.Body) ?? 0f)
