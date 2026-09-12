@@ -64,7 +64,12 @@ namespace AshesofaDyingWorld.Combat.Runtime
                 ? Mathf.Max(1f, profile.ShatterKnockbackMultiplier)
                 : 1f;
             float baseImpact = ResolveBaseImpact(profile);
-            float effectiveImpact = baseImpact * massFactor * momentumFactor * shatterFactor;
+            float runtimeImpactMultiplier = Mathf.Clamp(request.ImpactMultiplier, 0f, 4f);
+            float effectiveImpact = baseImpact
+                * massFactor
+                * momentumFactor
+                * shatterFactor
+                * runtimeImpactMultiplier;
             float stability = ResolveTargetStability(target, wasBlocked, guardBroken);
             float impactRatio = effectiveImpact / Mathf.Max(1f, stability);
 
@@ -91,6 +96,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
                 * massFactor
                 * momentumFactor
                 * shatterFactor
+                * runtimeImpactMultiplier
                 * (1f - controlResistance)
                 * knockbackScale;
 

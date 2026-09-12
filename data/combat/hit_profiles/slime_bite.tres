@@ -12,7 +12,7 @@ ArmorPenetration = 0.0
 GuardDamage = 10.0
 PoiseDamage = 8.0
 HitstunSeconds = 0.14
-# Bite là cú snap damage, không phải cú ủi thứ hai; displacement thấp để combo không kéo target đi quá xa.
+; Bite là cú snap damage, không phải cú ủi thứ hai; displacement thấp để combo không kéo target đi quá xa.
 KnockbackForce = 78.0
 ImpactPower = 58.0
 BodyMassInfluence = 0.25

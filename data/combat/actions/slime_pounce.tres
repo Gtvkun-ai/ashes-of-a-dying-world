@@ -1,15 +1,8 @@
-[gd_resource type="Resource" script_class="CombatActionData" load_steps=6 format=3]
+[gd_resource type="Resource" script_class="CombatActionData" load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/Combat/Data/CombatActionData.cs" id="1"]
 [ext_resource type="Resource" path="res://data/combat/hit_profiles/slime_pounce.tres" id="2"]
 [ext_resource type="Script" path="res://scripts/Combat/Data/CombatActionEventData.cs" id="3_event"]
-
-[sub_resource type="Resource" id="Resource_pounce_charge"]
-script = ExtResource("3_event")
-EventId = "slime_pounce_charge"
-EventType = 1
-TriggerFrame = 0
-CueId = &"slime_pounce_charge"
 
 [sub_resource type="Resource" id="Resource_pounce_land"]
 script = ExtResource("3_event")
@@ -23,20 +16,21 @@ script = ExtResource("1")
 ActionId = "slime_pounce"
 Tags = 6
 AnimationTemplate = "pounce_{dir}"
-StartFrame = 0
+; Frame 0/1 được SlimeBrain giữ làm pose nén. Release bắt đầu ngay từ frame bật.
+StartFrame = 1
 ActiveStartFrame = 3
 ActiveEndFrame = 3
 EndFrame = 4
-PlaybackSpeedMultiplier = 1.05
+PlaybackSpeedMultiplier = 1.08
 ScalePlaybackWithAttackSpeed = true
-StartupSeconds = 0.34
-ActiveSeconds = 0.20
-RecoverySeconds = 0.52
+StartupSeconds = 0.24
+ActiveSeconds = 0.18
+RecoverySeconds = 0.46
 InputBufferSeconds = 0.0
 StaminaCost = 0.0
-# Slime scene đang dùng ActionLungeMultiplier=0.12, nên 520 -> ~62 px/s runtime.
-# Con số lớn ở resource là chủ ý để pounce thật sự có closing speed cho momentum resolver.
-LungeSpeed = 520.0
+; Runtime SpringCharge scale LungeSpeed bằng motionMultiplier 0.72..2.10.
+; ActionLungeMultiplier của slime vẫn 0.12 nên một resource đủ cho gap-close lẫn full pounce.
+LungeSpeed = 620.0
 MovementInputMultiplier = 0.0
 HitProfile = ExtResource("2")
-Events = Array[ExtResource("3_event")]([SubResource("Resource_pounce_charge"), SubResource("Resource_pounce_land")])
+Events = Array[ExtResource("3_event")]([SubResource("Resource_pounce_land")])

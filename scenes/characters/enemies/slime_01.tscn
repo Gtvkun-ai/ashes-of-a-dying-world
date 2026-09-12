@@ -1,4 +1,4 @@
-[gd_scene load_steps=72 format=3 uid="uid://2cobf3p3jhuw"]
+[gd_scene load_steps=73 format=3 uid="uid://2cobf3p3jhuw"]
 
 [ext_resource type="Texture2D" uid="uid://cuo7to38hr3re" path="res://assets/graphics/characters/enemies/slime/slime_sheet.png" id="1_cs26v"]
 [ext_resource type="Script" uid="uid://bopjo761a1dq6" path="res://scripts/Characters/Enemies/Slime1.cs" id="1_t3ufe"]
@@ -7,6 +7,7 @@
 [ext_resource type="Resource" path="res://data/combat/movesets/slime.tres" id="4_moveset"]
 [ext_resource type="Resource" uid="uid://d1s7l4m3b8s2c" path="res://data/combat/stat_profiles/slime_basic.tres" id="5_stats_profile"]
 [ext_resource type="Resource" path="res://data/combat/actions/slime_pounce.tres" id="6_pounce"]
+[ext_resource type="Resource" path="res://data/combat/actions/slime_spring_jump.tres" id="8_spring_jump"]
 [ext_resource type="Texture2D" path="res://assets/graphics/characters/enemies/slime/slime_die_bite_padded.png" id="7_bite"]
 
 [ext_resource type="Script" path="res://scripts/World/Environment/ShadowCaster2D.cs" id="99_shadow"]
@@ -556,6 +557,7 @@ ManualProfileData = ExtResource("5_stats_profile")
 [node name="SlimeBrain" type="Node" parent="."]
 script = ExtResource("3_brain")
 PounceAction = ExtResource("6_pounce")
+SpringJumpAction = ExtResource("8_spring_jump")
 AttackRange = 40.0
 PreferredAttackDistance = 30.0
 MinimumAttackDistance = 21.0
@@ -565,10 +567,22 @@ ComboFollowupChance = 0.7
 ComboFollowupMaxDistance = 44.0
 ComboFollowupLaneTolerance = 20.0
 PostComboRepositionSeconds = 0.34
-PounceChance = 0.55
-PounceMinDistance = 34.0
-PounceMaxDistance = 66.0
-PounceLaneTolerance = 18.0
-PounceCooldown = 3.4
-PounceDecisionInterval = 0.35
-PostPounceRecoverySeconds = 0.26
+SpringMinDistance = 46.0
+SpringMaxDistance = 118.0
+SpringMinJumpDistance = 28.0
+SpringMaxJumpDistance = 92.0
+SpringMinChargeSeconds = 0.16
+SpringMaxChargeSeconds = 0.78
+SpringTargetCommitFraction = 0.7
+SpringMinMotionMultiplier = 0.72
+SpringMaxMotionMultiplier = 2.1
+SpringMinImpactMultiplier = 0.45
+SpringMaxImpactMultiplier = 1.15
+SpringPounceChargeThreshold = 0.68
+SpringMobilityCooldown = 0.75
+SpringPounceCooldown = 1.45
+SpringDecisionInterval = 0.2
+PostSpringRecoverySeconds = 0.1
+PostPounceRecoverySeconds = 0.24
+SlowTargetProximityMultiplier = 1.35
+TargetSwitchScoreMargin = 12.0

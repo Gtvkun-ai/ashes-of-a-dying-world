@@ -13,12 +13,13 @@ namespace AshesofaDyingWorld.Combat.AI
     /// </summary>
     public partial class SlimeBrain : Node
     {
-        private const string RuntimeBuild = "v11-stable-threat-reactions";
+        private const string RuntimeBuild = "v12-spring-charge-utility";
         private enum EnemyState
         {
             Wander,
             Chase,
             Attack,
+            SpringCharge,
             Return,
             Reposition
         }
@@ -42,6 +43,11 @@ namespace AshesofaDyingWorld.Combat.AI
         [Export] public float TargetForgetRadius { get; set; } = 360f;
         [Export] public float ProvokedForgetRadius { get; set; } = 520f;
         [Export] public bool DebugTargeting { get; set; } = true;
+        [Export] public float TargetSwitchScoreMargin { get; set; } = 12f;
+        [Export] public float CurrentTargetScoreBonus { get; set; } = 18f;
+        [Export] public float TargetCommitScoreBonus { get; set; } = 22f;
+        // Khi bị Slow, khoảng cách trở nên đắt hơn: slime ưu tiên hostile gần thay vì bò ngu tới target xa.
+        [Export] public float SlowTargetProximityMultiplier { get; set; } = 1.35f;
 
         [ExportGroup("Combat Positioning")]
         [Export] public float AttackRange { get; set; } = 37f;
@@ -59,15 +65,27 @@ namespace AshesofaDyingWorld.Combat.AI
         [Export] public float ComboFollowupLaneTolerance { get; set; } = 20f;
         [Export] public float PostComboRepositionSeconds { get; set; } = 0.34f;
 
-        [ExportGroup("Pounce Skill")]
+        [ExportGroup("Spring Charge / Jump")]
+        // Giữ tên resource PounceAction để scene cũ không gãy; từ V12 nó là action RELEASE của SpringJump.
         [Export] public CombatActionData PounceAction { get; set; }
-        [Export(PropertyHint.Range, "0,1,0.05")] public float PounceChance { get; set; } = 0.55f;
-        [Export] public float PounceMinDistance { get; set; } = 34f;
-        [Export] public float PounceMaxDistance { get; set; } = 66f;
-        [Export] public float PounceLaneTolerance { get; set; } = 18f;
-        [Export] public float PounceCooldown { get; set; } = 3.4f;
-        [Export] public float PounceDecisionInterval { get; set; } = 0.35f;
-        [Export] public float PostPounceRecoverySeconds { get; set; } = 0.26f;
+        [Export] public CombatActionData SpringJumpAction { get; set; }
+        [Export] public float SpringMinDistance { get; set; } = 34f;
+        [Export] public float SpringMaxDistance { get; set; } = 118f;
+        [Export] public float SpringMinJumpDistance { get; set; } = 28f;
+        [Export] public float SpringMaxJumpDistance { get; set; } = 92f;
+        [Export] public float SpringMinChargeSeconds { get; set; } = 0.16f;
+        [Export] public float SpringMaxChargeSeconds { get; set; } = 0.78f;
+        [Export(PropertyHint.Range, "0.5,0.95,0.05")] public float SpringTargetCommitFraction { get; set; } = 0.70f;
+        [Export] public float SpringMinMotionMultiplier { get; set; } = 0.72f;
+        [Export] public float SpringMaxMotionMultiplier { get; set; } = 2.10f;
+        [Export] public float SpringMinImpactMultiplier { get; set; } = 0.45f;
+        [Export] public float SpringMaxImpactMultiplier { get; set; } = 1.15f;
+        [Export(PropertyHint.Range, "0.4,0.95,0.05")] public float SpringPounceChargeThreshold { get; set; } = 0.68f;
+        [Export] public float SpringMobilityCooldown { get; set; } = 0.75f;
+        [Export] public float SpringPounceCooldown { get; set; } = 1.45f;
+        [Export] public float SpringDecisionInterval { get; set; } = 0.20f;
+        [Export] public float PostSpringRecoverySeconds { get; set; } = 0.10f;
+        [Export] public float PostPounceRecoverySeconds { get; set; } = 0.24f;
 
         [ExportGroup("Wander")]
         [Export] public float WanderRadius { get; set; } = 70f;
@@ -83,8 +101,13 @@ namespace AshesofaDyingWorld.Combat.AI
         private Vector2 _approachFacing = Vector2.Down;
         private EnemyState _state = EnemyState.Wander;
         private float _attackCooldownRemaining;
-        private float _pounceCooldownRemaining;
-        private float _pounceDecisionRemaining;
+        private float _springCooldownRemaining;
+        private float _springDecisionRemaining;
+        private bool _springCharging;
+        private float _springChargeElapsed;
+        private float _springPlannedChargeSeconds;
+        private bool _springDirectionCommitted;
+        private Vector2 _springCommittedDirection = Vector2.Down;
         private float _postComboRepositionRemaining;
         private float _postPounceRecoveryRemaining;
         private float _targetRefreshRemaining;
@@ -126,8 +149,8 @@ namespace AshesofaDyingWorld.Combat.AI
 
             float dt = (float)delta;
             _attackCooldownRemaining = Mathf.Max(0f, _attackCooldownRemaining - dt);
-            _pounceCooldownRemaining = Mathf.Max(0f, _pounceCooldownRemaining - dt);
-            _pounceDecisionRemaining = Mathf.Max(0f, _pounceDecisionRemaining - dt);
+            _springCooldownRemaining = Mathf.Max(0f, _springCooldownRemaining - dt);
+            _springDecisionRemaining = Mathf.Max(0f, _springDecisionRemaining - dt);
             _postComboRepositionRemaining = Mathf.Max(0f, _postComboRepositionRemaining - dt);
             _postPounceRecoveryRemaining = Mathf.Max(0f, _postPounceRecoveryRemaining - dt);
             _targetRefreshRemaining -= dt;
@@ -160,7 +183,7 @@ namespace AshesofaDyingWorld.Combat.AI
 
                 if (!blockedByOptionalSpawnLeash && targetDistance <= forgetRadius)
                 {
-                    RunCombat();
+                    RunCombat(dt);
                     return;
                 }
 
@@ -203,8 +226,14 @@ namespace AshesofaDyingWorld.Combat.AI
             }
         }
 
-        private void RunCombat()
+        private void RunCombat(float dt)
         {
+            if (_springCharging)
+            {
+                UpdateSpringCharge(dt);
+                return;
+            }
+
             if (_postPounceRecoveryRemaining > 0f)
             {
                 // Pounce mạnh phải có cửa punish thật: sau khi đáp xong slime đứng khựng một nhịp,
@@ -295,9 +324,9 @@ namespace AshesofaDyingWorld.Combat.AI
                 return;
             }
 
-            // Pounce chỉ được cân nhắc ở khoảng cách vừa: đủ xa để nhìn ra cú nhảy,
-            // nhưng không spam random mỗi physics frame. Nếu roll fail, decision interval giữ AI ổn định.
-            if (TryStartPounce(approach))
+            // SpringJump là combat mobility riêng, không phụ thuộc locomotion speed/Slow.
+            // Charge ngắn để gap-close; charge sâu mới trở thành pounce có momentum lớn.
+            if (TryStartSpringCharge(approach))
             {
                 return;
             }
@@ -361,6 +390,18 @@ namespace AshesofaDyingWorld.Combat.AI
             {
                 // Quyết định follow-up chỉ sống trong đúng action shove hiện tại.
                 _shoveHitConfirmed = false;
+                return;
+            }
+
+            if (action.ActionId == "slime_spring_jump")
+            {
+                _shoveHitConfirmed = false;
+                _comboBuffered = false;
+                if (completed)
+                {
+                    // Gap-close không phải attack finisher: chỉ cho một recovery rất ngắn rồi AI được shove/bite.
+                    _postPounceRecoveryRemaining = Mathf.Max(0f, PostSpringRecoverySeconds);
+                }
                 return;
             }
 
@@ -428,48 +469,295 @@ namespace AshesofaDyingWorld.Combat.AI
             _character.RequestAttack();
         }
 
-        private bool TryStartPounce(CombatSteering.CardinalApproach approach)
+        private bool TryStartSpringCharge(CombatSteering.CardinalApproach approach)
         {
             if (PounceAction == null
-                || _pounceCooldownRemaining > 0f
-                || _pounceDecisionRemaining > 0f
+                || SpringJumpAction == null
+                || _springCharging
+                || _springCooldownRemaining > 0f
+                || _springDecisionRemaining > 0f
                 || _attackCooldownRemaining > 0f
-                || approach.DirectDistance < Mathf.Max(0f, PounceMinDistance)
-                || approach.DirectDistance > Mathf.Max(PounceMinDistance, PounceMaxDistance)
-                || approach.ForwardDistance <= 0f
-                || approach.LateralDistance > Mathf.Max(1f, PounceLaneTolerance))
+                || _character.Statuses?.IsFrozen == true
+                || approach.DirectDistance < Mathf.Max(0f, SpringMinDistance)
+                || approach.DirectDistance > Mathf.Max(SpringMinDistance, SpringMaxDistance))
             {
                 return false;
             }
 
-            _pounceDecisionRemaining = Mathf.Max(0.1f, PounceDecisionInterval);
-            if (_rng.Randf() > Mathf.Clamp(PounceChance, 0f, 1f))
-            {
-                return false;
-            }
-
-            _state = EnemyState.Attack;
+            _springDecisionRemaining = Mathf.Max(0.05f, SpringDecisionInterval);
+            _springCharging = true;
+            _springChargeElapsed = 0f;
+            _springDirectionCommitted = false;
+            _springCommittedDirection = _approachFacing;
             _escapingTargetOverlap = false;
+            _state = EnemyState.SpringCharge;
             _character.StopMoveInput();
-            _character.FaceDirection(_approachFacing);
+            ReplanSpringChargeForCurrentTarget();
+            ApplySpringChargeVisual();
 
-            // Dùng ability-action entry point để pounce không chen vào light-combo index.
-            // AimTarget được truyền vào để sau này telegraph/homing nhẹ có cùng nguồn target thật.
+            // Charge cue phát ngay lúc slime ép thân xuống. Action release không phát cue này lần hai.
+            CombatFeedbackService.GetOrCreate(_character.GetTree())?
+                .PlaySlimePresentationCue(_character, new StringName("slime_pounce_charge"));
+
+            if (DebugTargeting)
+            {
+                GD.Print(
+                    $"[SlimeBrain] SPRING begin target={_target?.CombatantId ?? "none"} "
+                    + $"distance={approach.DirectDistance:0.0} planned={_springPlannedChargeSeconds:0.00}s "
+                    + $"slowed={_character.Statuses?.IsSlowed == true}");
+            }
+            return true;
+        }
+
+        private void UpdateSpringCharge(float dt)
+        {
+            if (!_springCharging)
+            {
+                return;
+            }
+
+            if (_character.Statuses?.IsFrozen == true)
+            {
+                CancelSpringCharge("frozen");
+                return;
+            }
+
+            if (!IsValidHostile(_target))
+            {
+                CancelSpringCharge("target_invalid");
+                return;
+            }
+
+            _state = EnemyState.SpringCharge;
+            _character.StopMoveInput();
+
+            if (!_springDirectionCommitted)
+            {
+                // Trước ngưỡng commit, slime còn quan sát target: target tiến gần thì có thể release sớm,
+                // target lùi xa thì nén thêm nhưng không vượt SpringMaxChargeSeconds.
+                ReplanSpringChargeForCurrentTarget();
+            }
+
+            Vector2 toTarget = _target.CombatCenter - _character.CombatCenter;
+            if (!_springDirectionCommitted && toTarget.LengthSquared() > 0.001f)
+            {
+                _approachFacing = CombatSteering.ResolveStableCardinalFacing(
+                    toTarget,
+                    _approachFacing,
+                    AxisSwitchBias);
+                _character.FaceDirection(_approachFacing);
+            }
+            else if (_springDirectionCommitted)
+            {
+                _character.FaceDirection(_springCommittedDirection);
+            }
+
+            // Quan trọng: charge tích bằng delta thật. Slow chỉ làm chậm locomotion thường,
+            // không được nhân vào timer này; cơ thể slime vẫn có thể nén lò xo khi chân đang bị slow.
+            _springChargeElapsed += dt;
+
+            float planned = Mathf.Max(0.05f, _springPlannedChargeSeconds);
+            float progress = Mathf.Clamp(_springChargeElapsed / planned, 0f, 1f);
+            if (!_springDirectionCommitted
+                && progress >= Mathf.Clamp(SpringTargetCommitFraction, 0.5f, 0.95f))
+            {
+                Vector2 commitDirection = _target.CombatCenter - _character.CombatCenter;
+                _springCommittedDirection = commitDirection.LengthSquared() > 0.001f
+                    ? commitDirection.Normalized()
+                    : _approachFacing;
+                _springDirectionCommitted = true;
+            }
+
+            ApplySpringChargeVisual();
+
+            if (_springChargeElapsed + 0.0001f >= _springPlannedChargeSeconds)
+            {
+                ReleaseSpringJump();
+            }
+        }
+
+        private void ReplanSpringChargeForCurrentTarget()
+        {
+            if (!_springCharging || !IsValidHostile(_target))
+            {
+                return;
+            }
+
+            float directDistance = _character.CombatCenter.DistanceTo(_target.CombatCenter);
+            float desiredJumpDistance = Mathf.Max(0f, directDistance - Mathf.Max(0f, PreferredAttackDistance));
+            float charge01 = ComputeRequiredCharge01(desiredJumpDistance);
+            float planned = Mathf.Lerp(
+                Mathf.Max(0.05f, SpringMinChargeSeconds),
+                Mathf.Max(SpringMinChargeSeconds, SpringMaxChargeSeconds),
+                charge01);
+
+            // Nếu retarget sang một hostile gần hơn trong lúc đã nén đủ lực, release ở tick kế tiếp.
+            // Không kéo timer lùi về 0 vì năng lượng đàn hồi đã tích vẫn còn trong cơ thể slime.
+            _springPlannedChargeSeconds = planned;
+        }
+
+        private float ComputeRequiredCharge01(float desiredJumpDistance)
+        {
+            float minJump = Mathf.Max(1f, SpringMinJumpDistance);
+            float maxJump = Mathf.Max(minJump + 1f, SpringMaxJumpDistance);
+            float distance01 = Mathf.Clamp((desiredJumpDistance - minJump) / (maxJump - minJump), 0f, 1f);
+
+            // Jump distance dùng curve charge^2: charge ngắn là mobility nhỏ,
+            // còn muốn bật rất xa phải chấp nhận anticipation lâu hơn và dễ bị đọc hơn.
+            return Mathf.Sqrt(distance01);
+        }
+
+        private float ComputeSpringMotionMultiplier(float charge01)
+        {
+            charge01 = Mathf.Clamp(charge01, 0f, 1f);
+            float springCurve = charge01 * charge01;
+            return Mathf.Lerp(
+                Mathf.Max(0f, SpringMinMotionMultiplier),
+                Mathf.Max(SpringMinMotionMultiplier, SpringMaxMotionMultiplier),
+                springCurve);
+        }
+
+        private float ComputeSpringImpactMultiplier(float charge01)
+        {
+            charge01 = Mathf.Clamp(charge01, 0f, 1f);
+            float springCurve = charge01 * charge01;
+            return Mathf.Lerp(
+                Mathf.Max(0f, SpringMinImpactMultiplier),
+                Mathf.Max(SpringMinImpactMultiplier, SpringMaxImpactMultiplier),
+                springCurve);
+        }
+
+        private float GetSpringCharge01()
+        {
+            float minCharge = Mathf.Max(0.05f, SpringMinChargeSeconds);
+            float maxCharge = Mathf.Max(minCharge + 0.01f, SpringMaxChargeSeconds);
+            return Mathf.Clamp((_springChargeElapsed - minCharge) / (maxCharge - minCharge), 0f, 1f);
+        }
+
+        private bool CanRetargetDuringSpringCharge()
+        {
+            if (!_springCharging)
+            {
+                return true;
+            }
+
+            float planned = Mathf.Max(0.05f, _springPlannedChargeSeconds);
+            float progress = Mathf.Clamp(_springChargeElapsed / planned, 0f, 1f);
+            return progress < Mathf.Clamp(SpringTargetCommitFraction, 0.5f, 0.95f);
+        }
+
+        private void ApplySpringChargeVisual()
+        {
+            AnimatedSprite2D body = _character?.BodySprite;
+            if (body?.SpriteFrames == null)
+            {
+                return;
+            }
+
+            string animation = $"pounce_{_character.FacingCardinal}";
+            if (!body.SpriteFrames.HasAnimation(animation))
+            {
+                return;
+            }
+
+            // Frame 1 là pose nén sâu của sheet pounce. Giữ frame này thay vì chạy animation
+            // giúp player đọc được slime đang "lên dây cót" bao lâu trước khi release.
+            body.Animation = animation;
+            body.Stop();
+            int frameCount = body.SpriteFrames.GetFrameCount(animation);
+            body.Frame = Mathf.Clamp(GetSpringCharge01() > 0.08f ? 1 : 0, 0, Mathf.Max(0, frameCount - 1));
+        }
+
+        private void ReleaseSpringJump()
+        {
+            if (!_springCharging || !IsValidHostile(_target))
+            {
+                CancelSpringCharge("release_invalid");
+                return;
+            }
+
+            // Soft Hitstun có thể xảy ra do Flinch. Nó không xóa năng lượng đã nén; slime chỉ giữ pose
+            // thêm một nhịp và release ngay khi state cho phép attack trở lại. Hard CC đã cancel ở hook riêng.
+            if (_character.StateMachine?.CanStartAttack != true)
+            {
+                ApplySpringChargeVisual();
+                return;
+            }
+
+            float charge01 = GetSpringCharge01();
+            float motionMultiplier = ComputeSpringMotionMultiplier(charge01);
+            float impactMultiplier = ComputeSpringImpactMultiplier(charge01);
+            bool offensivePounce = charge01 >= Mathf.Clamp(SpringPounceChargeThreshold, 0.4f, 0.95f);
+            CombatActionData releaseAction = offensivePounce ? PounceAction : SpringJumpAction;
+            Vector2 jumpDirection = _springDirectionCommitted
+                ? _springCommittedDirection
+                : (_target.CombatCenter - _character.CombatCenter);
+            if (jumpDirection.LengthSquared() <= 0.001f)
+            {
+                jumpDirection = _approachFacing;
+            }
+            jumpDirection = jumpDirection.Normalized();
+
+            CombatCharacter releaseTarget = _target;
+            float chargedSeconds = _springChargeElapsed;
+            _springCharging = false;
+            _springDirectionCommitted = false;
+            _springCommittedDirection = _approachFacing;
+            _springChargeElapsed = 0f;
+            _springPlannedChargeSeconds = 0f;
+            _state = EnemyState.Attack;
+            _character.FaceDirection(jumpDirection);
+
             bool started = _character.Actions?.TryStartAbilityAction(
-                PounceAction,
-                _approachFacing,
-                _target,
-                1f) == true;
+                releaseAction,
+                jumpDirection,
+                releaseTarget,
+                1f,
+                motionMultiplier,
+                offensivePounce ? impactMultiplier : 1f) == true;
             if (!started)
             {
-                return false;
+                _springDecisionRemaining = Mathf.Max(0.10f, SpringDecisionInterval);
+                return;
             }
 
             _shoveHitConfirmed = false;
             _comboBuffered = false;
-            _pounceCooldownRemaining = Mathf.Max(0.25f, PounceCooldown);
-            _attackCooldownRemaining = Mathf.Max(AttackCooldown, 0.4f);
-            return true;
+            _springCooldownRemaining = offensivePounce
+                ? Mathf.Max(0.25f, SpringPounceCooldown)
+                : Mathf.Max(0.15f, SpringMobilityCooldown);
+            _attackCooldownRemaining = offensivePounce
+                ? Mathf.Max(AttackCooldown, 0.4f)
+                : Mathf.Max(0.10f, PostSpringRecoverySeconds);
+
+            if (DebugTargeting)
+            {
+                GD.Print(
+                    $"[SlimeBrain] SPRING release target={releaseTarget.CombatantId} "
+                    + $"charge={charge01:0.00} time={chargedSeconds:0.00}s "
+                    + $"mode={(offensivePounce ? "pounce" : "gap_close")} "
+                    + $"motion={motionMultiplier:0.00} impact={impactMultiplier:0.00}");
+            }
+        }
+
+        private void CancelSpringCharge(string reason)
+        {
+            if (!_springCharging)
+            {
+                return;
+            }
+
+            _springCharging = false;
+            _springDirectionCommitted = false;
+            _springCommittedDirection = _approachFacing;
+            _springChargeElapsed = 0f;
+            _springPlannedChargeSeconds = 0f;
+            _springDecisionRemaining = Mathf.Max(_springDecisionRemaining, 0.12f);
+
+            if (DebugTargeting)
+            {
+                GD.Print($"[SlimeBrain] SPRING cancel reason={reason}");
+            }
         }
 
         private void RunReturnOrWander()
@@ -499,6 +787,18 @@ namespace AshesofaDyingWorld.Combat.AI
             else
             {
                 _character.SetMoveInput(direction.Normalized(), false);
+            }
+        }
+
+        /// <summary>
+        /// Hard reaction mới được quyền phá SpringCharge. Flinch/Shove không gọi cancel,
+        /// nên slime vẫn có thể giữ lực nén khi bị quấy nhẹ; Stagger+ mới thật sự làm mất thăng bằng.
+        /// </summary>
+        public void NotifyCombatReaction(ImpactReactionType reaction)
+        {
+            if ((int)reaction >= (int)ImpactReactionType.Stagger)
+            {
+                CancelSpringCharge($"hard_reaction_{reaction}");
             }
         }
 
@@ -579,7 +879,8 @@ namespace AshesofaDyingWorld.Combat.AI
             bool burstThreat = _threatChallengerDamage >= Mathf.Max(0.1f, ThreatBurstDamageThreshold);
             bool commitExpired = _targetCommitRemaining <= 0f;
 
-            if (commitExpired && (challengerClearlyCloser || burstThreat))
+            bool springAllowsSwitch = CanRetargetDuringSpringCharge();
+            if (commitExpired && springAllowsSwitch && (challengerClearlyCloser || burstThreat))
             {
                 _provokedTargetRemaining = Mathf.Max(0.1f, ProvokedTargetMemorySeconds);
                 SetTarget(attacker, challengerClearlyCloser ? "damaged_closer" : "damaged_burst");
@@ -595,18 +896,15 @@ namespace AshesofaDyingWorld.Combat.AI
 
         private void RefreshTarget()
         {
-            // Target đã được chốt bởi retaliation có quyền ưu tiên ngắn hạn. Refresh định kỳ
-            // không được phá quyết định đó chỉ vì một hostile khác tình cờ đứng gần hơn vài pixel.
-            if (_provokedTargetRemaining > 0f
-                && IsValidHostile(_target)
-                && _character.CombatCenter.DistanceTo(_target.CombatCenter)
-                    <= Mathf.Max(TargetForgetRadius, ProvokedForgetRadius))
-            {
-                return;
-            }
+            bool hasCurrent = IsValidHostile(_target);
+            float scanRadius = hasCurrent
+                ? Mathf.Max(TargetForgetRadius, Mathf.Max(SpringMaxDistance + 24f, AggroRadius))
+                : Mathf.Max(AggroRadius, SpringMinDistance);
+            float scanRadiusSquared = scanRadius * scanRadius;
 
-            CombatCharacter nearest = null;
-            float nearestDistanceSquared = AggroRadius * AggroRadius;
+            CombatCharacter best = null;
+            float bestScore = float.NegativeInfinity;
+            float bestDistance = float.PositiveInfinity;
             foreach (Node node in GetTree().GetNodesInGroup("Combatant"))
             {
                 if (node is not CombatCharacter candidate || !IsValidHostile(candidate))
@@ -615,42 +913,112 @@ namespace AshesofaDyingWorld.Combat.AI
                 }
 
                 float distanceSquared = _character.CombatCenter.DistanceSquaredTo(candidate.CombatCenter);
-                if (distanceSquared < nearestDistanceSquared)
+                if (distanceSquared > scanRadiusSquared)
                 {
-                    nearest = candidate;
-                    nearestDistanceSquared = distanceSquared;
+                    continue;
+                }
+
+                float distance = Mathf.Sqrt(distanceSquared);
+                float score = EvaluateTargetScore(candidate, distance);
+                if (score > bestScore)
+                {
+                    best = candidate;
+                    bestScore = score;
+                    bestDistance = distance;
                 }
             }
 
-            if (!IsValidHostile(_target))
+            if (!hasCurrent)
             {
-                SetTarget(nearest, nearest == null ? "no_hostile" : "acquired");
+                // Không có combat target thì chỉ acquire trong AggroRadius thật; scan rộng hơn chỉ phục vụ switching.
+                if (best != null && bestDistance <= Mathf.Max(1f, AggroRadius))
+                {
+                    SetTarget(best, "acquired_utility");
+                }
                 return;
             }
 
             float currentDistance = _character.CombatCenter.DistanceTo(_target.CombatCenter);
             float retentionRadius = Mathf.Max(AggroRadius * 1.2f, TargetForgetRadius);
-            if (nearest == null)
+            if (currentDistance > retentionRadius && best == null)
             {
-                if (currentDistance > retentionRadius)
+                SetTarget(null, "lost_range");
+                return;
+            }
+
+            if (best == null || best == _target || !CanRetargetDuringSpringCharge())
+            {
+                return;
+            }
+
+            float currentScore = EvaluateTargetScore(_target, currentDistance);
+            float requiredMargin = Mathf.Max(0f, TargetSwitchScoreMargin);
+            bool utilityWins = bestScore >= currentScore + requiredMargin;
+
+            // Khi đang Slow, hostile ở sát mặt là cơ hội thực dụng. Cho phép override commit cũ
+            // nếu hắn gần hơn rõ rệt, thay vì bắt slime tiếp tục bò tới một target xa.
+            bool slowCloseOverride = _character.Statuses?.IsSlowed == true
+                && bestDistance <= Mathf.Max(AttackRange + 12f, SpringMinDistance)
+                && bestDistance + Mathf.Max(8f, TargetSwitchAdvantage * 0.65f) < currentDistance;
+            bool commitExpired = _targetCommitRemaining <= 0f;
+
+            bool springEarlyRetarget = _springCharging && CanRetargetDuringSpringCharge();
+            if (((commitExpired || springEarlyRetarget) && utilityWins) || slowCloseOverride)
+            {
+                SetTarget(best, slowCloseOverride ? "slow_close_utility" : "utility_switch");
+            }
+        }
+
+        private float EvaluateTargetScore(CombatCharacter candidate, float distance)
+        {
+            if (!IsValidHostile(candidate))
+            {
+                return float.NegativeInfinity;
+            }
+
+            float proximityRange = Mathf.Max(AggroRadius, SpringMaxDistance + 20f);
+            float proximity01 = 1f - Mathf.Clamp(distance / Mathf.Max(1f, proximityRange), 0f, 1f);
+            float proximityMultiplier = _character.Statuses?.IsSlowed == true
+                ? Mathf.Max(1f, SlowTargetProximityMultiplier)
+                : 1f;
+            float score = proximity01 * 100f * proximityMultiplier;
+
+            if (distance <= Mathf.Max(AttackRange, MinimumAttackDistance + 5f))
+            {
+                score += 26f;
+            }
+            else if (distance <= Mathf.Max(SpringMinDistance, SpringMaxDistance))
+            {
+                score += 12f;
+            }
+
+            if (candidate == _target)
+            {
+                score += Mathf.Max(0f, CurrentTargetScoreBonus);
+                if (_targetCommitRemaining > 0f)
                 {
-                    SetTarget(null, "lost_range");
+                    float commit01 = Mathf.Clamp(
+                        _targetCommitRemaining / Mathf.Max(0.05f, TargetCommitSeconds),
+                        0f,
+                        1f);
+                    score += Mathf.Max(0f, TargetCommitScoreBonus) * commit01;
                 }
-                return;
+                if (_provokedTargetRemaining > 0f)
+                {
+                    score += 8f;
+                }
             }
 
-            if (nearest == _target)
+            if (candidate == _threatChallenger && _threatChallengerWindowRemaining > 0f)
             {
-                return;
+                float threat01 = Mathf.Clamp(
+                    _threatChallengerDamage / Mathf.Max(1f, ThreatBurstDamageThreshold),
+                    0f,
+                    1.5f);
+                score += threat01 * 34f;
             }
 
-            float nearestDistance = Mathf.Sqrt(nearestDistanceSquared);
-            bool currentOutsideRetention = currentDistance > retentionRadius;
-            bool challengerClearlyCloser = nearestDistance + Mathf.Max(0f, TargetSwitchAdvantage) < currentDistance;
-            if (currentOutsideRetention || challengerClearlyCloser)
-            {
-                SetTarget(nearest, currentOutsideRetention ? "replacement" : "closer_hostile");
-            }
+            return score;
         }
 
         private bool IsValidHostile(CombatCharacter candidate)
@@ -669,6 +1037,7 @@ namespace AshesofaDyingWorld.Combat.AI
                 return;
             }
 
+            CombatCharacter previousTarget = _target;
             _target = target;
             _escapingTargetOverlap = false;
             _targetCommitRemaining = _target == null
@@ -681,6 +1050,24 @@ namespace AshesofaDyingWorld.Combat.AI
                     _target.CombatCenter - _character.CombatCenter,
                     _character.FacingDirection,
                     AxisSwitchBias);
+
+            if (_springCharging)
+            {
+                if (_target == null)
+                {
+                    CancelSpringCharge("target_lost");
+                }
+                else if (CanRetargetDuringSpringCharge())
+                {
+                    ReplanSpringChargeForCurrentTarget();
+                    if (DebugTargeting && previousTarget != null)
+                    {
+                        GD.Print(
+                            $"[SlimeBrain] SPRING retarget from={previousTarget.CombatantId} "
+                            + $"to={_target.CombatantId} planned={_springPlannedChargeSeconds:0.00}s");
+                    }
+                }
+            }
 
             if (DebugTargeting)
             {

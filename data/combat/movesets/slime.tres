@@ -8,7 +8,7 @@
 script = ExtResource("1")
 MovesetId = "slime"
 GuardAnimationTemplate = ""
-# Combo cơ bản của slime: shove mở khoảng -> bite follow-up. AI chỉ buffer hit 2 sau hit-confirm thật.
+; Combo cơ bản của slime: shove mở khoảng -> bite follow-up. AI chỉ buffer hit 2 sau hit-confirm thật.
 LightCombo = Array[Resource]([ExtResource("2_shove"), ExtResource("3_bite")])
 GuardDamageReduction = 0.0
 GuardArcDegrees = 0.0

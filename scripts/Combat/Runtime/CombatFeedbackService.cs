@@ -261,7 +261,11 @@ namespace AshesofaDyingWorld.Combat.Runtime
             }
         }
 
-        private void PlaySlimePresentationCue(CombatCharacter actor, StringName cueId)
+        /// <summary>
+        /// Cue presentation slime có thể được gọi từ action event hoặc AI anticipation.
+        /// SpringCharge cần phát cue trước khi CombatAction thật sự bắt đầu nên method này public có chủ ý.
+        /// </summary>
+        public void PlaySlimePresentationCue(CombatCharacter actor, StringName cueId)
         {
             Node parent = GetTree()?.CurrentScene ?? GetTree()?.Root;
             if (parent == null || actor == null)

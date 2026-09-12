@@ -420,7 +420,7 @@ namespace AshesofaDyingWorld.Combat.Actors
             Vector2 direction = target == null
                 ? FacingDirection
                 : (target.CombatCenter - CombatCenter).Normalized();
-            return TryResolveHit(target, action, profile, CombatCenter, direction, 1f);
+            return TryResolveHit(target, action, profile, CombatCenter, direction, 1f, 1f);
         }
 
         /// <summary>
@@ -433,7 +433,8 @@ namespace AshesofaDyingWorld.Combat.Actors
             HitProfileData profile,
             Vector2 hitOrigin,
             Vector2 attackDirection,
-            float damageMultiplier = 1f)
+            float damageMultiplier = 1f,
+            float impactMultiplier = 1f)
         {
             if (target == null || profile == null)
             {
@@ -450,6 +451,7 @@ namespace AshesofaDyingWorld.Combat.Actors
                 Action = action,
                 Profile = profile,
                 DamageMultiplier = Mathf.Max(0f, damageMultiplier),
+                ImpactMultiplier = Mathf.Max(0f, impactMultiplier),
                 HitOrigin = hitOrigin,
                 AttackDirection = safeDirection
             });

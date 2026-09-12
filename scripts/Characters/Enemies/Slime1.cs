@@ -33,6 +33,7 @@ public partial class Slime1 : CombatCharacter
         if (result?.Applied == true && request?.Attacker != null)
         {
             _brain?.NotifyProvoked(request.Attacker, result.HpDamage);
+            _brain?.NotifyCombatReaction(result.Reaction);
         }
     }
 

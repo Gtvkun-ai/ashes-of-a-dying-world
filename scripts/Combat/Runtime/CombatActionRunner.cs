@@ -41,6 +41,10 @@ namespace AshesofaDyingWorld.Combat.Runtime
         private float _actionElapsedSeconds;
         private float _actionDurationSeconds;
         private float _currentDamageMultiplier = 1f;
+        // Scale vận tốc lunge theo từng lần cast. Dùng runtime value thay vì sửa shared .tres,
+        // vì SpringJump của slime cần nén lâu -> bật xa hơn trong cùng một action resource.
+        private float _currentMotionMultiplier = 1f;
+        private float _currentImpactMultiplier = 1f;
         private readonly HashSet<int> _triggeredEventIndices = new();
 
         public event Action<CombatActionData, Vector2> ActionStarted;
@@ -54,6 +58,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
         public Vector2 ActionFacing => _actionFacing;
         public CombatCharacter CurrentAimTarget => IsUsableAimTarget(_aimTarget) ? _aimTarget : null;
         public float CurrentDamageMultiplier => Mathf.Max(0f, _currentDamageMultiplier);
+        public float CurrentImpactMultiplier => Mathf.Max(0f, _currentImpactMultiplier);
 
         public Vector2 MovementVelocity
         {
@@ -71,7 +76,8 @@ namespace AshesofaDyingWorld.Combat.Runtime
 
                 return _actionFacing
                     * _currentAction.LungeSpeed
-                    * Mathf.Max(0f, _owner.ActionLungeMultiplier);
+                    * Mathf.Max(0f, _owner.ActionLungeMultiplier)
+                    * _currentMotionMultiplier;
             }
         }
 
@@ -133,6 +139,40 @@ namespace AshesofaDyingWorld.Combat.Runtime
             CombatCharacter aimTarget,
             float damageMultiplier)
         {
+            return TryStartAbilityAction(action, aimDirection, aimTarget, damageMultiplier, 1f);
+        }
+
+        /// <summary>
+        /// Motion multiplier thuộc về lần thực thi action, giống damage multiplier.
+        /// SpringJump dùng nó để charge ngắn/charge sâu cùng xài một .tres nhưng bật xa khác nhau.
+        /// </summary>
+        public bool TryStartAbilityAction(
+            CombatActionData action,
+            Vector2 aimDirection,
+            CombatCharacter aimTarget,
+            float damageMultiplier,
+            float motionMultiplier)
+        {
+            return TryStartAbilityAction(
+                action,
+                aimDirection,
+                aimTarget,
+                damageMultiplier,
+                motionMultiplier,
+                1f);
+        }
+
+        /// <summary>
+        /// Impact multiplier tách khỏi damage: charge sâu có thể hất mạnh hơn mà không buff sát thương vô lý.
+        /// </summary>
+        public bool TryStartAbilityAction(
+            CombatActionData action,
+            Vector2 aimDirection,
+            CombatCharacter aimTarget,
+            float damageMultiplier,
+            float motionMultiplier,
+            float impactMultiplier)
+        {
             if (action == null || _currentAction != null)
             {
                 return false;
@@ -147,7 +187,9 @@ namespace AshesofaDyingWorld.Combat.Runtime
                 false,
                 forcedFacing,
                 aimTarget,
-                damageMultiplier);
+                damageMultiplier,
+                motionMultiplier,
+                impactMultiplier);
         }
 
         public void Update(float delta)
@@ -223,7 +265,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
         {
             WeaponMovesetData moveset = _owner.ActiveMoveset;
             CombatActionData action = moveset?.GetLightAction(comboIndex);
-            return TryStartResolvedAction(action, comboIndex, allowChain, null, null, 1f);
+            return TryStartResolvedAction(action, comboIndex, allowChain, null, null, 1f, 1f, 1f);
         }
 
         private bool TryStartResolvedAction(
@@ -232,7 +274,9 @@ namespace AshesofaDyingWorld.Combat.Runtime
             bool allowChain,
             Vector2? forcedFacing,
             CombatCharacter aimTarget,
-            float damageMultiplier)
+            float damageMultiplier,
+            float motionMultiplier,
+            float impactMultiplier)
         {
             if (action == null)
             {
@@ -259,6 +303,8 @@ namespace AshesofaDyingWorld.Combat.Runtime
 
             _currentAction = action;
             _currentDamageMultiplier = Mathf.Max(0f, damageMultiplier);
+            _currentMotionMultiplier = Mathf.Clamp(motionMultiplier, 0f, 4f);
+            _currentImpactMultiplier = Mathf.Clamp(impactMultiplier, 0f, 4f);
             _aimTarget = IsUsableAimTarget(aimTarget) ? aimTarget : null;
             _comboIndex = comboIndex;
             _bufferRemaining = 0f;
@@ -479,7 +525,11 @@ namespace AshesofaDyingWorld.Combat.Runtime
             {
                 CombatFeedbackService.GetOrCreate(_owner.GetTree())?
                     .PlaySwing(_owner, _currentAction, _actionFacing);
-                _hitbox.EnableHitbox(_currentAction, _actionFacing, _currentDamageMultiplier);
+                _hitbox.EnableHitbox(
+                    _currentAction,
+                    _actionFacing,
+                    _currentDamageMultiplier,
+                    _currentImpactMultiplier);
             }
             else
             {
@@ -547,6 +597,8 @@ namespace AshesofaDyingWorld.Combat.Runtime
             _actionElapsedSeconds = 0f;
             _actionDurationSeconds = 0f;
             _currentDamageMultiplier = 1f;
+            _currentMotionMultiplier = 1f;
+            _currentImpactMultiplier = 1f;
             _triggeredEventIndices.Clear();
 
             if (_body != null)

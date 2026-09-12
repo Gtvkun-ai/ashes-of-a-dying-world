@@ -11,6 +11,8 @@ namespace AshesofaDyingWorld.Combat.Model
         public CombatActionData Action { get; init; }
         public HitProfileData Profile { get; init; }
         public float DamageMultiplier { get; init; } = 1f;
+        // Scale riêng cho displacement/reaction. SpringJump cần charge sâu mạnh hơn nhưng không nhất thiết tăng damage.
+        public float ImpactMultiplier { get; init; } = 1f;
         public Vector2 HitOrigin { get; init; }
         public Vector2 AttackDirection { get; init; }
     }

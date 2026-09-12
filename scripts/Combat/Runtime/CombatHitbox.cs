@@ -24,6 +24,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
         private readonly HashSet<ulong> _hitTargets = new();
         private Vector2 _attackFacing = Vector2.Down;
         private float _damageMultiplier = 1f;
+        private float _impactMultiplier = 1f;
         private bool _active;
 
         public bool IsActive => _active;
@@ -46,10 +47,19 @@ namespace AshesofaDyingWorld.Combat.Runtime
 
         public void EnableHitbox(CombatActionData action, Vector2 facing)
         {
-            EnableHitbox(action, facing, 1f);
+            EnableHitbox(action, facing, 1f, 1f);
         }
 
         public void EnableHitbox(CombatActionData action, Vector2 facing, float damageMultiplier)
+        {
+            EnableHitbox(action, facing, damageMultiplier, 1f);
+        }
+
+        public void EnableHitbox(
+            CombatActionData action,
+            Vector2 facing,
+            float damageMultiplier,
+            float impactMultiplier)
         {
             if (action?.HitProfile == null || _combatOwner == null)
             {
@@ -61,6 +71,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
             _action = action;
             _profile = action.HitProfile;
             _damageMultiplier = Mathf.Max(0f, damageMultiplier);
+            _impactMultiplier = Mathf.Max(0f, impactMultiplier);
             _hitTargets.Clear();
 
             Vector2 safeFacing = facing == Vector2.Zero ? Vector2.Down : facing.Normalized();
@@ -90,6 +101,7 @@ namespace AshesofaDyingWorld.Combat.Runtime
             _profile = null;
             _attackFacing = Vector2.Down;
             _damageMultiplier = 1f;
+            _impactMultiplier = 1f;
             _hitTargets.Clear();
             SetPhysicsProcess(false);
         }
@@ -173,7 +185,8 @@ namespace AshesofaDyingWorld.Combat.Runtime
                 _profile,
                 _combatOwner.CombatCenter,
                 _attackFacing,
-                _damageMultiplier);
+                _damageMultiplier,
+                _impactMultiplier);
         }
 
         private static CombatCharacter FindCombatCharacter(Node node)
