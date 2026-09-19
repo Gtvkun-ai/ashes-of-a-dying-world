@@ -13,7 +13,7 @@ namespace AshesofaDyingWorld.Combat.AI
     /// </summary>
     public partial class SlimeBrain : Node
     {
-        private const string RuntimeBuild = "v12-spring-charge-utility";
+        private const string RuntimeBuild = "v12.1-spring-readable-timing";
         private enum EnemyState
         {
             Wander,
@@ -76,6 +76,9 @@ namespace AshesofaDyingWorld.Combat.AI
         [Export] public float SpringMinChargeSeconds { get; set; } = 0.16f;
         [Export] public float SpringMaxChargeSeconds { get; set; } = 0.78f;
         [Export(PropertyHint.Range, "0.5,0.95,0.05")] public float SpringTargetCommitFraction { get; set; } = 0.70f;
+        // Retarget chỉ được chỉnh telegraph một lượng hữu hạn. Không cho target chạy qua lại kéo charge vô tận.
+        [Export] public float SpringRetargetMinLeadSeconds { get; set; } = 0.06f;
+        [Export] public float SpringRetargetMaxExtensionSeconds { get; set; } = 0.18f;
         [Export] public float SpringMinMotionMultiplier { get; set; } = 0.72f;
         [Export] public float SpringMaxMotionMultiplier { get; set; } = 2.10f;
         [Export] public float SpringMinImpactMultiplier { get; set; } = 0.45f;
@@ -106,6 +109,7 @@ namespace AshesofaDyingWorld.Combat.AI
         private bool _springCharging;
         private float _springChargeElapsed;
         private float _springPlannedChargeSeconds;
+        private float _springInitialPlannedChargeSeconds;
         private bool _springDirectionCommitted;
         private Vector2 _springCommittedDirection = Vector2.Down;
         private float _postComboRepositionRemaining;
@@ -492,7 +496,7 @@ namespace AshesofaDyingWorld.Combat.AI
             _escapingTargetOverlap = false;
             _state = EnemyState.SpringCharge;
             _character.StopMoveInput();
-            ReplanSpringChargeForCurrentTarget();
+            PlanSpringChargeForCurrentTarget();
             ApplySpringChargeVisual();
 
             // Charge cue phát ngay lúc slime ép thân xuống. Action release không phát cue này lần hai.
@@ -531,13 +535,8 @@ namespace AshesofaDyingWorld.Combat.AI
             _state = EnemyState.SpringCharge;
             _character.StopMoveInput();
 
-            if (!_springDirectionCommitted)
-            {
-                // Trước ngưỡng commit, slime còn quan sát target: target tiến gần thì có thể release sớm,
-                // target lùi xa thì nén thêm nhưng không vượt SpringMaxChargeSeconds.
-                ReplanSpringChargeForCurrentTarget();
-            }
-
+            // Kế hoạch charge được khóa từ lúc bắt đầu. Target tự tiến/lùi không được âm thầm
+            // viết lại telegraph; muốn phá khoảng cách thì player thật sự có counterplay.
             Vector2 toTarget = _target.CombatCenter - _character.CombatCenter;
             if (!_springDirectionCommitted && toTarget.LengthSquared() > 0.001f)
             {
@@ -554,9 +553,10 @@ namespace AshesofaDyingWorld.Combat.AI
 
             // Quan trọng: charge tích bằng delta thật. Slow chỉ làm chậm locomotion thường,
             // không được nhân vào timer này; cơ thể slime vẫn có thể nén lò xo khi chân đang bị slow.
-            _springChargeElapsed += dt;
-
             float planned = Mathf.Max(0.05f, _springPlannedChargeSeconds);
+            // Khi release tạm bị chặn bởi soft hitstun, slime chỉ GIỮ lực đã nén chứ không
+            // bí mật tích thêm lực để từ gap-close biến thành full pounce.
+            _springChargeElapsed = Mathf.Min(_springChargeElapsed + dt, planned);
             float progress = Mathf.Clamp(_springChargeElapsed / planned, 0f, 1f);
             if (!_springDirectionCommitted
                 && progress >= Mathf.Clamp(SpringTargetCommitFraction, 0.5f, 0.95f))
@@ -576,24 +576,55 @@ namespace AshesofaDyingWorld.Combat.AI
             }
         }
 
-        private void ReplanSpringChargeForCurrentTarget()
+        private void PlanSpringChargeForCurrentTarget()
         {
             if (!_springCharging || !IsValidHostile(_target))
             {
                 return;
             }
 
-            float directDistance = _character.CombatCenter.DistanceTo(_target.CombatCenter);
+            float planned = ComputeSpringPlanSeconds(_target);
+            _springInitialPlannedChargeSeconds = planned;
+            _springPlannedChargeSeconds = planned;
+        }
+
+        private float ComputeSpringPlanSeconds(CombatCharacter target)
+        {
+            float directDistance = _character.CombatCenter.DistanceTo(target.CombatCenter);
             float desiredJumpDistance = Mathf.Max(0f, directDistance - Mathf.Max(0f, PreferredAttackDistance));
             float charge01 = ComputeRequiredCharge01(desiredJumpDistance);
-            float planned = Mathf.Lerp(
+            return Mathf.Lerp(
                 Mathf.Max(0.05f, SpringMinChargeSeconds),
                 Mathf.Max(SpringMinChargeSeconds, SpringMaxChargeSeconds),
                 charge01);
+        }
 
-            // Nếu retarget sang một hostile gần hơn trong lúc đã nén đủ lực, release ở tick kế tiếp.
-            // Không kéo timer lùi về 0 vì năng lượng đàn hồi đã tích vẫn còn trong cơ thể slime.
-            _springPlannedChargeSeconds = planned;
+        private void AdjustSpringPlanAfterRetarget()
+        {
+            if (!_springCharging || !IsValidHostile(_target))
+            {
+                return;
+            }
+
+            float minCharge = Mathf.Max(0.05f, SpringMinChargeSeconds);
+            float maxCharge = Mathf.Max(minCharge + 0.01f, SpringMaxChargeSeconds);
+            float desired = Mathf.Clamp(ComputeSpringPlanSeconds(_target), minCharge, maxCharge);
+
+            // Retarget gần hơn có thể búng sớm, nhưng vẫn phải cho player một nhịp đọc hướng mới.
+            float earliestRelease = Mathf.Clamp(
+                _springChargeElapsed + Mathf.Max(0.02f, SpringRetargetMinLeadSeconds),
+                minCharge,
+                maxCharge);
+
+            // Tổng phần được kéo dài luôn tính từ kế hoạch BAN ĐẦU, không cộng dồn qua mỗi lần
+            // đổi target. Nhờ vậy utility AI vẫn khôn nhưng telegraph không co giãn vô hạn.
+            float extensionCeiling = Mathf.Clamp(
+                _springInitialPlannedChargeSeconds + Mathf.Max(0f, SpringRetargetMaxExtensionSeconds),
+                minCharge,
+                maxCharge);
+            float latestRelease = Mathf.Max(earliestRelease, extensionCeiling);
+
+            _springPlannedChargeSeconds = Mathf.Clamp(desired, earliestRelease, latestRelease);
         }
 
         private float ComputeRequiredCharge01(float desiredJumpDistance)
@@ -700,11 +731,13 @@ namespace AshesofaDyingWorld.Combat.AI
 
             CombatCharacter releaseTarget = _target;
             float chargedSeconds = _springChargeElapsed;
+            float plannedSeconds = _springPlannedChargeSeconds;
             _springCharging = false;
             _springDirectionCommitted = false;
             _springCommittedDirection = _approachFacing;
             _springChargeElapsed = 0f;
             _springPlannedChargeSeconds = 0f;
+            _springInitialPlannedChargeSeconds = 0f;
             _state = EnemyState.Attack;
             _character.FaceDirection(jumpDirection);
 
@@ -734,7 +767,7 @@ namespace AshesofaDyingWorld.Combat.AI
             {
                 GD.Print(
                     $"[SlimeBrain] SPRING release target={releaseTarget.CombatantId} "
-                    + $"charge={charge01:0.00} time={chargedSeconds:0.00}s "
+                    + $"charge={charge01:0.00} time={chargedSeconds:0.00}s planned={plannedSeconds:0.00}s "
                     + $"mode={(offensivePounce ? "pounce" : "gap_close")} "
                     + $"motion={motionMultiplier:0.00} impact={impactMultiplier:0.00}");
             }
@@ -752,6 +785,7 @@ namespace AshesofaDyingWorld.Combat.AI
             _springCommittedDirection = _approachFacing;
             _springChargeElapsed = 0f;
             _springPlannedChargeSeconds = 0f;
+            _springInitialPlannedChargeSeconds = 0f;
             _springDecisionRemaining = Mathf.Max(_springDecisionRemaining, 0.12f);
 
             if (DebugTargeting)
@@ -1059,7 +1093,7 @@ namespace AshesofaDyingWorld.Combat.AI
                 }
                 else if (CanRetargetDuringSpringCharge())
                 {
-                    ReplanSpringChargeForCurrentTarget();
+                    AdjustSpringPlanAfterRetarget();
                     if (DebugTargeting && previousTarget != null)
                     {
                         GD.Print(

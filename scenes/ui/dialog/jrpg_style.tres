@@ -1,11 +1,8 @@
-[gd_resource type="Resource" script_class="DialogicStyle" load_steps=14 format=3 uid="uid://d_jrpg_style_v2"]
+[gd_resource type="Resource" script_class="DialogicStyle" format=3 uid="uid://bk1egmt4goc2s"]
 
 [ext_resource type="Script" uid="uid://dv08k6ljua6fm" path="res://addons/dialogic/Resources/dialogic_style.gd" id="1_mvpc0"]
 [ext_resource type="Script" uid="uid://bwg6yncmh2cml" path="res://addons/dialogic/Resources/dialogic_style_layer.gd" id="2_3b8ue"]
-
-; Dùng custom JRPG Textbox scene (hiển thị avatar bên trái chữ)
-[ext_resource type="PackedScene" uid="uid://jrpg_tb_v3" path="res://scenes/ui/dialog/jrpg_textbox.tscn" id="3_textbox"]
-
+[ext_resource type="PackedScene" path="res://scenes/ui/dialog/jrpg_textbox.tscn" id="3_textbox"]
 [ext_resource type="PackedScene" uid="uid://cn674foxwedqu" path="res://addons/dialogic/Modules/DefaultLayoutParts/Layer_Input/full_advance_input_layer.tscn" id="4_input"]
 [ext_resource type="PackedScene" uid="uid://dsbwnp5hegnu3" path="res://addons/dialogic/Modules/DefaultLayoutParts/Layer_Glossary/glossary_popup_layer.tscn" id="5_glossary"]
 [ext_resource type="PackedScene" uid="uid://dhk6j6eb6e3q" path="res://addons/dialogic/Modules/DefaultLayoutParts/Layer_VN_Choices/vn_choice_layer.tscn" id="6_choices"]
@@ -14,45 +11,39 @@
 
 [sub_resource type="Resource" id="Resource_base"]
 script = ExtResource("2_3b8ue")
-overrides = {}
 
 [sub_resource type="Resource" id="Resource_textbox"]
 script = ExtResource("2_3b8ue")
 scene = ExtResource("3_textbox")
 overrides = {
+"avatar_show": "true",
+"avatar_size": "38",
+"box_distance": "20",
 "box_panel": "res://scenes/ui/dialog/jrpg_main_panel.tres",
 "box_size": "Vector2(860, 145)",
-"box_distance": "20",
-"text_custom_size": "15",
 "name_label_custom_size": "17",
-"avatar_size": "38",
-"avatar_show": "true"
+"text_custom_size": "15"
 }
 
 [sub_resource type="Resource" id="Resource_input"]
 script = ExtResource("2_3b8ue")
 scene = ExtResource("4_input")
-overrides = {}
 
 [sub_resource type="Resource" id="Resource_glossary"]
 script = ExtResource("2_3b8ue")
 scene = ExtResource("5_glossary")
-overrides = {}
 
 [sub_resource type="Resource" id="Resource_choices"]
 script = ExtResource("2_3b8ue")
 scene = ExtResource("6_choices")
-overrides = {}
 
 [sub_resource type="Resource" id="Resource_textinput"]
 script = ExtResource("2_3b8ue")
 scene = ExtResource("7_textinput")
-overrides = {}
 
 [sub_resource type="Resource" id="Resource_history"]
 script = ExtResource("2_3b8ue")
 scene = ExtResource("8_history")
-overrides = {}
 
 [resource]
 script = ExtResource("1_mvpc0")
@@ -67,6 +58,4 @@ layer_info = {
 "14": SubResource("Resource_textinput"),
 "15": SubResource("Resource_history")
 }
-base_overrides = {}
-layers = Array[ExtResource("2_3b8ue")]([])
 metadata/_latest_layer = "15"

@@ -14,7 +14,7 @@ def test_spring_charge_curve_and_soft_slow_contract():
     assert 'ComputeRequiredCharge01' in brain
     assert 'charge01 * charge01' in brain
     # Charge tích theo delta thật; Slow chỉ tác động utility target, không nhân timer charge.
-    assert '_springChargeElapsed += dt;' in brain
+    assert '_springChargeElapsed + dt' in brain
     assert '_springChargeElapsed += dt * (_character.Statuses?.MoveSpeedMultiplier' not in brain
 
 
@@ -78,6 +78,46 @@ def test_pounce_resource_releases_after_external_charge_contract():
     assert 'slime_pounce_land' in action
 
 
+def _method_body(source: str, signature: str) -> str:
+    start = source.index(signature)
+    brace = source.index('{', start)
+    depth = 0
+    for i in range(brace, len(source)):
+        if source[i] == '{':
+            depth += 1
+        elif source[i] == '}':
+            depth -= 1
+            if depth == 0:
+                return source[brace:i + 1]
+    raise AssertionError(f'Không đóng được method: {signature}')
+
+
+def test_spring_plan_stays_locked_while_same_target_moves():
+    brain = read('scripts/Combat/AI/SlimeBrain.cs')
+    update = _method_body(brain, 'private void UpdateSpringCharge(float dt)')
+    # Target tiến/lùi không được âm thầm viết lại telegraph mỗi physics tick.
+    assert 'ReplanSpringChargeForCurrentTarget();' not in update
+    assert 'AdjustSpringPlanAfterRetarget' not in update
+
+
+def test_spring_charge_energy_caps_at_planned_release():
+    brain = read('scripts/Combat/AI/SlimeBrain.cs')
+    update = _method_body(brain, 'private void UpdateSpringCharge(float dt)')
+    # Nếu soft hitstun tạm chặn release, thời gian chờ không được bí mật nạp thêm lực.
+    assert '_springChargeElapsed = Mathf.Min(' in update
+    assert '_springPlannedChargeSeconds' in update
+
+
+def test_spring_retarget_adjustment_has_total_extension_budget():
+    brain = read('scripts/Combat/AI/SlimeBrain.cs')
+    assert 'SpringRetargetMaxExtensionSeconds' in brain
+    assert '_springInitialPlannedChargeSeconds' in brain
+    assert 'AdjustSpringPlanAfterRetarget' in brain
+    method = _method_body(brain, 'private void AdjustSpringPlanAfterRetarget()')
+    assert '_springInitialPlannedChargeSeconds' in method
+    assert 'SpringRetargetMaxExtensionSeconds' in method
+    assert '_springChargeElapsed' in method
+
 if __name__ == '__main__':
     tests = [
         test_spring_charge_curve_and_soft_slow_contract,
@@ -87,6 +127,9 @@ if __name__ == '__main__':
         test_charge_scales_impact_without_scaling_damage_contract,
         test_short_charge_is_mobility_and_deep_charge_is_pounce_contract,
         test_pounce_resource_releases_after_external_charge_contract,
+        test_spring_plan_stays_locked_while_same_target_moves,
+        test_spring_charge_energy_caps_at_planned_release,
+        test_spring_retarget_adjustment_has_total_extension_budget,
     ]
     failures = []
     for test in tests:

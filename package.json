@@ -1,0 +1,9 @@
+{
+  "name": "gtvk-u01",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  }
+}

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#f7f6f2" />
+  <meta name="description" content="GTVK Museum - a quiet white museum with small worlds behind its doors." />
+  <title>GTVK Museum</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-world="museum">
+  <main class="game-shell">
+    <section class="game-frame" aria-label="Interactive GTVK museum">
+      <canvas id="gameCanvas" width="960" height="540">
+        Trinh duyet cua ban khong ho tro canvas.
+      </canvas>
+
+      <div class="site-mark" aria-hidden="true">
+        <span>GTVK</span>
+        <span>MUSEUM / 01</span>
+      </div>
+
+      <div class="world-readout" id="worldReadout" hidden>
+        <span id="worldName">White Museum</span>
+        <small id="worldHint">Walk to a door or object.</small>
+      </div>
+
+      <div class="boot-message" id="bootMessage">
+        <strong>Opening the museum</strong>
+        <span>If this remains visible, run the project through a local server.</span>
+      </div>
+
+      <div class="discovery-hint" id="discoveryHint" aria-hidden="true">
+        <span>MOVE&nbsp;&nbsp;WASD / ARROWS</span>
+        <i></i>
+        <span>INTERACT&nbsp;&nbsp;E / ENTER</span>
+      </div>
+
+      <div class="interaction-prompt" id="interactionPrompt" hidden aria-live="polite">
+        <span id="interactionName"></span>
+        <kbd>E</kbd>
+      </div>
+
+      <div class="inventory-peek" id="inventoryPeek" hidden>
+        <span>COLLECTED</span>
+        <strong id="inventoryText"></strong>
+      </div>
+
+      <div class="message-plaque" id="messagePlaque" hidden aria-live="polite">
+        <p id="messageText"></p>
+      </div>
+
+      <form class="eris-terminal" id="erisTerminal" hidden>
+        <header>
+          <span>TALK TO ERIS</span>
+          <button type="button" id="closeTerminal" aria-label="Close terminal">x</button>
+        </header>
+        <div class="terminal-log" id="terminalLog">
+          <p><strong>Eris con</strong>: I am only a small door-world for now.</p>
+        </div>
+        <label>
+          <span>&gt;</span>
+          <input id="terminalInput" autocomplete="off" placeholder="ask the child world..." />
+        </label>
+      </form>
+
+      <div class="mobile-controls" aria-label="Touch controls">
+        <div class="dpad">
+          <button type="button" data-move="up" aria-label="Move up">▲</button>
+          <button type="button" data-move="left" aria-label="Move left">◀</button>
+          <button type="button" data-move="down" aria-label="Move down">▼</button>
+          <button type="button" data-move="right" aria-label="Move right">▶</button>
+        </div>
+        <button class="interact-button" type="button" id="mobileInteract">E</button>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="script.js"></script>
+</body>
+</html>

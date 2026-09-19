@@ -1,0 +1,464 @@
+:root {
+  --paper: #f7f6f2;
+  --paper-2: #efede7;
+  --ink: #242521;
+  --muted: #838078;
+  --line: rgba(40, 39, 34, 0.12);
+  --glass: rgba(255, 255, 255, 0.86);
+  --eris: #52d7d0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+html,
+body {
+  min-width: 320px;
+  min-height: 100%;
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  color-scheme: light;
+}
+
+body {
+  min-height: 100vh;
+  overflow: hidden;
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.game-shell {
+  width: 100vw;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.95), rgba(244, 242, 236, 0.72) 64%, rgba(232, 229, 221, 0.55));
+}
+
+.game-frame {
+  position: relative;
+  width: min(100vw, 177.7778vh);
+  overflow: hidden;
+  background: #fbfaf7;
+  box-shadow: 0 34px 120px rgba(32, 30, 25, 0.12);
+  isolation: isolate;
+}
+
+#gameCanvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #fbfaf7;
+  image-rendering: pixelated;
+}
+
+.site-mark,
+.world-readout,
+.discovery-hint,
+.interaction-prompt,
+.inventory-peek,
+.message-plaque {
+  position: absolute;
+  z-index: 6;
+  pointer-events: none;
+}
+
+.site-mark {
+  top: 24px;
+  left: 28px;
+  display: grid;
+  gap: 2px;
+  color: rgba(33, 32, 28, 0.34);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10px;
+  line-height: 1.25;
+  letter-spacing: 0.17em;
+}
+
+.site-mark span:first-child {
+  color: rgba(33, 32, 28, 0.58);
+  font-weight: 800;
+  letter-spacing: 0.22em;
+}
+
+body:not([data-world="museum"]) .site-mark {
+  opacity: 0.3;
+}
+
+.world-readout {
+  top: 22px;
+  right: 26px;
+  max-width: 320px;
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(13, 16, 14, 0.52);
+  color: rgba(255, 255, 255, 0.62);
+  backdrop-filter: blur(9px);
+  font-size: 11px;
+}
+
+.world-readout span {
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.boot-message {
+  position: absolute;
+  z-index: 12;
+  inset: 50% auto auto 50%;
+  width: min(420px, calc(100% - 40px));
+  display: grid;
+  gap: 7px;
+  padding: 17px 20px;
+  border: 1px solid rgba(38, 36, 31, 0.1);
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--ink);
+  text-align: center;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 22px 80px rgba(28, 26, 22, 0.1);
+}
+
+.boot-message strong {
+  font-weight: 650;
+}
+
+.boot-message span {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.game-ready .boot-message {
+  display: none;
+}
+
+.discovery-hint {
+  left: 50%;
+  bottom: 25px;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  color: rgba(41, 39, 34, 0.48);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  transform: translateX(-50%);
+  animation: museum-hint-in 700ms ease-out both;
+}
+
+.discovery-hint i {
+  width: 22px;
+  height: 1px;
+  background: rgba(41, 39, 34, 0.16);
+}
+
+.interaction-prompt {
+  left: 50%;
+  bottom: 26px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: calc(100% - 40px);
+  padding: 8px 9px 8px 13px;
+  border: 1px solid rgba(42, 40, 35, 0.12);
+  background: rgba(255, 255, 255, 0.88);
+  color: #3a3833;
+  box-shadow: 0 12px 42px rgba(29, 27, 23, 0.08);
+  backdrop-filter: blur(10px);
+  transform: translateX(-50%);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body:not([data-world="museum"]) .interaction-prompt {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(12, 16, 14, 0.72);
+  color: #f5f7f4;
+}
+
+.interaction-prompt kbd {
+  min-width: 26px;
+  padding: 4px 6px;
+  border: 1px solid rgba(42, 40, 35, 0.22);
+  background: rgba(248, 247, 243, 0.8);
+  color: #35332e;
+  font: inherit;
+  text-align: center;
+}
+
+.inventory-peek {
+  top: 24px;
+  right: 26px;
+  min-width: 148px;
+  display: grid;
+  gap: 3px;
+  padding: 8px 10px;
+  border-top: 1px solid rgba(42, 40, 35, 0.16);
+  color: var(--ink);
+  text-align: right;
+}
+
+.inventory-peek span {
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 8px;
+  letter-spacing: 0.13em;
+}
+
+.inventory-peek strong {
+  font-size: 11px;
+  font-weight: 650;
+}
+
+body:not([data-world="museum"]) .inventory-peek {
+  top: 84px;
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+body:not([data-world="museum"]) .inventory-peek span {
+  color: rgba(255, 255, 255, 0.54);
+}
+
+.message-plaque {
+  left: 50%;
+  bottom: 76px;
+  width: min(500px, calc(100% - 40px));
+  padding: 11px 14px;
+  border-left: 2px solid rgba(46, 43, 37, 0.2);
+  background: rgba(252, 251, 247, 0.86);
+  color: #4b4841;
+  box-shadow: 0 12px 40px rgba(28, 26, 22, 0.06);
+  backdrop-filter: blur(8px);
+  transform: translateX(-50%);
+}
+
+.message-plaque p {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+body:not([data-world="museum"]) .message-plaque {
+  border-left-color: rgba(255, 255, 255, 0.28);
+  background: rgba(12, 16, 14, 0.75);
+  color: #f5f7f4;
+}
+
+.eris-terminal {
+  position: absolute;
+  z-index: 10;
+  left: 50%;
+  bottom: 62px;
+  width: min(560px, calc(100% - 28px));
+  border: 1px solid rgba(82, 215, 208, 0.9);
+  background: rgba(10, 18, 18, 0.94);
+  color: #e9fffc;
+  transform: translateX(-50%);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
+}
+
+.eris-terminal header {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 0 12px;
+  border-bottom: 1px solid rgba(82, 215, 208, 0.35);
+  color: var(--eris);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+}
+
+.eris-terminal button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.terminal-log {
+  max-height: 170px;
+  overflow: auto;
+  padding: 12px;
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.terminal-log p {
+  margin: 0 0 8px;
+}
+
+.eris-terminal label {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 12px 12px;
+  border-top: 1px solid rgba(82, 215, 208, 0.2);
+}
+
+.eris-terminal input {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid rgba(82, 215, 208, 0.45);
+  background: transparent;
+  color: #e9fffc;
+  outline: 0;
+}
+
+.mobile-controls {
+  position: absolute;
+  z-index: 8;
+  right: 14px;
+  bottom: 14px;
+  display: none;
+  align-items: end;
+  gap: 12px;
+}
+
+.dpad {
+  width: 122px;
+  height: 82px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 4px;
+}
+
+.dpad button,
+.interact-button {
+  border: 1px solid rgba(35, 34, 30, 0.2);
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--ink);
+  backdrop-filter: blur(9px);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.dpad button:active,
+.interact-button:active {
+  background: var(--ink);
+  color: #fff;
+}
+
+.dpad button[data-move="up"] {
+  grid-column: 2;
+}
+
+.dpad button[data-move="left"] {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.dpad button[data-move="down"] {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.dpad button[data-move="right"] {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+.interact-button {
+  width: 62px;
+  height: 62px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-weight: 800;
+}
+
+@keyframes museum-hint-in {
+  from { opacity: 0; transform: translate(-50%, 5px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@media (pointer: coarse), (max-width: 760px) {
+  body {
+    overflow: auto;
+  }
+
+  .game-shell {
+    min-height: 100svh;
+  }
+
+  .game-frame {
+    width: 100vw;
+  }
+
+  .site-mark {
+    top: 12px;
+    left: 14px;
+    font-size: 8px;
+  }
+
+  .world-readout {
+    top: 10px;
+    right: 12px;
+    max-width: 230px;
+    font-size: 9px;
+  }
+
+  .world-readout span {
+    font-size: 10px;
+  }
+
+  .discovery-hint {
+    display: none;
+  }
+
+  .interaction-prompt {
+    bottom: 10px;
+    font-size: 9px;
+  }
+
+  .interaction-prompt kbd {
+    display: none;
+  }
+
+  .message-plaque {
+    bottom: 56px;
+  }
+
+  .mobile-controls {
+    display: flex;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

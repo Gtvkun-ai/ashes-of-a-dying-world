@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="SkillData" format=3 uid="uid://cdaoahnm2y0h1"]
 
 [ext_resource type="Script" uid="uid://ck6362qi5ee48" path="res://scripts/Combat/Abilities/SkillData.cs" id="1_skill"]
-[ext_resource type="Texture2D" path="res://assets/graphics/characters/player/icon_skill/hikaru_focus.png" id="2_icon"]
+[ext_resource type="Texture2D" uid="uid://3vp407sdfvou" path="res://assets/graphics/characters/player/icon_skill/hikaru_focus.png" id="2_icon"]
 
 [resource]
 script = ExtResource("1_skill")
@@ -15,21 +15,14 @@ MoveSpeedBonusPercent = 8.0
 DexterityBonusPercent = 15.0
 AutoEvadeChancePercent = 20.0
 AutoEvadeUseRelativeMastery = true
-AutoEvadeMinChancePercent = 2.0
-AutoEvadeMaxChancePercent = 95.0
 AutoEvadeLevelDeltaWeight = 0.85
 AutoEvadeDexterityDeltaWeight = 0.35
-AutoEvadeIntelligenceDeltaWeight = 0.30
+AutoEvadeIntelligenceDeltaWeight = 0.3
 AutoEvadeMoveSpeedDeltaWeight = 0.04
-AutoEvadeAttackSpeedPressureWeight = 8.0
-AutoEvadeStartupReadWeight = 18.0
 AutoEvadeTravelSpeedPressureWeight = 0.03
-AutoEvadeOvermatchLevelGap = 25
 AutoEvadeOvermatchMasteryRatio = 1.65
-AutoEvadeImpulse = 230.0
 AutoEvadeInvulnerabilitySeconds = 0.18
 AutoEvadeInternalCooldownSeconds = 0.6
 AutoReengageWindowSeconds = 0.8
 AutoReengageDelaySeconds = 0.06
-AutoReengageImpulse = 165.0
 Cooldown = 50.0

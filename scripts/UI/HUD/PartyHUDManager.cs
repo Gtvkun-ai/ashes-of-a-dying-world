@@ -1,6 +1,7 @@
 using AshesofaDyingWorld.Core.Managers;
 using AshesofaDyingWorld.Entities.NPC;
 using AshesofaDyingWorld.Entities.Player;
+using AshesofaDyingWorld.UI.Shared;
 using Godot;
 
 namespace AshesofaDyingWorld.UI.HUD
@@ -12,6 +13,8 @@ namespace AshesofaDyingWorld.UI.HUD
         private const int StayCommandId = 102;
         private const int ProtectCommandId = 103;
         private const int WanderCommandId = 104;
+        private const string CommandMenuFramePath = "res://assets/graphics/ui/hud/companion_command_menu_frame.png";
+        private const int CommandMenuPatchMargin = 34;
 
         private CharacterUnitHUD[] unitHUDs;
         private PopupMenu _contextMenu;
@@ -60,8 +63,103 @@ namespace AshesofaDyingWorld.UI.HUD
             {
                 Name = "CharacterCommandContextMenu"
             };
+            ApplyCommandMenuTheme();
             _contextMenu.IdPressed += OnContextMenuIdPressed;
             AddChild(_contextMenu);
+        }
+
+        private void ApplyCommandMenuTheme()
+        {
+            if (_contextMenu == null)
+            {
+                return;
+            }
+
+            _contextMenu.AddThemeStyleboxOverride("panel", CreateCommandMenuPanelStyle());
+            _contextMenu.AddThemeStyleboxOverride("hover", CreateCommandMenuHoverStyle());
+            _contextMenu.AddThemeStyleboxOverride("separator", CreateCommandMenuSeparatorStyle());
+            _contextMenu.AddThemeStyleboxOverride("labeled_separator_left", CreateCommandMenuSeparatorStyle());
+            _contextMenu.AddThemeStyleboxOverride("labeled_separator_right", CreateCommandMenuSeparatorStyle());
+
+            _contextMenu.AddThemeColorOverride("font_color", InventoryPanelChrome.MainTextColor);
+            _contextMenu.AddThemeColorOverride("font_hover_color", Colors.White);
+            _contextMenu.AddThemeColorOverride("font_disabled_color", new Color(0.82f, 0.74f, 0.63f, 0.48f));
+            _contextMenu.AddThemeColorOverride("font_separator_color", InventoryPanelChrome.AccentColor);
+            _contextMenu.AddThemeColorOverride("font_accelerator_color", InventoryPanelChrome.MutedTextColor);
+
+            _contextMenu.AddThemeConstantOverride("h_separation", 8);
+            _contextMenu.AddThemeConstantOverride("v_separation", 5);
+            _contextMenu.AddThemeConstantOverride("item_start_padding", 12);
+            _contextMenu.AddThemeConstantOverride("item_end_padding", 14);
+            _contextMenu.AddThemeConstantOverride("indent", 8);
+            _contextMenu.AddThemeFontSizeOverride("font_size", 15);
+        }
+
+        private StyleBox CreateCommandMenuPanelStyle()
+        {
+            Texture2D frame = InventoryPanelChrome.TryLoadTexture(CommandMenuFramePath);
+            if (frame != null)
+            {
+                return new StyleBoxTexture
+                {
+                    Texture = frame,
+                    DrawCenter = true,
+                    TextureMarginLeft = CommandMenuPatchMargin,
+                    TextureMarginTop = CommandMenuPatchMargin,
+                    TextureMarginRight = CommandMenuPatchMargin,
+                    TextureMarginBottom = CommandMenuPatchMargin,
+                    ContentMarginLeft = 18,
+                    ContentMarginTop = 16,
+                    ContentMarginRight = 18,
+                    ContentMarginBottom = 16
+                };
+            }
+
+            StyleBoxFlat fallback = InventoryPanelChrome.CreateWindowStyle();
+            fallback.ContentMarginLeft = 14;
+            fallback.ContentMarginTop = 10;
+            fallback.ContentMarginRight = 14;
+            fallback.ContentMarginBottom = 10;
+            return fallback;
+        }
+
+        private static StyleBoxFlat CreateCommandMenuHoverStyle()
+        {
+            var style = new StyleBoxFlat
+            {
+                BgColor = new Color(
+                    InventoryPanelChrome.AccentColor.R,
+                    InventoryPanelChrome.AccentColor.G,
+                    InventoryPanelChrome.AccentColor.B,
+                    0.18f),
+                BorderColor = new Color(
+                    InventoryPanelChrome.AccentColor.R,
+                    InventoryPanelChrome.AccentColor.G,
+                    InventoryPanelChrome.AccentColor.B,
+                    0.42f)
+            };
+            style.SetBorderWidthAll(1);
+            style.SetCornerRadiusAll(2);
+            style.ContentMarginLeft = 4;
+            style.ContentMarginTop = 2;
+            style.ContentMarginRight = 4;
+            style.ContentMarginBottom = 2;
+            return style;
+        }
+
+        private static StyleBoxFlat CreateCommandMenuSeparatorStyle()
+        {
+            var style = new StyleBoxFlat
+            {
+                BgColor = new Color(
+                    InventoryPanelChrome.AccentColor.R,
+                    InventoryPanelChrome.AccentColor.G,
+                    InventoryPanelChrome.AccentColor.B,
+                    0.35f)
+            };
+            style.ContentMarginTop = 1;
+            style.ContentMarginBottom = 1;
+            return style;
         }
 
         private void OnCharacterContextRequested(PlayerStats member)

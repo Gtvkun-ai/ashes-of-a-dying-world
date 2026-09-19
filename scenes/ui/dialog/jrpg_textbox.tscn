@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3 uid="uid://jrpg_tb_v3"]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://scenes/ui/dialog/jrpg_textbox_layer.gd" id="1_script"]
 [ext_resource type="Script" uid="uid://drhfq6rmdeuri" path="res://addons/dialogic/Modules/Text/node_dialog_text.gd" id="2_dialogtext"]

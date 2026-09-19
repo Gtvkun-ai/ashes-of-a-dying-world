@@ -26,6 +26,8 @@ extends DialogicLayoutLayer
 @export var avatar_size: int = 36
 @export var avatar_show: bool = true
 
+const VIETNAMESE_FONT_PATH := "res://addons/dialogic/Example Assets/Fonts/Roboto-Regular.ttf"
+
 
 ## Called by Dialogic whenever export overrides might change.
 ## Đây là nơi an toàn nhất để init vì Dialogic gọi hàm này
@@ -49,6 +51,12 @@ func _apply_export_overrides() -> void:
 
 	# ── Dialog text ─────────────────────────────────────────────────────
 	var dialog_text: DialogicNode_DialogText = %DialogicNode_DialogText
+	var vietnamese_font: Font = load(VIETNAMESE_FONT_PATH)
+	if vietnamese_font:
+		dialog_text.add_theme_font_override(&"normal_font", vietnamese_font)
+		dialog_text.add_theme_font_override(&"bold_font", vietnamese_font)
+		dialog_text.add_theme_font_override(&"italics_font", vietnamese_font)
+		dialog_text.add_theme_font_override(&"bold_italics_font", vietnamese_font)
 	dialog_text.add_theme_font_size_override(&"normal_font_size", text_custom_size)
 	dialog_text.add_theme_font_size_override(&"bold_font_size", text_custom_size)
 	dialog_text.add_theme_font_size_override(&"italics_font_size", text_custom_size)
@@ -56,6 +64,8 @@ func _apply_export_overrides() -> void:
 
 	# ── Name label ──────────────────────────────────────────────────────
 	var name_label: DialogicNode_NameLabel = %DialogicNode_NameLabel
+	if vietnamese_font:
+		name_label.add_theme_font_override(&"font", vietnamese_font)
 	name_label.add_theme_font_size_override(&"font_size", name_label_custom_size)
 	match name_label_color_mode:
 		0:  # GLOBAL

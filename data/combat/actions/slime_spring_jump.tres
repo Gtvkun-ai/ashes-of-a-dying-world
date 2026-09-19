@@ -1,7 +1,7 @@
-[gd_resource type="Resource" script_class="CombatActionData" load_steps=4 format=3]
+[gd_resource type="Resource" script_class="CombatActionData" format=3 uid="uid://cutf80he0wk7g"]
 
-[ext_resource type="Script" path="res://scripts/Combat/Data/CombatActionData.cs" id="1"]
-[ext_resource type="Script" path="res://scripts/Combat/Data/CombatActionEventData.cs" id="2_event"]
+[ext_resource type="Script" uid="uid://ka2t1rxetu3" path="res://scripts/Combat/Data/CombatActionData.cs" id="1"]
+[ext_resource type="Script" uid="uid://c1n6tin5w1evj" path="res://scripts/Combat/Data/CombatActionEventData.cs" id="2_event"]
 
 [sub_resource type="Resource" id="Resource_spring_land"]
 script = ExtResource("2_event")
@@ -20,14 +20,11 @@ ActiveStartFrame = 3
 ActiveEndFrame = 3
 EndFrame = 4
 PlaybackSpeedMultiplier = 1.08
-ScalePlaybackWithAttackSpeed = true
 StartupSeconds = 0.24
 ActiveSeconds = 0.18
 RecoverySeconds = 0.34
 InputBufferSeconds = 0.0
 StaminaCost = 0.0
 LungeSpeed = 620.0
-MovementInputMultiplier = 0.0
-; SelfEffect = mobility-only: short charge rút khoảng cách rồi mới shove/bite, không gây contact hit giả.
 DeliveryMode = 2
 Events = Array[ExtResource("2_event")]([SubResource("Resource_spring_land")])

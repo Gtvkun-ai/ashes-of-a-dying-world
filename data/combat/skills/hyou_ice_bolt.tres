@@ -1,8 +1,8 @@
-[gd_resource type="Resource" script_class="SkillData" load_steps=4 format=3 uid="uid://cqaq6w22d6hn7"]
+[gd_resource type="Resource" script_class="SkillData" format=3 uid="uid://cqaq6w22d6hn7"]
 
-[ext_resource type="Script" path="res://scripts/Combat/Abilities/SkillData.cs" id="1_skill"]
-[ext_resource type="Resource" path="res://data/combat/actions/hyou_ice_bolt.tres" id="2_action"]
-[ext_resource type="Texture2D" path="res://assets/graphics/characters/hyou/icon_skill/hyou_ice_bolt_v2.png" id="3_icon"]
+[ext_resource type="Script" uid="uid://ck6362qi5ee48" path="res://scripts/Combat/Abilities/SkillData.cs" id="1_skill"]
+[ext_resource type="Resource" uid="uid://bhmaw8s16tvt3" path="res://data/combat/actions/hyou_ice_bolt.tres" id="2_action"]
+[ext_resource type="Texture2D" uid="uid://do88phef7upwn" path="res://assets/graphics/characters/hyou/icon_skill/hyou_ice_bolt_v2.png" id="3_icon"]
 
 [resource]
 script = ExtResource("1_skill")
@@ -10,15 +10,9 @@ SkillId = "hyou_ice_bolt"
 SkillName = "Ice Bolt"
 Icon = ExtResource("3_icon")
 Description = "Hyou kết tinh hàn khí thành đạn băng cơ bản. Rẻ hơn phép lớn nhưng không còn có thể bắn gần như vô hạn."
-Category = 0
 Element = 2
-MaxLevel = 1
-DefaultUnlocked = true
 ExecutionType = 1
 CombatAction = ExtResource("2_action")
-CanUseWhileBlocking = false
 Cooldown = 2.4
-DamageMultiplier = 1.0
 ManaCost = 14
-StaminaCost = 0
 AnimationName = "ice_bolt"

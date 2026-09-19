@@ -8,6 +8,7 @@ namespace AshesofaDyingWorld.World.Interaction
     public partial class InteractionPromptHud : CanvasLayer
     {
         public const string RuntimeNodeName = "InteractionPromptHud";
+        private const string VietnameseFontPath = "res://addons/dialogic/Example Assets/Fonts/Roboto-Regular.ttf";
         public static InteractionPromptHud Current { get; private set; }
 
         private PanelContainer _panel;
@@ -114,6 +115,11 @@ namespace AshesofaDyingWorld.World.Interaction
             };
             _label.AddThemeFontSizeOverride("font_size", 14);
             _label.AddThemeColorOverride("font_color", new Color(0.92f, 0.86f, 0.72f));
+            Font font = ResourceLoader.Load<Font>(VietnameseFontPath);
+            if (font != null)
+            {
+                _label.AddThemeFontOverride("font", font);
+            }
             margin.AddChild(_label);
 
             AddChild(_panel);

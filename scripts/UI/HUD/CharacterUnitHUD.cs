@@ -31,6 +31,14 @@ namespace AshesofaDyingWorld.UI.HUD
         private const float StatusEffectBadgeSize = 28.0f;
         private const float StatusEffectIconInset = 4.0f;
         private const float StatusEffectBadgeSpacing = 4.0f;
+
+        // Skill đang active nằm cùng hàng với tên nhân vật.
+        // Tách size/inset khỏi status effect để icon vừa hàng tên mà không chạm HP bar.
+        private const float ActiveSkillBadgeSize = 24.0f;
+        private const float ActiveSkillIconInset = 2.0f;
+        private const float ActiveSkillBadgeSpacing = 3.0f;
+        private const float ActiveSkillRowTop = 5.0f;
+        private const float ActiveSkillRowRightPadding = 11.0f;
         private Control _activeSkillStrip;
         private Control _combatStatusStrip;
         private Texture2D _statusEffectFrameTexture;
@@ -419,19 +427,19 @@ namespace AshesofaDyingWorld.UI.HUD
                 // Khung icon effect dùng texture riêng để cùng ngôn ngữ thiết kế với HUD.
                 var badge = new Control();
                 badge.Visible = false;
-                badge.CustomMinimumSize = new Vector2(StatusEffectBadgeSize, StatusEffectBadgeSize);
+                badge.CustomMinimumSize = new Vector2(ActiveSkillBadgeSize, ActiveSkillBadgeSize);
                 badge.MouseFilter = MouseFilterEnum.Ignore;
                 badge.SetAnchorsPreset(LayoutPreset.TopLeft);
-                badge.Size = new Vector2(StatusEffectBadgeSize, StatusEffectBadgeSize);
+                badge.Size = new Vector2(ActiveSkillBadgeSize, ActiveSkillBadgeSize);
                 _activeSkillStrip.AddChild(badge);
 
                 var clipRoot = new Control();
                 clipRoot.Name = "ClipRoot";
                 clipRoot.SetAnchorsPreset(LayoutPreset.FullRect);
-                clipRoot.OffsetLeft = StatusEffectIconInset;
-                clipRoot.OffsetTop = StatusEffectIconInset;
-                clipRoot.OffsetRight = -StatusEffectIconInset;
-                clipRoot.OffsetBottom = -StatusEffectIconInset;
+                clipRoot.OffsetLeft = ActiveSkillIconInset;
+                clipRoot.OffsetTop = ActiveSkillIconInset;
+                clipRoot.OffsetRight = -ActiveSkillIconInset;
+                clipRoot.OffsetBottom = -ActiveSkillIconInset;
                 clipRoot.MouseFilter = MouseFilterEnum.Ignore;
                 clipRoot.ClipContents = true;
                 badge.AddChild(clipRoot);
@@ -447,7 +455,7 @@ namespace AshesofaDyingWorld.UI.HUD
                 iconCenter.MouseFilter = MouseFilterEnum.Ignore;
                 clipRoot.AddChild(iconCenter);
 
-                var icon = CreateAutoSizedSkillIcon(skill.Icon, 16.0f, 16.0f);
+                var icon = CreateAutoSizedSkillIcon(skill.Icon, 18.0f, 18.0f);
                 iconCenter.AddChild(icon);
 
                 // Overlay tối chạy từ trên xuống, biểu diễn phần thời gian đã trôi qua.
@@ -518,7 +526,7 @@ namespace AshesofaDyingWorld.UI.HUD
                 }
 
                 hasVisibleBadge = true;
-                badgeView.Holder.Position = new Vector2(visibleIndex * (StatusEffectBadgeSize + StatusEffectBadgeSpacing), 0.0f);
+                badgeView.Holder.Position = new Vector2(visibleIndex * (ActiveSkillBadgeSize + ActiveSkillBadgeSpacing), 0.0f);
                 visibleIndex++;
 
                 Vector2 badgeSize = badgeView.Overlay.GetParent<Control>().Size;
@@ -548,11 +556,18 @@ namespace AshesofaDyingWorld.UI.HUD
                 return;
             }
 
-            float top = frameBackground != null ? frameBackground.Size.Y - 2.0f : 98.0f;
-            _activeSkillStrip.OffsetLeft = 8.0f;
-            _activeSkillStrip.OffsetTop = top;
-            _activeSkillStrip.OffsetRight = 180.0f;
-            _activeSkillStrip.OffsetBottom = top + StatusEffectBadgeSize + 2.0f;
+            // Đặt icon skill active trên cùng hàng với tên nhân vật, sát mép phải của frame.
+            // Cách này giữ portrait sạch và tránh strip cũ tràn xuống HUD của thành viên kế tiếp.
+            float frameWidth = frameBackground != null && frameBackground.Size.X > 0.0f
+                ? frameBackground.Size.X
+                : 300.0f;
+            float right = Mathf.Max(ActiveSkillBadgeSize, frameWidth - ActiveSkillRowRightPadding);
+            float left = right - ActiveSkillBadgeSize;
+
+            _activeSkillStrip.OffsetLeft = left;
+            _activeSkillStrip.OffsetTop = ActiveSkillRowTop;
+            _activeSkillStrip.OffsetRight = right;
+            _activeSkillStrip.OffsetBottom = ActiveSkillRowTop + ActiveSkillBadgeSize;
         }
 
         private void UpdateCombatStatusStripPlacement()

@@ -31,8 +31,7 @@ SceneManager="*res://scripts/App/SceneManager.cs"
 
 directories/dch_directory={}
 directories/dtl_directory={
-"hyou_intro": "res://data/timelines/hyou_intro.dtl",
-"timeline": "res://timeline.dtl"
+"hyou_intro": "res://data/timelines/hyou_intro.dtl"
 }
 layout/style_directory={
 "": "res://scenes/ui/dialog/jrpg_style.tres",

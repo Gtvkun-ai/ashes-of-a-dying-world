@@ -1,24 +1,15 @@
-[gd_resource type="Resource" script_class="DialogicCharacter" load_steps=4 format=3 uid="uid://d_hyou_dialogic"]
-
-[ext_resource type="Script" uid="uid://bwmqsxig3xbxh" path="res://addons/dialogic/Resources/dialogic_identifiable_resource.gd" id="1_base"]
-[ext_resource type="Script" path="res://addons/dialogic/Resources/character.gd" id="2_char"]
-[ext_resource type="Texture2D" uid="uid://cchlpsc5brkf4" path="res://assets/graphics/characters/hyou/icon.png" id="3_icon"]
-
-[resource]
-script = ExtResource("2_char")
-display_name = "Hyou"
-nicknames = []
-color = Color(0.22, 0.74, 0.97, 1)
-description = "Một kẻ bị ràng buộc với thế giới đang tàn lụi."
-scale = 1.0
-offset = Vector2(0, 0)
-mirror = false
-default_portrait = "default"
-portraits = {
-"default": {
-"scene": "",
-"export_overrides": {},
-"texture": ExtResource("3_icon")
+{
+"@path": "res://addons/dialogic/Resources/character.gd",
+"@subpath": NodePath(""),
+&"_translation_id": "",
+&"color": Color(1, 1, 1, 1),
+&"custom_info": {},
+&"default_portrait": "",
+&"description": "",
+&"display_name": "hyou",
+&"mirror": false,
+&"nicknames": [],
+&"offset": Vector2(0, 0),
+&"portraits": {},
+&"scale": 1.0
 }
-}
-custom_info = {}

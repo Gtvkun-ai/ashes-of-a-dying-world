@@ -1,15 +1,15 @@
-[gd_resource type="Resource" script_class="WeaponMovesetData" load_steps=4 format=3 uid="uid://bq2nyk8fqedg7"]
+[gd_resource type="Resource" script_class="WeaponMovesetData" format=3 uid="uid://bq2nyk8fqedg7"]
 
-[ext_resource type="Script" path="res://scripts/Combat/Data/WeaponMovesetData.cs" id="1"]
+[ext_resource type="Script" uid="uid://dmo74ihwqf32s" path="res://scripts/Combat/Data/WeaponMovesetData.cs" id="1"]
+[ext_resource type="Script" uid="uid://ka2t1rxetu3" path="res://scripts/Combat/Data/CombatActionData.cs" id="1_ukyxt"]
 [ext_resource type="Resource" path="res://data/combat/actions/slime_shove.tres" id="2_shove"]
-[ext_resource type="Resource" path="res://data/combat/actions/slime_bite.tres" id="3_bite"]
+[ext_resource type="Resource" uid="uid://bnrsapgjgmwn" path="res://data/combat/actions/slime_bite.tres" id="3_bite"]
 
 [resource]
 script = ExtResource("1")
 MovesetId = "slime"
+LightCombo = Array[ExtResource("1_ukyxt")]([ExtResource("2_shove"), ExtResource("3_bite")])
 GuardAnimationTemplate = ""
-; Combo cơ bản của slime: shove mở khoảng -> bite follow-up. AI chỉ buffer hit 2 sau hit-confirm thật.
-LightCombo = Array[Resource]([ExtResource("2_shove"), ExtResource("3_bite")])
 GuardDamageReduction = 0.0
 GuardArcDegrees = 0.0
 GuardMoveSpeedMultiplier = 0.0
