@@ -43,6 +43,11 @@ namespace AshesofaDyingWorld.UI.HUD
             Instance = this;
             Layer = 62;
             BuildUi();
+
+            // Cooldown đã được đưa trở lại ngay hàng tên trong CharacterUnitHUD.
+            // Giữ service để không phá các call GetOrCreate cũ, nhưng tắt row global tránh hiện trùng.
+            _row.Visible = false;
+            SetProcess(false);
         }
 
         public override void _ExitTree()

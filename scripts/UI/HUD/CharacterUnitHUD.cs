@@ -62,6 +62,7 @@ namespace AshesofaDyingWorld.UI.HUD
             public ColorRect Overlay;
             public ColorRect OverlayEdge;
             public TextureRect Frame;
+            public Label CooldownLabel;
         }
 
 
@@ -76,6 +77,10 @@ namespace AshesofaDyingWorld.UI.HUD
             {
                 Portrait = GetNode<TextureRect>("TextureRect/Portrait");
             }
+
+            // Hotfix HUD: ép label tên luôn hiện trên frame. Một số layout/runtime cũ
+            // có thể khiến NameLabel bị rơi xuống dưới lớp HUD dù node vẫn còn trong scene.
+            EnsureHeaderPresentation();
 
             // Lấy TextureRect đã có trong scene (background frame)
             frameBackground = GetNode<TextureRect>("TextureRect");
@@ -137,7 +142,12 @@ namespace AshesofaDyingWorld.UI.HUD
                 if (stats.ConfigData != null)
                 {
                     if (NameLabel != null)
-                        NameLabel.Text = stats.ConfigData.Name;
+                    {
+                        NameLabel.Text = string.IsNullOrWhiteSpace(stats.ConfigData.Name)
+                            ? "UNKNOWN"
+                            : stats.ConfigData.Name;
+                        EnsureHeaderPresentation();
+                    }
                     
                     if (Portrait != null && stats.ConfigData.Icon != null)
                         Portrait.Texture = stats.ConfigData.Icon;
@@ -198,6 +208,24 @@ namespace AshesofaDyingWorld.UI.HUD
 
             if (_contextHitTarget != null)
                 _contextHitTarget.GuiInput -= OnContextGuiInput;
+        }
+
+
+        private void EnsureHeaderPresentation()
+        {
+            NameLabel ??= GetNodeOrNull<Label>("TextureRect/NameLabel");
+            if (NameLabel == null)
+            {
+                GD.PrintErr("[CharacterUnitHUD] Không tìm thấy NameLabel trong HUD nhân vật.");
+                return;
+            }
+
+            // Tên là thông tin nhận diện chính nên luôn phải nằm trên frame/bar.
+            // ZIndex cao chỉ áp dụng cho label, không thay đổi thứ tự các resource bar.
+            NameLabel.Visible = true;
+            NameLabel.ZIndex = 40;
+            NameLabel.MouseFilter = MouseFilterEnum.Ignore;
+            NameLabel.Modulate = Colors.White;
         }
 
 
@@ -478,7 +506,22 @@ namespace AshesofaDyingWorld.UI.HUD
                 frame.SetAnchorsPreset(LayoutPreset.FullRect);
                 badge.AddChild(frame);
 
-                badge.TooltipText = string.IsNullOrWhiteSpace(skill.SkillName) ? "Hiệu ứng kỹ năng" : skill.SkillName;
+                // Số hồi chiêu nhỏ nằm trực tiếp trên icon. Chỉ hiện khi skill đang cooldown,
+                // nhờ vậy HUD không cần một cụm cooldown thứ hai ở giữa màn hình.
+                var cooldownLabel = new Label
+                {
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    MouseFilter = MouseFilterEnum.Ignore
+                };
+                cooldownLabel.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+                cooldownLabel.AddThemeFontSizeOverride("font_size", 9);
+                cooldownLabel.AddThemeColorOverride("font_color", Colors.White);
+                cooldownLabel.AddThemeColorOverride("font_outline_color", Colors.Black);
+                cooldownLabel.AddThemeConstantOverride("outline_size", 2);
+                badge.AddChild(cooldownLabel);
+
+                badge.TooltipText = string.IsNullOrWhiteSpace(skill.SkillName) ? "Kỹ năng" : skill.SkillName;
                 _skillBadgeViews.Add(new SkillBadgeView
                 {
                     Skill = skill,
@@ -486,7 +529,8 @@ namespace AshesofaDyingWorld.UI.HUD
                     Icon = icon,
                     Overlay = overlay,
                     OverlayEdge = overlayEdge,
-                    Frame = frame
+                    Frame = frame,
+                    CooldownLabel = cooldownLabel
                 });
             }
         }
@@ -498,55 +542,58 @@ namespace AshesofaDyingWorld.UI.HUD
                 return;
             }
 
-            _targetPlayer ??= ResolvePlayerForStats(_targetStats);
+            _targetCombatant ??= ResolveCombatantForStats(_targetStats);
 
-            SkillData activeSkill = _targetPlayer?.GetActiveTimedSkill();
-            float duration = _targetPlayer != null ? Mathf.Max(0.01f, _targetPlayer.GetActiveTimedSkillDuration()) : 0.0f;
-            float remaining = _targetPlayer != null ? _targetPlayer.GetActiveTimedSkillRemaining() : 0.0f;
-            float overlayRatio = (activeSkill != null && remaining > 0.0f && duration > 0.0f)
-                ? Mathf.Clamp(1.0f - (remaining / duration), 0.0f, 1.0f)
-                : 0.0f;
-            bool hasVisibleBadge = false;
+            bool anyVisible = false;
             int visibleIndex = 0;
-
             foreach (var badgeView in _skillBadgeViews)
             {
-                if (badgeView?.Holder == null || badgeView.Overlay == null || badgeView.OverlayEdge == null)
+                if (badgeView?.Holder == null || badgeView.Skill == null || badgeView.Overlay == null)
                 {
                     continue;
                 }
 
-                bool isVisible = badgeView.Skill == activeSkill && activeSkill != null && remaining > 0.0f;
-                badgeView.Holder.Visible = isVisible;
-                if (!isVisible)
-                {
-                    badgeView.Overlay.Visible = false;
-                    badgeView.OverlayEdge.Visible = false;
-                    continue;
-                }
-
-                hasVisibleBadge = true;
-                badgeView.Holder.Position = new Vector2(visibleIndex * (ActiveSkillBadgeSize + ActiveSkillBadgeSpacing), 0.0f);
+                // Luôn giữ icon skill trên hàng tên. Đây là phần HUD người chơi dùng để
+                // nhận diện skill + cooldown, không chỉ là indicator khi timed skill đang active.
+                badgeView.Holder.Visible = true;
+                badgeView.Holder.Position = new Vector2(
+                    visibleIndex * (ActiveSkillBadgeSize + ActiveSkillBadgeSpacing),
+                    0.0f);
                 visibleIndex++;
+                anyVisible = true;
 
-                Vector2 badgeSize = badgeView.Overlay.GetParent<Control>().Size;
-                float overlayHeight = badgeSize.Y * overlayRatio;
+                float remaining = _targetCombatant?.Abilities?.GetCooldownRemaining(badgeView.Skill) ?? 0.0f;
+                float duration = Mathf.Max(0.01f, badgeView.Skill.Cooldown);
+                float ratio = Mathf.Clamp(remaining / duration, 0.0f, 1.0f);
 
-                badgeView.Overlay.Visible = overlayHeight > 0.5f;
-                badgeView.Overlay.Position = Vector2.Zero;
-                badgeView.Overlay.Size = new Vector2(badgeSize.X, overlayHeight);
+                Control clipRoot = badgeView.Overlay.GetParent<Control>();
+                Vector2 innerSize = clipRoot?.Size ?? new Vector2(20.0f, 20.0f);
+                float overlayHeight = innerSize.Y * ratio;
 
-                bool showEdge = overlayRatio > 0.02f && overlayRatio < 1.0f;
+                // Phần tối dâng từ dưới lên: càng nhiều vùng tối thì cooldown còn càng lâu.
+                badgeView.Overlay.Visible = remaining > 0.05f && overlayHeight > 0.5f;
+                badgeView.Overlay.Position = new Vector2(0.0f, innerSize.Y - overlayHeight);
+                badgeView.Overlay.Size = new Vector2(innerSize.X, overlayHeight);
+
+                bool showEdge = remaining > 0.05f && ratio > 0.02f && ratio < 0.98f;
                 badgeView.OverlayEdge.Visible = showEdge;
                 if (showEdge)
                 {
-                    float edgeY = Mathf.Clamp(overlayHeight - 1.0f, 0.0f, Mathf.Max(0.0f, badgeSize.Y - 2.0f));
+                    float edgeY = Mathf.Clamp(innerSize.Y - overlayHeight - 1.0f, 0.0f, Mathf.Max(0.0f, innerSize.Y - 2.0f));
                     badgeView.OverlayEdge.Position = new Vector2(0.0f, edgeY);
-                    badgeView.OverlayEdge.Size = new Vector2(badgeSize.X, 2.0f);
+                    badgeView.OverlayEdge.Size = new Vector2(innerSize.X, 2.0f);
+                }
+
+                if (badgeView.CooldownLabel != null)
+                {
+                    badgeView.CooldownLabel.Text = remaining > 0.05f
+                        ? (remaining >= 10.0f ? Mathf.CeilToInt(remaining).ToString() : remaining.ToString("0.0"))
+                        : string.Empty;
                 }
             }
 
-            _activeSkillStrip.Visible = hasVisibleBadge;
+            _activeSkillStrip.Visible = anyVisible;
+            UpdateActiveSkillStripPlacement();
         }
 
         private void UpdateActiveSkillStripPlacement()
@@ -556,18 +603,27 @@ namespace AshesofaDyingWorld.UI.HUD
                 return;
             }
 
-            // Đặt icon skill active trên cùng hàng với tên nhân vật, sát mép phải của frame.
-            // Cách này giữ portrait sạch và tránh strip cũ tràn xuống HUD của thành viên kế tiếp.
+            // Cụm icon được canh phải trên đúng hàng tên. Hyou có 2 skill thì cụm tự nở
+            // sang trái; NameLabel co lại trước cụm icon nên tên và cooldown không đè nhau.
+            int badgeCount = Mathf.Max(1, _skillBadgeViews.Count);
+            float stripWidth = badgeCount * ActiveSkillBadgeSize
+                + Mathf.Max(0, badgeCount - 1) * ActiveSkillBadgeSpacing;
             float frameWidth = frameBackground != null && frameBackground.Size.X > 0.0f
                 ? frameBackground.Size.X
                 : 300.0f;
-            float right = Mathf.Max(ActiveSkillBadgeSize, frameWidth - ActiveSkillRowRightPadding);
-            float left = right - ActiveSkillBadgeSize;
+            float right = Mathf.Max(stripWidth, frameWidth - ActiveSkillRowRightPadding);
+            float left = right - stripWidth;
 
             _activeSkillStrip.OffsetLeft = left;
             _activeSkillStrip.OffsetTop = ActiveSkillRowTop;
             _activeSkillStrip.OffsetRight = right;
             _activeSkillStrip.OffsetBottom = ActiveSkillRowTop + ActiveSkillBadgeSize;
+
+            if (NameLabel != null)
+            {
+                NameLabel.OffsetRight = Mathf.Max(NameLabel.OffsetLeft + 48.0f, left - 5.0f);
+                EnsureHeaderPresentation();
+            }
         }
 
         private void UpdateCombatStatusStripPlacement()
