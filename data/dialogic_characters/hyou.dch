@@ -2,7 +2,7 @@
 "@path": "res://addons/dialogic/Resources/character.gd",
 "@subpath": NodePath(""),
 &"_translation_id": "",
-&"color": Color(1, 1, 1, 1),
+&"color": Color(0.55, 0.73, 1, 1),
 &"custom_info": {
 "prefix": "",
 "sound_mood_default": "",
@@ -10,12 +10,18 @@
 "style": "",
 "suffix": ""
 },
-&"default_portrait": "",
+&"default_portrait": "neutral",
 &"description": "",
-&"display_name": "hyou",
+&"display_name": "Hyou",
 &"mirror": false,
 &"nicknames": [""],
 &"offset": Vector2(0, 0),
-&"portraits": {},
+&"portraits": {
+"neutral": {
+"image": "res://assets/graphics/characters/hyou/icon.png",
+"offset": Vector2(0, 0),
+"scene": "res://addons/dialogic/Modules/Character/default_portrait.tscn"
+}
+},
 &"scale": 1.0
 }

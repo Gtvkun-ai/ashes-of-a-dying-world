@@ -5,7 +5,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/dialog/jrpg_textbox.tscn" id="3_textbox"]
 [ext_resource type="PackedScene" uid="uid://cn674foxwedqu" path="res://addons/dialogic/Modules/DefaultLayoutParts/Layer_Input/full_advance_input_layer.tscn" id="4_input"]
 [ext_resource type="PackedScene" uid="uid://dsbwnp5hegnu3" path="res://addons/dialogic/Modules/DefaultLayoutParts/Layer_Glossary/glossary_popup_layer.tscn" id="5_glossary"]
-[ext_resource type="PackedScene" uid="uid://dhk6j6eb6e3q" path="res://addons/dialogic/Modules/DefaultLayoutParts/Layer_VN_Choices/vn_choice_layer.tscn" id="6_choices"]
+[ext_resource type="PackedScene" path="res://scenes/ui/dialog/jrpg_choice_layer.tscn" id="6_choices"]
 [ext_resource type="PackedScene" uid="uid://cvgf4c6gg0tsy" path="res://addons/dialogic/Modules/DefaultLayoutParts/Layer_TextInput/text_input_layer.tscn" id="7_textinput"]
 [ext_resource type="PackedScene" uid="uid://lx24i8fl6uo" path="res://addons/dialogic/Modules/DefaultLayoutParts/Layer_History/history_layer.tscn" id="8_history"]
 
@@ -16,12 +16,17 @@ script = ExtResource("2_3b8ue")
 script = ExtResource("2_3b8ue")
 scene = ExtResource("3_textbox")
 overrides = {
-"avatar_show": "true",
-"avatar_size": "38",
-"box_distance": "20",
+"box_distance": "18",
 "box_panel": "res://scenes/ui/dialog/jrpg_main_panel.tres",
-"box_size": "Vector2(860, 145)",
+"box_size": "Vector2(860, 132)",
+"name_label_color_mode": "1",
+"name_label_custom_color": "Color(0.82, 0.66, 0.4, 1)",
 "name_label_custom_size": "17",
+"portrait_lift": "44",
+"portrait_overlap": "132",
+"portrait_show": "true",
+"portrait_size": "Vector2(150, 165)",
+"text_custom_color": "Color(0.94, 0.91, 0.86, 1)",
 "text_custom_size": "15"
 }
 
@@ -36,6 +41,24 @@ scene = ExtResource("5_glossary")
 [sub_resource type="Resource" id="Resource_choices"]
 script = ExtResource("2_3b8ue")
 scene = ExtResource("6_choices")
+overrides = {
+"boxes_fill_width": "true",
+"boxes_min_size": "Vector2(320, 38)",
+"boxes_stylebox_focused": "res://scenes/ui/dialog/jrpg_choice_focus.tres",
+"boxes_stylebox_hovered": "res://scenes/ui/dialog/jrpg_choice_hover.tres",
+"boxes_stylebox_normal": "res://scenes/ui/dialog/jrpg_choice_normal.tres",
+"boxes_v_separation": "8",
+"font_size_custom": "15",
+"font_size_use_global": "false",
+"font_use_global": "false",
+"font_custom": "res://addons/dialogic/Example Assets/Fonts/Roboto-Regular.ttf",
+"text_color_custom": "Color(0.94, 0.91, 0.86, 1)",
+"text_color_disabled": "Color(0.42, 0.39, 0.35, 1)",
+"text_color_focused": "Color(0.93, 0.76, 0.45, 1)",
+"text_color_hovered": "Color(0.93, 0.76, 0.45, 1)",
+"text_color_pressed": "Color(1, 0.86, 0.58, 1)",
+"text_color_use_global": "false"
+}
 
 [sub_resource type="Resource" id="Resource_textinput"]
 script = ExtResource("2_3b8ue")

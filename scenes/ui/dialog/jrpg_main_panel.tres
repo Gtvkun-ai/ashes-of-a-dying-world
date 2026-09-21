@@ -1,20 +1,18 @@
 [gd_resource type="StyleBoxFlat" format=3]
 
 [resource]
-bg_color = Color(0.04, 0.06, 0.12, 0.93)
+; Nền thoại tối, ấm và trung tính để không tranh màu với map.
+bg_color = Color(0.055, 0.043, 0.035, 0.95)
+content_margin_left = 18.0
+content_margin_top = 16.0
+content_margin_right = 18.0
+content_margin_bottom = 14.0
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(0.133, 0.827, 0.933, 0.9)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-corner_radius_bottom_right = 5
-corner_radius_bottom_left = 5
-shadow_color = Color(0.133, 0.827, 0.933, 0.3)
-shadow_size = 10
-shadow_offset = Vector2(0, 2)
-content_margin_left = 12.0
-content_margin_top = 10.0
-content_margin_right = 12.0
-content_margin_bottom = 10.0
+border_color = Color(0.37, 0.27, 0.18, 0.98)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2

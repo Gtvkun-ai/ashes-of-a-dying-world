@@ -1,45 +1,13 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scenes/ui/dialog/jrpg_textbox_layer.gd" id="1_script"]
 [ext_resource type="Script" uid="uid://drhfq6rmdeuri" path="res://addons/dialogic/Modules/Text/node_dialog_text.gd" id="2_dialogtext"]
 [ext_resource type="Script" uid="uid://dpv2dfiv5dhmr" path="res://addons/dialogic/Modules/Text/node_type_sound.gd" id="3_typesound"]
 [ext_resource type="Script" uid="uid://dve1vwse2peji" path="res://addons/dialogic/Modules/Text/node_next_indicator.gd" id="4_nextind"]
 [ext_resource type="Script" uid="uid://bak74s0kcr0ao" path="res://addons/dialogic/Modules/Text/node_name_label.gd" id="5_namelabel"]
+[ext_resource type="StyleBox" path="res://scenes/ui/dialog/jrpg_main_panel.tres" id="6_main_panel"]
+[ext_resource type="StyleBox" path="res://scenes/ui/dialog/jrpg_name_panel.tres" id="7_name_panel"]
 
-; ── StyleBox: nền chính ─────────────────────────────────────────────────
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_main"]
-bg_color = Color(0.04, 0.06, 0.12, 0.93)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.133, 0.827, 0.933, 0.9)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-corner_radius_bottom_right = 5
-corner_radius_bottom_left = 5
-shadow_color = Color(0.133, 0.827, 0.933, 0.3)
-shadow_size = 10
-shadow_offset = Vector2(0, 2)
-content_margin_left = 14.0
-content_margin_top = 10.0
-content_margin_right = 14.0
-content_margin_bottom = 10.0
-
-; ── StyleBox: avatar frame ───────────────────────────────────────────────
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_avatar"]
-bg_color = Color(0.05, 0.10, 0.18, 0.95)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.78, 0.65, 0.4, 1.0)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-
-; ── AutoAdvance animation ────────────────────────────────────────────────
 [sub_resource type="Animation" id="Animation_reset"]
 length = 0.001
 tracks/0/type = "value"
@@ -60,9 +28,6 @@ _data = {
 &"RESET": SubResource("Animation_reset")
 }
 
-; ════════════════════════════════════════════════════════════════════════
-; ROOT CONTROL
-; ════════════════════════════════════════════════════════════════════════
 [node name="JRPGTextboxLayer" type="Control"]
 layout_mode = 3
 anchors_preset = 15
@@ -73,11 +38,13 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("1_script")
 box_panel = "res://scenes/ui/dialog/jrpg_main_panel.tres"
-box_size = Vector2(860, 145)
-box_distance = 20
+box_size = Vector2(860, 132)
+box_distance = 18
 text_custom_size = 15
 name_label_custom_size = 17
-avatar_size = 38
+portrait_size = Vector2(150, 165)
+portrait_overlap = 132
+portrait_lift = 44
 
 [node name="Animations" type="AnimationPlayer" parent="."]
 unique_name_in_owner = true
@@ -86,7 +53,6 @@ libraries = {
 }
 autoplay = "RESET"
 
-; ── Anchor giữa dưới ────────────────────────────────────────────────────
 [node name="Anchor" type="Control" parent="."]
 layout_mode = 1
 anchors_preset = 7
@@ -108,92 +74,90 @@ grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
 
-; ── Panel chính ─────────────────────────────────────────────────────────
+[node name="SpeakerPortrait" type="TextureRect" parent="Anchor/AnimationParent"]
+unique_name_in_owner = true
+z_index = 3
+layout_mode = 0
+offset_left = -448.0
+offset_top = -209.0
+offset_right = -298.0
+offset_bottom = -44.0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
 [node name="DialogTextPanel" type="PanelContainer" parent="Anchor/AnimationParent"]
 unique_name_in_owner = true
-layout_mode = 1
-anchor_left = 0.5
-anchor_top = 1.0
-anchor_right = 0.5
-anchor_bottom = 1.0
+z_index = 1
+layout_mode = 0
 offset_left = -430.0
-offset_top = -165.0
+offset_top = -150.0
 offset_right = 430.0
-offset_bottom = -20.0
-grow_horizontal = 2
-grow_vertical = 0
+offset_bottom = -18.0
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_main")
+theme_override_styles/panel = ExtResource("6_main_panel")
 
-; ── Layout trong panel: VBox ─────────────────────────────────────────────
-[node name="VBox" type="VBoxContainer" parent="Anchor/AnimationParent/DialogTextPanel"]
+[node name="ContentMargin" type="MarginContainer" parent="Anchor/AnimationParent/DialogTextPanel"]
 layout_mode = 2
-theme_override_constants/separation = 6
+theme_override_constants/margin_left = 158
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 13
 
-; ── Hàng trên: avatar nhỏ + tên ─────────────────────────────────────────
-[node name="SpeakerRow" type="HBoxContainer" parent="Anchor/AnimationParent/DialogTextPanel/VBox"]
+[node name="VBox" type="VBoxContainer" parent="Anchor/AnimationParent/DialogTextPanel/ContentMargin"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 4
 
-[node name="AvatarFrame" type="PanelContainer" parent="Anchor/AnimationParent/DialogTextPanel/VBox/SpeakerRow"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(38, 38)
-layout_mode = 2
-size_flags_vertical = 4
-theme_override_styles/panel = SubResource("StyleBoxFlat_avatar")
-
-[node name="SpeakerAvatar" type="TextureRect" parent="Anchor/AnimationParent/DialogTextPanel/VBox/SpeakerRow/AvatarFrame"]
-unique_name_in_owner = true
-layout_mode = 2
-custom_minimum_size = Vector2(38, 38)
-size_flags_horizontal = 3
-size_flags_vertical = 3
-expand_mode = 1
-stretch_mode = 6
-
-[node name="DialogicNode_NameLabel" type="Label" parent="Anchor/AnimationParent/DialogTextPanel/VBox/SpeakerRow"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_vertical = 4
-theme_override_colors/font_color = Color(0.78, 0.65, 0.4, 1)
-theme_override_font_sizes/font_size = 17
-text = ""
-script = ExtResource("5_namelabel")
-hide_when_empty = true
-
-; ── Gạch phân cách mỏng ─────────────────────────────────────────────────
-[node name="Separator" type="HSeparator" parent="Anchor/AnimationParent/DialogTextPanel/VBox"]
-layout_mode = 2
-theme_override_colors/separator_color = Color(0.133, 0.827, 0.933, 0.35)
-
-; ── Dialog text ──────────────────────────────────────────────────────────
-[node name="DialogicNode_DialogText" type="RichTextLabel" parent="Anchor/AnimationParent/DialogTextPanel/VBox" node_paths=PackedStringArray("textbox_root")]
+[node name="DialogicNode_DialogText" type="RichTextLabel" parent="Anchor/AnimationParent/DialogTextPanel/ContentMargin/VBox" node_paths=PackedStringArray("textbox_root")]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_colors/default_color = Color(0.93, 0.93, 0.96, 1.0)
+theme_override_colors/default_color = Color(0.94, 0.91, 0.86, 1)
 theme_override_font_sizes/normal_font_size = 15
 bbcode_enabled = true
 text = ""
 scroll_following = true
 visible_characters_behavior = 1
 script = ExtResource("2_dialogtext")
-textbox_root = NodePath("..")
+textbox_root = NodePath("../../../..")
 
-[node name="DialogicNode_TypeSounds" type="AudioStreamPlayer" parent="Anchor/AnimationParent/DialogTextPanel/VBox/DialogicNode_DialogText"]
+[node name="DialogicNode_TypeSounds" type="AudioStreamPlayer" parent="Anchor/AnimationParent/DialogTextPanel/ContentMargin/VBox/DialogicNode_DialogText"]
 unique_name_in_owner = true
 script = ExtResource("3_typesound")
 
-; ── Next indicator ▼ ─────────────────────────────────────────────────────
+[node name="NamePlate" type="PanelContainer" parent="Anchor/AnimationParent"]
+unique_name_in_owner = true
+z_index = 4
+layout_mode = 0
+offset_left = -292.0
+offset_top = -163.0
+offset_right = -170.0
+offset_bottom = -130.0
+mouse_filter = 2
+theme_override_styles/panel = ExtResource("7_name_panel")
+
+[node name="DialogicNode_NameLabel" type="Label" parent="Anchor/AnimationParent/NamePlate" node_paths=PackedStringArray("name_label_root")]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.82, 0.66, 0.4, 1)
+theme_override_font_sizes/font_size = 17
+text = ""
+script = ExtResource("5_namelabel")
+hide_when_empty = true
+name_label_root = NodePath("..")
+
 [node name="NextIndicator" type="Control" parent="Anchor/AnimationParent/DialogTextPanel"]
 unique_name_in_owner = true
+z_index = 2
 layout_mode = 1
 anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -36.0
-offset_top = -36.0
+offset_left = -34.0
+offset_top = -31.0
+offset_right = -8.0
+offset_bottom = -7.0
 grow_horizontal = 0
 grow_vertical = 0
 mouse_filter = 2
@@ -205,17 +169,16 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-theme_override_colors/font_color = Color(0.133, 0.827, 0.933, 1)
-theme_override_font_sizes/font_size = 18
-text = "▼"
+theme_override_colors/font_color = Color(0.82, 0.66, 0.4, 1)
+theme_override_font_sizes/font_size = 15
+text = "◆"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-; ── AutoAdvance progress bar ─────────────────────────────────────────────
 [node name="AutoAdvanceProgressbar" type="ProgressBar" parent="Anchor/AnimationParent/DialogTextPanel"]
 unique_name_in_owner = true
-modulate = Color(1, 1, 1, 0.2)
-custom_minimum_size = Vector2(0, 4)
+modulate = Color(0.82, 0.66, 0.4, 0.28)
+custom_minimum_size = Vector2(0, 2)
 layout_mode = 2
 size_flags_vertical = 8
 mouse_filter = 2
