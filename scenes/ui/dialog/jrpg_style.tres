@@ -18,16 +18,32 @@ scene = ExtResource("3_textbox")
 overrides = {
 "box_distance": "18",
 "box_panel": "res://scenes/ui/dialog/jrpg_main_panel.tres",
-"box_size": "Vector2(860, 132)",
+"box_width_ratio": "0.90",
+"box_min_width": "760.0",
+"box_max_width": "1520.0",
+"box_height_ratio": "0.18",
+"box_min_height": "118.0",
+"box_max_height": "150.0",
+"text_custom_color": "Color(0.93, 0.92, 0.86, 1)",
+"text_custom_size": "16",
+"content_left_margin": "24",
+"content_top_margin": "18",
+"content_right_margin": "24",
+"content_bottom_margin": "16",
 "name_label_color_mode": "1",
-"name_label_custom_color": "Color(0.82, 0.66, 0.4, 1)",
-"name_label_custom_size": "17",
-"portrait_lift": "44",
-"portrait_overlap": "132",
+"name_label_custom_color": "Color(0.95, 0.78, 0.43, 1)",
+"name_label_custom_size": "16",
+"name_plate_offset": "Vector2(18, -18)",
+"name_plate_size": "Vector2(150, 34)",
 "portrait_show": "true",
-"portrait_size": "Vector2(150, 165)",
-"text_custom_color": "Color(0.94, 0.91, 0.86, 1)",
-"text_custom_size": "15"
+"portrait_size": "Vector2(560, 500)",
+"portrait_center_x_offset": "0.0",
+"portrait_panel_overlap": "76.0",
+"portrait_draw_behind_panel": "true",
+"dim_color": "Color(0.015, 0.02, 0.03, 0.20)",
+"enable_entry_animation": "true",
+"entry_duration": "0.18",
+"portrait_entry_offset": "12.0"
 }
 
 [sub_resource type="Resource" id="Resource_input"]
@@ -43,21 +59,35 @@ script = ExtResource("2_3b8ue")
 scene = ExtResource("6_choices")
 overrides = {
 "boxes_fill_width": "true",
-"boxes_min_size": "Vector2(320, 38)",
+"boxes_min_size": "Vector2(300, 36)",
 "boxes_stylebox_focused": "res://scenes/ui/dialog/jrpg_choice_focus.tres",
 "boxes_stylebox_hovered": "res://scenes/ui/dialog/jrpg_choice_hover.tres",
 "boxes_stylebox_normal": "res://scenes/ui/dialog/jrpg_choice_normal.tres",
-"boxes_v_separation": "8",
-"font_size_custom": "15",
+"boxes_v_separation": "6",
+"font_size_custom": "14",
 "font_size_use_global": "false",
 "font_use_global": "false",
-"font_custom": "res://addons/dialogic/Example Assets/Fonts/Roboto-Regular.ttf",
-"text_color_custom": "Color(0.94, 0.91, 0.86, 1)",
+"font_custom": "res://assets/fonts/BeVietnamPro-Regular.ttf",
+"text_color_custom": "Color(0.93, 0.92, 0.86, 1)",
 "text_color_disabled": "Color(0.42, 0.39, 0.35, 1)",
-"text_color_focused": "Color(0.93, 0.76, 0.45, 1)",
-"text_color_hovered": "Color(0.93, 0.76, 0.45, 1)",
-"text_color_pressed": "Color(1, 0.86, 0.58, 1)",
-"text_color_use_global": "false"
+"text_color_focused": "Color(1, 0.86, 0.52, 1)",
+"text_color_hovered": "Color(1, 0.86, 0.52, 1)",
+"text_color_pressed": "Color(1, 0.92, 0.68, 1)",
+"text_color_use_global": "false",
+"centered_width_ratio": "0.44",
+"centered_min_width": "280.0",
+"centered_max_width": "480.0",
+"side_layout_min_width": "1600.0",
+"side_layout_min_aspect": "1.70",
+"side_width": "340.0",
+"textbox_height_ratio": "0.18",
+"textbox_min_height": "118.0",
+"textbox_max_height": "150.0",
+"textbox_bottom_distance": "18.0",
+"gap_above_textbox": "12.0",
+"choices_height_ratio": "0.24",
+"choices_min_height": "96.0",
+"choices_max_height": "170.0"
 }
 
 [sub_resource type="Resource" id="Resource_textinput"]
@@ -70,7 +100,7 @@ scene = ExtResource("8_history")
 
 [resource]
 script = ExtResource("1_mvpc0")
-name = "JRPG Style"
+name = "Map Dialogue Style"
 layer_list = Array[String](["10", "11", "12", "13", "14", "15"])
 layer_info = {
 "": SubResource("Resource_base"),

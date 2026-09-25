@@ -35,7 +35,7 @@ directories/dtl_directory={
 }
 layout/style_directory={
 "": "res://scenes/ui/dialog/jrpg_style.tres",
-"JRPG Style": "res://scenes/ui/dialog/jrpg_style.tres",
+"Map Dialogue Style": "res://scenes/ui/dialog/jrpg_style.tres",
 "Speaker Textbox Style": "res://addons/dialogic/Modules/DefaultLayoutParts/Style_SpeakerTextbox/speaker_textbox_style.tres"
 }
 glossary/default_case_sensitive=true

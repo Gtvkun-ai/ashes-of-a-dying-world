@@ -18,7 +18,7 @@
 &"offset": Vector2(0, 0),
 &"portraits": {
 "neutral": {
-"image": "res://assets/graphics/characters/hyou/icon.png",
+"image": "res://assets/graphics/characters/hyou/neutral_dial.png",
 "offset": Vector2(0, 0),
 "scene": "res://addons/dialogic/Modules/Character/default_portrait.tscn"
 }

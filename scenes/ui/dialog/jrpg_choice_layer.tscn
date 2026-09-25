@@ -1,6 +1,6 @@
 [gd_scene load_steps=6 format=3]
 
-[ext_resource type="Script" uid="uid://ij0qm2ew6plv" path="res://addons/dialogic/Modules/DefaultLayoutParts/Layer_VN_Choices/vn_choice_layer.gd" id="1_choices"]
+[ext_resource type="Script" path="res://scenes/ui/dialog/jrpg_choice_layer.gd" id="1_choices"]
 [ext_resource type="Script" uid="uid://b1stj4ljd2vo7" path="res://addons/dialogic/Modules/Choice/node_button_sound.gd" id="2_sound"]
 [ext_resource type="AudioStream" uid="uid://b6c1p14bc20p1" path="res://addons/dialogic/Example Assets/sound-effects/typing1.wav" id="3_pressed"]
 [ext_resource type="AudioStream" uid="uid://c2viukvbub6v6" path="res://addons/dialogic/Example Assets/sound-effects/typing4.wav" id="4_hover"]
@@ -8,6 +8,7 @@
 [sub_resource type="AudioStream" id="AudioStream_empty"]
 
 [node name="JRPGChoiceLayer" type="Control"]
+z_index = 20
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -23,10 +24,10 @@ anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -170.0
-offset_top = -330.0
-offset_right = 170.0
-offset_bottom = -172.0
+offset_left = -300.0
+offset_top = -520.0
+offset_right = 300.0
+offset_bottom = -230.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2

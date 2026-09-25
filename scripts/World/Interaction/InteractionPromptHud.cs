@@ -8,7 +8,7 @@ namespace AshesofaDyingWorld.World.Interaction
     public partial class InteractionPromptHud : CanvasLayer
     {
         public const string RuntimeNodeName = "InteractionPromptHud";
-        private const string VietnameseFontPath = "res://addons/dialogic/Example Assets/Fonts/Roboto-Regular.ttf";
+        private const string VietnameseFontPath = "res://assets/fonts/BeVietnamPro-Regular.ttf";
         public static InteractionPromptHud Current { get; private set; }
 
         private PanelContainer _panel;
