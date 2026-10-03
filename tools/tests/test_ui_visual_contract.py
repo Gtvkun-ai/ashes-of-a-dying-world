@@ -7,6 +7,10 @@ TOKENS_PATH = REPO_ROOT / "scripts/UI/Theme/UiTokens.cs"
 THEME_PATH = REPO_ROOT / "scripts/UI/Theme/UiThemeFactory.cs"
 CHROME_PATH = REPO_ROOT / "scripts/UI/HUD/InventoryPanelChrome.cs"
 BUTTON_PATH = REPO_ROOT / "scripts/UI/HUD/PixelButtonSkin.cs"
+GLYPH_ATLAS_PATH = REPO_ROOT / "assets/graphics/ui/icons/ui_glyph_atlas.svg"
+GLYPH_RESOLVER_PATH = REPO_ROOT / "scripts/UI/Theme/UiGlyphResolver.cs"
+ICON_RESOURCE_NAMES = ("str", "dex", "int", "vit", "spi", "def", "exit")
+ATLAS_RESOURCE_PATH = "res://assets/graphics/ui/icons/ui_glyph_atlas.svg"
 
 
 def _source(path: Path) -> str:
@@ -131,3 +135,67 @@ def test_pixel_button_skin_does_not_resize_ai_exports():
     assert "MaximumSourceHeight" not in source
     assert "NormalizeSourceTexture" not in source
     assert "Asset AI/export" not in source
+
+
+def test_ui_glyph_atlas_uses_integer_24px_cells():
+    assert GLYPH_ATLAS_PATH.is_file()
+    source = _source(GLYPH_ATLAS_PATH)
+
+    svg_match = re.search(
+        r'<svg\b[^>]*\bwidth="(\d+)"[^>]*\bheight="(\d+)"[^>]*\bviewBox="0 0 (\d+) (\d+)"',
+        source,
+    )
+    assert svg_match is not None
+    width, height, view_width, view_height = (int(value) for value in svg_match.groups())
+    assert width == view_width
+    assert height == view_height
+    assert width > 0 and height > 0
+    assert width % 24 == 0
+    assert height % 24 == 0
+
+    cell_origins = re.findall(r'<g\s+id="glyph-[^"]+"\s+transform="translate\(([-\d]+)\s+([-\d]+)\)"', source)
+    assert cell_origins
+    assert all(int(x) % 24 == 0 and int(y) % 24 == 0 for x, y in cell_origins)
+    assert 'stroke-width="1.5"' in source
+    assert 'class="highlight"' in source
+
+
+def test_all_runtime_navigation_glyphs_resolve():
+    source = _source(GLYPH_RESOLVER_PATH)
+    assert 'namespace AshesofaDyingWorld.UI.Theme' in source
+    assert 'public enum UiGlyph' in source
+    assert 'public static AtlasTexture Resolve(UiGlyph glyph)' in source
+    assert 'ui_glyph_atlas.svg' in source
+    assert 'Fallback' in source
+
+    expected_glyphs = (
+        "Menu", "Character", "Inventory", "Skills", "Quests", "Party", "Settings",
+        "CategoryWeapon", "CategoryArmor", "CategoryConsumable", "CategoryMaterial",
+        "CategoryQuest", "Target", "Strength", "Dexterity", "Intelligence",
+        "Vitality", "Spirit", "Defense", "Exit",
+    )
+    for glyph in expected_glyphs:
+        assert re.search(rf'\b{glyph}\b', source)
+        assert re.search(rf'\[UiGlyph\.{glyph}\]\s*=\s*Cell\(', source)
+
+
+def test_data_stat_icons_use_clean_atlas_regions():
+    atlas_paths = set()
+    for icon_name in ICON_RESOURCE_NAMES:
+        source = _source(REPO_ROOT / f"data/icons/{icon_name}.tres")
+        assert ATLAS_RESOURCE_PATH in source
+        assert "menu_action_icons_sheet.png" not in source
+        assert "stat_icons_sheet.png" not in source
+        atlas_paths.update(re.findall(r'path="([^"]+)"', source))
+
+        region_match = re.search(
+            r"region\s*=\s*Rect2\(\s*([-\d.]+)\s*,\s*([-\d.]+)\s*,\s*([-\d.]+)\s*,\s*([-\d.]+)\s*\)",
+            source,
+        )
+        assert region_match is not None
+        x, y, width, height = (float(value) for value in region_match.groups())
+        assert all(value.is_integer() for value in (x, y, width, height))
+        assert x % 24 == 0 and y % 24 == 0
+        assert width == 24 and height == 24
+
+    assert atlas_paths == {ATLAS_RESOURCE_PATH}
