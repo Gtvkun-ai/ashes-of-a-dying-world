@@ -12,51 +12,52 @@ extends DialogicLayoutLayer
 # ── Box ────────────────────────────────────────────────────────────────
 @export_group("Box")
 @export_file("*.tres") var box_panel: String = ""
-@export var box_width_ratio: float = 0.82
+@export var box_width_ratio: float = 0.64
 @export var box_min_width: float = 760.0
-@export var box_max_width: float = 1500.0
-@export var box_height_ratio: float = 0.215
-@export var box_min_height: float = 150.0
-@export var box_max_height: float = 195.0
+@export var box_max_width: float = 920.0
+@export var box_height_ratio: float = 0.168
+@export var box_min_height: float = 114.0
+@export var box_max_height: float = 130.0
 @export var box_distance: int = 22
 
 # ── Text ───────────────────────────────────────────────────────────────
 @export_group("Text")
 @export var text_use_global_size: bool = false
-@export var text_custom_size: int = 18
+@export var text_custom_size: int = 19
 @export var text_use_global_color: bool = false
 @export var text_custom_color: Color = Color(0.96, 0.93, 0.86, 1.0)
-@export var content_left_margin: int = 36
-@export var content_top_margin: int = 34
-@export var content_right_margin: int = 36
-@export var content_bottom_margin: int = 18
+@export var content_left_margin: int = 24
+@export var content_top_margin: int = 16
+@export var content_right_margin: int = 24
+@export var content_bottom_margin: int = 16
 
 # ── Name Label ─────────────────────────────────────────────────────────
 @export_group("Name Label")
 @export var name_label_color_mode: int = 1  # 0=GLOBAL, 1=CUSTOM, 2=CHARACTER
 @export var name_label_custom_color: Color = Color(0.95, 0.79, 0.48, 1.0)
 @export var name_label_use_global_size: bool = false
-@export var name_label_custom_size: int = 20
+@export var name_label_custom_size: int = 17
 ## Offset tính từ góc trên-trái của textbox.
-@export var name_plate_offset: Vector2 = Vector2(38, -24)
-@export var name_plate_size: Vector2 = Vector2(170, 44)
+@export var name_plate_offset: Vector2 = Vector2(18, -16)
+@export var name_plate_size: Vector2 = Vector2(136, 30)
 
 # ── Portrait ───────────────────────────────────────────────────────────
 @export_group("Portrait")
 ## Kích thước chuẩn cho viewport 1280x720. Script tự scale theo chiều cao màn hình.
-@export var portrait_size: Vector2 = Vector2(700, 620)
+@export var portrait_size: Vector2 = Vector2(510, 410)
 @export var portrait_show: bool = true
-@export var portrait_center_x_offset: float = 0.0
+@export var portrait_center_x_offset: float = -24.0
+@export var portrait_vertical_offset: float = -18.0
 ## Số pixel portrait chui xuống phía sau textbox (ở 720p).
-@export var portrait_panel_overlap: float = 105.0
+@export var portrait_panel_overlap: float = 50.0
 @export var portrait_draw_behind_panel: bool = true
 
 # ── Backdrop & Motion ──────────────────────────────────────────────────
 @export_group("Backdrop & Motion")
-@export var dim_color: Color = Color(0.015, 0.025, 0.04, 0.46)
+@export var dim_color: Color = Color(0.015, 0.02, 0.03, 0.10)
 @export var enable_entry_animation: bool = true
-@export var entry_duration: float = 0.28
-@export var portrait_entry_offset: float = 22.0
+@export var entry_duration: float = 0.18
+@export var portrait_entry_offset: float = 12.0
 
 const VIETNAMESE_FONT_PATH := "res://assets/fonts/BeVietnamPro-Regular.ttf"
 
@@ -115,9 +116,10 @@ func _apply_export_overrides() -> void:
 	portrait.visible = portrait_show and portrait.texture != null
 	portrait.custom_minimum_size = effective_portrait_size
 	portrait.size = effective_portrait_size
+	var effective_vertical_offset: float = portrait_vertical_offset * portrait_scale
 	_portrait_target_position = Vector2(
 		-effective_portrait_size.x * 0.5 + portrait_center_x_offset,
-		panel.position.y - effective_portrait_size.y + effective_overlap
+		panel.position.y - effective_portrait_size.y + effective_overlap + effective_vertical_offset
 	)
 	portrait.position = _portrait_target_position
 	portrait.z_index = 2 if portrait_draw_behind_panel else 5
@@ -133,6 +135,12 @@ func _apply_export_overrides() -> void:
 	name_plate.position = panel.position + name_plate_offset
 	name_plate.size = name_plate_size
 	name_plate.z_index = 6
+
+	# Next indicator is a sibling of the PanelContainer. Putting it inside a
+	# Container made Godot re-layout it to the panel's top-left.
+	var next_indicator: Control = %NextIndicator
+	next_indicator.position = panel.position + panel.size - Vector2(18.0, 12.0)
+	next_indicator.z_index = 7
 
 	var dialog_text: DialogicNode_DialogText = %DialogicNode_DialogText
 	var vietnamese_font: Font = load(VIETNAMESE_FONT_PATH)

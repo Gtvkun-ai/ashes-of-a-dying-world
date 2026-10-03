@@ -9,27 +9,35 @@ extends "res://addons/dialogic/Modules/DefaultLayoutParts/Layer_VN_Choices/vn_ch
 
 @export_group("Responsive Layout")
 ## Only use the right-side layout when there is genuinely enough horizontal room.
-@export var side_layout_min_width: float = 1500.0
-@export var side_layout_min_aspect: float = 1.55
+@export var side_layout_min_width: float = 0.0
+@export var side_layout_min_aspect: float = 1.35
 
 ## Choice width limits. On narrow screens the width becomes a fraction of viewport.
-@export var centered_width_ratio: float = 0.66
-@export var centered_min_width: float = 360.0
-@export var centered_max_width: float = 680.0
-@export var side_width: float = 380.0
+@export var centered_width_ratio: float = 0.22
+@export var centered_min_width: float = 240.0
+@export var centered_max_width: float = 280.0
+@export var side_width: float = 320.0
+@export var centered_x_offset: float = 125.0
+@export var side_x_offset: float = 0.0
+@export var right_reserved_ratio: float = 0.18
+@export var right_reserved_min: float = 170.0
+@export var right_reserved_max: float = 270.0
 
 ## Spacing from the dialogue panel / screen edge.
-@export var textbox_height_ratio: float = 0.215
-@export var textbox_min_height: float = 150.0
-@export var textbox_max_height: float = 195.0
+@export var textbox_height_ratio: float = 0.168
+@export var textbox_min_height: float = 114.0
+@export var textbox_max_height: float = 130.0
 @export var textbox_bottom_distance: float = 22.0
-@export var gap_above_textbox: float = 18.0
-@export var screen_side_margin: float = 32.0
+@export var gap_above_textbox: float = 10.0
+@export var screen_side_margin: float = 24.0
+@export var textbox_width_ratio: float = 0.64
+@export var textbox_min_width: float = 760.0
+@export var textbox_max_width: float = 920.0
 
 ## Maximum vertical area reserved for the choice stack.
-@export var choices_height_ratio: float = 0.36
-@export var choices_min_height: float = 150.0
-@export var choices_max_height: float = 330.0
+@export var choices_height_ratio: float = 0.12
+@export var choices_min_height: float = 80.0
+@export var choices_max_height: float = 96.0
 
 var _viewport_connected := false
 
@@ -39,6 +47,7 @@ func _apply_export_overrides() -> void:
 	super._apply_export_overrides()
 	_connect_viewport_resize()
 	call_deferred("_apply_responsive_layout")
+	call_deferred("_style_buttons")
 
 
 func _connect_viewport_resize() -> void:
@@ -54,6 +63,7 @@ func _connect_viewport_resize() -> void:
 
 func _on_viewport_size_changed() -> void:
 	call_deferred("_apply_responsive_layout")
+	call_deferred("_style_buttons")
 
 
 func _apply_responsive_layout() -> void:
@@ -68,59 +78,45 @@ func _apply_responsive_layout() -> void:
 		return
 
 	var choices: VBoxContainer = $Choices
-
-	# Work in one predictable coordinate system: bottom-center anchored.
 	choices.anchor_left = 0.5
 	choices.anchor_right = 0.5
 	choices.anchor_top = 1.0
 	choices.anchor_bottom = 1.0
 	choices.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	choices.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	choices.alignment = BoxContainer.ALIGNMENT_END
+	choices.alignment = BoxContainer.ALIGNMENT_BEGIN
 
-	# Match the textbox sizing formula from jrpg_textbox_layer.gd so the choice
-	# stack always clears the top edge of the textbox at every resolution.
-	var textbox_height := clampf(
-		viewport_size.y * textbox_height_ratio,
-		textbox_min_height,
-		textbox_max_height
-	)
+	var textbox_width := clampf(viewport_size.x * textbox_width_ratio, textbox_min_width, textbox_max_width)
+	var textbox_height := clampf(viewport_size.y * textbox_height_ratio, textbox_min_height, textbox_max_height)
+	var center_x := viewport_size.x * 0.5
+	var textbox_left := center_x - textbox_width * 0.5
+	var textbox_right := center_x + textbox_width * 0.5
+
+	var width := clampf(viewport_size.x * 0.18, 240.0, 280.0)
+	var choices_height := clampf(viewport_size.y * choices_height_ratio, choices_min_height, choices_max_height)
+	var right_edge := textbox_right - 10.0
+	var left_edge := right_edge - width
+	if left_edge < screen_side_margin:
+		left_edge = screen_side_margin
+		right_edge = left_edge + width
+	if right_edge > viewport_size.x - screen_side_margin:
+		right_edge = viewport_size.x - screen_side_margin
+		left_edge = right_edge - width
+
 	var choices_bottom := -(textbox_height + textbox_bottom_distance + gap_above_textbox)
-	var choices_height := clampf(
-		viewport_size.y * choices_height_ratio,
-		choices_min_height,
-		choices_max_height
-	)
+	choices.offset_left = left_edge - center_x
+	choices.offset_right = right_edge - center_x
+	choices.offset_bottom = choices_bottom
+	choices.offset_top = choices_bottom - choices_height
 
-	var aspect := viewport_size.x / viewport_size.y
-	var can_use_side_layout := (
-		viewport_size.x >= side_layout_min_width
-		and aspect >= side_layout_min_aspect
-	)
 
-	if can_use_side_layout:
-		# Wide screens: place choices in the free space at the far right.
-		var width := minf(side_width, viewport_size.x * 0.28)
-		var desired_right := viewport_size.x - screen_side_margin
-		var desired_left := desired_right - width
-		var center_x := viewport_size.x * 0.5
-
-		choices.offset_left = desired_left - center_x
-		choices.offset_right = desired_right - center_x
-		choices.offset_bottom = choices_bottom
-		choices.offset_top = choices_bottom - choices_height
-	else:
-		# Narrow/tall screens: center the choices above the textbox instead of
-		# forcing them into the portrait. Width remains responsive and clamped.
-		var safe_max_width := maxf(260.0, viewport_size.x - screen_side_margin * 2.0)
-		var width := clampf(
-			viewport_size.x * centered_width_ratio,
-			centered_min_width,
-			centered_max_width
-		)
-		width = minf(width, safe_max_width)
-
-		choices.offset_left = -width * 0.5
-		choices.offset_right = width * 0.5
-		choices.offset_bottom = choices_bottom
-		choices.offset_top = choices_bottom - choices_height
+func _style_buttons() -> void:
+	if not has_node("Choices"):
+		return
+	for child in $Choices.get_children():
+		if child is BaseButton:
+			child.alignment = HORIZONTAL_ALIGNMENT_LEFT
+			child.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+			child.clip_text = true
+			child.focus_mode = Control.FOCUS_ALL
+			child.text = child.text.strip_edges()

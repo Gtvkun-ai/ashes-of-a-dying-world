@@ -3,18 +3,15 @@
 [resource]
 content_margin_left = 14.0
 content_margin_top = 8.0
-content_margin_right = 14.0
+content_margin_right = 12.0
 content_margin_bottom = 8.0
-bg_color = Color(0.045, 0.05, 0.06, 0.94)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.56, 0.41, 0.2, 1)
+bg_color = Color(0.02, 0.02, 0.03, 0.56)
+border_width_left = 2
+border_width_top = 0
+border_width_right = 0
+border_width_bottom = 1
+border_color = Color(0.46, 0.34, 0.17, 0.78)
 corner_radius_top_left = 0
 corner_radius_top_right = 0
 corner_radius_bottom_right = 0
 corner_radius_bottom_left = 0
-shadow_color = Color(0, 0, 0, 0.16)
-shadow_size = 1
-shadow_offset = Vector2(1, 1)
