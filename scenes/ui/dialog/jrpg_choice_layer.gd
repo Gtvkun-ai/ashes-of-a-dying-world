@@ -114,7 +114,11 @@ func _apply_responsive_layout() -> void:
 
 	choices.custom_minimum_size.x = 0.0
 	choices.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	choices.alignment = BoxContainer.ALIGNMENT_BEGIN
+	# Fill the viewport when content is short so one or two choices stay next
+	# to the textbox. Content taller than the viewport keeps its natural size
+	# and remains scrollable.
+	choices.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	choices.alignment = BoxContainer.ALIGNMENT_END
 
 
 func _style_buttons() -> void:

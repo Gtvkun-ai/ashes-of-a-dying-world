@@ -78,9 +78,17 @@ def test_dialogic_choices_wrap_scroll_and_expand_past_legacy_width():
     assert '[node name="ChoiceScroll" type="ScrollContainer" parent="."]' in scene
     assert '[node name="Choices" type="VBoxContainer" parent="ChoiceScroll"]' in scene
     assert 'vertical_scroll_mode = 1' in scene
+    assert 'size_flags_vertical = 3' in scene
+    assert 'alignment = 2' in scene
+    assert 'BoxContainer.ALIGNMENT_END' in layer
     assert '"centered_max_width": "520.0"' in style
     assert '"choices_max_height": "360.0"' in style
     assert 'Sáu lựa chọn tiếng Việt rất dài' in smoke
+    assert 'Vector2i(1280, 720)' in smoke
+    assert 'Vector2i(1600, 900)' in smoke
+    assert 'last_button.grab_focus()' in smoke
+    assert 'choice_scroll.scroll_vertical > 0' in smoke
+    assert 'Single choice is not aligned near the textbox' in smoke
 
 
 def test_dialogic_focus_style_is_structurally_distinct_from_hover():
