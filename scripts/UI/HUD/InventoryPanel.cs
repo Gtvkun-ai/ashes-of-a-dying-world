@@ -4,6 +4,7 @@ using System.Linq;
 using AshesofaDyingWorld.Core.Data;
 using AshesofaDyingWorld.Core.Managers;
 using AshesofaDyingWorld.UI.Shared;
+using AshesofaDyingWorld.UI.Theme;
 
 namespace AshesofaDyingWorld.UI.Menus
 {
@@ -33,10 +34,6 @@ namespace AshesofaDyingWorld.UI.Menus
         // Asset hook: người dùng chỉ cần đặt PNG đúng tên vào thư mục này.
         // Nếu file chưa tồn tại, UI vẫn chạy bằng icon/style fallback trong code.
         // ---------------------------------------------------------------------
-        private const string InventoryAssetRoot = InventoryPanelChrome.AssetRoot;
-        private const string BagIconPath = InventoryAssetRoot + "/icon_bag.png";
-        private const string CoinIconPath = InventoryAssetRoot + "/icon_coin.png";
-
         private enum InventoryCategory
         {
             All,
@@ -102,11 +99,10 @@ namespace AshesofaDyingWorld.UI.Menus
         private Label _detailDamageValueLabel;
         private Label _detailValueValueLabel;
         private Label _detailDescriptionLabel;
+        private Label _inventoryEmptyStateLabel;
         private TextureRect _detailIcon;
         private GridContainer _grid;
 
-        private Texture2D _bagIcon;
-        private Texture2D _coinIcon;
         private readonly Dictionary<InventoryCategory, Texture2D> _categoryIcons = new();
 
         private InventoryCategory _currentCategory = InventoryCategory.All;
@@ -161,34 +157,17 @@ namespace AshesofaDyingWorld.UI.Menus
 
             // Icon nhỏ, không thêm badge lồng quanh icon để tránh cảm giác "box trong box".
             var bagIcon = new TextureRect();
-            bagIcon.Texture = _bagIcon ??= TryLoadTexture(BagIconPath) ?? CreateBagIcon();
+            bagIcon.Texture = UiGlyphResolver.Resolve(UiGlyph.Inventory);
             bagIcon.CustomMinimumSize = new Vector2(24, 24);
             bagIcon.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
             bagIcon.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
             bagIcon.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
             header.AddChild(bagIcon);
 
-            var title = CreateLabel("INVENTORY", 22, _mainTextColor);
+            var title = CreateLabel("TÚI ĐỒ", 22, _mainTextColor);
             title.SizeFlagsHorizontal = SizeFlags.ExpandFill;
             title.VerticalAlignment = VerticalAlignment.Center;
             header.AddChild(title);
-
-            var coinRow = new HBoxContainer();
-            coinRow.AddThemeConstantOverride("separation", 6);
-            coinRow.Alignment = BoxContainer.AlignmentMode.Center;
-            header.AddChild(coinRow);
-
-            var coinIcon = new TextureRect();
-            coinIcon.Texture = _coinIcon ??= TryLoadTexture(CoinIconPath) ?? CreateCoinIcon();
-            coinIcon.CustomMinimumSize = new Vector2(16, 16);
-            coinIcon.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
-            coinIcon.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
-            coinIcon.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
-            coinRow.AddChild(coinIcon);
-
-            var coinLabel = CreateLabel("12,345", 17, new Color("#f1c85a"));
-            coinLabel.VerticalAlignment = VerticalAlignment.Center;
-            coinRow.AddChild(coinLabel);
 
             header.AddChild(CreateCloseButton());
             return headerPanel;
@@ -199,12 +178,12 @@ namespace AshesofaDyingWorld.UI.Menus
             // Dùng đúng tab bar từ chrome chung để CharacterPanel và InventoryPanel không lệch style.
             var tabsPanel = InventoryPanelChrome.CreateTabBar(out var tabs);
 
-            _allButton = CreateCategoryButton("All", InventoryCategory.All);
-            _consumablesButton = CreateCategoryButton("Consumables", InventoryCategory.Consumables);
-            _materialsButton = CreateCategoryButton("Materials", InventoryCategory.Materials);
-            _equipmentButton = CreateCategoryButton("Equipment", InventoryCategory.Equipment);
-            _questButton = CreateCategoryButton("Quest", InventoryCategory.Quest);
-            _othersButton = CreateCategoryButton("More", InventoryCategory.Others);
+            _allButton = CreateCategoryButton("Tất cả", InventoryCategory.All);
+            _consumablesButton = CreateCategoryButton("Tiêu hao", InventoryCategory.Consumables);
+            _materialsButton = CreateCategoryButton("Nguyên liệu", InventoryCategory.Materials);
+            _equipmentButton = CreateCategoryButton("Trang bị", InventoryCategory.Equipment);
+            _questButton = CreateCategoryButton("Nhiệm vụ", InventoryCategory.Quest);
+            _othersButton = CreateCategoryButton("Khác", InventoryCategory.Others);
 
             tabs.AddChild(_allButton);
             tabs.AddChild(_consumablesButton);
@@ -271,6 +250,14 @@ namespace AshesofaDyingWorld.UI.Menus
             _grid.SizeFlagsVertical = SizeFlags.ShrinkBegin;
             gridRow.AddChild(_grid);
 
+            _inventoryEmptyStateLabel = CreateLabel("Không có vật phẩm trong mục này.", 13, _mutedTextColor);
+            _inventoryEmptyStateLabel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+            _inventoryEmptyStateLabel.CustomMinimumSize = new Vector2(0, 36);
+            _inventoryEmptyStateLabel.HorizontalAlignment = HorizontalAlignment.Center;
+            _inventoryEmptyStateLabel.VerticalAlignment = VerticalAlignment.Center;
+            _inventoryEmptyStateLabel.Visible = false;
+            column.AddChild(_inventoryEmptyStateLabel);
+
             int slotCount = GetSlotCount();
             for (int i = 0; i < slotCount; i++)
             {
@@ -306,7 +293,7 @@ namespace AshesofaDyingWorld.UI.Menus
             footer.AddChild(_capacityLabel);
 
             _sortButton = new Button();
-            _sortButton.Text = "Sort: ID";
+            _sortButton.Text = "Sắp xếp: ID";
             _sortButton.CustomMinimumSize = new Vector2(138, 36);
             _sortButton.FocusMode = FocusModeEnum.None;
             _sortButton.MouseDefaultCursorShape = CursorShape.PointingHand;
@@ -351,7 +338,7 @@ namespace AshesofaDyingWorld.UI.Menus
             _detailIcon.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
             previewCenter.AddChild(_detailIcon);
 
-            _detailNameLabel = CreateLabel("Select Item", 21, _mainTextColor);
+            _detailNameLabel = CreateLabel("Chưa chọn vật phẩm", 21, _mainTextColor);
             _detailNameLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
             detail.AddChild(_detailNameLabel);
 
@@ -360,7 +347,7 @@ namespace AshesofaDyingWorld.UI.Menus
             metaRow.AddThemeConstantOverride("separation", 6);
             detail.AddChild(metaRow);
 
-            _detailCategoryLabel = CreateLabel("Category", 14, _categoryColor);
+            _detailCategoryLabel = CreateLabel("Danh mục", 14, _categoryColor);
             _detailCategoryLabel.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
             _detailCategoryLabel.AutowrapMode = TextServer.AutowrapMode.Off;
             metaRow.AddChild(_detailCategoryLabel);
@@ -378,15 +365,15 @@ namespace AshesofaDyingWorld.UI.Menus
 
             detail.AddChild(CreateDivider());
 
-            var damageRow = CreateStatRow("Damage", out _detailDamageValueLabel);
+            var damageRow = CreateStatRow("Sát thương", out _detailDamageValueLabel);
             detail.AddChild(damageRow);
             detail.AddChild(CreateThinDivider());
 
-            var valueRow = CreateStatRow("Value", out _detailValueValueLabel);
+            var valueRow = CreateStatRow("Giá trị", out _detailValueValueLabel);
             detail.AddChild(valueRow);
             detail.AddChild(CreateThinDivider());
 
-            _detailDescriptionLabel = CreateLabel("Choose an item to view its details.", 14, _mutedTextColor);
+            _detailDescriptionLabel = CreateLabel("Chọn một vật phẩm để xem chi tiết.", 14, _mutedTextColor);
             _detailDescriptionLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
             _detailDescriptionLabel.VerticalAlignment = VerticalAlignment.Top;
             _detailDescriptionLabel.SizeFlagsVertical = SizeFlags.ExpandFill;
@@ -398,11 +385,11 @@ namespace AshesofaDyingWorld.UI.Menus
             actionRow.AddThemeConstantOverride("separation", 10);
             detail.AddChild(actionRow);
 
-            _primaryActionButton = CreateActionButton("Equip");
+            _primaryActionButton = CreateActionButton("Trang bị");
             _primaryActionButton.Pressed += OnPrimaryActionPressed;
             actionRow.AddChild(_primaryActionButton);
 
-            _dropButton = CreateDangerActionButton("Drop");
+            _dropButton = CreateDangerActionButton("Bỏ");
             _dropButton.Pressed += OnDropPressed;
             actionRow.AddChild(_dropButton);
 
@@ -439,26 +426,15 @@ namespace AshesofaDyingWorld.UI.Menus
             button.AddThemeConstantOverride("icon_max_width", 20);
             button.AddThemeConstantOverride("icon_spacing", 6);
 
-            // Không ExpandFill: mỗi tab chỉ rộng theo nội dung, tránh cảm giác thanh navbar web.
+            // Let each tab measure its Vietnamese caption; the shared tab bar scrolls on narrow viewports.
             button.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
-            button.CustomMinimumSize = new Vector2(GetCategoryButtonWidth(category), 36);
+            button.CustomMinimumSize = new Vector2(0, 36);
+            button.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            button.TooltipText = text;
             button.FocusMode = FocusModeEnum.None;
             button.MouseDefaultCursorShape = CursorShape.PointingHand;
             button.Pressed += () => ShowCategory(category);
             return button;
-        }
-
-        private float GetCategoryButtonWidth(InventoryCategory category)
-        {
-            return category switch
-            {
-                InventoryCategory.All => 84f,
-                InventoryCategory.Consumables => 146f,
-                InventoryCategory.Materials => 116f,
-                InventoryCategory.Equipment => 126f,
-                InventoryCategory.Quest => 92f,
-                _ => 94f
-            };
         }
 
         private Button CreateCloseButton()
@@ -646,6 +622,11 @@ namespace AshesofaDyingWorld.UI.Menus
             FillItemSlots();
             RefreshDetailPanel();
 
+            if (_inventoryEmptyStateLabel != null)
+            {
+                _inventoryEmptyStateLabel.Visible = _visibleEntries.Count == 0;
+            }
+
             if (_capacityLabel != null)
             {
                 int usedSlots = _inventoryManager?.Items?.Count ?? 0;
@@ -769,13 +750,13 @@ namespace AshesofaDyingWorld.UI.Menus
             if (entry?.Item == null)
             {
                 _detailIcon.Texture = null;
-                _detailNameLabel.Text = "Select Item";
-                _detailCategoryLabel.Text = "Category";
-                _detailSlotLabel.Text = "Slot";
+                _detailNameLabel.Text = "Chưa chọn vật phẩm";
+                _detailCategoryLabel.Text = "Danh mục";
+                _detailSlotLabel.Text = "Vị trí";
                 _detailDamageValueLabel.Text = "-";
                 _detailValueValueLabel.Text = "-";
-                _detailDescriptionLabel.Text = "Choose an item to view its details.";
-                _primaryActionButton.Text = "Use";
+                _detailDescriptionLabel.Text = "Chọn một vật phẩm để xem chi tiết.";
+                _primaryActionButton.Text = "Sử dụng";
                 _primaryActionButton.Disabled = true;
                 _dropButton.Disabled = true;
                 return;
@@ -783,11 +764,11 @@ namespace AshesofaDyingWorld.UI.Menus
 
             EquipmentItemData item = entry.Item;
             _detailIcon.Texture = item.Icon;
-            _detailNameLabel.Text = string.IsNullOrWhiteSpace(item.ItemName) ? "Unnamed Item" : item.ItemName;
+            _detailNameLabel.Text = string.IsNullOrWhiteSpace(item.ItemName) ? "Vật phẩm chưa đặt tên" : item.ItemName;
             _detailCategoryLabel.Text = GetCategoryDisplayName(item.InventoryCategory);
             _detailSlotLabel.Text = item.InventoryCategory == InventoryItemCategory.Equipment
                 ? GetSlotDisplayName(item.SlotType)
-                : $"Owned: {entry.Count}";
+                : $"Sở hữu: {entry.Count}";
             _detailDamageValueLabel.Text = item.InventoryCategory == InventoryItemCategory.Equipment
                 ? FormatNumber(item.BaseValue)
                 : "-";
@@ -795,7 +776,7 @@ namespace AshesofaDyingWorld.UI.Menus
             _detailDescriptionLabel.Text = GetDescription(item);
 
             bool isEquipment = item.InventoryCategory == InventoryItemCategory.Equipment;
-            _primaryActionButton.Text = isEquipment ? "Equip" : "Use";
+            _primaryActionButton.Text = isEquipment ? "Trang bị" : "Sử dụng";
 
             // Hiện tại project mới có logic EquipFromInventory. Consumable để disabled thay vì giả vờ bấm được.
             _primaryActionButton.Disabled = !isEquipment;
@@ -839,9 +820,9 @@ namespace AshesofaDyingWorld.UI.Menus
 
             _sortButton.Text = _sortMode switch
             {
-                InventorySortMode.Name => "Sort: Name",
-                InventorySortMode.Category => "Sort: Type",
-                _ => "Sort: ID"
+                InventorySortMode.Name => "Sắp xếp: tên",
+                InventorySortMode.Category => "Sắp xếp: loại",
+                _ => "Sắp xếp: ID"
             };
 
             RefreshInventoryView();
@@ -916,11 +897,11 @@ namespace AshesofaDyingWorld.UI.Menus
 
             return item.InventoryCategory switch
             {
-                InventoryItemCategory.Consumable => "A consumable item. Its effect will appear here when the use system is connected.",
-                InventoryItemCategory.Material => "A crafting material collected during the journey.",
-                InventoryItemCategory.Equipment => "A basic piece of equipment.",
-                InventoryItemCategory.Quest => "A quest item. It cannot be dropped.",
-                _ => "An item carried in your inventory."
+                InventoryItemCategory.Consumable => "Vật phẩm tiêu hao. Hiệu ứng sẽ hiển thị khi hệ thống sử dụng được kết nối.",
+                InventoryItemCategory.Material => "Nguyên liệu chế tạo thu thập trong hành trình.",
+                InventoryItemCategory.Equipment => "Một món trang bị cơ bản.",
+                InventoryItemCategory.Quest => "Vật phẩm nhiệm vụ, không thể vứt bỏ.",
+                _ => "Vật phẩm đang được mang theo."
             };
         }
 
@@ -928,11 +909,11 @@ namespace AshesofaDyingWorld.UI.Menus
         {
             return category switch
             {
-                InventoryItemCategory.Consumable => "Consumable",
-                InventoryItemCategory.Material => "Material",
-                InventoryItemCategory.Equipment => "Equipment",
-                InventoryItemCategory.Quest => "Quest",
-                _ => "Other"
+                InventoryItemCategory.Consumable => "Tiêu hao",
+                InventoryItemCategory.Material => "Nguyên liệu",
+                InventoryItemCategory.Equipment => "Trang bị",
+                InventoryItemCategory.Quest => "Nhiệm vụ",
+                _ => "Khác"
             };
         }
 
@@ -940,10 +921,10 @@ namespace AshesofaDyingWorld.UI.Menus
         {
             return slot switch
             {
-                EquipmentSlot.MainHand => "Main hand",
-                EquipmentSlot.OffHand => "Off hand",
-                EquipmentSlot.Accessory1 => "Accessory",
-                EquipmentSlot.Accessory2 => "Accessory",
+                EquipmentSlot.MainHand => "Tay chính",
+                EquipmentSlot.OffHand => "Tay phụ",
+                EquipmentSlot.Accessory1 => "Phụ kiện",
+                EquipmentSlot.Accessory2 => "Phụ kiện",
                 _ => slot.ToString()
             };
         }
@@ -1083,27 +1064,17 @@ namespace AshesofaDyingWorld.UI.Menus
                 return icon;
             }
 
-            string assetName = category switch
+            UiGlyph glyph = category switch
             {
-                InventoryCategory.All => "category_all.png",
-                InventoryCategory.Consumables => "category_consumables.png",
-                InventoryCategory.Materials => "category_materials.png",
-                InventoryCategory.Equipment => "category_equipment.png",
-                InventoryCategory.Quest => "category_quest.png",
-                _ => "category_more.png"
+                InventoryCategory.All => UiGlyph.Inventory,
+                InventoryCategory.Consumables => UiGlyph.CategoryConsumable,
+                InventoryCategory.Materials => UiGlyph.CategoryMaterial,
+                InventoryCategory.Equipment => UiGlyph.CategoryArmor,
+                InventoryCategory.Quest => UiGlyph.CategoryQuest,
+                _ => UiGlyph.CategoryKeyItem
             };
 
-            // PNG thật được ưu tiên. Procedural icon chỉ là fallback để project không vỡ
-            // trong lúc người dùng chưa bổ sung asset cuối cùng.
-            icon = TryLoadTexture($"{InventoryAssetRoot}/{assetName}") ?? category switch
-            {
-                InventoryCategory.All => CreateAllIcon(),
-                InventoryCategory.Consumables => CreateConsumablesIcon(),
-                InventoryCategory.Materials => CreateMaterialsIcon(),
-                InventoryCategory.Equipment => CreateEquipmentIcon(),
-                InventoryCategory.Quest => CreateQuestIcon(),
-                _ => CreateOthersIcon()
-            };
+            icon = UiGlyphResolver.Resolve(glyph);
 
             _categoryIcons[category] = icon;
             return icon;

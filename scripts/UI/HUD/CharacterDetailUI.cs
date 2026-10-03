@@ -33,6 +33,7 @@ namespace AshesofaDyingWorld.UI.HUD
 		private Label _sidebarLevelLabel;
 		private Label _sidebarExperienceLabel;
 		private Label _portraitPlaceholderLabel;
+		private Label _equipmentBodyEmptyStateLabel;
 		private Label _attackValueLabel;
 		private Label _speedValueLabel;
 		private Label _armorValueLabel;
@@ -85,6 +86,8 @@ namespace AshesofaDyingWorld.UI.HUD
 		private Label _equipmentDetailStat2Label;
 		private Label _equipmentDetailDescriptionLabel;
 		private Label _inventoryCountLabel;
+		private OptionButton _inventoryFilterOption;
+		private InventoryItemCategory? _inventoryCategoryFilter;
 		private Button _equipmentPrimaryActionButton;
 		private Label _equipmentActionHintLabel;
 		private EquipmentItemData _selectedEquipmentItem;
@@ -380,7 +383,7 @@ namespace AshesofaDyingWorld.UI.HUD
 			previewFrame.AddThemeStyleboxOverride("panel", CreatePortraitStyle());
 			identityColumn.AddChild(previewFrame);
 
-			_portraitPlaceholderLabel = CreateLabel("[ ẢNH CHÂN DUNG ]", 12, _subTextColor);
+			_portraitPlaceholderLabel = CreateLabel("Chưa có ảnh chân dung", 12, _subTextColor);
 			_portraitPlaceholderLabel.HorizontalAlignment = HorizontalAlignment.Center;
 			_portraitPlaceholderLabel.VerticalAlignment = VerticalAlignment.Center;
 			_portraitPlaceholderLabel.SetAnchorsPreset(LayoutPreset.FullRect);
@@ -586,9 +589,28 @@ namespace AshesofaDyingWorld.UI.HUD
 			inventoryFooter.AddThemeConstantOverride("separation", 8);
 			inventoryColumn.AddChild(inventoryFooter);
 
-			var filterLabel = CreateLabel("Bộ lọc: Tất cả ▼", 12, _mainTextColor);
-			filterLabel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			inventoryFooter.AddChild(filterLabel);
+			_inventoryFilterOption = new OptionButton();
+			_inventoryFilterOption.CustomMinimumSize = new Vector2(150, 30);
+			_inventoryFilterOption.FocusMode = FocusModeEnum.None;
+			_inventoryFilterOption.AddItem("Tất cả");
+			_inventoryFilterOption.AddItem("Tiêu hao");
+			_inventoryFilterOption.AddItem("Nguyên liệu");
+			_inventoryFilterOption.AddItem("Trang bị");
+			_inventoryFilterOption.AddItem("Nhiệm vụ");
+			_inventoryFilterOption.AddItem("Khác");
+			_inventoryFilterOption.Selected = 0;
+			_inventoryFilterOption.ItemSelected += index =>
+			{
+				_inventoryCategoryFilter = index == 0 ? null : (InventoryItemCategory?)(index - 1);
+				_selectedInventorySlotIndex = -1;
+				_selectedEquipmentItem = null;
+				_selectedEquipmentSlot = null;
+				_selectedEquipmentSource = "";
+				RefreshInventoryGrid();
+			};
+			PixelButtonSkin.ApplySecondary(_inventoryFilterOption, PixelButtonSkin.CompactHeight);
+			_inventoryFilterOption.AddThemeFontSizeOverride("font_size", 12);
+			inventoryFooter.AddChild(_inventoryFilterOption);
 
 			_inventoryCountLabel = CreateLabel("0 / 0", 12, _mainTextColor);
 			_inventoryCountLabel.HorizontalAlignment = HorizontalAlignment.Right;
@@ -665,7 +687,8 @@ namespace AshesofaDyingWorld.UI.HUD
 			bodyInner.AddThemeConstantOverride("separation", 6);
 			bodyCenter.AddChild(bodyInner);
 
-			var bodyLabel = CreateLabel("[ Nhân vật ]", 12, _subTextColor);
+			_equipmentBodyEmptyStateLabel = CreateLabel("Chưa có dữ liệu nhân vật", 12, _subTextColor);
+			var bodyLabel = _equipmentBodyEmptyStateLabel;
 			bodyLabel.HorizontalAlignment = HorizontalAlignment.Center;
 			bodyInner.AddChild(bodyLabel);
 
@@ -711,7 +734,7 @@ namespace AshesofaDyingWorld.UI.HUD
 			icon.Visible = false;
 			inner.AddChild(icon);
 
-			var label = CreateLabel($"[ {displayText} ]", 12, _mainTextColor);
+			var label = CreateLabel(displayText, 12, _mainTextColor);
 			label.SetAnchorsPreset(LayoutPreset.FullRect);
 			label.HorizontalAlignment = HorizontalAlignment.Center;
 			label.VerticalAlignment = VerticalAlignment.Center;
@@ -787,6 +810,7 @@ namespace AshesofaDyingWorld.UI.HUD
 
 			var inventory = ResolveInventoryManager();
 			RebindInventory(inventory);
+			List<EquipmentItemData> visibleItems = GetVisibleInventoryItems(inventory);
 
 			for (int i = 0; i < _inventorySlotIcons.Count; i++)
 			{
@@ -794,7 +818,7 @@ namespace AshesofaDyingWorld.UI.HUD
 				var lbl = _inventorySlotLabels[i];
 				var button = _inventorySlotButtons[i];
 
-				var item = (inventory != null && i < inventory.Items.Count) ? inventory.Items[i] : null;
+				var item = i < visibleItems.Count ? visibleItems[i] : null;
 				if (item == null)
 				{
 					iconRect.Texture = null;
@@ -812,7 +836,7 @@ namespace AshesofaDyingWorld.UI.HUD
 				_inventorySlotItemIds[i] = item.ID;
 			}
 
-			int usedSlots = inventory?.Items.Count ?? 0;
+			int usedSlots = visibleItems.Count;
 			int maxSlots = inventory?.MaxSlots ?? _inventorySlotIcons.Count;
 			if (_inventoryCountLabel != null)
 			{
@@ -831,6 +855,25 @@ namespace AshesofaDyingWorld.UI.HUD
 
 			RefreshInventorySelectionVisuals();
 			UpdateEquipmentDetailPanel();
+		}
+
+		private List<EquipmentItemData> GetVisibleInventoryItems(InventoryManager inventory)
+		{
+			var visibleItems = new List<EquipmentItemData>();
+			if (inventory?.Items == null)
+			{
+				return visibleItems;
+			}
+
+			foreach (EquipmentItemData item in inventory.Items)
+			{
+				if (item != null && (!_inventoryCategoryFilter.HasValue || item.InventoryCategory == _inventoryCategoryFilter.Value))
+				{
+					visibleItems.Add(item);
+				}
+			}
+
+			return visibleItems;
 		}
 
 		private void OnInventorySlotPressed(int slotIndex)
@@ -1017,9 +1060,9 @@ namespace AshesofaDyingWorld.UI.HUD
 				iconRect.Texture = equipped?.Icon;
 				iconRect.Visible = equipped?.Icon != null;
 				label.Text = equipped == null
-					? $"[ {_equipmentSlotEmptyCaptions[slotType]} ]"
-					: (equipped.Icon == null ? $"[ {CompactItemName(equipped.ItemName)} ]" : "");
-				button.TooltipText = equipped != null ? equipped.ItemName : $"Ô {_equipmentSlotEmptyCaptions[slotType]}";
+					? _equipmentSlotEmptyCaptions[slotType]
+					: (equipped.Icon == null ? CompactItemName(equipped.ItemName) : "");
+				button.TooltipText = equipped != null ? equipped.ItemName : $"Ô trống: {_equipmentSlotEmptyCaptions[slotType]}";
 			}
 
 			RefreshEquipmentSlotSelectionVisuals();
@@ -1992,16 +2035,12 @@ namespace AshesofaDyingWorld.UI.HUD
 				_characterListContainer.AddChild(button);
 			}
 
-			// Ô "+" chỉ là placeholder cho chức năng thêm thành viên sau này.
-			var addMember = new Button();
-			addMember.Text = "+";
-			addMember.CustomMinimumSize = new Vector2(48, 48);
-			addMember.FocusMode = FocusModeEnum.None;
-			addMember.Disabled = true;
-			addMember.TooltipText = "Chưa có chức năng thêm thành viên";
-			addMember.AddThemeStyleboxOverride("normal", CreateSlotStyle());
-			addMember.AddThemeColorOverride("font_color", _subTextColor);
-			addMember.AddThemeFontSizeOverride("font_size", 18);
+			var addMember = CreateLabel("Chưa có thành viên khác", 11, _subTextColor);
+			addMember.CustomMinimumSize = new Vector2(104, 58);
+			addMember.HorizontalAlignment = HorizontalAlignment.Center;
+			addMember.VerticalAlignment = VerticalAlignment.Center;
+			addMember.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+			addMember.TooltipText = "Chưa có thành viên khác";
 			_characterListContainer.AddChild(addMember);
 		}
 
@@ -2073,6 +2112,10 @@ namespace AshesofaDyingWorld.UI.HUD
 		private void UpdateEquipmentBody(AshesofaDyingWorld.Core.Data.CharacterConfig config)
 		{
 			if (_equipmentBodyContainer == null) return;
+			if (_equipmentBodyEmptyStateLabel != null)
+			{
+				_equipmentBodyEmptyStateLabel.Visible = true;
+			}
 
 			// Xoá body cũ
 			foreach (var child in _equipmentBodyContainer.GetChildren())
@@ -2112,6 +2155,10 @@ namespace AshesofaDyingWorld.UI.HUD
 			}
 
 			_equipmentBodyContainer.AddChild(bodyNode);
+			if (_equipmentBodyEmptyStateLabel != null)
+			{
+				_equipmentBodyEmptyStateLabel.Visible = false;
+			}
 
 			// Play animation Idle
 			if (bodySprite != null && bodySprite.SpriteFrames != null)

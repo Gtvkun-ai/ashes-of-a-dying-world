@@ -148,10 +148,21 @@ namespace AshesofaDyingWorld.UI.Shared
             margin.AddThemeConstantOverride("margin_bottom", 4);
             panel.AddChild(margin);
 
+            var scroll = new ScrollContainer
+            {
+                HorizontalScrollMode = ScrollContainer.ScrollMode.Auto,
+                VerticalScrollMode = ScrollContainer.ScrollMode.Disabled,
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+                SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+                ClipContents = true
+            };
+            margin.AddChild(scroll);
+
             tabs = new HBoxContainer();
             tabs.AddThemeConstantOverride("separation", 4);
             tabs.Alignment = BoxContainer.AlignmentMode.Begin;
-            margin.AddChild(tabs);
+            tabs.SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin;
+            scroll.AddChild(tabs);
             return panel;
         }
 
