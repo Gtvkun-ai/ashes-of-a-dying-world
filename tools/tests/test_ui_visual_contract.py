@@ -10,6 +10,8 @@ CHROME_PATH = REPO_ROOT / "scripts/UI/HUD/InventoryPanelChrome.cs"
 BUTTON_PATH = REPO_ROOT / "scripts/UI/HUD/PixelButtonSkin.cs"
 GLYPH_ATLAS_PATH = REPO_ROOT / "assets/graphics/ui/icons/ui_glyph_atlas.svg"
 GLYPH_RESOLVER_PATH = REPO_ROOT / "scripts/UI/Theme/UiGlyphResolver.cs"
+GLYPH_SMOKE_SCENE_PATH = REPO_ROOT / "tools/validation/ui_glyph_smoke_test.tscn"
+GLYPH_SMOKE_SCRIPT_PATH = REPO_ROOT / "tools/validation/UiGlyphSmokeTest.cs"
 ICON_RESOURCE_NAMES = ("str", "dex", "int", "vit", "spi", "def", "exit", "default_skill")
 ATLAS_RESOURCE_PATH = "res://assets/graphics/ui/icons/ui_glyph_atlas.svg"
 
@@ -227,6 +229,25 @@ def test_ui_glyph_resolver_has_non_null_missing_atlas_and_unknown_fallbacks():
     assert "return CreateFallbackTexture();" in source
     assert "Regions[UiGlyph.Fallback]" in source
     assert "new Rect2(0, 0, CellSize, CellSize)" in source
+
+
+def test_ui_glyph_runtime_smoke_artifacts_exercise_fallbacks():
+    assert GLYPH_SMOKE_SCENE_PATH.is_file()
+    assert GLYPH_SMOKE_SCRIPT_PATH.is_file()
+
+    resolver_source = _source(GLYPH_RESOLVER_PATH)
+    assert "internal static void InjectAtlasForValidation(Texture2D atlas)" in resolver_source
+    assert "internal static void ClearAtlasForValidation()" in resolver_source
+
+    script_source = _source(GLYPH_SMOKE_SCRIPT_PATH)
+    scene_source = _source(GLYPH_SMOKE_SCENE_PATH)
+    assert "UiGlyphResolver.Resolve(UiGlyph.Menu)" in script_source
+    assert "UiGlyphResolver.Resolve((UiGlyph)int.MaxValue)" in script_source
+    assert "UiGlyphResolver.InjectAtlasForValidation(null)" in script_source
+    assert "UiGlyphResolver.ClearAtlasForValidation()" in script_source
+    assert "UI glyph smoke test passed" in script_source
+    assert "GetTree().Quit(1)" in script_source
+    assert 'path="res://tools/validation/UiGlyphSmokeTest.cs"' in scene_source
 
 
 def test_data_stat_icons_use_clean_atlas_regions():

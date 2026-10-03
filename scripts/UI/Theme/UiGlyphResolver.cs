@@ -82,10 +82,27 @@ namespace AshesofaDyingWorld.UI.Theme
 
         private static Texture2D _atlas;
         private static ImageTexture _fallbackTexture;
+        private static bool _atlasInjectionActive;
+
+        internal static void InjectAtlasForValidation(Texture2D atlas)
+        {
+            _atlas = atlas;
+            _atlasInjectionActive = true;
+        }
+
+        internal static void ClearAtlasForValidation()
+        {
+            _atlas = null;
+            _atlasInjectionActive = false;
+        }
 
         public static AtlasTexture Resolve(UiGlyph glyph)
         {
-            _atlas ??= ResourceLoader.Exists(AtlasPath) ? GD.Load<Texture2D>(AtlasPath) : null;
+            if (!_atlasInjectionActive)
+            {
+                _atlas ??= ResourceLoader.Exists(AtlasPath) ? GD.Load<Texture2D>(AtlasPath) : null;
+            }
+
             if (_atlas == null)
             {
                 return CreateFallbackTexture();
