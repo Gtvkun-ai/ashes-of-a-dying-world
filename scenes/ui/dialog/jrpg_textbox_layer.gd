@@ -59,7 +59,10 @@ extends DialogicLayoutLayer
 @export var entry_duration: float = 0.18
 @export var portrait_entry_offset: float = 12.0
 
-const VIETNAMESE_FONT_PATH := "res://assets/fonts/BeVietnamPro-Regular.ttf"
+const REGULAR_FONT_PATH := "res://assets/fonts/BeVietnamPro-Regular.ttf"
+const SEMIBOLD_FONT_PATH := "res://assets/fonts/BeVietnamPro-SemiBold.ttf"
+const ITALIC_FONT_PATH := "res://assets/fonts/BeVietnamPro-Italic.ttf"
+const SEMIBOLD_ITALIC_FONT_PATH := "res://assets/fonts/BeVietnamPro-SemiBoldItalic.ttf"
 
 var _portrait_target_position := Vector2.ZERO
 var _layout_intro_played := false
@@ -143,20 +146,24 @@ func _apply_export_overrides() -> void:
 	next_indicator.z_index = 7
 
 	var dialog_text: DialogicNode_DialogText = %DialogicNode_DialogText
-	var vietnamese_font: Font = load(VIETNAMESE_FONT_PATH)
-	if vietnamese_font:
-		dialog_text.add_theme_font_override(&"normal_font", vietnamese_font)
-		dialog_text.add_theme_font_override(&"bold_font", vietnamese_font)
-		dialog_text.add_theme_font_override(&"italics_font", vietnamese_font)
-		dialog_text.add_theme_font_override(&"bold_italics_font", vietnamese_font)
+	var regular_font := _load_font_or_fallback(REGULAR_FONT_PATH, null)
+	var semibold_font := _load_font_or_fallback(SEMIBOLD_FONT_PATH, regular_font)
+	var italic_font := _load_font_or_fallback(ITALIC_FONT_PATH, regular_font)
+	var semibold_italic_font := _load_font_or_fallback(SEMIBOLD_ITALIC_FONT_PATH, semibold_font)
+	if regular_font:
+		dialog_text.add_theme_font_override(&"normal_font", regular_font)
+		dialog_text.add_theme_font_override(&"bold_font", semibold_font)
+		dialog_text.add_theme_font_override(&"italics_font", italic_font)
+		dialog_text.add_theme_font_override(&"bold_italics_font", semibold_italic_font)
 	dialog_text.add_theme_font_size_override(&"normal_font_size", text_custom_size)
 	dialog_text.add_theme_font_size_override(&"bold_font_size", text_custom_size)
 	dialog_text.add_theme_font_size_override(&"italics_font_size", text_custom_size)
+	dialog_text.add_theme_font_size_override(&"bold_italics_font_size", text_custom_size)
 	dialog_text.add_theme_color_override(&"default_color", text_custom_color)
 
 	var name_label: DialogicNode_NameLabel = %DialogicNode_NameLabel
-	if vietnamese_font:
-		name_label.add_theme_font_override(&"font", vietnamese_font)
+	if semibold_font:
+		name_label.add_theme_font_override(&"font", semibold_font)
 	name_label.add_theme_font_size_override(&"font_size", name_label_custom_size)
 	match name_label_color_mode:
 		0:
@@ -281,6 +288,14 @@ func _connect_speaker_signal() -> void:
 		var char_res: DialogicCharacter = DialogicResourceUtil.get_character_resource(current_speaker)
 		if char_res:
 			_on_speaker_changed(char_res)
+
+
+func _load_font_or_fallback(path: String, fallback: Font) -> Font:
+	if ResourceLoader.exists(path):
+		var loaded_font := load(path) as Font
+		if loaded_font != null:
+			return loaded_font
+	return fallback
 
 
 ## Speaker đổi -> portrait đổi và chạy một slide/fade ngắn.

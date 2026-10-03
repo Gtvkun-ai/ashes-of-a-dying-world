@@ -47,10 +47,48 @@ def test_dialogic_custom_resources_use_valid_uid_text():
 def test_dialogic_runtime_text_uses_unicode_capable_font():
     prompt_hud = read('scripts/World/Interaction/InteractionPromptHud.cs')
     textbox_layer = read('scenes/ui/dialog/jrpg_textbox_layer.gd')
-    font_path = 'res://addons/dialogic/Example Assets/Fonts/Roboto-Regular.ttf'
+    regular = 'res://assets/fonts/BeVietnamPro-Regular.ttf'
+    semibold = 'res://assets/fonts/BeVietnamPro-SemiBold.ttf'
+    italic = 'res://assets/fonts/BeVietnamPro-Italic.ttf'
+    semibold_italic = 'res://assets/fonts/BeVietnamPro-SemiBoldItalic.ttf'
 
-    assert font_path in prompt_hud
+    assert regular in prompt_hud
     assert 'AddThemeFontOverride("font"' in prompt_hud
-    assert font_path in textbox_layer
+    for font_path in (regular, semibold, italic, semibold_italic):
+        assert font_path in textbox_layer
     assert 'add_theme_font_override(&"font"' in textbox_layer
-    assert 'add_theme_font_override(&"normal_font"' in textbox_layer
+    assert 'add_theme_font_override(&"normal_font", regular_font)' in textbox_layer
+    assert 'add_theme_font_override(&"bold_font", semibold_font)' in textbox_layer
+    assert 'add_theme_font_override(&"italics_font", italic_font)' in textbox_layer
+    assert 'add_theme_font_override(&"bold_italics_font", semibold_italic_font)' in textbox_layer
+
+
+def test_dialogic_choices_wrap_scroll_and_expand_past_legacy_width():
+    layer = read('scenes/ui/dialog/jrpg_choice_layer.gd')
+    scene = read('scenes/ui/dialog/jrpg_choice_layer.tscn')
+    style = read('scenes/ui/dialog/jrpg_style.tres')
+    smoke = read('tools/validation/_dialogic_layout_smoke_test.gd')
+
+    assert 'centered_max_width: float = 520.0' in layer
+    assert 'choices_max_height: float = 360.0' in layer
+    assert 'TextServer.AUTOWRAP_WORD_SMART' in layer
+    assert 'TextServer.OVERRUN_NO_TRIMMING' in layer
+    assert 'clip_text = false' in layer
+    assert '%ChoiceScroll' in layer
+    assert '[node name="ChoiceScroll" type="ScrollContainer" parent="."]' in scene
+    assert '[node name="Choices" type="VBoxContainer" parent="ChoiceScroll"]' in scene
+    assert 'vertical_scroll_mode = 1' in scene
+    assert '"centered_max_width": "520.0"' in style
+    assert '"choices_max_height": "360.0"' in style
+    assert 'Sáu lựa chọn tiếng Việt rất dài' in smoke
+
+
+def test_dialogic_focus_style_is_structurally_distinct_from_hover():
+    hover = read('scenes/ui/dialog/jrpg_choice_hover.tres')
+    focus = read('scenes/ui/dialog/jrpg_choice_focus.tres')
+
+    assert focus != hover
+    assert 'border_width_top = 1' in focus
+    assert 'border_width_right = 1' in focus
+    assert 'border_width_left = 2' in focus
+    assert 'border_width_left = 3' not in focus

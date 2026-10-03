@@ -60,7 +60,7 @@ script = ExtResource("2_3b8ue")
 scene = ExtResource("6_choices")
 overrides = {
 "boxes_fill_width": "true",
-"boxes_min_size": "Vector2(240, 38)",
+"boxes_min_size": "Vector2(0, 40)",
 "boxes_stylebox_focused": "res://scenes/ui/dialog/jrpg_choice_focus.tres",
 "boxes_stylebox_hovered": "res://scenes/ui/dialog/jrpg_choice_hover.tres",
 "boxes_stylebox_normal": "res://scenes/ui/dialog/jrpg_choice_normal.tres",
@@ -75,12 +75,12 @@ overrides = {
 "text_color_hovered": "Color(1, 0.86, 0.52, 1)",
 "text_color_pressed": "Color(1, 0.92, 0.68, 1)",
 "text_color_use_global": "false",
-"centered_width_ratio": "0.22",
-"centered_min_width": "240.0",
-"centered_max_width": "280.0",
+"centered_width_ratio": "0.42",
+"centered_min_width": "360.0",
+"centered_max_width": "520.0",
 "side_layout_min_width": "0.0",
 "side_layout_min_aspect": "1.35",
-"side_width": "320.0",
+"side_width": "460.0",
 "side_x_offset": "0.0",
 "centered_x_offset": "0.0",
 "right_reserved_ratio": "0.18",
@@ -95,9 +95,9 @@ overrides = {
 "textbox_width_ratio": "0.64",
 "textbox_min_width": "760.0",
 "textbox_max_width": "920.0",
-"choices_height_ratio": "0.12",
-"choices_min_height": "80.0",
-"choices_max_height": "96.0"
+"choices_height_ratio": "0.42",
+"choices_min_height": "160.0",
+"choices_max_height": "360.0"
 }
 
 [sub_resource type="Resource" id="Resource_textinput"]
