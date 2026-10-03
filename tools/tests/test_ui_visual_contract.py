@@ -94,6 +94,8 @@ def test_vietnamese_font_faces_are_bundled():
     bundled_fonts = {path.name for path in (REPO_ROOT / "assets/fonts").glob("BeVietnamPro-*.ttf")}
     assert expected_fonts <= bundled_fonts
     assert (REPO_ROOT / "assets/fonts/OFL.txt").is_file()
+    for font_name in expected_fonts:
+        assert (REPO_ROOT / f"assets/fonts/{font_name}.import").is_file()
 
     theme_source = _source(THEME_PATH)
     for font_name in expected_fonts:
@@ -142,6 +144,7 @@ def test_pixel_button_skin_does_not_resize_ai_exports():
 
 def test_ui_glyph_atlas_uses_integer_24px_cells():
     assert GLYPH_ATLAS_PATH.is_file()
+    assert Path(f"{GLYPH_ATLAS_PATH}.import").is_file()
     source = _source(GLYPH_ATLAS_PATH)
 
     svg_match = re.search(
