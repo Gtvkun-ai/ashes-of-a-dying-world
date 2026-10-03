@@ -140,6 +140,7 @@ Be Vietnam Pro là font UI mặc định vì đã phù hợp tiếng Việt. Pro
 - Medium 500
 - SemiBold 600
 - Italic 400
+- SemiBold Italic 600
 
 Cinzel và IM Fell English không được dùng trong runtime cho tới khi có file font, license và kiểm thử đầy đủ dấu tiếng Việt. Art bible không được hứa một font mà build không có.
 
