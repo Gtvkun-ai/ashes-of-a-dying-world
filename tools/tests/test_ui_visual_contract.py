@@ -1,5 +1,6 @@
 from pathlib import Path
 import re
+import xml.etree.ElementTree as ET
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -9,7 +10,7 @@ CHROME_PATH = REPO_ROOT / "scripts/UI/HUD/InventoryPanelChrome.cs"
 BUTTON_PATH = REPO_ROOT / "scripts/UI/HUD/PixelButtonSkin.cs"
 GLYPH_ATLAS_PATH = REPO_ROOT / "assets/graphics/ui/icons/ui_glyph_atlas.svg"
 GLYPH_RESOLVER_PATH = REPO_ROOT / "scripts/UI/Theme/UiGlyphResolver.cs"
-ICON_RESOURCE_NAMES = ("str", "dex", "int", "vit", "spi", "def", "exit")
+ICON_RESOURCE_NAMES = ("str", "dex", "int", "vit", "spi", "def", "exit", "default_skill")
 ATLAS_RESOURCE_PATH = "res://assets/graphics/ui/icons/ui_glyph_atlas.svg"
 
 
@@ -160,6 +161,44 @@ def test_ui_glyph_atlas_uses_integer_24px_cells():
     assert 'class="highlight"' in source
 
 
+def test_ui_glyph_atlas_geometry_stays_inside_24px_cells():
+    root = ET.fromstring(_source(GLYPH_ATLAS_PATH))
+    groups = [element for element in root if element.tag.endswith("}g")]
+    assert groups
+
+    for group in groups:
+        transform = group.attrib["transform"]
+        origin_match = re.fullmatch(r"translate\(([-\d.]+) ([-\d.]+)\)", transform)
+        assert origin_match is not None
+        assert all(float(value).is_integer() for value in origin_match.groups())
+
+        for element in group.iter():
+            if element is group:
+                continue
+            for attribute in ("x", "y", "cx", "cy"):
+                if attribute in element.attrib:
+                    value = float(element.attrib[attribute])
+                    assert 0 <= value <= 24
+            if "r" in element.attrib:
+                center_x = float(element.attrib.get("cx", "0"))
+                center_y = float(element.attrib.get("cy", "0"))
+                radius = float(element.attrib["r"])
+                assert radius <= center_x <= 24 - radius
+                assert radius <= center_y <= 24 - radius
+            if "width" in element.attrib:
+                assert float(element.attrib["x"]) + float(element.attrib["width"]) <= 24
+            if "height" in element.attrib:
+                assert float(element.attrib["y"]) + float(element.attrib["height"]) <= 24
+            if "d" in element.attrib:
+                numbers = [float(value) for value in re.findall(r"[-+]?(?:\d*\.\d+|\d+\.?\d*)", element.attrib["d"])]
+                assert numbers
+                assert max(abs(value) for value in numbers) <= 24
+
+    stroke_widths = [float(value) for value in re.findall(r'stroke-width="([^\"]+)"', _source(GLYPH_ATLAS_PATH))]
+    assert stroke_widths
+    assert all(1 <= value <= 2 for value in stroke_widths)
+
+
 def test_all_runtime_navigation_glyphs_resolve():
     source = _source(GLYPH_RESOLVER_PATH)
     assert 'namespace AshesofaDyingWorld.UI.Theme' in source
@@ -177,6 +216,17 @@ def test_all_runtime_navigation_glyphs_resolve():
     for glyph in expected_glyphs:
         assert re.search(rf'\b{glyph}\b', source)
         assert re.search(rf'\[UiGlyph\.{glyph}\]\s*=\s*Cell\(', source)
+
+
+def test_ui_glyph_resolver_has_non_null_missing_atlas_and_unknown_fallbacks():
+    source = _source(GLYPH_RESOLVER_PATH)
+    assert "private static ImageTexture _fallbackTexture;" in source
+    assert "Image.CreateEmpty(CellSize, CellSize, false, Image.Format.Rgba8)" in source
+    assert "ImageTexture.CreateFromImage(image)" in source
+    assert "if (_atlas == null)" in source
+    assert "return CreateFallbackTexture();" in source
+    assert "Regions[UiGlyph.Fallback]" in source
+    assert "new Rect2(0, 0, CellSize, CellSize)" in source
 
 
 def test_data_stat_icons_use_clean_atlas_regions():

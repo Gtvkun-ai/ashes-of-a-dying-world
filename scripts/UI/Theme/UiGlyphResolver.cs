@@ -81,10 +81,16 @@ namespace AshesofaDyingWorld.UI.Theme
         };
 
         private static Texture2D _atlas;
+        private static ImageTexture _fallbackTexture;
 
         public static AtlasTexture Resolve(UiGlyph glyph)
         {
             _atlas ??= ResourceLoader.Exists(AtlasPath) ? GD.Load<Texture2D>(AtlasPath) : null;
+            if (_atlas == null)
+            {
+                return CreateFallbackTexture();
+            }
+
             Rect2 region = Regions.TryGetValue(glyph, out Rect2 mappedRegion)
                 ? mappedRegion
                 : Regions[UiGlyph.Fallback];
@@ -94,6 +100,45 @@ namespace AshesofaDyingWorld.UI.Theme
                 Atlas = _atlas,
                 Region = region
             };
+        }
+
+        private static AtlasTexture CreateFallbackTexture()
+        {
+            _fallbackTexture ??= BuildFallbackTexture();
+
+            return new AtlasTexture
+            {
+                Atlas = _fallbackTexture,
+                Region = new Rect2(0, 0, CellSize, CellSize)
+            };
+        }
+
+        private static ImageTexture BuildFallbackTexture()
+        {
+            Image image = Image.CreateEmpty(CellSize, CellSize, false, Image.Format.Rgba8);
+            image.Fill(new Color(0, 0, 0, 0));
+            Color glyphColor = UiTokens.TextPrimary;
+
+            FillFallbackStroke(image, glyphColor, 8, 4, 8, 2);
+            FillFallbackStroke(image, glyphColor, 6, 6, 3, 2);
+            FillFallbackStroke(image, glyphColor, 14, 6, 3, 2);
+            FillFallbackStroke(image, glyphColor, 13, 8, 3, 2);
+            FillFallbackStroke(image, glyphColor, 11, 10, 3, 2);
+            FillFallbackStroke(image, glyphColor, 9, 12, 3, 3);
+            FillFallbackStroke(image, glyphColor, 9, 18, 3, 2);
+
+            return ImageTexture.CreateFromImage(image);
+        }
+
+        private static void FillFallbackStroke(Image image, Color color, int x, int y, int width, int height)
+        {
+            for (int pixelX = x; pixelX < x + width; pixelX++)
+            {
+                for (int pixelY = y; pixelY < y + height; pixelY++)
+                {
+                    image.SetPixel(pixelX, pixelY, color);
+                }
+            }
         }
 
         private static Rect2 Cell(int column, int row)
