@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using AshesofaDyingWorld.Combat.Actors;
 using AshesofaDyingWorld.Core.Managers;
 using AshesofaDyingWorld.Entities.Player;
+using AshesofaDyingWorld.UI.Theme;
 
 namespace AshesofaDyingWorld.UI.HUD
 {
@@ -34,7 +35,6 @@ namespace AshesofaDyingWorld.UI.HUD
         }
 
         private static readonly Vector2 PanelSize = new(144f, 38f);
-        private static readonly Vector2 WorldOffset = new(-72f, -62f);
         private const float ShowDurationSeconds = 1.45f;
         private const float FadeDurationSeconds = 0.22f;
 
@@ -106,8 +106,6 @@ namespace AshesofaDyingWorld.UI.HUD
         public override void _Process(double delta)
         {
             float dt = Mathf.Max(0f, (float)delta);
-            Transform2D canvasTransform = GetViewport().GetCanvasTransform();
-
             foreach (EntryView entry in _entries.Values)
             {
                 if (entry.Root == null)
@@ -129,8 +127,11 @@ namespace AshesofaDyingWorld.UI.HUD
                 }
 
                 entry.VisibleTimer = Mathf.Max(0f, entry.VisibleTimer - dt);
-                Vector2 screenPosition = canvasTransform * entry.Actor.GlobalPosition;
-                entry.Root.Position = screenPosition + WorldOffset;
+                entry.Root.Position = WorldHudLayout.Resolve(
+                    entry.Actor,
+                    WorldHudLane.Progression,
+                    entry.Root.GetCombinedMinimumSize(),
+                    new Vector2(0f, -4f));
                 entry.Root.Visible = true;
 
                 float alpha = entry.VisibleTimer < FadeDurationSeconds
@@ -148,6 +149,7 @@ namespace AshesofaDyingWorld.UI.HUD
                 MouseFilter = Control.MouseFilterEnum.Ignore
             };
             _root.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+            UiThemeFactory.Apply(_root);
             AddChild(_root);
 
             _panelStyle = new StyleBoxFlat
@@ -402,7 +404,7 @@ namespace AshesofaDyingWorld.UI.HUD
             {
                 entry.HeaderLabel.Text = $"LV {stats.CurrentLevel:00}";
                 entry.DetailLabel.Text = stats.IsAtMaxLevel
-                    ? "MAX"
+                    ? "TỐI ĐA"
                     : $"{stats.ExperienceRemaining:N0} XP nữa";
             }
 

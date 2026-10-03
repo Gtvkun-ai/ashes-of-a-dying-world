@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using AshesofaDyingWorld.Combat.Actors;
 using AshesofaDyingWorld.Combat.Runtime;
+using AshesofaDyingWorld.UI.Theme;
 
 namespace AshesofaDyingWorld.UI.HUD
 {
@@ -22,7 +23,8 @@ namespace AshesofaDyingWorld.UI.HUD
             public Func<float> GetMaxHp;
             public Func<int> GetLevel;
             public Control Widget;
-            public TextureProgressBar Bar;
+            public ProgressBar Bar;
+            public PanelContainer HpFrame;
             public Label LevelLabel;
             public Control StatusRow;
             public StatusBadge ChillBadge;
@@ -36,18 +38,12 @@ namespace AshesofaDyingWorld.UI.HUD
 
         private readonly List<TrackedEnemy> _tracked = new();
 
-        [Export] public Vector2 ScreenOffset = new(0, -30);
         [Export] public float WidgetScale = 1.0f;
         [Export] public Vector2 HpBarSize = new(40, 10);
         [Export] public float RowSpacing = 4f;
         [Export] public float LevelVerticalOffset = -1f;
         [Export] public float RevealSeconds = 3.2f;
 
-        [Export] public Texture2D HpTextureUnder { get; set; }
-        [Export] public Texture2D HpTextureProgress { get; set; }
-        [Export] public Texture2D HpTextureOver { get; set; }
-
-        private const string DefaultEnemyHpTexturePath = "res://assets/graphics/ui/status/enemy_hp_bar.png";
         private const string StatusFrameTexturePath = "res://assets/graphics/ui/hud/status_effects/status_effect_icon_frame.png";
         private const string ChillIconPath = "res://assets/graphics/ui/hud/status_effects/icons/chill.png";
         private const string SlowIconPath = "res://assets/graphics/ui/hud/status_effects/icons/slow.png";
@@ -59,6 +55,9 @@ namespace AshesofaDyingWorld.UI.HUD
         private Texture2D _chillIconTexture;
         private Texture2D _slowIconTexture;
         private Texture2D _frozenIconTexture;
+        private StyleBoxFlat _hpTroughStyle;
+        private StyleBoxFlat _hpFillStyle;
+        private StyleBoxFlat _hpFrameStyle;
 
         public override void _Ready()
         {
@@ -72,6 +71,7 @@ namespace AshesofaDyingWorld.UI.HUD
             Instance = this;
             Layer = 55;
             EnsureDefaultTextures();
+            BuildHpStyles();
         }
 
         public override void _ExitTree()
@@ -99,11 +99,6 @@ namespace AshesofaDyingWorld.UI.HUD
 
         private void EnsureDefaultTextures()
         {
-            if (HpTextureProgress == null)
-            {
-                HpTextureProgress = GD.Load<Texture2D>(DefaultEnemyHpTexturePath);
-            }
-
             _statusFrameTexture ??= GD.Load<Texture2D>(StatusFrameTexturePath);
             _chillIconTexture ??= GD.Load<Texture2D>(ChillIconPath);
             _slowIconTexture ??= GD.Load<Texture2D>(SlowIconPath);
@@ -135,6 +130,7 @@ namespace AshesofaDyingWorld.UI.HUD
                 ZIndex = 100,
                 Modulate = new Color(1f, 1f, 1f, 0f)
             };
+            UiThemeFactory.Apply(widget);
 
             var levelLabel = new Label { HorizontalAlignment = HorizontalAlignment.Center };
             levelLabel.AddThemeFontSizeOverride("font_size", 13);
@@ -143,16 +139,26 @@ namespace AshesofaDyingWorld.UI.HUD
             levelLabel.AddThemeConstantOverride("outline_size", 3);
             widget.AddChild(levelLabel);
 
-            var hpBar = new TextureProgressBar
+            var hpBar = new ProgressBar
             {
                 CustomMinimumSize = HpBarSize,
                 MaxValue = 100,
-                Value = 100
+                Value = 100,
+                ShowPercentage = false,
+                MouseFilter = Control.MouseFilterEnum.Ignore
             };
-            if (HpTextureUnder != null) hpBar.TextureUnder = HpTextureUnder;
-            if (HpTextureProgress != null) hpBar.TextureProgress = HpTextureProgress;
-            if (HpTextureOver != null) hpBar.TextureOver = HpTextureOver;
-            widget.AddChild(hpBar);
+            hpBar.AddThemeStyleboxOverride("background", _hpTroughStyle);
+            hpBar.AddThemeStyleboxOverride("fill", _hpFillStyle);
+
+            var hpFrame = new PanelContainer
+            {
+                Name = "HealthFrame",
+                CustomMinimumSize = HpBarSize,
+                MouseFilter = Control.MouseFilterEnum.Ignore
+            };
+            hpFrame.AddThemeStyleboxOverride("panel", _hpFrameStyle);
+            hpFrame.AddChild(hpBar);
+            widget.AddChild(hpFrame);
 
             var statusRow = new Control
             {
@@ -177,6 +183,7 @@ namespace AshesofaDyingWorld.UI.HUD
                 GetLevel = getLevel,
                 Widget = widget,
                 Bar = hpBar,
+                HpFrame = hpFrame,
                 LevelLabel = levelLabel,
                 StatusRow = statusRow,
                 ChillBadge = chillBadge,
@@ -265,7 +272,7 @@ namespace AshesofaDyingWorld.UI.HUD
                 trackedEnemy.Widget.Scale = new Vector2(WidgetScale, WidgetScale);
 
                 Vector2 levelSize = trackedEnemy.LevelLabel.GetCombinedMinimumSize();
-                Vector2 barSize = trackedEnemy.Bar.GetCombinedMinimumSize();
+                Vector2 barSize = trackedEnemy.HpFrame.GetCombinedMinimumSize();
                 float baseHeight = Mathf.Max(levelSize.Y, barSize.Y);
                 float rawLevelY = (baseHeight - levelSize.Y) * 0.5f + LevelVerticalOffset;
                 float rawBarY = (baseHeight - barSize.Y) * 0.5f;
@@ -277,7 +284,7 @@ namespace AshesofaDyingWorld.UI.HUD
                 float rowHeight = Mathf.Max(levelPos.Y + levelSize.Y, barPos.Y + barSize.Y);
 
                 trackedEnemy.LevelLabel.Position = levelPos;
-                trackedEnemy.Bar.Position = barPos;
+                trackedEnemy.HpFrame.Position = barPos;
                 if (trackedEnemy.StatusRow.Visible && visibleStatusCount > 0)
                 {
                     float statusWidth = visibleStatusCount * StatusBadgeSize
@@ -290,15 +297,50 @@ namespace AshesofaDyingWorld.UI.HUD
                 }
                 trackedEnemy.Widget.CustomMinimumSize = new Vector2(rowWidth, rowHeight);
 
-                Vector2 screenPos = trackedEnemy.EnemyNode.GetGlobalTransformWithCanvas().Origin + ScreenOffset;
                 Vector2 widgetSize = trackedEnemy.Widget.GetCombinedMinimumSize() * WidgetScale;
-                trackedEnemy.Widget.Position = screenPos - new Vector2(widgetSize.X / 2f, widgetSize.Y);
+                trackedEnemy.Widget.Position = WorldHudLayout.Resolve(
+                    trackedEnemy.EnemyNode,
+                    WorldHudLane.Health,
+                    widgetSize,
+                    new Vector2(0f, -6f));
 
                 float targetAlpha = trackedEnemy.RevealRemaining > 0f ? 1f : 0f;
                 float alpha = Mathf.MoveToward(trackedEnemy.Widget.Modulate.A, targetAlpha, dt * 5.5f);
                 trackedEnemy.Widget.Modulate = new Color(1f, 1f, 1f, alpha);
             }
         }
+
+        private void BuildHpStyles()
+        {
+            _hpTroughStyle = new StyleBoxFlat
+            {
+                BgColor = UiTokens.Canvas,
+                BorderColor = UiTokens.Border
+            };
+            _hpTroughStyle.SetBorderWidthAll(UiTokens.BorderWidth);
+            _hpTroughStyle.SetCornerRadiusAll(UiTokens.CornerRadius);
+
+            _hpFillStyle = new StyleBoxFlat
+            {
+                BgColor = UiTokens.Life,
+                BorderColor = UiTokens.TextPrimary
+            };
+            _hpFillStyle.SetBorderWidthAll(UiTokens.BorderWidth);
+            _hpFillStyle.SetCornerRadiusAll(UiTokens.CornerRadius);
+
+            _hpFrameStyle = new StyleBoxFlat
+            {
+                BgColor = new Color(0f, 0f, 0f, 0f),
+                BorderColor = UiTokens.BorderStrong
+            };
+            _hpFrameStyle.SetBorderWidthAll(UiTokens.SelectionBorderWidth);
+            _hpFrameStyle.SetCornerRadiusAll(UiTokens.CornerRadius);
+            _hpFrameStyle.ContentMarginLeft = 2f;
+            _hpFrameStyle.ContentMarginTop = 2f;
+            _hpFrameStyle.ContentMarginRight = 2f;
+            _hpFrameStyle.ContentMarginBottom = 2f;
+        }
+
         private StatusBadge CreateStatusBadge(
             Control parent,
             Texture2D iconTexture,

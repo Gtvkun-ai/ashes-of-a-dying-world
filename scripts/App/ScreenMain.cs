@@ -86,16 +86,7 @@ public partial class ScreenMain : Node2D
 
             var world = worldScene.Instantiate<Node2D>();
 
-            if (EnemyHealthBarService.Instance == null)
-            {
-                var enemyHpService = new EnemyHealthBarService();
-                tree.Root.AddChild(enemyHpService);
-            }
-            CombatFeedbackService.GetOrCreate(tree);
-            DamageNumberService.GetOrCreate(tree);
-            CompanionTargetIndicatorService.GetOrCreate(tree);
-            SkillCooldownHudService.GetOrCreate(tree);
-            FloatingProgressionHudService.GetOrCreate(tree);
+            EnsureWorldHudServices(tree);
 
             var playerScene = GD.Load<PackedScene>(PlayerPath);
             if (playerScene == null)
@@ -185,6 +176,25 @@ public partial class ScreenMain : Node2D
         {
             world.AddChild(gameMenuScene.Instantiate());
         }
+    }
+
+    private static void EnsureWorldHudServices(SceneTree tree)
+    {
+        if (tree?.Root == null)
+        {
+            return;
+        }
+
+        if (EnemyHealthBarService.Instance == null)
+        {
+            tree.Root.AddChild(new EnemyHealthBarService());
+        }
+
+        CombatFeedbackService.GetOrCreate(tree);
+        DamageNumberService.GetOrCreate(tree);
+        CompanionTargetIndicatorService.GetOrCreate(tree);
+        SkillCooldownHudService.GetOrCreate(tree);
+        FloatingProgressionHudService.GetOrCreate(tree);
     }
 
     private static string ResolveWorldScenePath(string savedScenePath)

@@ -1,5 +1,6 @@
 using Godot;
 using System.Collections.Generic;
+using AshesofaDyingWorld.UI.Theme;
 
 namespace AshesofaDyingWorld.UI.HUD
 {
@@ -17,7 +18,6 @@ namespace AshesofaDyingWorld.UI.HUD
 
         public static DamageNumberService Instance { get; private set; }
 
-        [Export] public Vector2 ScreenOffset { get; set; } = new(0f, -42f);
         [Export] public Vector2 FloatVelocity { get; set; } = new(0f, -46f);
         [Export] public float Lifetime { get; set; } = 0.78f;
         [Export] public int FontSize { get; set; } = 18;
@@ -81,7 +81,7 @@ namespace AshesofaDyingWorld.UI.HUD
                     : blocked
                         ? new Color(1f, 0.86f, 0.42f)
                         : DamageColor;
-            string prefix = shattered ? "SHATTER  " : string.Empty;
+            string prefix = shattered ? "VỠ ĐÁ  " : string.Empty;
             float startScale = shattered ? 1.45f : blocked ? 0.92f : 1.12f;
 
             var label = new Label
@@ -93,16 +93,20 @@ namespace AshesofaDyingWorld.UI.HUD
                 Modulate = color,
                 Scale = Vector2.One * startScale
             };
+            UiThemeFactory.ApplyText(label, UiTextRole.CombatNumber);
             label.AddThemeFontSizeOverride("font_size", shattered ? FontSize + 3 : FontSize);
             label.AddThemeColorOverride("font_color", color);
             label.AddThemeColorOverride("font_outline_color", Colors.Black);
             label.AddThemeConstantOverride("outline_size", shattered ? 5 : 4);
             AddChild(label);
 
-            Vector2 screenPos = source.GetGlobalTransformWithCanvas().Origin + ScreenOffset;
             Vector2 labelSize = label.GetCombinedMinimumSize();
             label.PivotOffset = labelSize * 0.5f;
-            label.Position = screenPos - new Vector2(labelSize.X * 0.5f, labelSize.Y);
+            label.Position = WorldHudLayout.Resolve(
+                source,
+                WorldHudLane.Feedback,
+                labelSize,
+                new Vector2(0f, -4f));
 
             _numbers.Add(new DamageNumber
             {

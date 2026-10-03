@@ -1,6 +1,7 @@
 using Godot;
 using System.Collections.Generic;
 using AshesofaDyingWorld.Combat.Actors;
+using AshesofaDyingWorld.UI.Theme;
 
 namespace AshesofaDyingWorld.UI.HUD
 {
@@ -14,7 +15,7 @@ namespace AshesofaDyingWorld.UI.HUD
         {
             public CombatCharacter Source;
             public CombatCharacter Target;
-            public Label Marker;
+            public TextureRect Marker;
             public bool ClearShot;
             public float Freshness;
         }
@@ -72,16 +73,18 @@ namespace AshesofaDyingWorld.UI.HUD
 
             if (!_markers.TryGetValue(id, out MarkerEntry entry))
             {
-                var marker = new Label
+                var marker = new TextureRect
                 {
-                    Text = "▼",
+                    Name = "TargetGlyph",
+                    Texture = UiGlyphResolver.Resolve(UiGlyph.Target),
+                    ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                    StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
                     MouseFilter = Control.MouseFilterEnum.Ignore,
                     TopLevel = true,
-                    ZIndex = 180
+                    ZIndex = 180,
+                    CustomMinimumSize = new Vector2(UiTokens.IconSize, UiTokens.IconSize),
+                    Size = new Vector2(UiTokens.IconSize, UiTokens.IconSize)
                 };
-                marker.AddThemeFontSizeOverride("font_size", 13);
-                marker.AddThemeColorOverride("font_outline_color", Colors.Black);
-                marker.AddThemeConstantOverride("outline_size", 3);
                 AddChild(marker);
 
                 entry = new MarkerEntry { Source = source, Marker = marker };
@@ -131,10 +134,13 @@ namespace AshesofaDyingWorld.UI.HUD
                 Color color = entry.ClearShot
                     ? new Color(0.42f, 0.92f, 1f)
                     : new Color(1f, 0.58f, 0.22f);
-                entry.Marker.AddThemeColorOverride("font_color", color);
-                Vector2 screenPos = entry.Target.GetGlobalTransformWithCanvas().Origin + new Vector2(0f, -44f);
+                entry.Marker.Modulate = color;
                 Vector2 size = entry.Marker.GetCombinedMinimumSize();
-                entry.Marker.Position = screenPos - new Vector2(size.X * 0.5f, size.Y);
+                entry.Marker.Position = WorldHudLayout.Resolve(
+                    entry.Target,
+                    WorldHudLane.Target,
+                    size,
+                    new Vector2(0f, -4f));
             }
 
             foreach (ulong id in remove)
