@@ -1,19 +1,11 @@
+using AshesofaDyingWorld.UI.Theme;
 using Godot;
-using System.Collections.Generic;
 
 namespace AshesofaDyingWorld.UI.Shared
 {
     /// <summary>
-    /// Skin nút dùng chung cho toàn bộ menu/panel.
-    ///
-    /// Chỉ cần đặt 9 PNG vào res://assets/graphics/ui/buttons với đúng tên:
-    /// button_primary_normal.png / hover / pressed
-    /// button_secondary_normal.png / hover / pressed
-    /// button_danger_normal.png / hover / pressed
-    ///
-    /// Texture được vẽ bằng StyleBoxTexture (9-slice), nên một asset có thể co giãn
-    /// cho nút 90 px, 165 px hay 300 px mà không phải căn/cắt lại từng ảnh.
-    /// Nếu PNG chưa tồn tại, UI tự rơi về StyleBoxFlat để project vẫn chạy.
+    /// Stable code-native button states shared by menus and utility panels.
+    /// Every state keeps the same silhouette, margins and minimum size.
     /// </summary>
     public static class PixelButtonSkin
     {
@@ -26,19 +18,16 @@ namespace AshesofaDyingWorld.UI.Shared
 
         public const string AssetRoot = "res://assets/graphics/ui/buttons";
 
-        public const float CompactHeight = 32f;
-        public const float TabHeight = 34f;
-        public const float RegularHeight = 38f;
-        public const float LargeActionHeight = 44f;
+        public const float CompactHeight = UiTokens.ButtonHeightCompact;
+        public const float TabHeight = UiTokens.ButtonHeightCompact;
+        public const float RegularHeight = UiTokens.ButtonHeightRegular;
+        public const float LargeActionHeight = UiTokens.ButtonHeightLarge;
         public const float FeatureTileWidth = 120f;
         public const float FeatureTileHeight = 80f;
 
         private const float DefaultMinHeight = RegularHeight;
-        private const float HorizontalContentPadding = 12f;
-        private const float VerticalContentPadding = 7f;
-        private const int MaximumSourceHeight = 64;
-
-        private static readonly Dictionary<string, Texture2D> TextureCache = new();
+        private const float HorizontalContentPadding = UiTokens.Space3;
+        private const float VerticalContentPadding = UiTokens.Space2;
 
         public static void ApplyPrimary(Button button, float minHeight = DefaultMinHeight, float minWidth = 0f)
         {
@@ -55,10 +44,6 @@ namespace AshesofaDyingWorld.UI.Shared
             Apply(button, Variant.Danger, minHeight, minWidth);
         }
 
-        /// <summary>
-        /// Tab/filter dùng secondary khi nghỉ và primary khi đang chọn.
-        /// Như vậy toàn UI chỉ cần đúng 9 texture, không sinh thêm một họ asset tab riêng.
-        /// </summary>
         public static void ApplyTab(Button button, bool selected, float minHeight = TabHeight, float minWidth = 0f)
         {
             Apply(button, selected ? Variant.Primary : Variant.Secondary, minHeight, minWidth);
@@ -75,164 +60,56 @@ namespace AshesofaDyingWorld.UI.Shared
             button.CustomMinimumSize = new Vector2(
                 Mathf.Max(currentMinimum.X, minWidth),
                 Mathf.Max(currentMinimum.Y, minHeight));
-
-            // Pixel art phải giữ cạnh sắc. StyleBoxTexture lo phần 9-slice,
-            // còn Button chỉ chịu trách nhiệm text/icon và input.
             button.Flat = false;
-            button.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
 
-            button.AddThemeStyleboxOverride("normal", CreateStateStyle(variant, "normal"));
-            button.AddThemeStyleboxOverride("hover", CreateStateStyle(variant, "hover"));
-            button.AddThemeStyleboxOverride("pressed", CreateStateStyle(variant, "pressed"));
-            button.AddThemeStyleboxOverride("disabled", CreateDisabledStyle(variant));
+            button.AddThemeStyleboxOverride("normal", CreateStateStyle(variant, ButtonState.Normal));
+            button.AddThemeStyleboxOverride("hover", CreateStateStyle(variant, ButtonState.Hover));
+            button.AddThemeStyleboxOverride("focus", CreateStateStyle(variant, ButtonState.Focus));
+            button.AddThemeStyleboxOverride("pressed", CreateStateStyle(variant, ButtonState.Pressed));
+            button.AddThemeStyleboxOverride("disabled", CreateStateStyle(variant, ButtonState.Disabled));
 
-            button.AddThemeColorOverride("font_color", GetTextColor(variant, false));
+            button.AddThemeColorOverride("font_color", TextColor(variant));
             button.AddThemeColorOverride("font_hover_color", Colors.White);
+            button.AddThemeColorOverride("font_focus_color", Colors.White);
             button.AddThemeColorOverride("font_pressed_color", Colors.White);
-            button.AddThemeColorOverride("font_disabled_color", new Color(0.72f, 0.68f, 0.62f, 0.52f));
-            button.AddThemeColorOverride("icon_normal_color", Colors.White);
+            button.AddThemeColorOverride("font_disabled_color", UiTokens.TextDisabled);
+            button.AddThemeColorOverride("icon_normal_color", UiTokens.TextPrimary);
             button.AddThemeColorOverride("icon_hover_color", Colors.White);
+            button.AddThemeColorOverride("icon_focus_color", Colors.White);
             button.AddThemeColorOverride("icon_pressed_color", Colors.White);
-            button.AddThemeColorOverride("icon_disabled_color", new Color(1f, 1f, 1f, 0.45f));
+            button.AddThemeColorOverride("icon_disabled_color", UiTokens.TextDisabled);
         }
 
-        private static StyleBox CreateStateStyle(Variant variant, string state)
+        private enum ButtonState
         {
-            string path = $"{AssetRoot}/button_{VariantName(variant)}_{state}.png";
-            Texture2D texture = LoadTexture(path);
-            if (texture == null)
-            {
-                return CreateFallbackStyle(variant, state, false);
-            }
-
-            return CreateNineSliceStyle(texture, Colors.White);
+            Normal,
+            Hover,
+            Focus,
+            Pressed,
+            Disabled
         }
 
-        private static StyleBox CreateDisabledStyle(Variant variant)
+        private static StyleBoxFlat CreateStateStyle(Variant variant, ButtonState state)
         {
-            string path = $"{AssetRoot}/button_{VariantName(variant)}_normal.png";
-            Texture2D texture = LoadTexture(path);
-            if (texture == null)
+            (Color background, Color border) = BaseColors(variant);
+
+            switch (state)
             {
-                return CreateFallbackStyle(variant, "normal", true);
-            }
-
-            // Không cần asset disabled thứ 10/11/12. Giảm sáng texture normal là đủ.
-            return CreateNineSliceStyle(texture, new Color(0.56f, 0.53f, 0.49f, 0.62f));
-        }
-
-        private static StyleBoxTexture CreateNineSliceStyle(Texture2D texture, Color modulate)
-        {
-            Vector2I sourceSize = (Vector2I)texture.GetSize();
-            float shortEdge = Mathf.Max(1f, Mathf.Min((float)sourceSize.X, (float)sourceSize.Y));
-
-            // Margin tính từ chính kích thước source. Người dùng có thể thay PNG bằng
-            // bản 512 px, 1024 px... mà không phải sửa code. Giới hạn 30% cạnh ngắn
-            // để center vẫn còn đủ vùng stretch ngay cả với button khá nhỏ.
-            float patch = Mathf.Clamp(Mathf.Round(shortEdge * 0.22f), 2f, shortEdge * 0.30f);
-
-            var style = new StyleBoxTexture
-            {
-                Texture = texture,
-                DrawCenter = true,
-                ModulateColor = modulate,
-                TextureMarginLeft = patch,
-                TextureMarginTop = patch,
-                TextureMarginRight = patch,
-                TextureMarginBottom = patch,
-                ContentMarginLeft = HorizontalContentPadding,
-                ContentMarginRight = HorizontalContentPadding,
-                ContentMarginTop = VerticalContentPadding,
-                ContentMarginBottom = VerticalContentPadding
-            };
-
-            return style;
-        }
-
-        private static Texture2D LoadTexture(string path)
-        {
-            if (TextureCache.TryGetValue(path, out Texture2D cached))
-            {
-                return cached;
-            }
-
-            if (!ResourceLoader.Exists(path))
-            {
-                return null;
-            }
-
-            Texture2D importedTexture = GD.Load<Texture2D>(path);
-            if (importedTexture == null)
-            {
-                return null;
-            }
-
-            Texture2D texture = NormalizeSourceTexture(importedTexture);
-            TextureCache[path] = texture;
-            return texture;
-        }
-
-        /// <summary>
-        /// Asset AI/export thường có thể là 512-2048 px dù button trong game chỉ cao
-        /// khoảng 32-80 px. Thu nhỏ source một lần lúc load để texture margin của 9-slice
-        /// luôn hợp lý. Vì cache lại ImageTexture nên không có resize mỗi frame.
-        /// </summary>
-        private static Texture2D NormalizeSourceTexture(Texture2D source)
-        {
-            Vector2I sourceSize = (Vector2I)source.GetSize();
-            if (sourceSize.Y <= MaximumSourceHeight || sourceSize.Y <= 0)
-            {
-                return source;
-            }
-
-            Image image = source.GetImage();
-            if (image == null || image.IsEmpty())
-            {
-                return source;
-            }
-
-            float scale = MaximumSourceHeight / (float)sourceSize.Y;
-            int targetWidth = Mathf.Max(1, Mathf.RoundToInt(sourceSize.X * scale));
-            image.Resize(targetWidth, MaximumSourceHeight, Image.Interpolation.Nearest);
-            return ImageTexture.CreateFromImage(image);
-        }
-
-        private static StyleBoxFlat CreateFallbackStyle(Variant variant, string state, bool disabled)
-        {
-            Color background;
-            Color border;
-
-            switch (variant)
-            {
-                case Variant.Primary:
-                    background = new Color("#4a2f1e");
-                    border = new Color("#c7934d");
+                case ButtonState.Hover:
+                    background = background.Lightened(0.08f);
+                    border = border.Lightened(0.12f);
                     break;
-                case Variant.Danger:
-                    background = new Color("#56231f");
-                    border = new Color("#a7554a");
+                case ButtonState.Focus:
+                    border = variant == Variant.Danger ? UiTokens.Danger.Lightened(0.18f) : UiTokens.TextPrimary;
                     break;
-                default:
-                    background = new Color("#2a1d17");
-                    border = new Color("#76543c");
+                case ButtonState.Pressed:
+                    background = background.Darkened(0.12f);
+                    border = border.Darkened(0.06f);
                     break;
-            }
-
-            if (state == "hover")
-            {
-                background = background.Lightened(0.10f);
-                border = border.Lightened(0.12f);
-            }
-            else if (state == "pressed")
-            {
-                background = background.Darkened(0.12f);
-                border = border.Darkened(0.05f);
-            }
-
-            if (disabled)
-            {
-                background = new Color(background.R, background.G, background.B, 0.56f);
-                border = new Color(border.R, border.G, border.B, 0.42f);
+                case ButtonState.Disabled:
+                    background = WithAlpha(background, 0.46f);
+                    border = WithAlpha(border, 0.38f);
+                    break;
             }
 
             var style = new StyleBoxFlat
@@ -244,34 +121,38 @@ namespace AshesofaDyingWorld.UI.Shared
                 ContentMarginTop = VerticalContentPadding,
                 ContentMarginBottom = VerticalContentPadding
             };
-            style.SetBorderWidthAll(1);
-            style.SetCornerRadiusAll(2);
+            style.SetBorderWidthAll(UiTokens.SelectionBorderWidth);
+            style.SetCornerRadiusAll(UiTokens.CornerRadius);
+
+            if (state == ButtonState.Focus)
+            {
+                style.ShadowColor = WithAlpha(UiTokens.Accent, 0.35f);
+                style.ShadowSize = UiTokens.SelectionBorderWidth;
+            }
+
             return style;
         }
 
-        private static string VariantName(Variant variant)
+        private static (Color Background, Color Border) BaseColors(Variant variant)
         {
             return variant switch
             {
-                Variant.Primary => "primary",
-                Variant.Danger => "danger",
-                _ => "secondary"
+                Variant.Primary => (UiTokens.SurfaceRaised, UiTokens.Accent),
+                Variant.Danger => (UiTokens.Danger.Darkened(0.58f), UiTokens.Danger),
+                _ => (UiTokens.Surface, UiTokens.BorderStrong)
             };
         }
 
-        private static Color GetTextColor(Variant variant, bool disabled)
+        private static Color TextColor(Variant variant)
         {
-            if (disabled)
-            {
-                return new Color(0.72f, 0.68f, 0.62f, 0.52f);
-            }
+            return variant == Variant.Danger
+                ? UiTokens.TextPrimary.Lightened(0.02f)
+                : UiTokens.TextPrimary;
+        }
 
-            return variant switch
-            {
-                Variant.Primary => new Color("#f4e6ca"),
-                Variant.Danger => new Color("#f0c2b8"),
-                _ => new Color("#dfd0bc")
-            };
+        private static Color WithAlpha(Color color, float alpha)
+        {
+            return new Color(color.R, color.G, color.B, alpha);
         }
     }
 }

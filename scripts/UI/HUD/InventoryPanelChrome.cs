@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using AshesofaDyingWorld.UI.Theme;
 
 namespace AshesofaDyingWorld.UI.Shared
 {
@@ -20,20 +21,20 @@ namespace AshesofaDyingWorld.UI.Shared
         public const string OuterFramePath = AssetRoot + "/frame_9slice.png";
         public const string GrainTexturePath = AssetRoot + "/grain.png";
 
-        public static readonly Color WindowColor = new("#20140e");
-        public static readonly Color HeaderColor = new("#2a1a12");
-        public static readonly Color SurfaceColor = new("#382318");
-        public static readonly Color RaisedSurfaceColor = new("#442a1c");
-        public static readonly Color DeepSurfaceColor = new("#1b120d");
-        public static readonly Color SlotSurfaceColor = new("#241710");
-        public static readonly Color BorderColor = new("#68482f");
-        public static readonly Color StrongBorderColor = new("#8d6542");
-        public static readonly Color AccentColor = new("#d0a45c");
-        public static readonly Color MainTextColor = new("#f1e5d2");
-        public static readonly Color MutedTextColor = new("#c0aa8e");
-        public static readonly Color DangerColor = new("#6b342d");
-        public static readonly Color ButtonNormalColor = new("#2c1c13");
-        public static readonly Color ButtonHoverColor = new("#442a1c");
+        public static readonly Color WindowColor = UiTokens.Background;
+        public static readonly Color HeaderColor = UiTokens.Surface;
+        public static readonly Color SurfaceColor = UiTokens.Surface;
+        public static readonly Color RaisedSurfaceColor = UiTokens.SurfaceRaised;
+        public static readonly Color DeepSurfaceColor = UiTokens.Canvas;
+        public static readonly Color SlotSurfaceColor = UiTokens.Background;
+        public static readonly Color BorderColor = UiTokens.Border;
+        public static readonly Color StrongBorderColor = UiTokens.BorderStrong;
+        public static readonly Color AccentColor = UiTokens.Accent;
+        public static readonly Color MainTextColor = UiTokens.TextPrimary;
+        public static readonly Color MutedTextColor = UiTokens.TextSecondary;
+        public static readonly Color DangerColor = UiTokens.Danger;
+        public static readonly Color ButtonNormalColor = UiTokens.Surface;
+        public static readonly Color ButtonHoverColor = UiTokens.SurfaceRaised;
 
         public static void ApplyPanelSize(Control panel)
         {
@@ -56,6 +57,8 @@ namespace AshesofaDyingWorld.UI.Shared
         /// </summary>
         public static VBoxContainer BuildWindowShell(Control owner)
         {
+            UiThemeFactory.Apply(owner);
+
             var layers = new Control();
             layers.SetAnchorsPreset(Control.LayoutPreset.FullRect);
             layers.ClipContents = true;
@@ -156,6 +159,7 @@ namespace AshesofaDyingWorld.UI.Shared
         {
             var label = new Label();
             label.Text = text;
+            UiThemeFactory.ApplyText(label, ResolveTextRole(fontSize));
             label.AddThemeFontSizeOverride("font_size", fontSize);
             label.AddThemeColorOverride("font_color", color);
             return label;
@@ -211,7 +215,7 @@ namespace AshesofaDyingWorld.UI.Shared
             style.BgColor = WindowColor;
             style.BorderColor = new Color(StrongBorderColor.R, StrongBorderColor.G, StrongBorderColor.B, 0.42f);
             style.SetBorderWidthAll(1);
-            style.SetCornerRadiusAll(4);
+            style.SetCornerRadiusAll(UiTokens.CornerRadius);
             style.ShadowColor = new Color(0f, 0f, 0f, 0.56f);
             style.ShadowSize = 10;
             return style;
@@ -350,6 +354,31 @@ namespace AshesofaDyingWorld.UI.Shared
         public static Texture2D TryLoadTexture(string path)
         {
             return ResourceLoader.Exists(path) ? GD.Load<Texture2D>(path) : null;
+        }
+
+        private static UiTextRole ResolveTextRole(int fontSize)
+        {
+            if (fontSize >= UiTokens.ScreenTitleFontSize)
+            {
+                return UiTextRole.ScreenTitle;
+            }
+
+            if (fontSize >= UiTokens.SectionTitleFontSize)
+            {
+                return UiTextRole.SectionTitle;
+            }
+
+            if (fontSize <= UiTokens.MicroFontSize)
+            {
+                return UiTextRole.Micro;
+            }
+
+            if (fontSize <= UiTokens.LabelFontSize)
+            {
+                return UiTextRole.Label;
+            }
+
+            return UiTextRole.Body;
         }
     }
 }
