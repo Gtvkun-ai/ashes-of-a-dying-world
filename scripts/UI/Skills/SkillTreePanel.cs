@@ -616,7 +616,7 @@ namespace AshesofaDyingWorld.UI.Skills
                 Icon = icon,
                 ExpandIcon = true,
                 IconAlignment = HorizontalAlignment.Left,
-                FocusMode = FocusModeEnum.None,
+                FocusMode = FocusModeEnum.All,
                 MouseDefaultCursorShape = CursorShape.PointingHand,
                 CustomMinimumSize = new Vector2(126, 32)
             };
@@ -644,7 +644,7 @@ namespace AshesofaDyingWorld.UI.Skills
                 Text = text,
                 CustomMinimumSize = new Vector2(0, 38),
                 SizeFlagsHorizontal = SizeFlags.ExpandFill,
-                FocusMode = FocusModeEnum.None,
+                FocusMode = FocusModeEnum.All,
                 MouseDefaultCursorShape = CursorShape.PointingHand
             };
             PixelButtonSkin.ApplyPrimary(button, PixelButtonSkin.RegularHeight);

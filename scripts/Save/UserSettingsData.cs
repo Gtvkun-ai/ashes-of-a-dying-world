@@ -4,7 +4,7 @@ namespace AshesofaDyingWorld.Core.Save
 {
     public sealed class UserSettingsData
     {
-        public int Version { get; set; } = 3;
+        public int Version { get; set; } = 4;
 
         // Audio
         public float MasterVolumeLinear { get; set; } = 1f;
@@ -23,6 +23,7 @@ namespace AshesofaDyingWorld.Core.Save
         public float ScreenShakeIntensity { get; set; } = 1f;
         public bool HitStopEnabled { get; set; } = true;
         public bool DamageNumbersEnabled { get; set; } = true;
+        public bool ReducedMotion { get; set; } = false;
 
         // Controls. Store enum values as long so settings.json stays engine-version tolerant.
         public long Skill1Key { get; set; } = (long)Key.Q;

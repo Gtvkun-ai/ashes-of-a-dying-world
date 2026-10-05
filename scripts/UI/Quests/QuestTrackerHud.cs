@@ -2,6 +2,7 @@ using Godot;
 using AshesofaDyingWorld.Quests.Data;
 using AshesofaDyingWorld.Quests.Runtime;
 using AshesofaDyingWorld.UI.Shared;
+using AshesofaDyingWorld.UI.Theme;
 
 namespace AshesofaDyingWorld.UI.Quests
 {
@@ -57,9 +58,23 @@ namespace AshesofaDyingWorld.UI.Quests
             column.AddThemeConstantOverride("separation", 3);
             margin.AddChild(column);
 
+            var heading = new HBoxContainer();
+            heading.AddThemeConstantOverride("separation", 6);
+            var glyph = new TextureRect
+            {
+                Texture = UiGlyphResolver.Resolve(UiGlyph.Quests),
+                CustomMinimumSize = new Vector2(UiTokens.IconSize, UiTokens.IconSize),
+                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+                TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
+                MouseFilter = MouseFilterEnum.Ignore
+            };
+            heading.AddChild(glyph);
+
             _titleLabel = InventoryPanelChrome.CreateLabel("", 13, InventoryPanelChrome.MainTextColor);
             _titleLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-            column.AddChild(_titleLabel);
+            heading.AddChild(_titleLabel);
+            column.AddChild(heading);
 
             _objectiveLabel = InventoryPanelChrome.CreateLabel("", 12, InventoryPanelChrome.MutedTextColor);
             _objectiveLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;

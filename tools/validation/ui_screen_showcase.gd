@@ -74,6 +74,14 @@ func _build_showcase() -> void:
 	_validate_focus_modes(character_runtime)
 	_exercise_inventory_filter(inventory_runtime)
 
+	var party_runtime := _mount_runtime_panel(load("res://scripts/UI/Party/PartyPanel.cs").new(), Vector2(40, 510), Vector2(0.27, 0.27))
+	var quest_runtime := _mount_runtime_panel(load("res://scripts/UI/Quests/QuestJournalPanel.cs").new(), Vector2(350, 510), Vector2(0.27, 0.27))
+	var skill_runtime := _mount_runtime_panel(load("res://scripts/UI/Skills/SkillTreePanel.cs").new(), Vector2(660, 510), Vector2(0.27, 0.27))
+	var settings_runtime := _mount_runtime_panel(load("res://scripts/UI/HUD/SettingsPanel.cs").new(), Vector2(970, 510), Vector2(0.27, 0.27))
+	for panel in [party_runtime, quest_runtime, skill_runtime, settings_runtime]:
+		_validate_secondary_focus(panel)
+		panel.set_meta("ReducedMotion", true)
+
 func _mount_runtime_panel(panel: Control, origin: Vector2, panel_scale: Vector2) -> Control:
 	add_child(panel)
 	panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
@@ -86,7 +94,7 @@ func _validate_focus_modes(root: Node) -> void:
 	for node in root.find_children("*", "Control", true, false):
 		if node is Control and node.focus_mode == Control.FOCUS_ALL:
 			focused_controls += 1
-	assert focused_controls > 0
+	assert(focused_controls > 0)
 
 func _exercise_inventory_filter(root: Node) -> void:
 	var options := root.find_children("*", "OptionButton", true, false)
@@ -95,6 +103,13 @@ func _exercise_inventory_filter(root: Node) -> void:
 	var filter: OptionButton = options[0]
 	filter.grab_focus()
 	filter.select(0)
+
+func _validate_secondary_focus(root: Node) -> void:
+	var focused_controls := 0
+	for node in root.find_children("*", "Control", true, false):
+		if node is Control and node.focus_mode == Control.FOCUS_ALL:
+			focused_controls += 1
+	assert(focused_controls > 0)
 
 func _surface_panel(origin: Vector2, size: Vector2, title_text: String) -> Panel:
 	var panel := Panel.new()

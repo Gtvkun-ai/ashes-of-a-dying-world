@@ -10,7 +10,7 @@ namespace AshesofaDyingWorld.Core.Managers
     {
         private const string SettingsPath = "user://settings.json";
         private const float MinLinearVolume = 0.0001f;
-        private const int CurrentSettingsVersion = 3;
+        private const int CurrentSettingsVersion = 4;
         private const int DefaultMaxFps = 144;
         private const int BackgroundMaxFps = 30;
         private const int FocusWakeFrames = 8;
@@ -383,6 +383,12 @@ namespace AshesofaDyingWorld.Core.Managers
         public void SetDamageNumbersEnabled(bool enabled)
         {
             CurrentSettings.DamageNumbersEnabled = enabled;
+            SaveSettings();
+        }
+
+        public void SetReducedMotion(bool enabled)
+        {
+            CurrentSettings.ReducedMotion = enabled;
             SaveSettings();
         }
 

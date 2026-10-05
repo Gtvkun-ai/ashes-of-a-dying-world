@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using AshesofaDyingWorld.Core.Managers;
 using AshesofaDyingWorld.UI.Shared;
+using AshesofaDyingWorld.UI.Theme;
 
 namespace AshesofaDyingWorld.UI.HUD
 {
@@ -251,15 +252,15 @@ namespace AshesofaDyingWorld.UI.HUD
             sidebar.AddChild(InventoryPanelChrome.CreateDivider(true));
 
             AddTabButton(sidebar, SettingsTab.Audio, "ÂM THANH", "Nhạc và hiệu ứng");
-            AddTabButton(sidebar, SettingsTab.Display, "HIỂN THỊ", "Cửa sổ và FPS");
+            AddTabButton(sidebar, SettingsTab.Display, "HIỂN THỊ", "Cửa sổ và tốc độ hình ảnh");
             AddTabButton(sidebar, SettingsTab.Controls, "ĐIỀU KHIỂN", "Phím kỹ năng");
-            AddTabButton(sidebar, SettingsTab.Gameplay, "TRẢI NGHIỆM", "Combat feedback");
+            AddTabButton(sidebar, SettingsTab.Gameplay, "TRẢI NGHIỆM", "Phản hồi chiến đấu");
 
             var spacer = new Control { SizeFlagsVertical = SizeFlags.ExpandFill };
             sidebar.AddChild(spacer);
 
             var note = InventoryPanelChrome.CreateLabel(
-                "Mọi thay đổi được áp dụng ngay.\nKhông cần nút Apply.",
+                "Mọi thay đổi có hiệu lực ngay.",
                 11,
                 InventoryPanelChrome.MutedTextColor);
             note.AutowrapMode = TextServer.AutowrapMode.WordSmart;
@@ -430,9 +431,9 @@ namespace AshesofaDyingWorld.UI.HUD
         private void BuildAudioTab()
         {
             SetSectionHeader(
-                "AUDIO",
+                "ÂM THANH",
                 "Âm thanh",
-                "Chỉ giữ những bus game đang dùng thật: âm lượng tổng, nhạc nền và hiệu ứng chiến đấu.");
+                "Điều chỉnh âm lượng tổng, nhạc nền và hiệu ứng chiến đấu.");
 
             if (_settings == null)
             {
@@ -448,7 +449,7 @@ namespace AshesofaDyingWorld.UI.HUD
 
             AddSliderRow(
                 "Nhạc nền",
-                "Âm lượng BGM, bao gồm bg_02 trong gameplay.",
+                "Âm lượng nhạc nền trong lúc chơi.",
                 _settings.CurrentSettings.BgmVolumeLinear * 100f,
                 value => _settings.SetBgmVolumeLinear(value / 100f));
 
@@ -462,9 +463,9 @@ namespace AshesofaDyingWorld.UI.HUD
         private void BuildDisplayTab()
         {
             SetSectionHeader(
-                "DISPLAY",
+                "HIỂN THỊ",
                 "Hiển thị",
-                "Các tùy chọn có tác dụng thật trên bản PC hiện tại. Không nhét checkbox giả cho đủ quân số.");
+                "Chọn cách cửa sổ và màn hình hiển thị.");
 
             if (_settings == null)
             {
@@ -485,7 +486,7 @@ namespace AshesofaDyingWorld.UI.HUD
             };
             AddControlRow(
                 "Chế độ hiển thị",
-                "Fullscreen dùng độ phân giải màn hình; Windowed dùng độ phân giải bên dưới.",
+                "Toàn màn hình dùng cả màn hình; cửa sổ dùng kích thước bên dưới.",
                 mode);
 
             var resolutionOptions = BuildResolutionOptions();
@@ -540,14 +541,14 @@ namespace AshesofaDyingWorld.UI.HUD
             };
             AddControlRow(
                 "Giới hạn FPS",
-                "Giữ FPS có trần để OpenGL/NVIDIA không bị kẹt render khi Alt-Tab.",
+                "Giữ tốc độ hình ảnh ổn định khi chuyển ứng dụng.",
                 fps);
         }
 
         private void BuildControlsTab()
         {
             SetSectionHeader(
-                "CONTROLS",
+                "ĐIỀU KHIỂN",
                 "Điều khiển",
                 "Đổi phím cho bốn ô kỹ năng. Phím 1 / 2 / 3 được giữ riêng cho chuyển nhân vật trong tổ đội.");
 
@@ -617,9 +618,9 @@ namespace AshesofaDyingWorld.UI.HUD
         private void BuildGameplayTab()
         {
             SetSectionHeader(
-                "COMFORT",
+                "TRẢI NGHIỆM",
                 "Trải nghiệm",
-                "Combat vẫn có lực, nhưng người chơi có quyền giảm các hiệu ứng dễ gây mỏi mắt hoặc mất tập trung.");
+                "Giữ nhịp chiến đấu rõ ràng và giảm hiệu ứng gây mỏi mắt.");
 
             if (_settings == null)
             {
@@ -634,14 +635,21 @@ namespace AshesofaDyingWorld.UI.HUD
                 value => _settings.SetScreenShakeIntensity(value / 100f));
 
             AddControlRow(
-                "Hit-stop",
-                "Khoảnh khắc khựng rất ngắn khi đòn đánh trúng để tăng cảm giác va chạm.",
+                "Nhịp dừng khi đánh trúng",
+                "Dừng rất ngắn khi đòn đánh trúng để tăng cảm giác va chạm.",
                 MakeToggle(_settings.CurrentSettings.HitStopEnabled, enabled => _settings.SetHitStopEnabled(enabled)));
 
             AddControlRow(
                 "Số sát thương",
-                "Bật hoặc tắt damage number trong combat.",
+                "Bật hoặc tắt số sát thương trong chiến đấu.",
                 MakeToggle(_settings.CurrentSettings.DamageNumbersEnabled, enabled => _settings.SetDamageNumbersEnabled(enabled)));
+
+            AddControlRow(
+                "Giảm chuyển động",
+                "Tắt các chuyển cảnh và hiệu ứng không cần thiết.",
+                MakeToggle(_settings.CurrentSettings.ReducedMotion, enabled => _settings.SetReducedMotion(enabled)));
+
+            _sectionDescription.TooltipText = $"Chuyển cảnh: {UiMotion.ResolveDuration(0.18f):0.00}s";
         }
 
         private List<Vector2I> BuildResolutionOptions()
@@ -698,6 +706,13 @@ namespace AshesofaDyingWorld.UI.HUD
 
             var control = new HBoxContainer { CustomMinimumSize = new Vector2(300f, 38f) };
             control.AddThemeConstantOverride("separation", 10);
+            var sliderTrack = InventoryPanelChrome.CreateSectionStyle();
+            sliderTrack.SetCornerRadiusAll(2);
+            slider.AddThemeStyleboxOverride("slider", sliderTrack);
+            slider.AddThemeStyleboxOverride("grabber_area", InventoryPanelChrome.CreateButtonStyle(
+                InventoryPanelChrome.AccentColor, InventoryPanelChrome.StrongBorderColor, 1));
+            slider.AddThemeStyleboxOverride("grabber_area_highlight", InventoryPanelChrome.CreateButtonStyle(
+                InventoryPanelChrome.AccentColor.Lightened(0.12f), InventoryPanelChrome.StrongBorderColor, 1));
             control.AddChild(slider);
             control.AddChild(value);
 
@@ -723,6 +738,12 @@ namespace AshesofaDyingWorld.UI.HUD
                 FocusMode = FocusModeEnum.All,
                 MouseDefaultCursorShape = CursorShape.PointingHand
             };
+            toggle.AddThemeStyleboxOverride("normal", InventoryPanelChrome.CreateButtonStyle(
+                InventoryPanelChrome.SurfaceColor, InventoryPanelChrome.BorderColor, 1));
+            toggle.AddThemeStyleboxOverride("hover", InventoryPanelChrome.CreateButtonStyle(
+                InventoryPanelChrome.RaisedSurfaceColor, InventoryPanelChrome.StrongBorderColor, 1));
+            toggle.AddThemeStyleboxOverride("pressed", InventoryPanelChrome.CreateButtonStyle(
+                InventoryPanelChrome.DeepSurfaceColor, InventoryPanelChrome.AccentColor, 1));
             toggle.AddThemeColorOverride("font_color", InventoryPanelChrome.MainTextColor);
             toggle.AddThemeColorOverride("font_hover_color", Colors.White);
             toggle.Toggled += enabled =>

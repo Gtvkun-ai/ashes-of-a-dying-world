@@ -33,9 +33,11 @@ namespace AshesofaDyingWorld.UI.Skills
             Data = data;
             CustomMinimumSize = NodeSize;
             Size = NodeSize;
-            FocusMode = FocusModeEnum.None;
+            FocusMode = FocusModeEnum.All;
             MouseDefaultCursorShape = CursorShape.PointingHand;
             Text = data?.Skill?.SkillName ?? "Kỹ năng";
+            AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            ClipText = false;
             Icon = SkillIconResolver.Resolve(data?.Skill);
             ExpandIcon = true;
             IconAlignment = HorizontalAlignment.Center;
@@ -48,6 +50,7 @@ namespace AshesofaDyingWorld.UI.Skills
             AddThemeColorOverride("font_pressed_color", Colors.White);
             AddThemeStyleboxOverride("normal", CreateNodeStyle(state, accent, selected, false));
             AddThemeStyleboxOverride("hover", CreateNodeStyle(state, accent, true, true));
+            AddThemeStyleboxOverride("focus", CreateNodeStyle(state, accent, selected, true));
             AddThemeStyleboxOverride("pressed", CreateNodeStyle(state, accent, true, true));
             Modulate = state == SkillTreeNodeVisualState.Locked
                 ? new Color(0.72f, 0.72f, 0.72f, 0.78f)
@@ -59,7 +62,8 @@ namespace AshesofaDyingWorld.UI.Skills
                 SkillTreeNodeVisualState.Unlockable => "Có thể mở",
                 _ => "Đang khóa"
             };
-            TooltipText = $"{Text}\n{stateText}";
+            string description = data?.Skill?.Description ?? "Chưa có mô tả.";
+            TooltipText = $"{Text}\n{stateText}\n{description}";
         }
 
         private static Color ResolveTextColor(SkillTreeNodeVisualState state)
@@ -98,8 +102,8 @@ namespace AshesofaDyingWorld.UI.Skills
                 ContentMarginTop = 8,
                 ContentMarginBottom = 6
             };
-            style.SetBorderWidthAll(selected ? 3 : 2);
-            style.SetCornerRadiusAll(10);
+            style.SetBorderWidthAll(selected ? 2 : 1);
+            style.SetCornerRadiusAll(3);
 
             if (state == SkillTreeNodeVisualState.Unlocked || selected)
             {

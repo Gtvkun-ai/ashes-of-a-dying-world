@@ -5,6 +5,7 @@ using AshesofaDyingWorld.Core.Managers;
 using AshesofaDyingWorld.Quests.Data;
 using AshesofaDyingWorld.Quests.Runtime;
 using AshesofaDyingWorld.UI.Shared;
+using AshesofaDyingWorld.UI.Theme;
 
 namespace AshesofaDyingWorld.UI.Quests
 {
@@ -130,20 +131,15 @@ namespace AshesofaDyingWorld.UI.Quests
         {
             PanelContainer header = InventoryPanelChrome.CreateHeader(out HBoxContainer row);
 
-            Texture2D questIcon = InventoryPanelChrome.TryLoadTexture(
-                "res://assets/graphics/ui/inventory/category_quest.png");
-            if (questIcon != null)
+            var icon = new TextureRect
             {
-                var icon = new TextureRect
-                {
-                    Texture = questIcon,
-                    CustomMinimumSize = new Vector2(34, 34),
-                    ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-                    StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-                    TextureFilter = CanvasItem.TextureFilterEnum.Nearest
-                };
-                row.AddChild(icon);
-            }
+                Texture = UiGlyphResolver.Resolve(UiGlyph.Quests),
+                CustomMinimumSize = new Vector2(UiTokens.IconSize, UiTokens.IconSize),
+                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+                TextureFilter = CanvasItem.TextureFilterEnum.Nearest
+            };
+            row.AddChild(icon);
 
             Label title = CreateLabel("NHIỆM VỤ", 18, MainText);
             title.SizeFlagsHorizontal = SizeFlags.ExpandFill;
@@ -324,7 +320,7 @@ namespace AshesofaDyingWorld.UI.Quests
             {
                 Text = text,
                 CustomMinimumSize = new Vector2(132, 34),
-                FocusMode = FocusModeEnum.None,
+                FocusMode = FocusModeEnum.All,
                 MouseDefaultCursorShape = CursorShape.PointingHand
             };
             button.Pressed += () =>
@@ -342,7 +338,7 @@ namespace AshesofaDyingWorld.UI.Quests
             {
                 Text = text,
                 CustomMinimumSize = new Vector2(0, 30),
-                FocusMode = FocusModeEnum.None,
+                FocusMode = FocusModeEnum.All,
                 MouseDefaultCursorShape = CursorShape.PointingHand
             };
             button.AddThemeFontSizeOverride("font_size", 12);
@@ -474,7 +470,7 @@ namespace AshesofaDyingWorld.UI.Quests
 
             var button = new Button();
             button.SetAnchorsPreset(LayoutPreset.FullRect);
-            button.FocusMode = FocusModeEnum.None;
+            button.FocusMode = FocusModeEnum.All;
             button.MouseDefaultCursorShape = CursorShape.PointingHand;
             button.AddThemeStyleboxOverride("normal", InventoryPanelChrome.CreateTransparentButtonStyle());
             button.AddThemeStyleboxOverride("hover", InventoryPanelChrome.CreateTransparentButtonStyle());
@@ -619,8 +615,7 @@ namespace AshesofaDyingWorld.UI.Quests
             row.AddThemeConstantOverride("separation", 7);
             margin.AddChild(row);
 
-            Texture2D iconTexture = reward.Icon ?? InventoryPanelChrome.TryLoadTexture(
-                "res://assets/graphics/ui/inventory/category_quest.png");
+            Texture2D iconTexture = reward.Icon ?? UiGlyphResolver.Resolve(UiGlyph.Quests);
             if (iconTexture != null)
             {
                 row.AddChild(new TextureRect
@@ -645,8 +640,14 @@ namespace AshesofaDyingWorld.UI.Quests
 
         private void RefreshDetailActions(QuestData quest, QuestRuntimeState state)
         {
-            _mapButton.Visible = !string.IsNullOrWhiteSpace(quest.MapHint);
-            _mapButton.Disabled = false;
+            bool mapAvailable = !string.IsNullOrWhiteSpace(quest.MapHint);
+            _mapButton.Visible = true;
+            _mapButton.Disabled = !mapAvailable;
+            _mapButton.TooltipText = mapAvailable ? "Mở gợi ý bản đồ" : "Bản đồ chưa khả dụng";
+            if (!mapAvailable)
+            {
+                _actionHintLabel.Text = "Bản đồ chưa khả dụng cho nhiệm vụ này.";
+            }
 
             switch (state.Status)
             {
@@ -887,7 +888,7 @@ namespace AshesofaDyingWorld.UI.Quests
                 Text = text,
                 CustomMinimumSize = new Vector2(0, 36),
                 SizeFlagsHorizontal = SizeFlags.ExpandFill,
-                FocusMode = FocusModeEnum.None,
+                FocusMode = FocusModeEnum.All,
                 MouseDefaultCursorShape = CursorShape.PointingHand
             };
             PixelButtonSkin.ApplyPrimary(button, PixelButtonSkin.RegularHeight);

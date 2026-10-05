@@ -426,10 +426,11 @@ namespace AshesofaDyingWorld.UI.Party
 
             Button clickTarget = new();
             clickTarget.SetAnchorsPreset(LayoutPreset.FullRect);
-            clickTarget.FocusMode = FocusModeEnum.None;
+            clickTarget.FocusMode = FocusModeEnum.All;
             clickTarget.MouseDefaultCursorShape = CursorShape.PointingHand;
             clickTarget.AddThemeStyleboxOverride("normal", InventoryPanelChrome.CreateTransparentButtonStyle());
             clickTarget.AddThemeStyleboxOverride("hover", InventoryPanelChrome.CreateTransparentButtonStyle());
+            clickTarget.AddThemeStyleboxOverride("focus", InventoryPanelChrome.CreateSlotHoverStyle());
             clickTarget.AddThemeStyleboxOverride("pressed", InventoryPanelChrome.CreateTransparentButtonStyle());
             clickTarget.Pressed += () => SelectMember(index);
             card.AddChild(clickTarget);
@@ -857,7 +858,7 @@ namespace AshesofaDyingWorld.UI.Party
             button.Text = text;
             button.CustomMinimumSize = new Vector2(0, 36);
             button.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-            button.FocusMode = FocusModeEnum.None;
+            button.FocusMode = FocusModeEnum.All;
             button.MouseDefaultCursorShape = CursorShape.PointingHand;
             PixelButtonSkin.ApplyPrimary(button, PixelButtonSkin.RegularHeight);
             if (action != null) button.Pressed += action;
