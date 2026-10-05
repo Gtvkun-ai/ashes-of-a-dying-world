@@ -42,9 +42,20 @@ namespace AshesofaDyingWorld.UI.HUD
         {
             ProcessMode = ProcessModeEnum.Always;
             AddThemeStyleboxOverride("panel", new StyleBoxEmpty());
-            _settings = SettingsManager.GetOrCreate(GetTree());
             BuildUi();
             ShowTab(SettingsTab.Audio);
+            CallDeferred(nameof(InitializeSettings));
+        }
+
+        private void InitializeSettings()
+        {
+            if (!IsInsideTree())
+            {
+                return;
+            }
+
+            _settings = SettingsManager.GetOrCreate(GetTree());
+            ShowTab(_activeTab);
         }
 
         public override void _Notification(int what)
@@ -59,7 +70,7 @@ namespace AshesofaDyingWorld.UI.HUD
                 PauseGameForSettings();
                 if (_content != null)
                 {
-                    _settings = SettingsManager.GetOrCreate(GetTree());
+                    _settings ??= SettingsManager.Instance;
                     ShowTab(_activeTab);
                 }
             }
@@ -392,7 +403,7 @@ namespace AshesofaDyingWorld.UI.HUD
                 CancelKeyBinding();
             }
             _activeTab = tab;
-            _settings ??= SettingsManager.GetOrCreate(GetTree());
+            _settings ??= SettingsManager.Instance;
             UpdateTabStyles();
             ClearContent();
             _isRefreshingUi = true;
@@ -777,7 +788,7 @@ namespace AshesofaDyingWorld.UI.HUD
 
         private void OnResetPressed()
         {
-            _settings ??= SettingsManager.GetOrCreate(GetTree());
+            _settings ??= SettingsManager.Instance;
             _settings?.ResetToDefaults();
             ShowTab(_activeTab);
         }

@@ -277,7 +277,7 @@ namespace AshesofaDyingWorld.Core.Managers
 
                 const int maxFramesToWait = 30;
                 Node currentScene = null;
-                Button loginButton = null;
+                ScreenMain mainScreen = null;
 
                 for (int i = 0; i < maxFramesToWait; i++)
                 {
@@ -289,8 +289,8 @@ namespace AshesofaDyingWorld.Core.Managers
                         continue;
                     }
 
-                    loginButton = currentScene.GetNodeOrNull<Button>("login");
-                    if (loginButton != null)
+                    mainScreen = currentScene as ScreenMain;
+                    if (mainScreen != null)
                     {
                         break;
                     }
@@ -302,14 +302,13 @@ namespace AshesofaDyingWorld.Core.Managers
                     return Error.DoesNotExist;
                 }
 
-                if (loginButton == null)
+                if (mainScreen == null)
                 {
-                    GD.PrintErr("[SaveManager] Login button not found on main scene after waiting.");
+                    GD.PrintErr("[SaveManager] Main screen controller not found after scene change.");
                     return Error.DoesNotExist;
                 }
 
-                loginButton.EmitSignal(Button.SignalName.Pressed);
-                return Error.Ok;
+                return await mainScreen.StartGameFromSnapshotAsync(snapshot);
             }
             catch (Exception ex)
             {

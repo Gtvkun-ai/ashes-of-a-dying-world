@@ -1,37 +1,154 @@
-[gd_scene format=3 uid="uid://caqnp10danp0c"]
+[gd_scene load_steps=4 format=3 uid="uid://caqnp10danp0c"]
 
-[ext_resource type="Script" uid="uid://dmkiugm0xl2mi" path="res://scripts/App/ScreenMain.cs" id="1_4tkux"]
-[ext_resource type="Texture2D" uid="uid://by2s11nqd7j07" path="res://assets/graphics/ui/menus/login/form.png" id="4_4tkux"]
-[ext_resource type="Texture2D" uid="uid://wuosknutle7h" path="res://assets/graphics/ui/menus/login/login_button.png" id="5_dsk4t"]
-[ext_resource type="Texture2D" uid="uid://betfpi3n0j56r" path="res://assets/graphics/ui/menus/login/exit_button.png" id="6_dsk4t"]
+[ext_resource type="Script" uid="uid://dmkiugm0xl2mi" path="res://scripts/App/ScreenMain.cs" id="1_screen_main"]
+[ext_resource type="Texture2D" uid="uid://cyy57e0q36muo" path="res://assets/graphics/world/whispering_fields/field_01.png" id="2_world_art"]
+[ext_resource type="Script" uid="uid://bfdme3x3sk3gu" path="res://scripts/UI/HUD/SettingsPanel.cs" id="3_settings"]
 
 [node name="ScreenMain" type="Node2D" unique_id=2034251209]
-script = ExtResource("1_4tkux")
+script = ExtResource("1_screen_main")
 
-[node name="TextureButton" type="TextureButton" parent="." unique_id=1262863255]
-z_index = 1
-offset_left = 380.0
-offset_top = 213.0
-offset_right = 802.0
-offset_bottom = 459.0
-texture_normal = ExtResource("4_4tkux")
+[node name="MainUi" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
-[node name="login" type="Button" parent="." unique_id=481089976]
-z_index = 7
-offset_left = 678.0
-offset_top = 403.0
-offset_right = 1434.0
-offset_bottom = 710.0
-scale = Vector2(0.14362, 0.119995)
-icon = ExtResource("5_dsk4t")
+[node name="Background" type="TextureRect" parent="MainUi"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("2_world_art")
+expand_mode = 1
+stretch_mode = 6
 
-[node name="exits" type="Button" parent="." unique_id=1141159370]
-offset_left = 1004.0
-offset_top = 596.0
-offset_right = 1760.0
-offset_bottom = 903.0
-scale = Vector2(0.196904, 0.165849)
-icon = ExtResource("6_dsk4t")
+[node name="WorldWash" type="ColorRect" parent="MainUi"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.07, 0.055, 0.04, 0.2)
 
-[connection signal="pressed" from="login" to="." method="_on_login_pressed"]
-[connection signal="pressed" from="exits" to="." method="_on_exits_pressed"]
+[node name="SafeMargin" type="MarginContainer" parent="MainUi"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 40
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 40
+
+[node name="Row" type="HBoxContainer" parent="MainUi/SafeMargin"]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="MenuSurface" type="PanelContainer" parent="MainUi/SafeMargin/Row"]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="RailMargin" type="MarginContainer" parent="MainUi/SafeMargin/Row/MenuSurface"]
+layout_mode = 2
+theme_override_constants/margin_left = 36
+theme_override_constants/margin_top = 32
+theme_override_constants/margin_right = 36
+theme_override_constants/margin_bottom = 32
+
+[node name="Rail" type="VBoxContainer" parent="MainUi/SafeMargin/Row/MenuSurface/RailMargin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="TopSpacer" type="Control" parent="MainUi/SafeMargin/Row/MenuSurface/RailMargin/Rail"]
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+
+[node name="Eyebrow" type="Label" parent="MainUi/SafeMargin/Row/MenuSurface/RailMargin/Rail"]
+layout_mode = 2
+text = "NHỮNG CÁNH ĐỒNG THÌ THẦM"
+
+[node name="Title" type="Label" parent="MainUi/SafeMargin/Row/MenuSurface/RailMargin/Rail"]
+layout_mode = 2
+text = "TÀN SINH"
+
+[node name="Subtitle" type="Label" parent="MainUi/SafeMargin/Row/MenuSurface/RailMargin/Rail"]
+layout_mode = 2
+text = "Sự sống vẫn xanh trên một thế giới đang phai dần."
+autowrap_mode = 2
+
+[node name="Divider" type="HSeparator" parent="MainUi/SafeMargin/Row/MenuSurface/RailMargin/Rail"]
+layout_mode = 2
+
+[node name="login" type="Button" parent="MainUi/SafeMargin/Row/MenuSurface/RailMargin/Rail" unique_id=481089976]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "Bắt đầu"
+focus_mode = 2
+
+[node name="new_game" type="Button" parent="MainUi/SafeMargin/Row/MenuSurface/RailMargin/Rail"]
+visible = false
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+text = "Trò chơi mới"
+focus_mode = 2
+
+[node name="settings" type="Button" parent="MainUi/SafeMargin/Row/MenuSurface/RailMargin/Rail"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+text = "Cài đặt"
+focus_mode = 2
+
+[node name="exits" type="Button" parent="MainUi/SafeMargin/Row/MenuSurface/RailMargin/Rail" unique_id=1141159370]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+text = "Thoát"
+focus_mode = 2
+
+[node name="BottomSpacer" type="Control" parent="MainUi/SafeMargin/Row/MenuSurface/RailMargin/Rail"]
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+
+[node name="Location" type="Label" parent="MainUi/SafeMargin/Row/MenuSurface/RailMargin/Rail"]
+layout_mode = 2
+text = "CÁNH ĐỒNG THÌ THẦM"
+
+[node name="WorldSpace" type="Control" parent="MainUi/SafeMargin/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="SettingsPanel" type="Panel" parent="." node_paths=PackedStringArray()]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+script = ExtResource("3_settings")
+
+[node name="NewGameConfirmation" type="ConfirmationDialog" parent="."]
+title = "Bắt đầu trò chơi mới?"
+dialog_text = "Tiến trình hiện tại sẽ được giữ nguyên cho tới lần lưu tiếp theo."
+ok_button_text = "Bắt đầu mới"
+cancel_button_text = "Quay lại"
+
+[connection signal="pressed" from="MainUi/SafeMargin/Row/MenuSurface/RailMargin/Rail/login" to="." method="_on_login_pressed"]
+[connection signal="pressed" from="MainUi/SafeMargin/Row/MenuSurface/RailMargin/Rail/new_game" to="." method="_on_new_game_pressed"]
+[connection signal="pressed" from="MainUi/SafeMargin/Row/MenuSurface/RailMargin/Rail/settings" to="." method="_on_settings_pressed"]
+[connection signal="pressed" from="MainUi/SafeMargin/Row/MenuSurface/RailMargin/Rail/exits" to="." method="_on_exits_pressed"]

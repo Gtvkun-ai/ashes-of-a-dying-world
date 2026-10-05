@@ -5,6 +5,8 @@ using AshesofaDyingWorld.Core.Save;
 using AshesofaDyingWorld.Combat.Runtime;
 using AshesofaDyingWorld.Gameplay.Events;
 using AshesofaDyingWorld.Quests.Runtime;
+using AshesofaDyingWorld.UI.Shared;
+using AshesofaDyingWorld.UI.Theme;
 using AshesofaDyingWorld.World.Environment;
 
 public partial class ScreenMain : Node2D
@@ -20,11 +22,146 @@ public partial class ScreenMain : Node2D
 
     private static readonly Vector2 DefaultSpawn = new(105f, 120f);
     private bool _isStartingGame = false;
+    private SaveGameData _currentSnapshot;
+    private Control _mainUi;
+    private Button _continueButton;
+    private Button _newGameButton;
+    private Button _settingsButton;
+    private Button _exitButton;
+    private SettingsPanel _settingsPanel;
+    private ConfirmationDialog _newGameConfirmation;
+    private Viewport _viewport;
 
     public override void _Ready()
     {
+        CacheMainMenuControls();
+        _viewport = GetViewport();
+        if (_viewport != null)
+        {
+            _viewport.SizeChanged += FitRootControlsToViewport;
+        }
+        FitRootControlsToViewport();
         // Runtime fallback: project zip không cần phụ thuộc autoload để settings/audio hoạt động.
         CallDeferred(nameof(BootstrapRuntimeServices));
+        CallDeferred(nameof(RefreshMainMenuStateFromSave));
+    }
+
+    private void CacheMainMenuControls()
+    {
+        _mainUi = GetNodeOrNull<Control>("MainUi");
+        UiThemeFactory.Apply(_mainUi);
+
+        const string railPath = "MainUi/SafeMargin/Row/MenuSurface/RailMargin/Rail";
+        _continueButton = GetNodeOrNull<Button>($"{railPath}/login");
+        _newGameButton = GetNodeOrNull<Button>($"{railPath}/new_game");
+        _settingsButton = GetNodeOrNull<Button>($"{railPath}/settings");
+        _exitButton = GetNodeOrNull<Button>($"{railPath}/exits");
+        _settingsPanel = GetNodeOrNull<SettingsPanel>("SettingsPanel");
+        _newGameConfirmation = GetNodeOrNull<ConfirmationDialog>("NewGameConfirmation");
+
+        PixelButtonSkin.ApplyPrimary(_continueButton, PixelButtonSkin.LargeActionHeight);
+        PixelButtonSkin.ApplySecondary(_newGameButton, PixelButtonSkin.RegularHeight);
+        PixelButtonSkin.ApplySecondary(_settingsButton, PixelButtonSkin.RegularHeight);
+        PixelButtonSkin.ApplyDanger(_exitButton, PixelButtonSkin.RegularHeight);
+
+        if (_settingsButton != null)
+        {
+            _settingsButton.Icon = UiGlyphResolver.Resolve(UiGlyph.Settings);
+            _settingsButton.IconAlignment = HorizontalAlignment.Left;
+        }
+
+        if (_exitButton != null)
+        {
+            _exitButton.Icon = UiGlyphResolver.Resolve(UiGlyph.Exit);
+            _exitButton.IconAlignment = HorizontalAlignment.Left;
+        }
+
+        ApplyMainMenuTypography(railPath);
+
+        if (_newGameConfirmation != null)
+        {
+            _newGameConfirmation.Theme = UiThemeFactory.GetSharedTheme();
+            _newGameConfirmation.Confirmed += OnNewGameConfirmed;
+        }
+    }
+
+    private void FitRootControlsToViewport()
+    {
+        Vector2 viewportSize = GetViewportRect().Size;
+        FitTopLevelControl(_mainUi, viewportSize);
+        FitTopLevelControl(_settingsPanel, viewportSize);
+    }
+
+    private static void FitTopLevelControl(Control control, Vector2 size)
+    {
+        if (control == null || size.X <= 0f || size.Y <= 0f)
+        {
+            return;
+        }
+
+        control.AnchorLeft = 0f;
+        control.AnchorTop = 0f;
+        control.AnchorRight = 0f;
+        control.AnchorBottom = 0f;
+        control.Position = Vector2.Zero;
+        control.Size = size;
+    }
+
+    public override void _ExitTree()
+    {
+        if (_viewport != null)
+        {
+            _viewport.SizeChanged -= FitRootControlsToViewport;
+            _viewport = null;
+        }
+    }
+
+    private void ApplyMainMenuTypography(string railPath)
+    {
+        Label eyebrow = GetNodeOrNull<Label>($"{railPath}/Eyebrow");
+        Label title = GetNodeOrNull<Label>($"{railPath}/Title");
+        Label subtitle = GetNodeOrNull<Label>($"{railPath}/Subtitle");
+        Label location = GetNodeOrNull<Label>($"{railPath}/Location");
+
+        UiThemeFactory.ApplyText(eyebrow, UiTextRole.Label);
+        UiThemeFactory.ApplyText(title, UiTextRole.ScreenTitle);
+        UiThemeFactory.ApplyText(subtitle, UiTextRole.Body);
+        UiThemeFactory.ApplyText(location, UiTextRole.Micro);
+
+        title?.AddThemeFontSizeOverride("font_size", 36);
+        eyebrow?.AddThemeColorOverride("font_color", UiTokens.Accent);
+    }
+
+    private void RefreshMainMenuStateFromSave()
+    {
+        RefreshMainMenuState(SaveManager.Instance?.LoadSnapshot());
+    }
+
+    public void RefreshMainMenuState(SaveGameData snapshot)
+    {
+        _currentSnapshot = snapshot;
+        bool hasSave = snapshot != null;
+
+        if (_continueButton != null)
+        {
+            _continueButton.Text = hasSave ? "Tiếp tục" : "Bắt đầu";
+            _continueButton.Visible = true;
+        }
+
+        if (_newGameButton != null)
+        {
+            _newGameButton.Visible = hasSave;
+        }
+
+        CallDeferred(nameof(FocusPrimaryAction));
+    }
+
+    private void FocusPrimaryAction()
+    {
+        if (_continueButton?.IsVisibleInTree() == true)
+        {
+            _continueButton.GrabFocus();
+        }
     }
 
     public void BootstrapRuntimeServices()
@@ -39,7 +176,35 @@ public partial class ScreenMain : Node2D
 
     private async void _on_login_pressed()
     {
-        await StartGameFromSnapshotAsync(SaveManager.Instance?.LoadSnapshot());
+        await StartGameFromSnapshotAsync(_currentSnapshot);
+    }
+
+    private async void _on_new_game_pressed()
+    {
+        await StartNewGameAsync();
+    }
+
+    private void _on_settings_pressed()
+    {
+        _settingsPanel?.Show();
+    }
+
+    public async System.Threading.Tasks.Task<Error> StartNewGameAsync()
+    {
+        bool saveExists = _currentSnapshot != null || SaveManager.Instance?.HasSaveGame() == true;
+        if (saveExists)
+        {
+            _newGameConfirmation?.PopupCentered();
+            return Error.Busy;
+        }
+
+        return await StartGameFromSnapshotAsync(null);
+    }
+
+    private async void OnNewGameConfirmed()
+    {
+        _currentSnapshot = null;
+        await StartGameFromSnapshotAsync(null);
     }
 
     public async System.Threading.Tasks.Task<Error> StartGameFromSnapshotAsync(SaveGameData saveSnapshot)

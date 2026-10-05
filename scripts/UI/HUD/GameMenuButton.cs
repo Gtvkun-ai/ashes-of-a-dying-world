@@ -4,6 +4,7 @@ using AshesofaDyingWorld.UI.HUD;
 using AshesofaDyingWorld.UI.Skills;
 using AshesofaDyingWorld.UI.Quests;
 using AshesofaDyingWorld.UI.Shared;
+using AshesofaDyingWorld.UI.Theme;
 using PartyManagementPanel = AshesofaDyingWorld.UI.Party.PartyPanel;
 using AshesofaDyingWorld.Quests.Runtime;
 
@@ -18,8 +19,9 @@ namespace AshesofaDyingWorld.UI.Menus
         [Export] public Button MenuButton;
         
         [ExportGroup("Menu Grid Panel")]
-        [Export] public Panel MenuGridPanel;
+        [Export] public Control MenuGridPanel;
         [Export] public GridContainer MenuGrid;
+        [Export] public Button CloseButton;
         
         [ExportGroup("Feature Buttons")]
         [Export] public Button CharacterButton;
@@ -27,9 +29,7 @@ namespace AshesofaDyingWorld.UI.Menus
         [Export] public Button SkillsButton;
         [Export] public Button QuestsButton;
         [Export] public Button SettingsButton;
-        [Export] public Button MapButton;
         [Export] public Button PartyButton;
-        [Export] public Button AchievementsButton;
         
         [ExportGroup("Feature Panels")]
         [Export] public Control CharacterPanel;
@@ -37,9 +37,7 @@ namespace AshesofaDyingWorld.UI.Menus
         [Export] public Control SkillsPanel;
         [Export] public Control QuestsPanel;
         [Export] public Control SettingsPanel;
-        [Export] public Control MapPanel;
         [Export] public Control PartyPanel;
-        [Export] public Control AchievementsPanel;
 
         [ExportGroup("Settings")]
         [Export] public Key ToggleKey = Key.Escape;
@@ -51,10 +49,27 @@ namespace AshesofaDyingWorld.UI.Menus
         public override void _Ready()
         {
             _questTracker = GetNodeOrNull<QuestTrackerHud>("Control/QuestTrackerHud");
+            UiThemeFactory.Apply(GetNodeOrNull<Control>("Control"));
+            UiThemeFactory.ApplyText(
+                GetNodeOrNull<Label>("Control/MenuGridPanel/CenterContainer/MenuSurface/Margin/Layout/Header/Title"),
+                UiTextRole.SectionTitle);
 
             if (MenuButton != null)
             {
                 MenuButton.Pressed += ToggleMenuGrid;
+                MenuButton.Icon = UiGlyphResolver.Resolve(UiGlyph.Menu);
+                MenuButton.ExpandIcon = true;
+                MenuButton.FocusMode = Control.FocusModeEnum.All;
+                PixelButtonSkin.ApplySecondary(MenuButton, UiTokens.ButtonHeightLarge, UiTokens.ButtonHeightLarge);
+            }
+
+            if (CloseButton != null)
+            {
+                CloseButton.Pressed += CloseMenuGrid;
+                CloseButton.Icon = UiGlyphResolver.Resolve(UiGlyph.Exit);
+                CloseButton.ExpandIcon = true;
+                CloseButton.FocusMode = Control.FocusModeEnum.All;
+                PixelButtonSkin.ApplySecondary(CloseButton, UiTokens.ButtonHeightRegular, UiTokens.ButtonHeightRegular);
             }
             
             if (MenuGridPanel != null)
@@ -67,6 +82,7 @@ namespace AshesofaDyingWorld.UI.Menus
             
             HideAllPanels();
             ApplyFeatureButtonSkins();
+            ApplyFeatureButtonGlyphs();
             RegisterPanelVisibilityHandlers();
             ConnectFeatureButtons();
         }
@@ -82,8 +98,6 @@ namespace AshesofaDyingWorld.UI.Menus
                 SkillsButton,
                 QuestsButton,
                 PartyButton,
-                MapButton,
-                AchievementsButton,
                 SettingsButton
             };
 
@@ -95,7 +109,29 @@ namespace AshesofaDyingWorld.UI.Menus
                 }
 
                 PixelButtonSkin.ApplySecondary(button, PixelButtonSkin.FeatureTileHeight, PixelButtonSkin.FeatureTileWidth);
-                button.AddThemeFontSizeOverride("font_size", 13);
+                button.FocusMode = Control.FocusModeEnum.All;
+                button.ExpandIcon = false;
+                button.IconAlignment = HorizontalAlignment.Left;
+                button.Alignment = HorizontalAlignment.Left;
+                button.AddThemeFontSizeOverride("font_size", UiTokens.BodyFontSize);
+            }
+        }
+
+        private void ApplyFeatureButtonGlyphs()
+        {
+            ApplyGlyph(CharacterButton, UiGlyph.Character);
+            ApplyGlyph(InventoryButton, UiGlyph.Inventory);
+            ApplyGlyph(SkillsButton, UiGlyph.Skills);
+            ApplyGlyph(QuestsButton, UiGlyph.Quests);
+            ApplyGlyph(PartyButton, UiGlyph.Party);
+            ApplyGlyph(SettingsButton, UiGlyph.Settings);
+        }
+
+        private static void ApplyGlyph(Button button, UiGlyph glyph)
+        {
+            if (button != null)
+            {
+                button.Icon = UiGlyphResolver.Resolve(glyph);
             }
         }
 
@@ -116,15 +152,8 @@ namespace AshesofaDyingWorld.UI.Menus
             if (SettingsButton != null)
                 SettingsButton.Pressed += () => OpenPanel(SettingsPanel, "Settings");
             
-            if (MapButton != null)
-                MapButton.Pressed += () => OpenPanel(MapPanel, "Map");
-            
             if (PartyButton != null)
                 PartyButton.Pressed += () => OpenPanel(PartyPanel, "Party");
-            
-            if (AchievementsButton != null)
-                AchievementsButton.Pressed += () => OpenPanel(AchievementsPanel, "Achievements");
-            
         }
 
         private void OpenInventoryTab()
@@ -141,6 +170,28 @@ namespace AshesofaDyingWorld.UI.Menus
                 MenuGridPanel.Visible = _isGridOpen;
             }
             _questTracker?.SetMenuSuppressed(_isGridOpen || _currentOpenPanel != null);
+
+            if (_isGridOpen)
+            {
+                CharacterButton?.GrabFocus();
+            }
+            else
+            {
+                MenuButton?.GrabFocus();
+            }
+        }
+
+        private void CloseMenuGrid()
+        {
+            if (!_isGridOpen)
+            {
+                return;
+            }
+
+            _isGridOpen = false;
+            MenuGridPanel?.Hide();
+            _questTracker?.SetMenuSuppressed(_currentOpenPanel != null);
+            MenuButton?.GrabFocus();
         }
 
         private void OpenPanel(Control panel, string panelName)
@@ -201,9 +252,7 @@ namespace AshesofaDyingWorld.UI.Menus
             SkillsPanel?.Hide();
             QuestsPanel?.Hide();
             SettingsPanel?.Hide();
-            MapPanel?.Hide();
             PartyPanel?.Hide();
-            AchievementsPanel?.Hide();
         }
 
         private void RegisterPanelVisibilityHandlers()
@@ -213,9 +262,7 @@ namespace AshesofaDyingWorld.UI.Menus
             RegisterPanelVisibility(SkillsPanel);
             RegisterPanelVisibility(QuestsPanel);
             RegisterPanelVisibility(SettingsPanel);
-            RegisterPanelVisibility(MapPanel);
             RegisterPanelVisibility(PartyPanel);
-            RegisterPanelVisibility(AchievementsPanel);
         }
 
         private void RegisterPanelVisibility(Control panel)
@@ -231,6 +278,7 @@ namespace AshesofaDyingWorld.UI.Menus
                 {
                     _currentOpenPanel = null;
                     _questTracker?.SetMenuSuppressed(_isGridOpen);
+                    MenuButton?.GrabFocus();
                 }
             };
         }
@@ -291,6 +339,7 @@ namespace AshesofaDyingWorld.UI.Menus
                     if (_currentOpenPanel != null)
                     {
                         CloseCurrentPanel();
+                        MenuButton?.GrabFocus();
                     }
                     else if (_isGridOpen)
                     {
