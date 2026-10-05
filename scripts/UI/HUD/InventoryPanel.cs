@@ -295,7 +295,7 @@ namespace AshesofaDyingWorld.UI.Menus
             _sortButton = new Button();
             _sortButton.Text = "Sắp xếp: ID";
             _sortButton.CustomMinimumSize = new Vector2(138, 36);
-            _sortButton.FocusMode = FocusModeEnum.None;
+            _sortButton.FocusMode = FocusModeEnum.All;
             _sortButton.MouseDefaultCursorShape = CursorShape.PointingHand;
             _sortButton.Pressed += CycleSortMode;
             ApplySecondaryButtonStyle(_sortButton);
@@ -357,7 +357,7 @@ namespace AshesofaDyingWorld.UI.Menus
             metaRow.AddChild(metaDot);
 
             // Không cho "Main hand" wrap từng ký tự. Đây là bug layout rõ nhất của bản trước.
-            _detailSlotLabel = CreateLabel("Slot", 14, _mutedTextColor);
+            _detailSlotLabel = CreateLabel("Vị trí", 14, _mutedTextColor);
             _detailSlotLabel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
             _detailSlotLabel.AutowrapMode = TextServer.AutowrapMode.Off;
             _detailSlotLabel.ClipText = true;
@@ -431,7 +431,7 @@ namespace AshesofaDyingWorld.UI.Menus
             button.CustomMinimumSize = new Vector2(0, 36);
             button.AutowrapMode = TextServer.AutowrapMode.WordSmart;
             button.TooltipText = text;
-            button.FocusMode = FocusModeEnum.None;
+            button.FocusMode = FocusModeEnum.All;
             button.MouseDefaultCursorShape = CursorShape.PointingHand;
             button.Pressed += () => ShowCategory(category);
             return button;
@@ -481,10 +481,11 @@ namespace AshesofaDyingWorld.UI.Menus
             var clickArea = new Button();
             clickArea.Text = string.Empty;
             clickArea.SetAnchorsPreset(LayoutPreset.FullRect);
-            clickArea.FocusMode = FocusModeEnum.None;
+            clickArea.FocusMode = FocusModeEnum.All;
             clickArea.MouseDefaultCursorShape = CursorShape.PointingHand;
             clickArea.AddThemeStyleboxOverride("normal", CreateTransparentButtonStyle());
             clickArea.AddThemeStyleboxOverride("hover", CreateSlotHoverStyle());
+            clickArea.AddThemeStyleboxOverride("focus", CreateSlotHoverStyle());
             clickArea.AddThemeStyleboxOverride("pressed", CreateSlotPressedStyle());
             clickArea.Pressed += () => OnSlotPressed(slotIndex);
             slot.AddChild(clickArea);
@@ -923,9 +924,12 @@ namespace AshesofaDyingWorld.UI.Menus
             {
                 EquipmentSlot.MainHand => "Tay chính",
                 EquipmentSlot.OffHand => "Tay phụ",
+                EquipmentSlot.Head => "Đầu",
+                EquipmentSlot.Body => "Áo",
+                EquipmentSlot.Legs => "Quần",
                 EquipmentSlot.Accessory1 => "Phụ kiện",
                 EquipmentSlot.Accessory2 => "Phụ kiện",
-                _ => slot.ToString()
+                _ => "Trang bị"
             };
         }
 
@@ -949,7 +953,7 @@ namespace AshesofaDyingWorld.UI.Menus
             button.Text = text;
             button.SizeFlagsHorizontal = SizeFlags.ExpandFill;
             button.CustomMinimumSize = new Vector2(0, 44);
-            button.FocusMode = FocusModeEnum.None;
+            button.FocusMode = FocusModeEnum.All;
             button.MouseDefaultCursorShape = CursorShape.PointingHand;
             PixelButtonSkin.ApplyPrimary(button, PixelButtonSkin.LargeActionHeight);
             button.AddThemeFontSizeOverride("font_size", 15);
@@ -965,7 +969,7 @@ namespace AshesofaDyingWorld.UI.Menus
             button.Text = text;
             button.SizeFlagsHorizontal = SizeFlags.ExpandFill;
             button.CustomMinimumSize = new Vector2(0, 44);
-            button.FocusMode = FocusModeEnum.None;
+            button.FocusMode = FocusModeEnum.All;
             button.MouseDefaultCursorShape = CursorShape.PointingHand;
             PixelButtonSkin.ApplyDanger(button, PixelButtonSkin.LargeActionHeight);
             button.AddThemeFontSizeOverride("font_size", 15);

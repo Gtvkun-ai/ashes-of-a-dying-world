@@ -6,6 +6,8 @@ const BORDER := Color("#5C4B38")
 const TEXT_PRIMARY := Color("#F0E5D2")
 const TEXT_SECONDARY := Color("#BFAF98")
 const ACCENT := Color("#C39A57")
+const INVENTORY_PANEL_SCRIPT := "res://scripts/UI/HUD/InventoryPanel.cs"
+const CHARACTER_PANEL_SCRIPT := "res://scripts/UI/HUD/CharacterDetailUI.cs"
 
 func _ready() -> void:
 	custom_minimum_size = VIEWPORT_SIZE
@@ -64,6 +66,35 @@ func _build_showcase() -> void:
 	body_empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	body_empty.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	character_panel.add_child(body_empty)
+
+	# Mount real runtime panels so this scene exercises the same controls players use.
+	var inventory_runtime := _mount_runtime_panel(load("res://scripts/UI/HUD/InventoryPanel.cs").new(), Vector2(40, 88), Vector2(0.58, 0.58))
+	var character_runtime := _mount_runtime_panel(load("res://scripts/UI/HUD/CharacterDetailUI.cs").new(), Vector2(820, 88), Vector2(0.38, 0.38))
+	_validate_focus_modes(inventory_runtime)
+	_validate_focus_modes(character_runtime)
+	_exercise_inventory_filter(inventory_runtime)
+
+func _mount_runtime_panel(panel: Control, origin: Vector2, panel_scale: Vector2) -> Control:
+	add_child(panel)
+	panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	panel.position = origin
+	panel.scale = panel_scale
+	return panel
+
+func _validate_focus_modes(root: Node) -> void:
+	var focused_controls := 0
+	for node in root.find_children("*", "Control", true, false):
+		if node is Control and node.focus_mode == Control.FOCUS_ALL:
+			focused_controls += 1
+	assert focused_controls > 0
+
+func _exercise_inventory_filter(root: Node) -> void:
+	var options := root.find_children("*", "OptionButton", true, false)
+	if options.is_empty():
+		return
+	var filter: OptionButton = options[0]
+	filter.grab_focus()
+	filter.select(0)
 
 func _surface_panel(origin: Vector2, size: Vector2, title_text: String) -> Panel:
 	var panel := Panel.new()

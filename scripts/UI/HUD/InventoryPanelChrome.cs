@@ -192,7 +192,7 @@ namespace AshesofaDyingWorld.UI.Shared
             var button = new Button();
             button.Text = "X";
             button.CustomMinimumSize = new Vector2(42, 38);
-            button.FocusMode = Control.FocusModeEnum.None;
+            button.FocusMode = Control.FocusModeEnum.All;
             button.MouseDefaultCursorShape = Control.CursorShape.PointingHand;
             if (onPressed != null)
             {

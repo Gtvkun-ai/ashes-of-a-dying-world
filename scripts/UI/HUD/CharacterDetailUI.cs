@@ -207,14 +207,14 @@ namespace AshesofaDyingWorld.UI.HUD
 			title.VerticalAlignment = VerticalAlignment.Center;
 			row.AddChild(title);
 
-			// Thông tin ngắn gọn bên phải theo wireframe: Hikaru | Cấp 01 | [x].
-			_nameLabel = CreateLabel("NHÂN VẬT", 15, _mainTextColor);
+			// Thông tin ngắn gọn bên phải được làm mới từ dữ liệu thật.
+			_nameLabel = CreateLabel("Chưa có nhân vật", 15, _mainTextColor);
 			_nameLabel.VerticalAlignment = VerticalAlignment.Center;
 			row.AddChild(_nameLabel);
 
 			row.AddChild(CreateLabel("·", 13, _subTextColor));
 
-			_levelLabel = CreateLabel("Cấp 00", 13, _mainTextColor);
+			_levelLabel = CreateLabel("Cấp --", 13, _mainTextColor);
 			_levelLabel.VerticalAlignment = VerticalAlignment.Center;
 			row.AddChild(_levelLabel);
 
@@ -398,15 +398,15 @@ namespace AshesofaDyingWorld.UI.HUD
 			previewFrame.AddChild(_backgroundDisplay);
 
 			identityColumn.AddChild(CreateSectionSpacer(8));
-			_sidebarNameLabel = CreateLabel("Hikaru", 15, _mainTextColor);
+			_sidebarNameLabel = CreateLabel("Chưa có nhân vật", 15, _mainTextColor);
 			_sidebarNameLabel.HorizontalAlignment = HorizontalAlignment.Left;
 			identityColumn.AddChild(_sidebarNameLabel);
 
-			_raceLabel = CreateLabel("Con người", 12, _subTextColor);
+			_raceLabel = CreateLabel("Chưa có dữ liệu", 12, _subTextColor);
 			identityColumn.AddChild(_raceLabel);
-			_sidebarLevelLabel = CreateLabel("Cấp 01", 12, _subTextColor);
+			_sidebarLevelLabel = CreateLabel("Cấp --", 12, _subTextColor);
 			identityColumn.AddChild(_sidebarLevelLabel);
-			_sidebarExperienceLabel = CreateLabel("0 / 100 XP", 11, _subTextColor);
+			_sidebarExperienceLabel = CreateLabel("Chưa có dữ liệu kinh nghiệm", 11, _subTextColor);
 			identityColumn.AddChild(_sidebarExperienceLabel);
 
 			identityColumn.AddChild(CreateSectionSpacer(12));
@@ -591,7 +591,7 @@ namespace AshesofaDyingWorld.UI.HUD
 
 			_inventoryFilterOption = new OptionButton();
 			_inventoryFilterOption.CustomMinimumSize = new Vector2(150, 30);
-			_inventoryFilterOption.FocusMode = FocusModeEnum.None;
+			_inventoryFilterOption.FocusMode = FocusModeEnum.All;
 			_inventoryFilterOption.AddItem("Tất cả");
 			_inventoryFilterOption.AddItem("Tiêu hao");
 			_inventoryFilterOption.AddItem("Nguyên liệu");
@@ -743,10 +743,11 @@ namespace AshesofaDyingWorld.UI.HUD
 
 			var button = new Button();
 			button.SetAnchorsPreset(LayoutPreset.FullRect);
-			button.FocusMode = FocusModeEnum.None;
+			button.FocusMode = FocusModeEnum.All;
 			button.MouseDefaultCursorShape = CursorShape.PointingHand;
 			button.AddThemeStyleboxOverride("normal", InventoryPanelChrome.CreateTransparentButtonStyle());
 			button.AddThemeStyleboxOverride("hover", InventoryPanelChrome.CreateSlotHoverStyle());
+			button.AddThemeStyleboxOverride("focus", InventoryPanelChrome.CreateSlotHoverStyle());
 			button.AddThemeStyleboxOverride("pressed", InventoryPanelChrome.CreateSlotPressedStyle());
 			button.Pressed += () => OnEquipmentSlotPressed(slotType);
 			inner.AddChild(button);
@@ -788,10 +789,11 @@ namespace AshesofaDyingWorld.UI.HUD
 
 			var button = new Button();
 			button.SetAnchorsPreset(LayoutPreset.FullRect);
-			button.FocusMode = FocusModeEnum.None;
+			button.FocusMode = FocusModeEnum.All;
 			button.MouseDefaultCursorShape = CursorShape.PointingHand;
 			button.AddThemeStyleboxOverride("normal", InventoryPanelChrome.CreateTransparentButtonStyle());
 			button.AddThemeStyleboxOverride("hover", InventoryPanelChrome.CreateSlotHoverStyle());
+			button.AddThemeStyleboxOverride("focus", InventoryPanelChrome.CreateSlotHoverStyle());
 			button.AddThemeStyleboxOverride("pressed", InventoryPanelChrome.CreateSlotPressedStyle());
 			button.Pressed += () => OnInventorySlotPressed(slotIndex);
 			slot.AddChild(button);
@@ -1375,7 +1377,7 @@ namespace AshesofaDyingWorld.UI.HUD
 			button.Text = text;
 			button.CustomMinimumSize = new Vector2(0, 32);
 			button.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
-			button.FocusMode = FocusModeEnum.None;
+			button.FocusMode = FocusModeEnum.All;
 			button.MouseDefaultCursorShape = CursorShape.PointingHand;
 			button.AddThemeFontSizeOverride("font_size", 13);
 			button.Pressed += () => SelectSkillFilter(filterId);
@@ -1590,7 +1592,7 @@ namespace AshesofaDyingWorld.UI.HUD
 
 			var button = new Button();
 			button.SetAnchorsPreset(LayoutPreset.FullRect);
-			button.FocusMode = FocusModeEnum.None;
+			button.FocusMode = FocusModeEnum.All;
 			button.MouseDefaultCursorShape = CursorShape.PointingHand;
 			button.AddThemeStyleboxOverride("normal", InventoryPanelChrome.CreateTransparentButtonStyle());
 			button.AddThemeStyleboxOverride("hover", InventoryPanelChrome.CreateTransparentButtonStyle());
@@ -1880,7 +1882,7 @@ namespace AshesofaDyingWorld.UI.HUD
 			button.Text = text;
 			button.CustomMinimumSize = new Vector2(0, 38);
 			button.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			button.FocusMode = FocusModeEnum.None;
+			button.FocusMode = FocusModeEnum.All;
 			button.MouseDefaultCursorShape = CursorShape.PointingHand;
 			PixelButtonSkin.ApplyPrimary(button, PixelButtonSkin.RegularHeight);
 			if (onPressed != null)
@@ -1904,7 +1906,7 @@ namespace AshesofaDyingWorld.UI.HUD
 			button.Text = text;
 			button.CustomMinimumSize = new Vector2(126, 36);
 			button.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
-			button.FocusMode = FocusModeEnum.None;
+			button.FocusMode = FocusModeEnum.All;
 			button.MouseDefaultCursorShape = CursorShape.PointingHand;
 			ApplyTabStyle(button, false);
 			return button;
@@ -2017,7 +2019,7 @@ namespace AshesofaDyingWorld.UI.HUD
 
 				var button = new Button();
 				button.CustomMinimumSize = new Vector2(58, 58);
-				button.FocusMode = FocusModeEnum.None;
+				button.FocusMode = FocusModeEnum.All;
 				button.MouseDefaultCursorShape = CursorShape.PointingHand;
 				button.Icon = character?.ConfigData?.Icon;
 				button.ExpandIcon = true;
@@ -2029,19 +2031,47 @@ namespace AshesofaDyingWorld.UI.HUD
 				button.TooltipText = character?.ConfigData?.Name ?? "Nhân vật";
 				button.AddThemeStyleboxOverride("normal", CreateSlotStyle(active));
 				button.AddThemeStyleboxOverride("hover", InventoryPanelChrome.CreateSlotHoverStyle());
+				button.AddThemeStyleboxOverride("focus", InventoryPanelChrome.CreateSlotHoverStyle());
 				button.AddThemeStyleboxOverride("pressed", InventoryPanelChrome.CreateSlotPressedStyle());
 				button.AddThemeColorOverride("font_color", _mainTextColor);
 				button.Pressed += () => OnCharacterSelected(index);
 				_characterListContainer.AddChild(button);
 			}
 
-			var addMember = CreateLabel("Chưa có thành viên khác", 11, _subTextColor);
-			addMember.CustomMinimumSize = new Vector2(104, 58);
-			addMember.HorizontalAlignment = HorizontalAlignment.Center;
-			addMember.VerticalAlignment = VerticalAlignment.Center;
-			addMember.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-			addMember.TooltipText = "Chưa có thành viên khác";
-			_characterListContainer.AddChild(addMember);
+			if (PlayerManager.Instance.PartyMembers.Count <= 1)
+			{
+				var addMember = CreateLabel("Chưa có thành viên khác", 11, _subTextColor);
+				addMember.CustomMinimumSize = new Vector2(104, 58);
+				addMember.HorizontalAlignment = HorizontalAlignment.Center;
+				addMember.VerticalAlignment = VerticalAlignment.Center;
+				addMember.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+				addMember.TooltipText = "Chưa có thành viên khác";
+				_characterListContainer.AddChild(addMember);
+			}
+		}
+
+		private void ShowEmptyCharacterState()
+		{
+			BindObservedStats(null);
+			_nameLabel.Text = "Chưa có nhân vật";
+			_levelLabel.Text = "Cấp --";
+			_sidebarNameLabel.Text = "Chưa có nhân vật";
+			_sidebarLevelLabel.Text = "Cấp --";
+			_sidebarExperienceLabel.Text = "Chưa có dữ liệu kinh nghiệm";
+			_raceLabel.Text = "Chưa có dữ liệu";
+			_currentThemeColor = Colors.Transparent;
+			_backgroundDisplay.Texture = null;
+			_backgroundDisplay.Visible = false;
+			_portraitPlaceholderLabel.Visible = true;
+			UpdatePanelStyles();
+			if (_characterListContainer != null)
+			{
+				foreach (var child in _characterListContainer.GetChildren()) child.QueueFree();
+			}
+			if (PlayerManager.Instance != null)
+			{
+				LoadCharacterList();
+			}
 		}
 
 		private void OnCharacterSelected(int index)
@@ -2058,12 +2088,24 @@ namespace AshesofaDyingWorld.UI.HUD
 
 		public void UpdateCharacterInfo()
 		{
-			if (PlayerManager.Instance == null) return;
+			if (PlayerManager.Instance == null)
+			{
+				ShowEmptyCharacterState();
+				return;
+			}
 			var activeIndex = PlayerManager.Instance.ActiveCharacterIndex;
-			if (activeIndex < 0 || activeIndex >= PlayerManager.Instance.PartyMembers.Count) return;
+			if (PlayerManager.Instance.PartyMembers.Count == 0 || activeIndex < 0 || activeIndex >= PlayerManager.Instance.PartyMembers.Count)
+			{
+				ShowEmptyCharacterState();
+				return;
+			}
 
 			PlayerStats currentStats = PlayerManager.Instance.PartyMembers[activeIndex];
-			if (currentStats == null || currentStats.ConfigData == null) return;
+			if (currentStats == null || currentStats.ConfigData == null)
+			{
+				ShowEmptyCharacterState();
+				return;
+			}
 			BindObservedStats(currentStats);
 
 			var config = currentStats.ConfigData;

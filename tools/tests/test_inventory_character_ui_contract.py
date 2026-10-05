@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -88,13 +89,61 @@ def test_character_preserves_portrait_paths_and_manager_integration():
     assert "SetActiveCharacter" in source
 
 
-def test_showcase_covers_long_vietnamese_strings_at_1280x720():
+def test_inventory_and_character_interactions_keep_keyboard_focus():
+    inventory = _source(INVENTORY_PATH)
+    character = _source(CHARACTER_PATH)
+    chrome = _source(CHROME_PATH)
+
+    assert "FocusModeEnum.None" not in inventory
+    assert "FocusModeEnum.None" not in character
+    assert "FocusModeEnum.None" not in chrome
+    assert inventory.count("FocusModeEnum.All") >= 5
+    assert character.count("FocusModeEnum.All") >= 8
+    assert "AddThemeStyleboxOverride(\"focus\", InventoryPanelChrome.CreateSlotHoverStyle())" in character
+
+
+def test_character_null_state_never_displays_sample_identity_data():
+    source = _source(CHARACTER_PATH)
+
+    for sample_copy in ("Hikaru", "Con người", "Cấp 01", "0 / 100 XP"):
+        assert sample_copy not in source
+
+    assert "ShowEmptyCharacterState();" in source
+    assert 'CreateLabel("Chưa có nhân vật"' in source
+    assert 'CreateLabel("Cấp --"' in source
+    assert 'CreateLabel("Chưa có dữ liệu kinh nghiệm"' in source
+
+
+def test_character_only_shows_no_other_member_state_when_party_has_no_other_member():
+    source = _source(CHARACTER_PATH)
+    load_list = re.search(
+        r"private void LoadCharacterList\(\)(.*?)(?=private void OnCharacterSelected)",
+        source,
+        re.DOTALL,
+    ).group(1)
+
+    assert "Chưa có thành viên khác" in load_list
+    assert re.search(r"if \([^\n]*PartyMembers\.Count\s*<=\s*1\)", load_list)
+
+
+def test_all_equipment_slot_names_have_vietnamese_fallbacks():
+    inventory = _source(INVENTORY_PATH)
+    character = _source(CHARACTER_PATH)
+
+    for enum_name, caption in (("Head", "Đầu"), ("Body", "Áo"), ("Legs", "Quần")):
+        assert f'EquipmentSlot.{enum_name} => "{caption}"' in inventory
+        assert f'EquipmentSlot.{enum_name} => "{caption}"' in character
+
+
+def test_showcase_instantiates_runtime_panels_and_checks_focus_filter_at_1280x720():
     scene = _source(SHOWCASE_SCENE_PATH)
     script = _source(SHOWCASE_SCRIPT_PATH)
 
     assert "1280" in scene and "720" in scene
-    assert "Vật phẩm tiêu hao" in script
-    assert "Kiếm trường kiếm cổ đại có chuôi bọc da" in script
-    assert "Nhân vật đồng hành có tên dài để kiểm tra" in script
-    assert "tooltip_text" in script
-    assert "autowrap_mode" in script
+    assert 'load("res://scripts/UI/HUD/InventoryPanel.cs")' in script
+    assert 'load("res://scripts/UI/HUD/CharacterDetailUI.cs")' in script
+    assert script.count(".new()") >= 2
+    assert "_validate_focus_modes" in script
+    assert "Control.FOCUS_ALL" in script
+    assert "_exercise_inventory_filter" in script
+    assert "OptionButton" in script
