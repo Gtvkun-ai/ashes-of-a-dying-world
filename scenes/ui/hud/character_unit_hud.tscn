@@ -1,106 +1,259 @@
-[gd_scene format=3 uid="uid://dhof418sft343"]
+[gd_scene load_steps=9 format=3 uid="uid://dhof418sft343"]
 
 [ext_resource type="Script" uid="uid://dysvqu457ghpp" path="res://scripts/UI/HUD/CharacterUnitHUD.cs" id="1_script"]
-[ext_resource type="Texture2D" path="res://assets/graphics/ui/hud/redesign/unit_hud_frame.png" id="2_frame"]
-[ext_resource type="Texture2D" path="res://assets/graphics/ui/hud/redesign/unit_hud_portrait_frame.png" id="3_portrait_frame"]
-[ext_resource type="Texture2D" path="res://assets/graphics/ui/hud/redesign/unit_hud_hp_fill.png" id="4_hp"]
-[ext_resource type="Texture2D" path="res://assets/graphics/ui/hud/redesign/unit_hud_mp_fill.png" id="5_mp"]
-[ext_resource type="Texture2D" path="res://assets/graphics/ui/hud/redesign/unit_hud_stamina_fill.png" id="6_sta"]
 
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_1"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.160784, 0.133333, 0.105882, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.360784, 0.294118, 0.219608, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
 
-[node name="CharacterUnitHUD" type="PanelContainer" unique_id=441943603 node_paths=PackedStringArray("HealthBar", "ManaBar", "StaminaBar", "NameLabel", "Portrait")]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_portrait"]
+bg_color = Color(0.0705882, 0.0588235, 0.0470588, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.541176, 0.419608, 0.258824, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bar_bg"]
+bg_color = Color(0.0705882, 0.0588235, 0.0470588, 1)
+corner_radius_top_left = 1
+corner_radius_top_right = 1
+corner_radius_bottom_right = 1
+corner_radius_bottom_left = 1
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_health"]
+bg_color = Color(0.498039, 0.647059, 0.427451, 1)
+corner_radius_top_left = 1
+corner_radius_top_right = 1
+corner_radius_bottom_right = 1
+corner_radius_bottom_left = 1
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mana"]
+bg_color = Color(0.603922, 0.447059, 0.780392, 1)
+corner_radius_top_left = 1
+corner_radius_top_right = 1
+corner_radius_bottom_right = 1
+corner_radius_bottom_left = 1
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_stamina"]
+bg_color = Color(0.764706, 0.603922, 0.341176, 1)
+corner_radius_top_left = 1
+corner_radius_top_right = 1
+corner_radius_bottom_right = 1
+corner_radius_bottom_left = 1
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_status"]
+bg_color = Color(0.113725, 0.0941176, 0.0745098, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.360784, 0.294118, 0.219608, 0.8)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+
+[node name="CharacterUnitHUD" type="PanelContainer" unique_id=441943603 node_paths=PackedStringArray("HealthBar", "ManaBar", "StaminaBar", "NameLabel", "LevelLabel", "Portrait")]
 custom_minimum_size = Vector2(300, 97)
-theme_override_styles/panel = SubResource("StyleBoxEmpty_1")
+focus_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 script = ExtResource("1_script")
-HealthBar = NodePath("TextureRect/BarsContainer/HPBar")
-ManaBar = NodePath("TextureRect/BarsContainer/MPBar")
-StaminaBar = NodePath("TextureRect/BarsContainer/StaminaBar")
-NameLabel = NodePath("TextureRect/NameLabel")
-Portrait = NodePath("TextureRect/Portrait")
+HealthBar = NodePath("Content/Columns/StatsColumn/ResourceRows/HealthRow/HealthBar")
+ManaBar = NodePath("Content/Columns/StatsColumn/ResourceRows/ManaRow/ManaBar")
+StaminaBar = NodePath("Content/Columns/StatsColumn/ResourceRows/StaminaRow/StaminaBar")
+NameLabel = NodePath("Content/Columns/StatsColumn/HeaderRow/NameLabel")
+LevelLabel = NodePath("Content/Columns/StatsColumn/HeaderRow/LevelLabel")
+Portrait = NodePath("Content/Columns/PortraitColumn/PortraitFrame/Portrait")
 
-[node name="TextureRect" type="TextureRect" parent="." unique_id=715616795]
+[node name="Content" type="MarginContainer" parent="."]
 layout_mode = 2
-texture = ExtResource("2_frame")
-expand_mode = 1
-stretch_mode = 6
+mouse_filter = 1
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 4
 
-[node name="Portrait" type="TextureRect" parent="TextureRect" unique_id=913581316]
-layout_mode = 0
-offset_left = 12.0
-offset_top = 9.0
-offset_right = 77.0
-offset_bottom = 77.0
+[node name="Columns" type="HBoxContainer" parent="Content"]
+layout_mode = 2
+mouse_filter = 1
+theme_override_constants/separation = 6
+
+[node name="PortraitColumn" type="VBoxContainer" parent="Content/Columns"]
+custom_minimum_size = Vector2(60, 89)
+layout_mode = 2
+size_flags_horizontal = 0
+mouse_filter = 1
+theme_override_constants/separation = 1
+
+[node name="PortraitFrame" type="PanelContainer" parent="Content/Columns/PortraitColumn"]
+custom_minimum_size = Vector2(60, 60)
+layout_mode = 2
+mouse_filter = 1
+theme_override_styles/panel = SubResource("StyleBoxFlat_portrait")
+
+[node name="Portrait" type="TextureRect" parent="Content/Columns/PortraitColumn/PortraitFrame"]
+layout_mode = 2
 expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="PortraitFrame" type="TextureRect" parent="TextureRect"]
-layout_mode = 0
-offset_left = 7.0
-offset_top = 5.0
-offset_right = 83.0
-offset_bottom = 79.0
-texture = ExtResource("3_portrait_frame")
-expand_mode = 1
-stretch_mode = 6
-mouse_filter = 2
+[node name="StatusFrame" type="PanelContainer" parent="Content/Columns/PortraitColumn"]
+custom_minimum_size = Vector2(60, 28)
+layout_mode = 2
+mouse_filter = 1
+theme_override_styles/panel = SubResource("StyleBoxFlat_status")
 
-[node name="NameLabel" type="Label" parent="TextureRect" unique_id=633488482]
-layout_mode = 0
-offset_left = 89.0
-offset_top = 6.0
-# Chừa vùng bên phải cho icon skill active nằm ngang hàng với tên.
-offset_right = 259.0
-offset_bottom = 28.0
-theme_override_colors/font_color = Color(0.92, 0.84, 0.70, 1)
-theme_override_colors/font_shadow_color = Color(0.05, 0.025, 0.01, 0.9)
-theme_override_constants/shadow_offset_x = 1
-theme_override_constants/shadow_offset_y = 1
-theme_override_font_sizes/font_size = 13
-text = "Character Name"
-vertical_alignment = 1
+[node name="StatusStrip" type="HBoxContainer" parent="Content/Columns/PortraitColumn/StatusFrame"]
+layout_mode = 2
+theme_override_constants/separation = 4
+alignment = 1
+mouse_filter = 1
+tooltip_text = "Trạng thái"
+
+[node name="StatsColumn" type="VBoxContainer" parent="Content/Columns"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 1
+theme_override_constants/separation = 3
+
+[node name="HeaderRow" type="HBoxContainer" parent="Content/Columns/StatsColumn"]
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+mouse_filter = 1
+theme_override_constants/separation = 4
+
+[node name="NameLabel" type="Label" parent="Content/Columns/StatsColumn/HeaderRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 12
+text = "Tên nhân vật"
+text_overrun_behavior = 3
 clip_text = true
+vertical_alignment = 1
+mouse_filter = 1
+
+[node name="LevelLabel" type="Label" parent="Content/Columns/StatsColumn/HeaderRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Cấp 01"
+vertical_alignment = 1
 mouse_filter = 2
 
-[node name="BarsContainer" type="Control" parent="TextureRect" unique_id=140682410]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
+[node name="ActiveSkillStrip" type="HBoxContainer" parent="Content/Columns/StatsColumn/HeaderRow"]
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_constants/separation = 3
+mouse_filter = 1
 
-[node name="HPBar" type="TextureProgressBar" parent="TextureRect/BarsContainer" unique_id=717410387]
-layout_mode = 0
-offset_left = 113.0
-offset_top = 31.0
-offset_right = 289.0
-offset_bottom = 46.0
+[node name="ResourceRows" type="VBoxContainer" parent="Content/Columns/StatsColumn"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 1
+theme_override_constants/separation = 2
+
+[node name="HealthRow" type="HBoxContainer" parent="Content/Columns/StatsColumn/ResourceRows"]
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+mouse_filter = 1
+theme_override_constants/separation = 4
+
+[node name="HealthLabel" type="Label" parent="Content/Columns/StatsColumn/ResourceRows/HealthRow"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "HP"
+vertical_alignment = 1
+mouse_filter = 1
+tooltip_text = "Sinh lực"
+
+[node name="HealthBar" type="ProgressBar" parent="Content/Columns/StatsColumn/ResourceRows/HealthRow"]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_override_styles/background = SubResource("StyleBoxFlat_bar_bg")
+theme_override_styles/fill = SubResource("StyleBoxFlat_health")
+max_value = 100.0
 value = 100.0
-nine_patch_stretch = true
-texture_progress = ExtResource("4_hp")
+show_percentage = false
 mouse_filter = 2
 
-[node name="MPBar" type="TextureProgressBar" parent="TextureRect/BarsContainer" unique_id=1493351887]
-layout_mode = 0
-offset_left = 113.0
-offset_top = 51.0
-offset_right = 289.0
-offset_bottom = 66.0
+[node name="ManaRow" type="HBoxContainer" parent="Content/Columns/StatsColumn/ResourceRows"]
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+mouse_filter = 1
+theme_override_constants/separation = 4
+
+[node name="ManaLabel" type="Label" parent="Content/Columns/StatsColumn/ResourceRows/ManaRow"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "MP"
+vertical_alignment = 1
+mouse_filter = 1
+tooltip_text = "Năng lượng"
+
+[node name="ManaBar" type="ProgressBar" parent="Content/Columns/StatsColumn/ResourceRows/ManaRow"]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_override_styles/background = SubResource("StyleBoxFlat_bar_bg")
+theme_override_styles/fill = SubResource("StyleBoxFlat_mana")
+max_value = 100.0
 value = 100.0
-nine_patch_stretch = true
-texture_progress = ExtResource("5_mp")
+show_percentage = false
 mouse_filter = 2
 
-[node name="StaminaBar" type="TextureProgressBar" parent="TextureRect/BarsContainer" unique_id=1463706157]
-layout_mode = 0
-offset_left = 113.0
-offset_top = 71.0
-offset_right = 289.0
-offset_bottom = 86.0
+[node name="StaminaRow" type="HBoxContainer" parent="Content/Columns/StatsColumn/ResourceRows"]
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+mouse_filter = 1
+theme_override_constants/separation = 4
+
+[node name="StaminaLabel" type="Label" parent="Content/Columns/StatsColumn/ResourceRows/StaminaRow"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "STA"
+vertical_alignment = 1
+mouse_filter = 1
+tooltip_text = "Thể lực"
+
+[node name="StaminaBar" type="ProgressBar" parent="Content/Columns/StatsColumn/ResourceRows/StaminaRow"]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_override_styles/background = SubResource("StyleBoxFlat_bar_bg")
+theme_override_styles/fill = SubResource("StyleBoxFlat_stamina")
+max_value = 100.0
 value = 100.0
-nine_patch_stretch = true
-texture_progress = ExtResource("6_sta")
+show_percentage = false
 mouse_filter = 2

@@ -2,6 +2,7 @@ using AshesofaDyingWorld.Core.Managers;
 using AshesofaDyingWorld.Entities.NPC;
 using AshesofaDyingWorld.Entities.Player;
 using AshesofaDyingWorld.UI.Shared;
+using AshesofaDyingWorld.UI.Theme;
 using Godot;
 
 namespace AshesofaDyingWorld.UI.HUD
@@ -13,28 +14,17 @@ namespace AshesofaDyingWorld.UI.HUD
         private const int StayCommandId = 102;
         private const int ProtectCommandId = 103;
         private const int WanderCommandId = 104;
-        // Menu lệnh V2: dùng khung native-size mảnh hơn thay vì ép asset 384 px xuống còn ~170 px.
-        // Các hàng lệnh dùng StyleBox phẳng để giảm cảm giác "khung trong khung" và giữ pixel sạch.
-        private const string CommandMenuPanelPath = "res://assets/graphics/ui/hud/redesign/companion_command_menu_panel_v2.png";
-        private const int CommandMenuPanelPatchMargin = 12;
         private const float CommandMenuMinWidth = 206f;
         private const float CommandMenuHeaderHeight = 28f;
-        private const float CommandMenuControlHeight = 30f;
-        private const float CommandMenuButtonHeight = 25f;
+        private const float CommandMenuControlHeight = UiTokens.ButtonHeightCompact;
+        private const float CommandMenuButtonHeight = UiTokens.ButtonHeightCompact;
         private const float CommandMenuHudGap = 4f;
-
-        // Accent xanh chỉ dành cho trạng thái đang chọn/đang điều khiển Hyou.
-        // Như vậy menu vẫn cùng họ nâu-vàng của HUD nhưng có một điểm nhận diện riêng cho Hyou.
-        private static readonly Color CommandBlueAccent = new("#79B3F2");
-        private static readonly Color CommandBlueSurface = new("#1B2B39");
-        private static readonly Color CommandSurface = new("#21150F");
-        private static readonly Color CommandHoverSurface = new("#342319");
-        private static readonly Color CommandDividerColor = new(0.35f, 0.24f, 0.15f, 0.55f);
 
         private CharacterUnitHUD[] unitHUDs;
         private PanelContainer _contextMenu;
         private VBoxContainer _contextMenuItems;
         private PlayerStats _contextMember;
+        private CharacterUnitHUD _contextSourceHud;
 
         public override void _Ready()
         {
@@ -44,6 +34,7 @@ namespace AshesofaDyingWorld.UI.HUD
                 GD.PrintErr("[PartyHUD] VBoxContainer not found!");
                 return;
             }
+            UiThemeFactory.Apply(container);
 
             var children = container.GetChildren();
             unitHUDs = new CharacterUnitHUD[children.Count];
@@ -85,6 +76,7 @@ namespace AshesofaDyingWorld.UI.HUD
             _contextMenu.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
             _contextMenu.AddThemeStyleboxOverride("panel", CreateCommandMenuPanelStyle());
             AddChild(_contextMenu);
+            UiThemeFactory.Apply(_contextMenu);
             MoveChild(_contextMenu, GetChildCount() - 1);
 
             _contextMenuItems = new VBoxContainer
@@ -100,98 +92,30 @@ namespace AshesofaDyingWorld.UI.HUD
             _contextMenu.AddChild(_contextMenuItems);
         }
 
-        private StyleBox CreateCommandMenuPanelStyle()
+        private static StyleBoxFlat CreateCommandMenuPanelStyle()
         {
-            Texture2D frame = InventoryPanelChrome.TryLoadTexture(CommandMenuPanelPath);
-            if (frame != null)
+            var style = new StyleBoxFlat
             {
-                return new StyleBoxTexture
-                {
-                    Texture = frame,
-                    DrawCenter = true,
-                    TextureMarginLeft = CommandMenuPanelPatchMargin,
-                    TextureMarginTop = CommandMenuPanelPatchMargin,
-                    TextureMarginRight = CommandMenuPanelPatchMargin,
-                    TextureMarginBottom = CommandMenuPanelPatchMargin,
-                    ContentMarginLeft = 9,
-                    ContentMarginTop = 9,
-                    ContentMarginRight = 9,
-                    ContentMarginBottom = 9
-                };
-            }
-
-            StyleBoxFlat fallback = InventoryPanelChrome.CreateWindowStyle();
-            fallback.ContentMarginLeft = 10;
-            fallback.ContentMarginTop = 10;
-            fallback.ContentMarginRight = 10;
-            fallback.ContentMarginBottom = 10;
-            return fallback;
+                BgColor = UiTokens.Background,
+                BorderColor = UiTokens.BorderStrong,
+                ContentMarginLeft = UiTokens.Space2,
+                ContentMarginTop = UiTokens.Space2,
+                ContentMarginRight = UiTokens.Space2,
+                ContentMarginBottom = UiTokens.Space2
+            };
+            style.SetBorderWidthAll(UiTokens.BorderWidth);
+            style.SetCornerRadiusAll(UiTokens.CornerRadius);
+            return style;
         }
 
         private static StyleBoxFlat CreateCommandHeaderStyle()
         {
             StyleBoxFlat style = new()
             {
-                BgColor = new Color(0.15f, 0.09f, 0.055f, 0.92f),
-                BorderColor = new Color(InventoryPanelChrome.BorderColor.R, InventoryPanelChrome.BorderColor.G, InventoryPanelChrome.BorderColor.B, 0.62f),
+                BgColor = UiTokens.Surface,
+                BorderColor = UiTokens.Border,
                 BorderWidthBottom = 1
             };
-            return style;
-        }
-
-        private static StyleBoxFlat CreateControlButtonStyle(bool active, bool hover = false, bool pressed = false)
-        {
-            Color bg = active
-                ? CommandBlueSurface
-                : pressed
-                    ? CommandSurface.Darkened(0.08f)
-                    : hover
-                        ? CommandHoverSurface
-                        : CommandSurface;
-
-            Color border = active
-                ? new Color(CommandBlueAccent.R, CommandBlueAccent.G, CommandBlueAccent.B, 0.78f)
-                : hover
-                    ? new Color(InventoryPanelChrome.AccentColor.R, InventoryPanelChrome.AccentColor.G, InventoryPanelChrome.AccentColor.B, 0.78f)
-                    : new Color(InventoryPanelChrome.BorderColor.R, InventoryPanelChrome.BorderColor.G, InventoryPanelChrome.BorderColor.B, 0.76f);
-
-            StyleBoxFlat style = new()
-            {
-                BgColor = bg,
-                BorderColor = border,
-                ContentMarginLeft = 10,
-                ContentMarginTop = 4,
-                ContentMarginRight = 10,
-                ContentMarginBottom = 4
-            };
-            style.SetBorderWidthAll(1);
-            style.SetCornerRadiusAll(1);
-            return style;
-        }
-
-        private static StyleBoxFlat CreateCommandRowStyle(bool selected, bool hover = false, bool pressed = false)
-        {
-            Color bg = selected
-                ? CommandBlueSurface
-                : pressed
-                    ? CommandSurface.Darkened(0.10f)
-                    : hover
-                        ? CommandHoverSurface
-                        : new Color(CommandSurface.R, CommandSurface.G, CommandSurface.B, 0.36f);
-
-            StyleBoxFlat style = new()
-            {
-                BgColor = bg,
-                BorderColor = selected
-                    ? CommandBlueAccent
-                    : new Color(InventoryPanelChrome.AccentColor.R, InventoryPanelChrome.AccentColor.G, InventoryPanelChrome.AccentColor.B, 0.72f),
-                BorderWidthLeft = selected ? 3 : hover ? 2 : 0,
-                ContentMarginLeft = selected ? 8 : 11,
-                ContentMarginTop = 3,
-                ContentMarginRight = 8,
-                ContentMarginBottom = 3
-            };
-            style.SetCornerRadiusAll(1);
             return style;
         }
 
@@ -220,15 +144,26 @@ namespace AshesofaDyingWorld.UI.HUD
             row.AddThemeConstantOverride("separation", 7);
             margin.AddChild(row);
 
-            Label name = new()
+            var glyph = new TextureRect
             {
-                Text = characterName.ToUpperInvariant(),
-                SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin,
-                VerticalAlignment = VerticalAlignment.Center,
+                Texture = UiGlyphResolver.Resolve(UiGlyph.Party),
+                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+                CustomMinimumSize = new Vector2(UiTokens.IconSizeSmall, UiTokens.IconSizeSmall),
                 MouseFilter = Control.MouseFilterEnum.Ignore
             };
-            name.AddThemeFontSizeOverride("font_size", 16);
-            name.AddThemeColorOverride("font_color", InventoryPanelChrome.MainTextColor);
+            row.AddChild(glyph);
+
+            Label name = new()
+            {
+                Text = characterName,
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+                VerticalAlignment = VerticalAlignment.Center,
+                MouseFilter = Control.MouseFilterEnum.Pass,
+                TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis,
+                TooltipText = characterName
+            };
+            UiThemeFactory.ApplyText(name, UiTextRole.Label);
             row.AddChild(name);
 
             Control spacer = new()
@@ -240,68 +175,62 @@ namespace AshesofaDyingWorld.UI.HUD
 
             Label mode = new()
             {
-                Text = active ? "ACTIVE" : "COMMAND",
+                Text = active ? "ĐANG CHỌN" : "MỆNH LỆNH",
                 VerticalAlignment = VerticalAlignment.Center,
                 MouseFilter = Control.MouseFilterEnum.Ignore
             };
-            mode.AddThemeFontSizeOverride("font_size", 9);
-            mode.AddThemeColorOverride("font_color", active ? CommandBlueAccent : InventoryPanelChrome.MutedTextColor);
+            mode.AddThemeFontSizeOverride("font_size", UiTokens.MicroFontSize);
+            mode.AddThemeColorOverride("font_color", active ? UiTokens.Accent : UiTokens.TextSecondary);
             row.AddChild(mode);
             return header;
         }
 
         private Button CreateControlButton(string characterName, bool active, System.Action onPressed)
         {
-            Button button = new()
-            {
-                Text = active ? "ĐANG ĐIỀU KHIỂN" : $"ĐIỀU KHIỂN {characterName}",
-                Disabled = active,
-                FocusMode = Control.FocusModeEnum.None,
-                MouseDefaultCursorShape = active ? Control.CursorShape.Arrow : Control.CursorShape.PointingHand,
-                CustomMinimumSize = new Vector2(CommandMenuMinWidth, CommandMenuControlHeight),
-                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-                Flat = false,
-                Alignment = HorizontalAlignment.Left
-            };
-
-            button.AddThemeStyleboxOverride("normal", CreateControlButtonStyle(active));
-            button.AddThemeStyleboxOverride("hover", CreateControlButtonStyle(false, hover: true));
-            button.AddThemeStyleboxOverride("pressed", CreateControlButtonStyle(false, pressed: true));
-            button.AddThemeStyleboxOverride("disabled", CreateControlButtonStyle(true));
-            button.AddThemeColorOverride("font_color", InventoryPanelChrome.MainTextColor);
-            button.AddThemeColorOverride("font_hover_color", Colors.White);
-            button.AddThemeColorOverride("font_pressed_color", Colors.White);
-            button.AddThemeColorOverride("font_disabled_color", new Color(0.82f, 0.91f, 1f, 0.95f));
-            button.AddThemeFontSizeOverride("font_size", 13);
-
-            if (!active && onPressed != null)
-            {
-                button.Pressed += onPressed;
-            }
-
+            Button button = CreateCommandMenuButton(
+                active ? "Đang điều khiển" : "Điều khiển",
+                active,
+                active,
+                UiGlyph.Character,
+                onPressed);
+            button.TooltipText = active
+                ? $"Đang điều khiển {characterName}"
+                : $"Chuyển điều khiển sang {characterName}";
             return button;
         }
 
-        private Button CreateCommandRow(string text, bool selected, System.Action onPressed)
+        private Button CreateCommandRow(string text, bool selected, UiGlyph glyph, System.Action onPressed)
+        {
+            return CreateCommandMenuButton(text, selected, false, glyph, onPressed);
+        }
+
+        private Button CreateCommandMenuButton(
+            string text,
+            bool selected,
+            bool disabled,
+            UiGlyph glyph,
+            System.Action onPressed)
         {
             Button button = new()
             {
-                Text = selected ? $"◆  {text}" : $"   {text}",
-                FocusMode = Control.FocusModeEnum.None,
-                MouseDefaultCursorShape = Control.CursorShape.PointingHand,
-                CustomMinimumSize = new Vector2(CommandMenuMinWidth, CommandMenuButtonHeight),
+                Text = text,
+                Disabled = disabled,
+                FocusMode = Control.FocusModeEnum.All,
+                MouseDefaultCursorShape = disabled ? Control.CursorShape.Arrow : Control.CursorShape.PointingHand,
+                CustomMinimumSize = new Vector2(CommandMenuMinWidth, selected && disabled ? CommandMenuControlHeight : CommandMenuButtonHeight),
                 SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
                 Flat = false,
-                Alignment = HorizontalAlignment.Left
+                Alignment = HorizontalAlignment.Left,
+                ClipText = true,
+                Icon = UiGlyphResolver.Resolve(glyph),
+                TooltipText = text
             };
 
-            button.AddThemeStyleboxOverride("normal", CreateCommandRowStyle(selected));
-            button.AddThemeStyleboxOverride("hover", CreateCommandRowStyle(selected, hover: true));
-            button.AddThemeStyleboxOverride("pressed", CreateCommandRowStyle(selected, pressed: true));
-            button.AddThemeColorOverride("font_color", selected ? new Color(0.86f, 0.94f, 1f, 1f) : InventoryPanelChrome.MainTextColor);
-            button.AddThemeColorOverride("font_hover_color", Colors.White);
-            button.AddThemeColorOverride("font_pressed_color", Colors.White);
-            button.AddThemeFontSizeOverride("font_size", 14);
+            PixelButtonSkin.Apply(button,
+                selected ? PixelButtonSkin.Variant.Primary : PixelButtonSkin.Variant.Secondary,
+                selected && disabled ? CommandMenuControlHeight : CommandMenuButtonHeight,
+                CommandMenuMinWidth);
+            button.AddThemeFontSizeOverride("font_size", UiTokens.BodyFontSize);
 
             if (onPressed != null)
             {
@@ -315,7 +244,7 @@ namespace AshesofaDyingWorld.UI.HUD
         {
             return new ColorRect
             {
-                Color = CommandDividerColor,
+                Color = UiTokens.Border,
                 CustomMinimumSize = new Vector2(0f, 1f),
                 MouseFilter = Control.MouseFilterEnum.Ignore
             };
@@ -353,10 +282,10 @@ namespace AshesofaDyingWorld.UI.HUD
             {
                 _contextMenuItems.AddChild(CreateCommandDivider());
 
-                AddCommandButton("Theo sau", FollowCommandId, companion.CommandMode == CompanionCommandMode.Follow);
-                AddCommandButton("Đứng yên", StayCommandId, companion.CommandMode == CompanionCommandMode.Stay);
-                AddCommandButton("Bảo vệ", ProtectCommandId, companion.CommandMode == CompanionCommandMode.Protect);
-                AddCommandButton("Đi dạo", WanderCommandId, companion.CommandMode == CompanionCommandMode.Wander);
+                AddCommandButton("Theo sau", FollowCommandId, companion.CommandMode == CompanionCommandMode.Follow, UiGlyph.Target);
+                AddCommandButton("Đứng yên", StayCommandId, companion.CommandMode == CompanionCommandMode.Stay, UiGlyph.Party);
+                AddCommandButton("Bảo vệ", ProtectCommandId, companion.CommandMode == CompanionCommandMode.Protect, UiGlyph.Defense);
+                AddCommandButton("Đi dạo", WanderCommandId, companion.CommandMode == CompanionCommandMode.Wander, UiGlyph.CategoryMap);
             }
 
             Vector2 mouse = GetViewport()?.GetMousePosition() ?? Vector2.Zero;
@@ -366,11 +295,9 @@ namespace AshesofaDyingWorld.UI.HUD
             ShowContextMenuForHud(sourceHud, mouse);
         }
 
-        private void AddCommandButton(string label, int id, bool selected)
+        private void AddCommandButton(string label, int id, bool selected, UiGlyph glyph)
         {
-            // Không dùng radio ○/● nữa. Trạng thái selected được biểu diễn bằng nền xanh tối,
-            // vạch xanh bên trái và diamond nhỏ; các hàng còn lại giữ nền tối nhẹ.
-            _contextMenuItems.AddChild(CreateCommandRow(label, selected, () => ExecuteContextMenuId(id)));
+            _contextMenuItems.AddChild(CreateCommandRow(label, selected, glyph, () => ExecuteContextMenuId(id)));
         }
 
         private void ClearContextMenuItems()
@@ -394,6 +321,7 @@ namespace AshesofaDyingWorld.UI.HUD
                 return;
             }
 
+            _contextSourceHud = sourceHud;
             _contextMenu.Show();
             _contextMenu.Size = _contextMenu.GetCombinedMinimumSize();
 
@@ -433,11 +361,39 @@ namespace AshesofaDyingWorld.UI.HUD
             }
 
             _contextMenu.Position = new Vector2(Mathf.Round(x), Mathf.Round(y));
+            FocusFirstEnabledCommand();
+        }
+
+        private void FocusFirstEnabledCommand()
+        {
+            if (_contextMenuItems == null)
+            {
+                return;
+            }
+
+            foreach (Node child in _contextMenuItems.GetChildren())
+            {
+                if (child is Button button && button.Visible && !button.Disabled)
+                {
+                    button.GrabFocus();
+                    return;
+                }
+            }
         }
 
         private void HideContextMenu()
         {
-            _contextMenu?.Hide();
+            if (_contextMenu?.Visible != true)
+            {
+                return;
+            }
+
+            _contextMenu.Hide();
+            if (GodotObject.IsInstanceValid(_contextSourceHud) && _contextSourceHud.Visible)
+            {
+                _contextSourceHud?.GrabFocus();
+            }
+            _contextSourceHud = null;
         }
 
         private void ExecuteContextMenuId(int id)
@@ -496,7 +452,7 @@ namespace AshesofaDyingWorld.UI.HUD
                 return;
             }
 
-            if (inputEvent is InputEventKey key && key.Pressed && key.Keycode == Key.Escape)
+            if (inputEvent.IsActionPressed("ui_cancel"))
             {
                 HideContextMenu();
                 GetViewport()?.SetInputAsHandled();

@@ -3,8 +3,9 @@ using AshesofaDyingWorld.Entities.Player;
 using AshesofaDyingWorld.Combat.Actors;
 using AshesofaDyingWorld.Combat.Runtime;
 using AshesofaDyingWorld.Core.Data;
-using System.Collections.Generic;
+using AshesofaDyingWorld.UI.Theme;
 using System;
+using System.Collections.Generic;
 
 namespace AshesofaDyingWorld.UI.HUD
 {
@@ -12,45 +13,34 @@ namespace AshesofaDyingWorld.UI.HUD
     {
         public event Action<PlayerStats> ContextMenuRequested;
 
-        private PlayerStats _targetStats;
-        private Player _targetPlayer;
-
-        [Export] public TextureProgressBar HealthBar;
-        [Export] public TextureProgressBar ManaBar;
-        [Export] public TextureProgressBar StaminaBar;
+        [Export] public ProgressBar HealthBar;
+        [Export] public ProgressBar ManaBar;
+        [Export] public ProgressBar StaminaBar;
         [Export] public Label NameLabel;
+        [Export] public Label LevelLabel;
         [Export] public TextureRect Portrait;
-        
-        private TextureRect frameBackground;
-        private ShaderMaterial shaderMaterial;
-        private const string ShaderPath = "res://assets/shaders/outline.gdshader";
+
         private const string StatusEffectFrameTexturePath = "res://assets/graphics/ui/hud/status_effects/status_effect_icon_frame.png";
         private const string ChillStatusIconPath = "res://assets/graphics/ui/hud/status_effects/icons/chill.png";
         private const string SlowStatusIconPath = "res://assets/graphics/ui/hud/status_effects/icons/slow.png";
         private const string FrozenStatusIconPath = "res://assets/graphics/ui/hud/status_effects/icons/frozen.png";
-        private const float StatusEffectBadgeSize = 28.0f;
+        private const float StatusEffectBadgeSize = UiTokens.StatusFrameSize;
         private const float StatusEffectIconInset = 4.0f;
-        private const float StatusEffectBadgeSpacing = 4.0f;
-
-        // Skill đang active nằm cùng hàng với tên nhân vật.
-        // Tách size/inset khỏi status effect để icon vừa hàng tên mà không chạm HP bar.
-        private const float ActiveSkillBadgeSize = 24.0f;
+        private const float ActiveSkillBadgeSize = UiTokens.IconSizeMedium;
         private const float ActiveSkillIconInset = 2.0f;
-        private const float ActiveSkillBadgeSpacing = 3.0f;
-        private const float ActiveSkillRowTop = 5.0f;
-        private const float ActiveSkillRowRightPadding = 11.0f;
-        private Control _activeSkillStrip;
-        private Control _combatStatusStrip;
+
+        private PlayerStats _targetStats;
+        private CombatCharacter _targetCombatant;
+        private HBoxContainer _activeSkillStrip;
+        private HBoxContainer _combatStatusStrip;
         private Texture2D _statusEffectFrameTexture;
         private Texture2D _chillStatusIconTexture;
         private Texture2D _slowStatusIconTexture;
         private Texture2D _frozenStatusIconTexture;
-        private CombatCharacter _targetCombatant;
         private CombatStatusBadgeView _chillStatusBadge;
         private CombatStatusBadgeView _slowStatusBadge;
         private CombatStatusBadgeView _frozenStatusBadge;
         private readonly List<SkillBadgeView> _skillBadgeViews = new();
-        private Control _contextHitTarget;
 
         public PlayerStats TargetStats => _targetStats;
 
@@ -58,66 +48,95 @@ namespace AshesofaDyingWorld.UI.HUD
         {
             public SkillData Skill;
             public Control Holder;
-            public TextureRect Icon;
             public ColorRect Overlay;
             public ColorRect OverlayEdge;
-            public TextureRect Frame;
             public Label CooldownLabel;
         }
-
 
         private sealed class CombatStatusBadgeView
         {
             public Control Holder;
             public Label StackLabel;
         }
+
         public override void _Ready()
         {
-            if(Portrait == null)
-            {
-                Portrait = GetNode<TextureRect>("TextureRect/Portrait");
-            }
-
-            // Hotfix HUD: ép label tên luôn hiện trên frame. Một số layout/runtime cũ
-            // có thể khiến NameLabel bị rơi xuống dưới lớp HUD dù node vẫn còn trong scene.
-            EnsureHeaderPresentation();
-
-            // Lấy TextureRect đã có trong scene (background frame)
-            frameBackground = GetNode<TextureRect>("TextureRect");
-            
-            // Load shader và áp dụng vào frameBackground
-            var shader = GD.Load<Shader>(ShaderPath);
-            if (shader != null && frameBackground != null)
-            {
-                shaderMaterial = new ShaderMaterial();
-                shaderMaterial.Shader = shader;
-                frameBackground.Material = shaderMaterial;
-                
-                shaderMaterial.SetShaderParameter("line_thickness", 0.0f);
-                shaderMaterial.SetShaderParameter("line_color", new Color(1.0f, 1.0f, 1.0f, 1.0f));                
-            }
-            else
-            {
-                GD.PrintErr($"[CharacterUnitHUD] Shader or frameBackground not found");
-            }
-
-            LoadStatusEffectFrameTexture();
+            UiThemeFactory.Apply(this);
+            ResolveNamedNodes();
+            ConfigureHeader();
+            ConfigureResourceBars();
+            LoadStatusEffectTextures();
             SetupActiveSkillStrip();
             SetupCombatStatusStrip();
-            if (frameBackground != null)
+            FocusMode = Control.FocusModeEnum.All;
+            MouseFilter = Control.MouseFilterEnum.Stop;
+            ApplyHighlight(false);
+        }
+
+        private void ResolveNamedNodes()
+        {
+            HealthBar ??= GetNodeOrNull<ProgressBar>("Content/Columns/StatsColumn/ResourceRows/HealthRow/HealthBar");
+            ManaBar ??= GetNodeOrNull<ProgressBar>("Content/Columns/StatsColumn/ResourceRows/ManaRow/ManaBar");
+            StaminaBar ??= GetNodeOrNull<ProgressBar>("Content/Columns/StatsColumn/ResourceRows/StaminaRow/StaminaBar");
+            NameLabel ??= GetNodeOrNull<Label>("Content/Columns/StatsColumn/HeaderRow/NameLabel");
+            LevelLabel ??= GetNodeOrNull<Label>("Content/Columns/StatsColumn/HeaderRow/LevelLabel");
+            Portrait ??= GetNodeOrNull<TextureRect>("Content/Columns/PortraitColumn/PortraitFrame/Portrait");
+
+            if (HealthBar == null || ManaBar == null || StaminaBar == null || NameLabel == null || LevelLabel == null || Portrait == null)
             {
-                frameBackground.Resized += OnFrameBackgroundResized;
+                GD.PrintErr("[CharacterUnitHUD] One or more exported HUD nodes could not be resolved.");
             }
-            UpdateActiveSkillStripPlacement();
-            UpdateCombatStatusStripPlacement();
-            SetupContextHitTarget();
+        }
+
+        private void ConfigureHeader()
+        {
+            if (NameLabel == null)
+            {
+                return;
+            }
+
+            NameLabel.Visible = true;
+            NameLabel.MouseFilter = Control.MouseFilterEnum.Pass;
+            NameLabel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            NameLabel.TooltipText = NameLabel.Text;
+            UiThemeFactory.ApplyText(NameLabel, UiTextRole.Label);
+
+            if (LevelLabel != null)
+            {
+                LevelLabel.MouseFilter = Control.MouseFilterEnum.Ignore;
+                UiThemeFactory.ApplyText(LevelLabel, UiTextRole.Micro);
+            }
+        }
+
+        private void ConfigureResourceBars()
+        {
+            ConfigureResourceBar(HealthBar, UiTokens.Life);
+            ConfigureResourceBar(ManaBar, UiTokens.Memory);
+            ConfigureResourceBar(StaminaBar, UiTokens.Accent);
+        }
+
+        private static void ConfigureResourceBar(ProgressBar bar, Color semanticColor)
+        {
+            if (bar == null)
+            {
+                return;
+            }
+
+            bar.ShowPercentage = false;
+            bar.MouseFilter = Control.MouseFilterEnum.Ignore;
+            bar.AddThemeStyleboxOverride("background", CreateBarStyle(UiTokens.Canvas));
+            bar.AddThemeStyleboxOverride("fill", CreateBarStyle(semanticColor));
+        }
+
+        private static StyleBoxFlat CreateBarStyle(Color color)
+        {
+            var style = new StyleBoxFlat { BgColor = color };
+            style.SetCornerRadiusAll(1);
+            return style;
         }
 
         public override void _Process(double delta)
         {
-            UpdateActiveSkillStripPlacement();
-            UpdateCombatStatusStripPlacement();
-
             if (!Visible || _targetStats == null)
             {
                 return;
@@ -130,141 +149,138 @@ namespace AshesofaDyingWorld.UI.HUD
         public void SetTarget(PlayerStats stats)
         {
             if (_targetStats != null)
+            {
                 _targetStats.StatsChanged -= UpdateUI;
+            }
 
             _targetStats = stats;
-            _targetPlayer = null;
             _targetCombatant = null;
-            if (_targetStats != null)
-            {
-                _targetStats.StatsChanged += UpdateUI;
 
-                if (stats.ConfigData != null)
+            if (_targetStats == null)
+            {
+                if (NameLabel != null)
                 {
-                    if (NameLabel != null)
-                    {
-                        NameLabel.Text = string.IsNullOrWhiteSpace(stats.ConfigData.Name)
-                            ? "UNKNOWN"
-                            : stats.ConfigData.Name;
-                        EnsureHeaderPresentation();
-                    }
-                    
-                    if (Portrait != null && stats.ConfigData.Icon != null)
-                        Portrait.Texture = stats.ConfigData.Icon;
+                    NameLabel.Text = "Không rõ";
+                    NameLabel.TooltipText = "Không rõ";
+                }
+
+                if (LevelLabel != null)
+                {
+                    LevelLabel.Text = "Cấp --";
                 }
 
                 RebuildActiveSkillStrip();
                 UpdateCombatStatusState();
-                UpdateUI();
+                return;
             }
-            else
+
+            _targetStats.StatsChanged += UpdateUI;
+            if (stats.ConfigData != null)
             {
-                RebuildActiveSkillStrip();
-                UpdateCombatStatusState();
+                string displayName = string.IsNullOrWhiteSpace(stats.ConfigData.Name)
+                    ? "Không rõ"
+                    : stats.ConfigData.Name;
+
+                if (NameLabel != null)
+                {
+                    NameLabel.Text = displayName;
+                    NameLabel.TooltipText = displayName;
+                }
+
+                if (Portrait != null && stats.ConfigData.Icon != null)
+                {
+                    Portrait.Texture = stats.ConfigData.Icon;
+                }
             }
+
+            RebuildActiveSkillStrip();
+            UpdateCombatStatusState();
+            UpdateUI();
         }
 
         private void UpdateUI()
         {
-            if (_targetStats == null) return;
-
-            if (HealthBar != null)
+            if (_targetStats == null)
             {
-                HealthBar.MaxValue = _targetStats.MaxHP; 
-                HealthBar.Value = _targetStats.CurrentHP;
+                return;
             }
 
-            if (ManaBar != null)
+            SetResourceValue(HealthBar, _targetStats.CurrentHP, _targetStats.MaxHP, UiTokens.Life);
+            SetResourceValue(ManaBar, _targetStats.CurrentMP, _targetStats.MaxMP, UiTokens.Memory);
+            SetResourceValue(StaminaBar, _targetStats.CurrentStamina, _targetStats.MaxStamina, UiTokens.Accent);
+            if (LevelLabel != null)
             {
-                ManaBar.MaxValue = _targetStats.MaxMP;
-                ManaBar.Value = _targetStats.CurrentMP;
+                LevelLabel.Text = $"Cấp {_targetStats.CurrentLevel:00}";
             }
-
-            if (StaminaBar != null)
-            {
-                StaminaBar.MaxValue = _targetStats.MaxStamina; 
-                StaminaBar.Value = _targetStats.CurrentStamina;
-            }
-
             UpdateSkillOverlayState();
             UpdateCombatStatusState();
         }
 
+        private static void SetResourceValue(ProgressBar bar, float value, float maximum, Color semanticColor)
+        {
+            if (bar == null)
+            {
+                return;
+            }
+
+            bar.MaxValue = Mathf.Max(1.0f, maximum);
+            bar.Value = Mathf.Clamp(value, 0.0f, bar.MaxValue);
+            Color stateColor = bar.Value / bar.MaxValue <= 0.25f ? UiTokens.Danger : semanticColor;
+            bar.AddThemeStyleboxOverride("fill", CreateBarStyle(stateColor));
+        }
+
         public void ApplyHighlight(bool isSelected)
         {
-            if (shaderMaterial != null)
-            {
-                shaderMaterial.SetShaderParameter("line_thickness", isSelected ? 20.0f : 0.0f);
-            }
-        }
-        
-        public override void _ExitTree()
-        {
-            if (_targetStats != null)
-                _targetStats.StatsChanged -= UpdateUI;
-
-            if (frameBackground != null)
-                frameBackground.Resized -= OnFrameBackgroundResized;
-
-            if (_contextHitTarget != null)
-                _contextHitTarget.GuiInput -= OnContextGuiInput;
+            AddThemeStyleboxOverride("panel", CreatePanelStyle(isSelected));
         }
 
-
-        private void EnsureHeaderPresentation()
+        private static StyleBoxFlat CreatePanelStyle(bool selected)
         {
-            NameLabel ??= GetNodeOrNull<Label>("TextureRect/NameLabel");
-            if (NameLabel == null)
+            var style = new StyleBoxFlat
             {
-                GD.PrintErr("[CharacterUnitHUD] Không tìm thấy NameLabel trong HUD nhân vật.");
-                return;
-            }
-
-            // Tên là thông tin nhận diện chính nên luôn phải nằm trên frame/bar.
-            // ZIndex cao chỉ áp dụng cho label, không thay đổi thứ tự các resource bar.
-            NameLabel.Visible = true;
-            NameLabel.ZIndex = 40;
-            NameLabel.MouseFilter = MouseFilterEnum.Ignore;
-            NameLabel.Modulate = Colors.White;
-        }
-
-
-        private void SetupContextHitTarget()
-        {
-            if (_contextHitTarget != null)
-            {
-                return;
-            }
-
-            _contextHitTarget = new Control
-            {
-                Name = "ContextHitTarget",
-                MouseFilter = MouseFilterEnum.Pass,
-                MouseDefaultCursorShape = CursorShape.PointingHand
+                BgColor = UiTokens.Surface,
+                BorderColor = selected ? UiTokens.Accent : UiTokens.Border,
+                ContentMarginLeft = 0,
+                ContentMarginTop = 0,
+                ContentMarginRight = 0,
+                ContentMarginBottom = 0
             };
-            _contextHitTarget.GuiInput += OnContextGuiInput;
-            AddChild(_contextHitTarget);
-            _contextHitTarget.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-            MoveChild(_contextHitTarget, GetChildCount() - 1);
+            style.SetBorderWidthAll(selected ? UiTokens.SelectionBorderWidth : UiTokens.BorderWidth);
+            style.SetCornerRadiusAll(UiTokens.CornerRadius);
+            return style;
         }
 
-        private void OnContextGuiInput(InputEvent inputEvent)
+        public override void _GuiInput(InputEvent inputEvent)
         {
-            if (inputEvent is not InputEventMouseButton mouse
-                || mouse.ButtonIndex != MouseButton.Right
-                || !mouse.Pressed
-                || _targetStats == null)
+            if (inputEvent is InputEventMouseButton mouse && mouse.Pressed)
             {
+                if (mouse.ButtonIndex == MouseButton.Left)
+                {
+                    GrabFocus();
+                }
+
+                if (mouse.ButtonIndex == MouseButton.Right && _targetStats != null)
+                {
+                    RequestContextMenu();
+                }
+
                 return;
             }
 
-            ContextMenuRequested?.Invoke(_targetStats);
-            GetViewport()?.SetInputAsHandled();
+            if (_targetStats != null && inputEvent.IsActionPressed("ui_accept"))
+            {
+                RequestContextMenu();
+            }
         }
 
-        private void LoadStatusEffectFrameTexture()
+        private void RequestContextMenu()
         {
-            // Khung/icon effect load mềm; thiếu asset thì HUD vẫn chạy, chỉ mất phần trang trí tương ứng.
+            ContextMenuRequested?.Invoke(_targetStats);
+            AcceptEvent();
+        }
+
+        private void LoadStatusEffectTextures()
+        {
             _statusEffectFrameTexture = GD.Load<Texture2D>(StatusEffectFrameTexturePath);
             _chillStatusIconTexture = GD.Load<Texture2D>(ChillStatusIconPath);
             _slowStatusIconTexture = GD.Load<Texture2D>(SlowStatusIconPath);
@@ -273,46 +289,38 @@ namespace AshesofaDyingWorld.UI.HUD
 
         private void SetupCombatStatusStrip()
         {
-            if (_combatStatusStrip != null)
+            _combatStatusStrip = GetNodeOrNull<HBoxContainer>("Content/Columns/PortraitColumn/StatusFrame/StatusStrip");
+            if (_combatStatusStrip == null)
             {
+                GD.PrintErr("[CharacterUnitHUD] StatusStrip is missing from the unit scene.");
                 return;
             }
 
-            _combatStatusStrip = new Control
-            {
-                Name = "CombatStatusStrip",
-                Visible = false,
-                MouseFilter = MouseFilterEnum.Ignore
-            };
-            _combatStatusStrip.SetAnchorsPreset(LayoutPreset.TopLeft);
-            AddChild(_combatStatusStrip);
-
-            _chillStatusBadge = CreateCombatStatusBadge(_chillStatusIconTexture, true, "Chill");
-            _slowStatusBadge = CreateCombatStatusBadge(_slowStatusIconTexture, false, "Slow");
-            _frozenStatusBadge = CreateCombatStatusBadge(_frozenStatusIconTexture, false, "Frozen");
+            _combatStatusStrip.MouseFilter = Control.MouseFilterEnum.Pass;
+            _combatStatusStrip.TooltipText = "Trạng thái";
+            _chillStatusBadge = CreateCombatStatusBadge(_chillStatusIconTexture, true, "Nhiễm lạnh");
+            _slowStatusBadge = CreateCombatStatusBadge(_slowStatusIconTexture, false, "Chậm");
+            _frozenStatusBadge = CreateCombatStatusBadge(_frozenStatusIconTexture, false, "Đóng băng");
         }
 
         private CombatStatusBadgeView CreateCombatStatusBadge(Texture2D iconTexture, bool showStack, string tooltip)
         {
             var holder = new Control
             {
+                Name = tooltip + "Status",
                 Visible = false,
                 CustomMinimumSize = new Vector2(StatusEffectBadgeSize, StatusEffectBadgeSize),
-                Size = new Vector2(StatusEffectBadgeSize, StatusEffectBadgeSize),
-                MouseFilter = MouseFilterEnum.Ignore,
+                MouseFilter = Control.MouseFilterEnum.Pass,
                 TooltipText = tooltip
             };
             _combatStatusStrip.AddChild(holder);
 
             var background = new ColorRect
             {
-                Color = new Color(0.06f, 0.04f, 0.03f, 0.86f),
-                MouseFilter = MouseFilterEnum.Ignore,
-                Position = new Vector2(StatusEffectIconInset, StatusEffectIconInset),
-                Size = new Vector2(
-                    StatusEffectBadgeSize - StatusEffectIconInset * 2f,
-                    StatusEffectBadgeSize - StatusEffectIconInset * 2f)
+                Color = UiTokens.Canvas,
+                MouseFilter = Control.MouseFilterEnum.Ignore
             };
+            SetFullRectInsets(background, StatusEffectIconInset);
             holder.AddChild(background);
 
             var icon = new TextureRect
@@ -320,12 +328,9 @@ namespace AshesofaDyingWorld.UI.HUD
                 Texture = iconTexture,
                 ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
                 StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-                MouseFilter = MouseFilterEnum.Ignore,
-                Position = new Vector2(StatusEffectIconInset - 1f, StatusEffectIconInset - 1f),
-                Size = new Vector2(
-                    StatusEffectBadgeSize - (StatusEffectIconInset - 1f) * 2f,
-                    StatusEffectBadgeSize - (StatusEffectIconInset - 1f) * 2f)
+                MouseFilter = Control.MouseFilterEnum.Ignore
             };
+            SetFullRectInsets(icon, StatusEffectIconInset - 1f);
             holder.AddChild(icon);
 
             if (_statusEffectFrameTexture != null)
@@ -335,9 +340,9 @@ namespace AshesofaDyingWorld.UI.HUD
                     Texture = _statusEffectFrameTexture,
                     ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
                     StretchMode = TextureRect.StretchModeEnum.Scale,
-                    MouseFilter = MouseFilterEnum.Ignore,
-                    Size = new Vector2(StatusEffectBadgeSize, StatusEffectBadgeSize)
+                    MouseFilter = Control.MouseFilterEnum.Ignore
                 };
+                frame.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
                 holder.AddChild(frame);
             }
 
@@ -348,22 +353,18 @@ namespace AshesofaDyingWorld.UI.HUD
                 {
                     HorizontalAlignment = HorizontalAlignment.Right,
                     VerticalAlignment = VerticalAlignment.Bottom,
-                    MouseFilter = MouseFilterEnum.Ignore,
-                    Size = new Vector2(StatusEffectBadgeSize - 2f, StatusEffectBadgeSize - 2f),
+                    MouseFilter = Control.MouseFilterEnum.Ignore,
                     Visible = false
                 };
-                stackLabel.AddThemeFontSizeOverride("font_size", 9);
-                stackLabel.AddThemeColorOverride("font_color", Colors.White);
-                stackLabel.AddThemeColorOverride("font_outline_color", Colors.Black);
+                stackLabel.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+                stackLabel.AddThemeFontSizeOverride("font_size", UiTokens.MicroFontSize);
+                stackLabel.AddThemeColorOverride("font_color", UiTokens.TextPrimary);
+                stackLabel.AddThemeColorOverride("font_outline_color", UiTokens.Canvas);
                 stackLabel.AddThemeConstantOverride("outline_size", 2);
                 holder.AddChild(stackLabel);
             }
 
-            return new CombatStatusBadgeView
-            {
-                Holder = holder,
-                StackLabel = stackLabel
-            };
+            return new CombatStatusBadgeView { Holder = holder, StackLabel = stackLabel };
         }
 
         private void UpdateCombatStatusState()
@@ -375,15 +376,13 @@ namespace AshesofaDyingWorld.UI.HUD
 
             _targetCombatant ??= ResolveCombatantForStats(_targetStats);
             CombatStatusController statuses = _targetCombatant?.Statuses;
-
             bool frozen = statuses?.IsFrozen == true;
             bool chill = !frozen && statuses?.HasChill == true;
             bool slow = !frozen && statuses?.IsSlowed == true;
 
-            int visibleIndex = 0;
-            SetCombatStatusBadgeVisible(_chillStatusBadge, chill, ref visibleIndex);
-            SetCombatStatusBadgeVisible(_slowStatusBadge, slow, ref visibleIndex);
-            SetCombatStatusBadgeVisible(_frozenStatusBadge, frozen, ref visibleIndex);
+            SetCombatStatusBadgeVisible(_chillStatusBadge, chill);
+            SetCombatStatusBadgeVisible(_slowStatusBadge, slow);
+            SetCombatStatusBadgeVisible(_frozenStatusBadge, frozen);
 
             if (_chillStatusBadge?.StackLabel != null)
             {
@@ -391,45 +390,34 @@ namespace AshesofaDyingWorld.UI.HUD
                 _chillStatusBadge.StackLabel.Text = stacks > 1 ? stacks.ToString() : string.Empty;
                 _chillStatusBadge.StackLabel.Visible = chill && stacks > 1;
             }
-
-            _combatStatusStrip.Visible = visibleIndex > 0;
         }
 
-        private static void SetCombatStatusBadgeVisible(CombatStatusBadgeView badge, bool visible, ref int index)
+        private static void SetCombatStatusBadgeVisible(CombatStatusBadgeView badge, bool visible)
         {
-            if (badge?.Holder == null)
+            if (badge?.Holder != null)
             {
-                return;
+                badge.Holder.Visible = visible;
             }
-
-            badge.Holder.Visible = visible;
-            if (!visible)
-            {
-                return;
-            }
-
-            badge.Holder.Position = new Vector2(index * (StatusEffectBadgeSize + StatusEffectBadgeSpacing), 0f);
-            index++;
         }
 
         private void SetupActiveSkillStrip()
         {
-            if (_activeSkillStrip != null)
+            _activeSkillStrip = GetNodeOrNull<HBoxContainer>("Content/Columns/StatsColumn/HeaderRow/ActiveSkillStrip");
+            if (_activeSkillStrip == null)
             {
+                GD.PrintErr("[CharacterUnitHUD] ActiveSkillStrip is missing from the unit scene.");
                 return;
             }
 
-            _activeSkillStrip = new Control();
-            _activeSkillStrip.Name = "ActiveSkillStrip";
-            _activeSkillStrip.Visible = false;
-            _activeSkillStrip.MouseFilter = MouseFilterEnum.Ignore;
-            _activeSkillStrip.SetAnchorsPreset(LayoutPreset.TopLeft);
-            AddChild(_activeSkillStrip);
+            _activeSkillStrip.MouseFilter = Control.MouseFilterEnum.Pass;
         }
 
         private void RebuildActiveSkillStrip()
         {
-            SetupActiveSkillStrip();
+            if (_activeSkillStrip == null)
+            {
+                return;
+            }
 
             foreach (Node child in _activeSkillStrip.GetChildren())
             {
@@ -437,7 +425,6 @@ namespace AshesofaDyingWorld.UI.HUD
             }
 
             _skillBadgeViews.Clear();
-
             var skills = _targetStats?.ConfigData?.ActiveSkills;
             if (skills == null || skills.Count == 0)
             {
@@ -452,84 +439,76 @@ namespace AshesofaDyingWorld.UI.HUD
                     continue;
                 }
 
-                // Khung icon effect dùng texture riêng để cùng ngôn ngữ thiết kế với HUD.
-                var badge = new Control();
-                badge.Visible = false;
-                badge.CustomMinimumSize = new Vector2(ActiveSkillBadgeSize, ActiveSkillBadgeSize);
-                badge.MouseFilter = MouseFilterEnum.Ignore;
-                badge.SetAnchorsPreset(LayoutPreset.TopLeft);
-                badge.Size = new Vector2(ActiveSkillBadgeSize, ActiveSkillBadgeSize);
+                var badge = new Control
+                {
+                    Visible = false,
+                    CustomMinimumSize = new Vector2(ActiveSkillBadgeSize, ActiveSkillBadgeSize),
+                    MouseFilter = Control.MouseFilterEnum.Pass,
+                    TooltipText = string.IsNullOrWhiteSpace(skill.SkillName) ? "Kỹ năng" : skill.SkillName
+                };
                 _activeSkillStrip.AddChild(badge);
 
-                var clipRoot = new Control();
-                clipRoot.Name = "ClipRoot";
-                clipRoot.SetAnchorsPreset(LayoutPreset.FullRect);
-                clipRoot.OffsetLeft = ActiveSkillIconInset;
-                clipRoot.OffsetTop = ActiveSkillIconInset;
-                clipRoot.OffsetRight = -ActiveSkillIconInset;
-                clipRoot.OffsetBottom = -ActiveSkillIconInset;
-                clipRoot.MouseFilter = MouseFilterEnum.Ignore;
-                clipRoot.ClipContents = true;
+                var clipRoot = new Control { ClipContents = true, MouseFilter = Control.MouseFilterEnum.Ignore };
+                SetFullRectInsets(clipRoot, ActiveSkillIconInset);
                 badge.AddChild(clipRoot);
 
-                var iconBackground = new ColorRect();
-                iconBackground.MouseFilter = MouseFilterEnum.Ignore;
-                iconBackground.Color = new Color(0.10f, 0.05f, 0.02f, 0.92f);
-                iconBackground.SetAnchorsPreset(LayoutPreset.FullRect);
+                var iconBackground = new ColorRect { Color = UiTokens.Canvas, MouseFilter = Control.MouseFilterEnum.Ignore };
+                iconBackground.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
                 clipRoot.AddChild(iconBackground);
 
-                var iconCenter = new CenterContainer();
-                iconCenter.SetAnchorsPreset(LayoutPreset.FullRect);
-                iconCenter.MouseFilter = MouseFilterEnum.Ignore;
+                var iconCenter = new CenterContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+                iconCenter.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
                 clipRoot.AddChild(iconCenter);
+                iconCenter.AddChild(CreateAutoSizedSkillIcon(skill.Icon, 16.0f, 16.0f));
 
-                var icon = CreateAutoSizedSkillIcon(skill.Icon, 18.0f, 18.0f);
-                iconCenter.AddChild(icon);
-
-                // Overlay tối chạy từ trên xuống, biểu diễn phần thời gian đã trôi qua.
-                var overlay = new ColorRect();
-                overlay.MouseFilter = MouseFilterEnum.Ignore;
-                overlay.Color = new Color(0.02f, 0.01f, 0.00f, 0.58f);
+                var overlay = new ColorRect
+                {
+                    Color = new Color(0.02f, 0.01f, 0.00f, 0.58f),
+                    MouseFilter = Control.MouseFilterEnum.Ignore,
+                    Visible = false
+                };
                 clipRoot.AddChild(overlay);
 
-                // Viền mảnh màu vàng ở mép overlay để nhìn rõ nhịp tụt thời gian.
-                var overlayEdge = new ColorRect();
-                overlayEdge.MouseFilter = MouseFilterEnum.Ignore;
-                overlayEdge.Color = new Color(0.90f, 0.73f, 0.36f, 0.95f);
+                var overlayEdge = new ColorRect
+                {
+                    Color = UiTokens.Accent,
+                    MouseFilter = Control.MouseFilterEnum.Ignore,
+                    Visible = false
+                };
                 clipRoot.AddChild(overlayEdge);
 
-                var frame = new TextureRect();
-                frame.MouseFilter = MouseFilterEnum.Ignore;
-                frame.Texture = _statusEffectFrameTexture;
-                frame.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
-                frame.StretchMode = TextureRect.StretchModeEnum.Scale;
-                frame.SetAnchorsPreset(LayoutPreset.FullRect);
-                badge.AddChild(frame);
+                if (_statusEffectFrameTexture != null)
+                {
+                    var frame = new TextureRect
+                    {
+                        Texture = _statusEffectFrameTexture,
+                        ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                        StretchMode = TextureRect.StretchModeEnum.Scale,
+                        MouseFilter = Control.MouseFilterEnum.Ignore
+                    };
+                    frame.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+                    badge.AddChild(frame);
+                }
 
-                // Số hồi chiêu nhỏ nằm trực tiếp trên icon. Chỉ hiện khi skill đang cooldown,
-                // nhờ vậy HUD không cần một cụm cooldown thứ hai ở giữa màn hình.
                 var cooldownLabel = new Label
                 {
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center,
-                    MouseFilter = MouseFilterEnum.Ignore
+                    MouseFilter = Control.MouseFilterEnum.Ignore
                 };
-                cooldownLabel.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-                cooldownLabel.AddThemeFontSizeOverride("font_size", 9);
-                cooldownLabel.AddThemeColorOverride("font_color", Colors.White);
-                cooldownLabel.AddThemeColorOverride("font_outline_color", Colors.Black);
+                cooldownLabel.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+                cooldownLabel.AddThemeFontSizeOverride("font_size", UiTokens.MicroFontSize);
+                cooldownLabel.AddThemeColorOverride("font_color", UiTokens.TextPrimary);
+                cooldownLabel.AddThemeColorOverride("font_outline_color", UiTokens.Canvas);
                 cooldownLabel.AddThemeConstantOverride("outline_size", 2);
                 badge.AddChild(cooldownLabel);
 
-                badge.TooltipText = string.IsNullOrWhiteSpace(skill.SkillName) ? "Kỹ năng" : skill.SkillName;
                 _skillBadgeViews.Add(new SkillBadgeView
                 {
                     Skill = skill,
                     Holder = badge,
-                    Icon = icon,
                     Overlay = overlay,
                     OverlayEdge = overlayEdge,
-                    Frame = frame,
                     CooldownLabel = cooldownLabel
                 });
             }
@@ -543,34 +522,23 @@ namespace AshesofaDyingWorld.UI.HUD
             }
 
             _targetCombatant ??= ResolveCombatantForStats(_targetStats);
-
             bool anyVisible = false;
-            int visibleIndex = 0;
-            foreach (var badgeView in _skillBadgeViews)
+            foreach (SkillBadgeView badgeView in _skillBadgeViews)
             {
-                if (badgeView?.Holder == null || badgeView.Skill == null || badgeView.Overlay == null)
+                if (badgeView?.Holder == null || badgeView.Skill == null)
                 {
                     continue;
                 }
 
-                // Luôn giữ icon skill trên hàng tên. Đây là phần HUD người chơi dùng để
-                // nhận diện skill + cooldown, không chỉ là indicator khi timed skill đang active.
                 badgeView.Holder.Visible = true;
-                badgeView.Holder.Position = new Vector2(
-                    visibleIndex * (ActiveSkillBadgeSize + ActiveSkillBadgeSpacing),
-                    0.0f);
-                visibleIndex++;
                 anyVisible = true;
-
                 float remaining = _targetCombatant?.Abilities?.GetCooldownRemaining(badgeView.Skill) ?? 0.0f;
                 float duration = Mathf.Max(0.01f, badgeView.Skill.Cooldown);
                 float ratio = Mathf.Clamp(remaining / duration, 0.0f, 1.0f);
-
                 Control clipRoot = badgeView.Overlay.GetParent<Control>();
                 Vector2 innerSize = clipRoot?.Size ?? new Vector2(20.0f, 20.0f);
                 float overlayHeight = innerSize.Y * ratio;
 
-                // Phần tối dâng từ dưới lên: càng nhiều vùng tối thì cooldown còn càng lâu.
                 badgeView.Overlay.Visible = remaining > 0.05f && overlayHeight > 0.5f;
                 badgeView.Overlay.Position = new Vector2(0.0f, innerSize.Y - overlayHeight);
                 badgeView.Overlay.Size = new Vector2(innerSize.X, overlayHeight);
@@ -584,66 +552,12 @@ namespace AshesofaDyingWorld.UI.HUD
                     badgeView.OverlayEdge.Size = new Vector2(innerSize.X, 2.0f);
                 }
 
-                if (badgeView.CooldownLabel != null)
-                {
-                    badgeView.CooldownLabel.Text = remaining > 0.05f
-                        ? (remaining >= 10.0f ? Mathf.CeilToInt(remaining).ToString() : remaining.ToString("0.0"))
-                        : string.Empty;
-                }
+                badgeView.CooldownLabel.Text = remaining > 0.05f
+                    ? (remaining >= 10.0f ? Mathf.CeilToInt(remaining).ToString() : remaining.ToString("0.0"))
+                    : string.Empty;
             }
 
             _activeSkillStrip.Visible = anyVisible;
-            UpdateActiveSkillStripPlacement();
-        }
-
-        private void UpdateActiveSkillStripPlacement()
-        {
-            if (_activeSkillStrip == null)
-            {
-                return;
-            }
-
-            // Cụm icon được canh phải trên đúng hàng tên. Hyou có 2 skill thì cụm tự nở
-            // sang trái; NameLabel co lại trước cụm icon nên tên và cooldown không đè nhau.
-            int badgeCount = Mathf.Max(1, _skillBadgeViews.Count);
-            float stripWidth = badgeCount * ActiveSkillBadgeSize
-                + Mathf.Max(0, badgeCount - 1) * ActiveSkillBadgeSpacing;
-            float frameWidth = frameBackground != null && frameBackground.Size.X > 0.0f
-                ? frameBackground.Size.X
-                : 300.0f;
-            float right = Mathf.Max(stripWidth, frameWidth - ActiveSkillRowRightPadding);
-            float left = right - stripWidth;
-
-            _activeSkillStrip.OffsetLeft = left;
-            _activeSkillStrip.OffsetTop = ActiveSkillRowTop;
-            _activeSkillStrip.OffsetRight = right;
-            _activeSkillStrip.OffsetBottom = ActiveSkillRowTop + ActiveSkillBadgeSize;
-
-            if (NameLabel != null)
-            {
-                NameLabel.OffsetRight = Mathf.Max(NameLabel.OffsetLeft + 48.0f, left - 5.0f);
-                EnsureHeaderPresentation();
-            }
-        }
-
-        private void UpdateCombatStatusStripPlacement()
-        {
-            if (_combatStatusStrip == null)
-            {
-                return;
-            }
-
-            float top = frameBackground != null ? frameBackground.Size.Y - 2.0f : 98.0f;
-            _combatStatusStrip.OffsetLeft = 196.0f;
-            _combatStatusStrip.OffsetTop = top;
-            _combatStatusStrip.OffsetRight = 292.0f;
-            _combatStatusStrip.OffsetBottom = top + StatusEffectBadgeSize + 2.0f;
-        }
-
-        private void OnFrameBackgroundResized()
-        {
-            UpdateActiveSkillStripPlacement();
-            UpdateCombatStatusStripPlacement();
         }
 
         private CombatCharacter ResolveCombatantForStats(PlayerStats stats)
@@ -664,36 +578,20 @@ namespace AshesofaDyingWorld.UI.HUD
             return null;
         }
 
-        private Player ResolvePlayerForStats(PlayerStats stats)
-        {
-            if (stats == null || GetTree() == null)
-            {
-                return null;
-            }
-
-            foreach (Node node in GetTree().GetNodesInGroup("Player"))
-            {
-                if (node is Player player && player.GetStatsNode() == stats)
-                {
-                    return player;
-                }
-            }
-
-            return null;
-        }
-
         private TextureRect CreateAutoSizedSkillIcon(Texture2D texture, float maxWidth, float maxHeight)
         {
-            var iconRect = new TextureRect();
-            iconRect.MouseFilter = MouseFilterEnum.Ignore;
-            iconRect.Texture = texture;
-            iconRect.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
-            iconRect.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
-            iconRect.CustomMinimumSize = ComputeSafeSkillIconSize(texture, maxWidth, maxHeight);
+            var iconRect = new TextureRect
+            {
+                MouseFilter = Control.MouseFilterEnum.Ignore,
+                Texture = texture,
+                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+                CustomMinimumSize = ComputeSafeSkillIconSize(texture, maxWidth, maxHeight)
+            };
             return iconRect;
         }
 
-        private Vector2 ComputeSafeSkillIconSize(Texture2D texture, float maxWidth, float maxHeight)
+        private static Vector2 ComputeSafeSkillIconSize(Texture2D texture, float maxWidth, float maxHeight)
         {
             if (texture == null)
             {
@@ -707,9 +605,27 @@ namespace AshesofaDyingWorld.UI.HUD
             }
 
             float scale = Mathf.Min(Mathf.Min(maxWidth / sourceSize.X, maxHeight / sourceSize.Y), 1.0f);
-            float fittedWidth = Mathf.Max(10.0f, Mathf.Round(sourceSize.X * scale));
-            float fittedHeight = Mathf.Max(10.0f, Mathf.Round(sourceSize.Y * scale));
-            return new Vector2(fittedWidth, fittedHeight);
+            return new Vector2(
+                Mathf.Max(10.0f, Mathf.Round(sourceSize.X * scale)),
+                Mathf.Max(10.0f, Mathf.Round(sourceSize.Y * scale)));
+        }
+
+        private static void SetFullRectInsets(Control control, float inset)
+        {
+            control.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+            control.OffsetLeft = inset;
+            control.OffsetTop = inset;
+            control.OffsetRight = -inset;
+            control.OffsetBottom = -inset;
+        }
+
+        public override void _ExitTree()
+        {
+            if (_targetStats != null)
+            {
+                _targetStats.StatsChanged -= UpdateUI;
+            }
+
         }
     }
 }
