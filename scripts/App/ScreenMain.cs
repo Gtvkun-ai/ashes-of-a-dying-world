@@ -358,7 +358,6 @@ public partial class ScreenMain : Node2D
         CombatFeedbackService.GetOrCreate(tree);
         DamageNumberService.GetOrCreate(tree);
         CompanionTargetIndicatorService.GetOrCreate(tree);
-        SkillCooldownHudService.GetOrCreate(tree);
         FloatingProgressionHudService.GetOrCreate(tree);
     }
 

@@ -3,6 +3,7 @@ using AshesofaDyingWorld.Entities.Player;
 using AshesofaDyingWorld.Combat.Actors;
 using AshesofaDyingWorld.Combat.Runtime;
 using AshesofaDyingWorld.Core.Data;
+using AshesofaDyingWorld.UI.HUD.Skills;
 using AshesofaDyingWorld.UI.Theme;
 using System;
 using System.Collections.Generic;
@@ -459,7 +460,10 @@ namespace AshesofaDyingWorld.UI.HUD
                 var iconCenter = new CenterContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
                 iconCenter.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
                 clipRoot.AddChild(iconCenter);
-                iconCenter.AddChild(CreateAutoSizedSkillIcon(skill.Icon, 16.0f, 16.0f));
+                iconCenter.AddChild(CreateAutoSizedSkillIcon(
+                    SkillIconResolver.Resolve(skill),
+                    16.0f,
+                    16.0f));
 
                 var overlay = new ColorRect
                 {

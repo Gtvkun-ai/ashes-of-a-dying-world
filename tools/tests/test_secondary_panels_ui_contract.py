@@ -19,6 +19,25 @@ def test_party_keeps_companion_commands_and_keyboard_focus():
     assert "CreateTransparentButtonStyle" in source
 
 
+def test_party_layout_scrolls_detail_and_does_not_stretch_member_cards():
+    source = _source("scripts/UI/Party/PartyPanel.cs")
+    detail = source.split("private Control BuildDetailSection()", 1)[1].split(
+        "private void RebuildFormationCards()", 1
+    )[0]
+
+    assert 'Name = "DetailScroll"' in detail
+    assert "VerticalScrollMode = ScrollContainer.ScrollMode.Auto" in detail
+    assert "HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled" in detail
+    assert "frame.AddChild(scroll)" in detail
+    assert "scroll.AddChild(column)" in detail
+    assert "_formationRow.SizeFlagsVertical = SizeFlags.ShrinkCenter" in source
+    assert source.count("card.SizeFlagsVertical = SizeFlags.ShrinkCenter") == 2
+    assert source.count("SetBar(_detail") >= 6
+    assert source.count(", 0, 0);") == 3
+    assert "if (maximum <= 0f)" in source
+    assert 'label.Text = "0/0"' in source
+
+
 def test_quest_uses_glyph_and_has_explicit_unavailable_map_state():
     source = _source("scripts/UI/Quests/QuestJournalPanel.cs")
     tracker = _source("scripts/UI/Quests/QuestTrackerHud.cs")
@@ -65,7 +84,8 @@ def test_secondary_showcase_mounts_real_panels_and_native_controls():
     scene = _source("tools/validation/ui_screen_showcase.tscn")
     script = _source("tools/validation/ui_screen_showcase.gd")
 
-    assert "1280" in scene and "720" in scene
+    assert "anchors_preset = 15" in scene
+    assert "custom_minimum_size" not in scene
     for panel_path in (
         "res://scripts/UI/Party/PartyPanel.cs",
         "res://scripts/UI/Quests/QuestJournalPanel.cs",
@@ -73,5 +93,6 @@ def test_secondary_showcase_mounts_real_panels_and_native_controls():
         "res://scripts/UI/HUD/SettingsPanel.cs",
     ):
         assert panel_path in script
-    assert "_validate_secondary_focus" in script
-    assert "ReducedMotion" in script
+    assert "_validate_panel" in script
+    assert "node.focus_mode == Control.FOCUS_ALL" in script
+    assert 'set_meta("validation_passed", true)' in script

@@ -12,8 +12,55 @@ GLYPH_ATLAS_PATH = REPO_ROOT / "assets/graphics/ui/icons/ui_glyph_atlas.svg"
 GLYPH_RESOLVER_PATH = REPO_ROOT / "scripts/UI/Theme/UiGlyphResolver.cs"
 GLYPH_SMOKE_SCENE_PATH = REPO_ROOT / "tools/validation/ui_glyph_smoke_test.tscn"
 GLYPH_SMOKE_SCRIPT_PATH = REPO_ROOT / "tools/validation/UiGlyphSmokeTest.cs"
-ICON_RESOURCE_NAMES = ("str", "dex", "int", "vit", "spi", "def", "exit", "default_skill")
+ICON_RESOURCE_NAMES = ("str", "dex", "int", "vit", "spi", "def", "exit", "default_skill", "quest")
 ATLAS_RESOURCE_PATH = "res://assets/graphics/ui/icons/ui_glyph_atlas.svg"
+LEGACY_UI_GLOBS = (
+    "assets/graphics/ui/menus/login/*",
+    "assets/graphics/ui/buttons/button_primary_*.png",
+    "assets/graphics/ui/buttons/button_secondary_*.png",
+    "assets/graphics/ui/buttons/button_danger_*.png",
+    "assets/graphics/ui/buttons/character.png",
+    "assets/graphics/ui/buttons/inventory.png",
+    "assets/graphics/ui/hud/main_hud.png",
+    "assets/graphics/ui/hud/companion_command_menu_*.png",
+    "assets/graphics/ui/hud/redesign/*",
+    "assets/graphics/ui/status/enemy_hp_bar.png",
+    "assets/graphics/ui/status/main_stats/*.png",
+    "assets/graphics/ui/status/resource_*.png",
+    "assets/graphics/ui/icons/menu_action_icons_sheet.png",
+    "assets/graphics/ui/icons/stat_icons_sheet.png",
+    "assets/graphics/ui/inventory/category_*.png",
+    "assets/graphics/ui/inventory/frame_9slice.png",
+    "assets/graphics/ui/inventory/grain.png",
+    "assets/graphics/ui/inventory/icon_bag.png",
+    "assets/graphics/ui/inventory/icon_coin.png",
+    "scripts/UI/HUD/SkillCooldownHudService.cs",
+    "scripts/UI/HUD/StatHexagonChart.cs",
+)
+LEGACY_RUNTIME_TOKENS = (
+    "res://assets/graphics/ui/buttons",
+    "res://assets/graphics/ui/menus/login/",
+    "res://assets/graphics/ui/buttons/button_primary_",
+    "res://assets/graphics/ui/buttons/button_secondary_",
+    "res://assets/graphics/ui/buttons/button_danger_",
+    "res://assets/graphics/ui/buttons/character.png",
+    "res://assets/graphics/ui/buttons/inventory.png",
+    "res://assets/graphics/ui/hud/main_hud.png",
+    "res://assets/graphics/ui/hud/companion_command_menu_",
+    "res://assets/graphics/ui/hud/redesign/",
+    "res://assets/graphics/ui/status/enemy_hp_bar.png",
+    "res://assets/graphics/ui/status/main_stats/",
+    "res://assets/graphics/ui/status/resource_",
+    "res://assets/graphics/ui/icons/menu_action_icons_sheet.png",
+    "res://assets/graphics/ui/icons/stat_icons_sheet.png",
+    "res://assets/graphics/ui/inventory/category_",
+    "res://assets/graphics/ui/inventory/frame_9slice.png",
+    "res://assets/graphics/ui/inventory/grain.png",
+    "res://assets/graphics/ui/inventory/icon_bag.png",
+    "res://assets/graphics/ui/inventory/icon_coin.png",
+    "SkillCooldownHudService",
+    "StatHexagonChart",
+)
 
 
 def _source(path: Path) -> str:
@@ -111,6 +158,9 @@ def test_shared_chrome_uses_theme_tokens():
     assert "UiThemeFactory.Apply" in chrome_source
     assert "UiTokens" in button_source
     assert "UiThemeFactory" in theme_source
+    assert "frame_9slice.png" not in chrome_source
+    assert "grain.png" not in chrome_source
+    assert "NinePatchRect" not in chrome_source
 
 
 def test_shared_theme_apply_preserves_existing_root_theme():
@@ -273,3 +323,198 @@ def test_data_stat_icons_use_clean_atlas_regions():
         assert width == 24 and height == 24
 
     assert atlas_paths == {ATLAS_RESOURCE_PATH}
+
+
+def _local_doc_references(source: str) -> set[str]:
+    html_refs = re.findall(r'(?:src|href)="([^"]+)"', source)
+    css_refs = re.findall(r'url\(["\']?([^"\')]+)', source)
+    markdown_refs = re.findall(r'!?\[[^\]]*\]\(([^)]+)\)', source)
+    references = set(html_refs + css_refs + markdown_refs)
+    return {
+        ref.split("#", 1)[0]
+        for ref in references
+        if ref
+        and not ref.startswith(("#", "http://", "https://", "data:", "mailto:"))
+    }
+
+
+def test_visual_language_docs_are_offline_and_all_local_links_resolve():
+    docs_dir = REPO_ROOT / "docs"
+    html = _source(docs_dir / "visual_language.html")
+    markdown = _source(docs_dir / "visual_language_doc.md")
+    combined = html + markdown
+
+    assert ".gemini" not in combined
+    assert "file:///" not in combined
+    assert "fonts.googleapis.com" not in combined
+    assert "world_concept_art_" not in combined
+    assert "world_concept_art.png" in html
+    assert "world_concept_art.png" in markdown
+    assert "hud_preview.png" in html
+    assert "hud_preview.png" in markdown
+    assert "hud_preview_1280.png" in html
+    assert "hud_preview_1280.png" in markdown
+    assert "hud_preview_night.png" in html
+    assert "hud_preview_night.png" in markdown
+
+    missing = []
+    for reference in _local_doc_references(combined):
+        if not (docs_dir / reference).resolve().exists():
+            missing.append(reference)
+    assert missing == []
+
+
+def test_visual_language_font_claims_match_bundled_faces():
+    html = _source(REPO_ROOT / "docs/visual_language.html")
+    markdown = _source(REPO_ROOT / "docs/visual_language_doc.md")
+    combined = html + markdown
+
+    assert "Be Vietnam Pro" in combined
+    assert "Cinzel 900" not in combined
+    assert "IM Fell English Italic" not in combined
+    assert "font-family: 'Cinzel'" not in combined
+    assert "font-family: 'IM Fell" not in combined
+    for face in ("Regular", "Medium", "SemiBold", "Italic", "SemiBold Italic"):
+        assert face in markdown
+    assert "BeVietnamPro-SemiBoldItalic.ttf" in html
+    assert re.search(
+        r'BeVietnamPro-SemiBoldItalic\.ttf"\) format\("truetype"\);\s*'
+        r"font-style: italic;\s*font-weight: 600;",
+        html,
+    )
+
+
+def test_visual_language_defines_living_world_and_production_rules():
+    markdown = _source(REPO_ROOT / "docs/visual_language_doc.md")
+    required_phrases = (
+        "Map không phải lúc nào cũng hoang tàn",
+        "có thể xanh, sáng và bão hòa",
+        "Shape language",
+        "Material language",
+        "Value hierarchy",
+        "Startup",
+        "Active",
+        "Recovery",
+        "Foreground và background",
+        "Do / Don't",
+        "Fallback hình dạng",
+        "300 x 97 px",
+        "1280x720",
+        "1600x900",
+    )
+    for phrase in required_phrases:
+        assert phrase in markdown
+
+
+def test_approved_legacy_ui_has_no_file_or_runtime_reference():
+    remaining_files = sorted(
+        path.relative_to(REPO_ROOT).as_posix()
+        for pattern in LEGACY_UI_GLOBS
+        for path in REPO_ROOT.glob(pattern)
+    )
+    assert remaining_files == []
+
+    runtime_extensions = {".cs", ".gd", ".tscn", ".tres", ".godot", ".cfg", ".json"}
+    runtime_references = []
+    for root_name in ("scripts", "scenes", "data", "resources"):
+        root = REPO_ROOT / root_name
+        if not root.exists():
+            continue
+        for path in root.rglob("*"):
+            if not path.is_file() or path.suffix.lower() not in runtime_extensions:
+                continue
+            source = _source(path)
+            for token in LEGACY_RUNTIME_TOKENS:
+                if token in source:
+                    runtime_references.append(
+                        f"{path.relative_to(REPO_ROOT).as_posix()}: {token}"
+                    )
+    assert runtime_references == []
+
+
+def test_world_concept_art_is_a_real_png():
+    source = (REPO_ROOT / "docs/world_concept_art.png").read_bytes()
+    assert source.startswith(b"\x89PNG\r\n\x1a\n")
+
+
+def test_full_visual_showcase_artifacts_exist_and_reference_runtime_components():
+    scene = REPO_ROOT / "tools/validation/ui_visual_showcase.tscn"
+    script = REPO_ROOT / "tools/validation/ui_visual_showcase.gd"
+    assert scene.is_file()
+    assert script.is_file()
+
+    source = _source(script)
+    for runtime_name in (
+        "party_hud.tscn",
+        "EnemyHealthBarService",
+        "UiGlyphResolver",
+        "PixelButtonSkin",
+        "jrpg_choice_layer.tscn",
+    ):
+        assert runtime_name in source
+    assert "1600" in source
+    assert "900" in source
+    assert "1280" in source
+    assert "720" in source
+
+
+def test_visual_showcase_covers_day_night_panels_and_keyboard_glyph_help():
+    script = _source(REPO_ROOT / "tools/validation/ui_visual_showcase.gd")
+    scene = _source(REPO_ROOT / "tools/validation/ui_visual_showcase.tscn")
+    components = _source(REPO_ROOT / "tools/validation/UiVisualShowcaseComponents.cs")
+    panel_showcase = _source(REPO_ROOT / "tools/validation/ui_screen_showcase.gd")
+    panel_scene = _source(REPO_ROOT / "tools/validation/ui_screen_showcase.tscn")
+
+    assert "--showcase-lighting=" in script
+    assert "WorldNightGrade" in script
+    assert "WorldNightGrade" in scene
+    assert "--showcase-mode=" in script
+    assert "ui_screen_showcase.tscn" in script
+    assert "PanelShowcaseLayer" in script
+    assert "CanvasLayer.new()" in script
+    assert "_panel_layer.add_child(_panel_showcase)" in script
+    assert '_panel_showcase.set_meta("showcase_viewport_size", viewport_size)' in script
+    assert "PanelShowcaseCamera" not in script
+    for panel_name in (
+        "InventoryPanel",
+        "CharacterDetailUI",
+        "PartyPanel",
+        "QuestJournalPanel",
+        "SkillTreePanel",
+        "SettingsPanel",
+    ):
+        assert panel_name in panel_showcase
+    assert "--showcase-panel=" in panel_showcase
+    assert "active_panel_name" in panel_showcase
+    assert "_surface_panel" not in panel_showcase
+    assert "_mount_runtime_panel" not in panel_showcase
+    assert "var panel_host := Control.new()" in panel_showcase
+    host_size = "panel_host.size = get_viewport_rect().size"
+    attach_panel = "panel_host.add_child(_active_panel)"
+    host_layout = "_active_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)"
+    assert host_size in panel_showcase
+    assert attach_panel in panel_showcase
+    assert host_layout in panel_showcase
+    assert panel_showcase.index(host_size) < panel_showcase.index(attach_panel)
+    assert panel_showcase.index(attach_panel) < panel_showcase.index(host_layout)
+    assert panel_showcase.index(host_layout) < panel_showcase.index("add_child(panel_host)")
+    assert "_active_panel.size = get_viewport_rect().size" not in panel_showcase
+    assert "get_global_transform_with_canvas()" in panel_showcase
+    assert "Panel bounds escape the viewport" in panel_showcase
+    assert 'get_meta("showcase_viewport_size"' in panel_showcase
+    assert "get_window().size = Vector2i(expected_size)" in panel_showcase
+    assert 'set_meta("validation_passed", true)' in panel_showcase
+    assert 'get_meta("validation_passed", false)' in script
+    assert re.search(
+        r"if is_instance_valid\(_panel_layer\):\s*"
+        r"_panel_layer\.queue_free\(\)\s*"
+        r"elif is_instance_valid\(_panel_showcase\):\s*"
+        r"_panel_showcase\.queue_free\(\)",
+        script,
+    )
+    assert "panel_bounds.position.x >= viewport_bounds.position.x - 1.0" in panel_showcase
+    assert "panel_bounds.end.x <= viewport_bounds.end.x + 1.0" in panel_showcase
+    assert "custom_minimum_size" not in panel_scene
+
+    assert "FocusMode = Control.FocusModeEnum.All" in components
+    assert "FocusEntered" in components

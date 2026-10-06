@@ -15,11 +15,6 @@ namespace AshesofaDyingWorld.UI.Shared
         public const float PanelHeight = 640f;
         public const float SlotSize = 64f;
         public const float DetailPanelWidth = 330f;
-        public const int OuterFramePatchMargin = 18;
-
-        public const string AssetRoot = "res://assets/graphics/ui/inventory";
-        public const string OuterFramePath = AssetRoot + "/frame_9slice.png";
-        public const string GrainTexturePath = AssetRoot + "/grain.png";
 
         public static readonly Color WindowColor = UiTokens.Background;
         public static readonly Color HeaderColor = UiTokens.Surface;
@@ -52,8 +47,7 @@ namespace AshesofaDyingWorld.UI.Shared
         }
 
         /// <summary>
-        /// Dựng nguyên lớp vỏ đang được InventoryPanel sử dụng và trả về VBox chứa
-        /// header, tab bar và body. Frame được thêm sau content để luôn nằm trên cùng.
+        /// Dựng lớp vỏ native dùng chung và trả về VBox chứa header, tab bar và body.
         /// </summary>
         public static VBoxContainer BuildWindowShell(Control owner)
         {
@@ -70,19 +64,6 @@ namespace AshesofaDyingWorld.UI.Shared
             window.MouseFilter = Control.MouseFilterEnum.Ignore;
             layers.AddChild(window);
 
-            var grainTexture = TryLoadTexture(GrainTexturePath);
-            if (grainTexture != null)
-            {
-                var grain = new TextureRect();
-                grain.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-                grain.Texture = grainTexture;
-                grain.StretchMode = TextureRect.StretchModeEnum.Tile;
-                grain.TextureRepeat = CanvasItem.TextureRepeatEnum.Enabled;
-                grain.Modulate = new Color(1f, 1f, 1f, 0.24f);
-                grain.MouseFilter = Control.MouseFilterEnum.Ignore;
-                layers.AddChild(grain);
-            }
-
             var outerMargin = new MarginContainer();
             outerMargin.SetAnchorsPreset(Control.LayoutPreset.FullRect);
             outerMargin.AddThemeConstantOverride("margin_left", 22);
@@ -96,22 +77,6 @@ namespace AshesofaDyingWorld.UI.Shared
             root.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
             root.AddThemeConstantOverride("separation", 5);
             outerMargin.AddChild(root);
-
-            var outerFrameTexture = TryLoadTexture(OuterFramePath);
-            if (outerFrameTexture != null)
-            {
-                var frame = new NinePatchRect();
-                frame.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-                frame.Texture = outerFrameTexture;
-                frame.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
-                frame.DrawCenter = false;
-                frame.PatchMarginLeft = OuterFramePatchMargin;
-                frame.PatchMarginTop = OuterFramePatchMargin;
-                frame.PatchMarginRight = OuterFramePatchMargin;
-                frame.PatchMarginBottom = OuterFramePatchMargin;
-                frame.MouseFilter = Control.MouseFilterEnum.Ignore;
-                layers.AddChild(frame);
-            }
 
             return root;
         }
@@ -360,11 +325,6 @@ namespace AshesofaDyingWorld.UI.Shared
         public static Color WithAlpha(Color color, float alpha)
         {
             return new Color(color.R, color.G, color.B, alpha);
-        }
-
-        public static Texture2D TryLoadTexture(string path)
-        {
-            return ResourceLoader.Exists(path) ? GD.Load<Texture2D>(path) : null;
         }
 
         private static UiTextRole ResolveTextRole(int fontSize)

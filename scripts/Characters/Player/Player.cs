@@ -55,7 +55,6 @@ public partial class Player : CombatCharacter
         // Dựng trạng thái kỹ năng runtime sau khi các component combat đã sẵn sàng.
         InitializeSkillCollection();
         InitializeFlowEvasion();
-        SkillCooldownHudService.GetOrCreate(GetTree());
         FloatingProgressionHudService.GetOrCreate(GetTree());
     }
 

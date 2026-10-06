@@ -1,1961 +1,794 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Visual Language — Ashes of a Dying World</title>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=IM+Fell+English:ital@0;1&family=Be+Vietnam+Pro:wght@300;400;500;600&display=swap" rel="stylesheet">
-<style>
-  :root {
-    /* === WORLD PALETTE === */
-    --ash-black:      #0D0A07;
-    --deep-brown:     #1A110A;
-    --charred-wood:   #2C1F10;
-    --warm-shadow:    #3D2E1A;
-    --dust-stone:     #6B5C3E;
-    --dry-grass:      #8A7A5A;
-    --dried-wheat:    #C4A96A;
-    --pale-bone:      #E8D8B4;
-
-    /* === UI GOLD === */
-    --ui-gold:        #C8943C;
-    --ui-gold-bright: #E8C060;
-    --ui-gold-dim:    #7A5820;
-    --ui-border:      #9A7028;
-
-    /* === HIKARU PALETTE === */
-    --hikaru-primary:  #3D3020;
-    --hikaru-accent:   #C89040;
-    --hikaru-dark:     #1C1510;
-    --hikaru-focus:    #D4A050; /* Focus skill glow */
-
-    /* === HYOU PALETTE === */
-    --hyou-primary:    #3ABCF5;
-    --hyou-deep:       #1C3A5E;
-    --hyou-frost:      #A8DCFF;
-    --hyou-ice:        #D4EEFF;
-    --hyou-purple:     #8B5CF6;
-    --hyou-glow:       #00C8FF;
-
-    /* === ELEMENT COLORS === */
-    --elem-physical:  #C8943C;
-    --elem-ice:       #3ABCF5;
-    --elem-fire:      #F05030;
-    --elem-lightning: #E8D030;
-    --elem-wind:      #50C890;
-    --elem-light:     #F0E8A0;
-    --elem-dark:      #8050C8;
-
-    /* === RESOURCE COLORS === */
-    --hp-red:         #C42B2B;
-    --hp-red-bright:  #E84040;
-    --mp-blue:        #2B6AC4;
-    --mp-blue-bright: #4090E8;
-    --sta-green:      #2B9A3A;
-    --sta-green-bright:#40C850;
-
-    /* === STATUS EFFECTS === */
-    --chill-blue:     #60C0E0;
-    --slow-purple:    #A060C0;
-    --frozen-cyan:    #20D0F0;
-
-    /* === TYPOGRAPHY === */
-    --font-title:     'Cinzel', serif;
-    --font-lore:      'IM Fell English', serif;
-    --font-ui:        'Be Vietnam Pro', sans-serif;
-  }
-
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  html { scroll-behavior: smooth; }
-
-  body {
-    background-color: var(--ash-black);
-    color: var(--pale-bone);
-    font-family: var(--font-ui);
-    font-size: 15px;
-    line-height: 1.7;
-    overflow-x: hidden;
-  }
-
-  /* ===== SCROLLBAR ===== */
-  ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-track { background: var(--deep-brown); }
-  ::-webkit-scrollbar-thumb { background: var(--ui-gold-dim); border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: var(--ui-gold); }
-
-  /* ===== LAYOUT ===== */
-  .container { max-width: 1100px; margin: 0 auto; padding: 0 32px; }
-
-  /* ===== HERO ===== */
-  .hero {
-    position: relative;
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    overflow: hidden;
-    background:
-      radial-gradient(ellipse 80% 60% at 50% 60%, rgba(60,188,245,0.06) 0%, transparent 70%),
-      radial-gradient(ellipse 60% 80% at 20% 80%, rgba(139,92,246,0.08) 0%, transparent 60%),
-      linear-gradient(180deg, #0D0A07 0%, #110D08 40%, #0A0D14 100%);
-  }
-
-  .hero-particles {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    overflow: hidden;
-  }
-
-  .particle {
-    position: absolute;
-    border-radius: 50%;
-    animation: float-particle linear infinite;
-    opacity: 0;
-  }
-
-  @keyframes float-particle {
-    0%   { transform: translateY(100vh) rotate(0deg); opacity: 0; }
-    10%  { opacity: 0.6; }
-    90%  { opacity: 0.3; }
-    100% { transform: translateY(-10vh) rotate(720deg); opacity: 0; }
-  }
-
-  .hero-content { position: relative; z-index: 2; }
-
-  .hero-eyebrow {
-    font-family: var(--font-ui);
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 4px;
-    text-transform: uppercase;
-    color: var(--ui-gold);
-    margin-bottom: 20px;
-    opacity: 0.8;
-  }
-
-  .hero-title {
-    font-family: var(--font-title);
-    font-size: clamp(2.4rem, 6vw, 5.5rem);
-    font-weight: 900;
-    letter-spacing: 0.02em;
-    line-height: 1.1;
-    color: var(--pale-bone);
-    text-shadow:
-      0 0 60px rgba(200, 148, 60, 0.3),
-      0 0 120px rgba(200, 148, 60, 0.1);
-    margin-bottom: 16px;
-  }
-
-  .hero-title em {
-    font-style: normal;
-    color: var(--ui-gold);
-    text-shadow: 0 0 40px rgba(200, 148, 60, 0.6);
-  }
-
-  .hero-subtitle {
-    font-family: var(--font-lore);
-    font-style: italic;
-    font-size: clamp(1rem, 2vw, 1.3rem);
-    color: var(--dry-grass);
-    margin-bottom: 48px;
-    max-width: 560px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  .hero-divider {
-    width: 240px;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--ui-gold), transparent);
-    margin: 0 auto 48px;
-  }
-
-  .hero-tags {
-    display: flex;
-    gap: 12px;
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-
-  .hero-tag {
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    border: 1px solid rgba(200, 148, 60, 0.3);
-    border-radius: 2px;
-    padding: 6px 16px;
-    color: var(--ui-gold);
-    background: rgba(200, 148, 60, 0.06);
-  }
-
-  .hero-scroll {
-    position: absolute;
-    bottom: 40px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    color: var(--dust-stone);
-    font-size: 10px;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    animation: bounce-scroll 2s ease-in-out infinite;
-    cursor: pointer;
-  }
-
-  .hero-scroll::after {
-    content: '';
-    width: 1px;
-    height: 40px;
-    background: linear-gradient(180deg, var(--ui-gold-dim), transparent);
-  }
-
-  @keyframes bounce-scroll {
-    0%, 100% { transform: translateX(-50%) translateY(0); }
-    50% { transform: translateX(-50%) translateY(8px); }
-  }
-
-  /* ===== NAV ===== */
-  .nav {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: rgba(13, 10, 7, 0.92);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(200, 148, 60, 0.15);
-    padding: 0;
-  }
-
-  .nav-inner {
-    display: flex;
-    align-items: center;
-    gap: 0;
-    overflow-x: auto;
-    scrollbar-width: none;
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 0 32px;
-  }
-
-  .nav-inner::-webkit-scrollbar { display: none; }
-
-  .nav-link {
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--dust-stone);
-    text-decoration: none;
-    padding: 16px 20px;
-    border-bottom: 2px solid transparent;
-    white-space: nowrap;
-    transition: color 0.2s, border-color 0.2s;
-  }
-
-  .nav-link:hover, .nav-link.active {
-    color: var(--ui-gold);
-    border-bottom-color: var(--ui-gold);
-  }
-
-  /* ===== SECTIONS ===== */
-  section {
-    padding: 80px 0;
-    border-bottom: 1px solid rgba(200, 148, 60, 0.08);
-  }
-
-  .section-eyebrow {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 4px;
-    text-transform: uppercase;
-    color: var(--ui-gold);
-    margin-bottom: 10px;
-    opacity: 0.7;
-  }
-
-  .section-title {
-    font-family: var(--font-title);
-    font-size: clamp(1.5rem, 3vw, 2.2rem);
-    font-weight: 600;
-    color: var(--pale-bone);
-    margin-bottom: 12px;
-    letter-spacing: 0.02em;
-  }
-
-  .section-desc {
-    font-family: var(--font-lore);
-    font-style: italic;
-    color: var(--dry-grass);
-    max-width: 600px;
-    margin-bottom: 48px;
-    font-size: 1rem;
-  }
-
-  .section-rule {
-    width: 60px;
-    height: 2px;
-    background: linear-gradient(90deg, var(--ui-gold), transparent);
-    margin-bottom: 40px;
-  }
-
-  /* ===== GRID SYSTEMS ===== */
-  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
-  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-
-  @media (max-width: 768px) {
-    .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
-  }
-
-  /* ===== CARDS ===== */
-  .card {
-    background: rgba(26, 17, 10, 0.6);
-    border: 1px solid rgba(200, 148, 60, 0.15);
-    border-radius: 4px;
-    padding: 28px;
-    position: relative;
-    transition: border-color 0.2s, transform 0.2s;
-  }
-
-  .card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0;
-    width: 3px; height: 100%;
-    background: var(--ui-gold);
-    opacity: 0;
-    transition: opacity 0.2s;
-  }
-
-  .card:hover {
-    border-color: rgba(200, 148, 60, 0.4);
-    transform: translateY(-2px);
-  }
-
-  .card:hover::before { opacity: 1; }
-
-  .card-title {
-    font-family: var(--font-title);
-    font-size: 0.85rem;
-    letter-spacing: 0.1em;
-    color: var(--ui-gold);
-    margin-bottom: 12px;
-    text-transform: uppercase;
-  }
-
-  /* ===== COLOR PALETTE ===== */
-  .palette-section { }
-
-  .palette-group { margin-bottom: 40px; }
-
-  .palette-group-label {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: var(--dust-stone);
-    margin-bottom: 14px;
-  }
-
-  .palette-row { display: flex; gap: 8px; flex-wrap: wrap; }
-
-  .swatch {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    cursor: pointer;
-    transition: transform 0.15s;
-  }
-
-  .swatch:hover { transform: scale(1.05); }
-
-  .swatch-color {
-    width: 72px;
-    height: 56px;
-    border-radius: 3px;
-    border: 1px solid rgba(255,255,255,0.06);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .swatch-color::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 50%);
-  }
-
-  .swatch-label {
-    font-size: 9px;
-    letter-spacing: 0.5px;
-    color: var(--dust-stone);
-    text-align: center;
-    font-family: 'Courier New', monospace;
-    word-break: break-all;
-  }
-
-  .swatch-name {
-    font-size: 9px;
-    color: var(--dry-grass);
-    text-align: center;
-    font-weight: 500;
-  }
-
-  /* ===== TYPOGRAPHY ===== */
-  .type-specimen {
-    display: flex;
-    flex-direction: column;
-    gap: 32px;
-  }
-
-  .type-sample { }
-
-  .type-meta {
-    font-size: 10px;
-    letter-spacing: 2px;
-    color: var(--dust-stone);
-    text-transform: uppercase;
-    margin-bottom: 8px;
-  }
-
-  .type-display {
-    font-family: var(--font-title);
-    font-size: 3.5rem;
-    font-weight: 900;
-    color: var(--pale-bone);
-    line-height: 1;
-  }
-
-  .type-heading {
-    font-family: var(--font-title);
-    font-size: 1.8rem;
-    font-weight: 600;
-    color: var(--pale-bone);
-  }
-
-  .type-lore {
-    font-family: var(--font-lore);
-    font-style: italic;
-    font-size: 1.1rem;
-    color: var(--dry-grass);
-    max-width: 500px;
-  }
-
-  .type-ui {
-    font-family: var(--font-ui);
-    font-size: 0.9rem;
-    color: var(--pale-bone);
-    max-width: 500px;
-  }
-
-  .type-label {
-    font-family: var(--font-ui);
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: var(--ui-gold);
-  }
-
-  /* ===== CHARACTER PANELS ===== */
-  .character-panel {
-    background: rgba(20, 14, 8, 0.7);
-    border: 1px solid rgba(200, 148, 60, 0.2);
-    border-radius: 4px;
-    overflow: hidden;
-    position: relative;
-    transition: border-color 0.3s;
-  }
-
-  .character-panel:hover { border-color: rgba(200, 148, 60, 0.5); }
-
-  .char-header {
-    padding: 24px 28px;
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    border-bottom: 1px solid rgba(200, 148, 60, 0.12);
-  }
-
-  .char-portrait {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid var(--ui-gold-dim);
-    flex-shrink: 0;
-  }
-
-  .char-info { flex: 1; }
-
-  .char-name {
-    font-family: var(--font-title);
-    font-size: 1.4rem;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-  }
-
-  .char-role {
-    font-size: 11px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--dust-stone);
-    margin-top: 2px;
-  }
-
-  .char-race {
-    font-size: 12px;
-    font-family: var(--font-lore);
-    font-style: italic;
-    color: var(--dry-grass);
-    margin-top: 4px;
-  }
-
-  .char-theme-dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    box-shadow: 0 0 12px currentColor;
-  }
-
-  .char-body {
-    padding: 24px 28px;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-  }
-
-  .char-skill-list { }
-
-  .char-skill-label {
-    font-size: 10px;
-    letter-spacing: 2px;
-    color: var(--dust-stone);
-    text-transform: uppercase;
-    margin-bottom: 10px;
-  }
-
-  .skill-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    padding: 5px 12px;
-    border-radius: 2px;
-    margin: 3px;
-    font-weight: 500;
-    border: 1px solid;
-  }
-
-  .skill-tag.physical { border-color: rgba(200,148,60,0.4); color: var(--elem-physical); background: rgba(200,148,60,0.08); }
-  .skill-tag.ice      { border-color: rgba(58,188,245,0.4); color: var(--elem-ice); background: rgba(58,188,245,0.08); }
-  .skill-tag.flow     { border-color: rgba(212,160,80,0.4); color: #D4A050; background: rgba(212,160,80,0.08); }
-
-  .stat-bars { }
-
-  .stat-bar-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 10px;
-  }
-
-  .stat-bar-label {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 1px;
-    width: 28px;
-    color: var(--dust-stone);
-    text-transform: uppercase;
-    flex-shrink: 0;
-  }
-
-  .stat-bar-track {
-    flex: 1;
-    height: 6px;
-    background: rgba(255,255,255,0.06);
-    border-radius: 3px;
-    overflow: hidden;
-    position: relative;
-  }
-
-  .stat-bar-fill {
-    height: 100%;
-    border-radius: 3px;
-    position: absolute;
-    left: 0; top: 0;
-    transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
-  }
-
-  .stat-bar-fill.hp  { background: linear-gradient(90deg, var(--hp-red), var(--hp-red-bright)); }
-  .stat-bar-fill.mp  { background: linear-gradient(90deg, var(--mp-blue), var(--mp-blue-bright)); }
-  .stat-bar-fill.sta { background: linear-gradient(90deg, var(--sta-green), var(--sta-green-bright)); }
-
-  .stat-bar-val {
-    font-size: 10px;
-    font-family: 'Courier New', monospace;
-    color: var(--dry-grass);
-    width: 26px;
-    text-align: right;
-    flex-shrink: 0;
-  }
-
-  /* ===== HUD DEMO ===== */
-  .hud-demo {
-    background: rgba(10, 7, 5, 0.9);
-    border: 1px solid rgba(200, 148, 60, 0.2);
-    border-radius: 4px;
-    padding: 32px;
-  }
-
-  .hud-preview-img {
-    width: 100%;
-    max-width: 500px;
-    display: block;
-    margin: 0 auto 24px;
-    image-rendering: pixelated;
-  }
-
-  /* ===== ELEMENT SYSTEM ===== */
-  .element-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: 12px;
-  }
-
-  .element-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    padding: 20px 12px;
-    border-radius: 4px;
-    border: 1px solid rgba(255,255,255,0.06);
-    background: rgba(20, 14, 8, 0.5);
-    cursor: pointer;
-    transition: all 0.2s;
-    text-align: center;
-  }
-
-  .element-card:hover {
-    transform: translateY(-3px);
-    border-color: var(--elem-color, rgba(200,148,60,0.4));
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-    background: rgba(30, 20, 12, 0.8);
-  }
-
-  .element-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.3rem;
-    border: 2px solid currentColor;
-    background: rgba(var(--elem-rgb, 200,148,60), 0.1);
-    transition: box-shadow 0.2s;
-  }
-
-  .element-card:hover .element-icon {
-    box-shadow: 0 0 20px currentColor;
-  }
-
-  .element-name {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    color: var(--pale-bone);
-  }
-
-  /* ===== STATUS EFFECTS ===== */
-  .status-badges {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-
-  .status-badge {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
-    border-radius: 3px;
-    border: 1px solid;
-    font-size: 12px;
-    font-weight: 500;
-  }
-
-  .status-badge.chill  { border-color: rgba(96,192,224,0.4); color: var(--chill-blue); background: rgba(96,192,224,0.08); }
-  .status-badge.slow   { border-color: rgba(160,96,192,0.4); color: var(--slow-purple); background: rgba(160,96,192,0.08); }
-  .status-badge.frozen { border-color: rgba(32,208,240,0.4); color: var(--frozen-cyan); background: rgba(32,208,240,0.08); }
-
-  .status-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: currentColor;
-    animation: pulse-status 2s ease-in-out infinite;
-  }
-
-  @keyframes pulse-status {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
-  }
-
-  /* ===== QUEST TYPES ===== */
-  .quest-type-list { display: flex; flex-direction: column; gap: 16px; }
-
-  .quest-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 16px;
-    padding: 20px;
-    background: rgba(20,14,8,0.5);
-    border: 1px solid rgba(200,148,60,0.1);
-    border-radius: 3px;
-    transition: border-color 0.2s;
-  }
-
-  .quest-item:hover { border-color: rgba(200,148,60,0.3); }
-
-  .quest-type-badge {
-    flex-shrink: 0;
-    width: 36px;
-    height: 36px;
-    border-radius: 3px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1rem;
-    border: 1px solid;
-  }
-
-  .quest-type-badge.main   { border-color: rgba(200,148,60,0.5); background: rgba(200,148,60,0.1); }
-  .quest-type-badge.side   { border-color: rgba(100,160,220,0.5); background: rgba(100,160,220,0.1); }
-  .quest-type-badge.companion { border-color: rgba(160,96,192,0.5); background: rgba(160,96,192,0.1); }
-
-  .quest-info { flex: 1; }
-  .quest-title { font-family: var(--font-title); font-size: 0.9rem; color: var(--pale-bone); letter-spacing: 0.05em; }
-  .quest-desc  { font-size: 12px; color: var(--dust-stone); margin-top: 4px; }
-
-  /* ===== DESIGN PRINCIPLES ===== */
-  .principles-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
-
-  .principle-card {
-    padding: 28px;
-    background: rgba(20,14,8,0.5);
-    border: 1px solid rgba(200,148,60,0.1);
-    border-radius: 4px;
-    position: relative;
-    transition: all 0.25s;
-  }
-
-  .principle-card:hover {
-    border-color: rgba(200,148,60,0.3);
-    background: rgba(30,20,12,0.7);
-  }
-
-  .principle-num {
-    font-family: var(--font-title);
-    font-size: 3rem;
-    font-weight: 900;
-    color: rgba(200,148,60,0.08);
-    position: absolute;
-    top: 16px; right: 20px;
-    line-height: 1;
-  }
-
-  .principle-icon { font-size: 1.6rem; margin-bottom: 14px; }
-
-  .principle-title {
-    font-family: var(--font-title);
-    font-size: 1rem;
-    letter-spacing: 0.05em;
-    color: var(--ui-gold);
-    margin-bottom: 10px;
-  }
-
-  .principle-text {
-    font-size: 13px;
-    line-height: 1.7;
-    color: var(--dry-grass);
-  }
-
-  /* ===== VISUAL MOTIFS ===== */
-  .motif-row {
-    display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
-    margin-bottom: 24px;
-  }
-
-  .motif-card {
-    padding: 20px 24px;
-    border: 1px solid rgba(200,148,60,0.15);
-    border-radius: 3px;
-    background: rgba(20,14,8,0.6);
-    flex: 1;
-    min-width: 220px;
-    transition: border-color 0.2s;
-  }
-
-  .motif-card:hover { border-color: rgba(200,148,60,0.35); }
-
-  .motif-title {
-    font-size: 10px;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: var(--ui-gold);
-    margin-bottom: 10px;
-  }
-
-  .motif-preview {
-    height: 50px;
-    border-radius: 2px;
-    margin-bottom: 12px;
-  }
-
-  .motif-desc { font-size: 12px; color: var(--dust-stone); line-height: 1.6; }
-
-  /* Gradient previews */
-  .grad-ash   { background: linear-gradient(135deg, #2C1F10 0%, #1A110A 50%, #0D0A07 100%); }
-  .grad-fire  { background: linear-gradient(135deg, #5C1A00, #C84020, #F08020); }
-  .grad-ice   { background: linear-gradient(135deg, #0A1C30, #1C5080, #3ABCF5, #A8DCFF); }
-  .grad-gold  { background: linear-gradient(135deg, #3D2800, #7A5820, #C8943C, #E8C060); }
-  .grad-dusk  { background: linear-gradient(180deg, #0A0D18 0%, #2A1A30 30%, #8B3A20 70%, #C87030 100%); }
-  .grad-dawn  { background: linear-gradient(180deg, #0D0A07 0%, #3D2010 30%, #C89040 70%, #E8D090 100%); }
-
-  /* ===== ANIMATION SHOWCASE ===== */
-  .anim-row { display: flex; gap: 20px; flex-wrap: wrap; }
-
-  .anim-demo {
-    flex: 1;
-    min-width: 200px;
-    padding: 24px;
-    background: rgba(20,14,8,0.6);
-    border: 1px solid rgba(200,148,60,0.12);
-    border-radius: 3px;
-    text-align: center;
-    transition: border-color 0.2s;
-  }
-
-  .anim-demo:hover { border-color: rgba(200,148,60,0.3); }
-
-  .anim-ball {
-    width: 32px; height: 32px;
-    border-radius: 50%;
-    background: var(--ui-gold);
-    margin: 0 auto 16px;
-    box-shadow: 0 0 16px rgba(200,148,60,0.5);
-  }
-
-  .anim-ball.pulse { animation: anim-pulse 1.5s ease-in-out infinite; }
-  .anim-ball.float { animation: anim-float 2s ease-in-out infinite; }
-  .anim-ball.shimmer { animation: anim-shimmer 1.2s ease-in-out infinite; }
-  .anim-ball.glow-ice { background: var(--hyou-primary); box-shadow: 0 0 20px rgba(58,188,245,0.6); animation: anim-glow 1.8s ease-in-out infinite; }
-
-  @keyframes anim-pulse  { 0%,100%{ transform:scale(1); opacity:1; } 50%{ transform:scale(1.15); opacity:0.7; } }
-  @keyframes anim-float  { 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-12px); } }
-  @keyframes anim-shimmer{ 0%,100%{ box-shadow:0 0 8px rgba(200,148,60,0.3); } 50%{ box-shadow:0 0 32px rgba(200,148,60,0.9); } }
-  @keyframes anim-glow   { 0%,100%{ box-shadow:0 0 12px rgba(58,188,245,0.4); } 50%{ box-shadow:0 0 40px rgba(58,188,245,1); } }
-
-  .anim-label {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--dust-stone);
-    margin-bottom: 6px;
-  }
-
-  .anim-desc { font-size: 12px; color: var(--dry-grass); }
-
-  /* ===== WORLD NAME SECTION ===== */
-  .location-chips { display: flex; gap: 10px; flex-wrap: wrap; }
-
-  .location-chip {
-    padding: 8px 16px;
-    border: 1px solid rgba(200,148,60,0.2);
-    border-radius: 2px;
-    font-family: var(--font-lore);
-    font-style: italic;
-    font-size: 13px;
-    color: var(--dry-grass);
-    background: rgba(20,14,8,0.4);
-    cursor: default;
-    transition: all 0.2s;
-  }
-
-  .location-chip:hover {
-    border-color: rgba(200,148,60,0.4);
-    color: var(--pale-bone);
-    background: rgba(30,20,12,0.6);
-  }
-
-  /* ===== WORLD IMAGE ===== */
-  .world-image-container {
-    border: 1px solid rgba(200,148,60,0.15);
-    border-radius: 4px;
-    overflow: hidden;
-    position: relative;
-    margin-bottom: 32px;
-  }
-
-  .world-image-container img {
-    width: 100%;
-    display: block;
-  }
-
-  .world-image-caption {
-    font-size: 11px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--dust-stone);
-    text-align: center;
-    padding: 12px;
-    border-top: 1px solid rgba(200,148,60,0.1);
-    background: rgba(13,10,7,0.8);
-  }
-
-  /* ===== FOOTER ===== */
-  .footer {
-    text-align: center;
-    padding: 48px 32px;
-    color: var(--dust-stone);
-    font-size: 12px;
-    letter-spacing: 2px;
-    border-top: 1px solid rgba(200,148,60,0.1);
-  }
-
-  .footer-title {
-    font-family: var(--font-title);
-    font-size: 1.4rem;
-    color: rgba(200,148,60,0.3);
-    letter-spacing: 0.15em;
-    margin-bottom: 12px;
-  }
-
-  /* ===== DIVIDER ===== */
-  .divider {
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(200,148,60,0.3), transparent);
-    margin: 40px 0;
-  }
-
-  /* ===== TOOLTIP ===== */
-  [data-tooltip] { position: relative; cursor: help; }
-  [data-tooltip]:hover::after {
-    content: attr(data-tooltip);
-    position: absolute;
-    bottom: calc(100% + 8px);
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(26, 17, 10, 0.97);
-    border: 1px solid rgba(200,148,60,0.3);
-    border-radius: 2px;
-    padding: 6px 12px;
-    font-size: 11px;
-    white-space: nowrap;
-    color: var(--pale-bone);
-    z-index: 999;
-    font-family: var(--font-ui);
-    pointer-events: none;
-  }
-
-  /* ===== FADE IN ===== */
-  .fade-in {
-    opacity: 0;
-    transform: translateY(20px);
-    transition: opacity 0.6s ease, transform 0.6s ease;
-  }
-
-  .fade-in.visible {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  /* ===== HIGHLIGHT CODE ===== */
-  .hex-code {
-    font-family: 'Courier New', monospace;
-    font-size: 11px;
-    background: rgba(200,148,60,0.1);
-    border: 1px solid rgba(200,148,60,0.2);
-    border-radius: 2px;
-    padding: 2px 6px;
-    color: var(--ui-gold-bright);
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-
-  .hex-code:hover { background: rgba(200,148,60,0.2); }
-
-  /* ===== TAG LINE ===== */
-  .tagline-box {
-    text-align: center;
-    padding: 48px 32px;
-    border: 1px solid rgba(200,148,60,0.1);
-    border-radius: 4px;
-    background: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(200,148,60,0.04), transparent);
-    margin-bottom: 64px;
-  }
-
-  .tagline {
-    font-family: var(--font-lore);
-    font-style: italic;
-    font-size: clamp(1.1rem, 2.5vw, 1.5rem);
-    color: var(--dry-grass);
-    max-width: 640px;
-    margin: 0 auto 20px;
-    line-height: 1.6;
-  }
-
-  .tagline em {
-    font-style: normal;
-    color: var(--pale-bone);
-  }
-
-  .tagline-source {
-    font-size: 11px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--dust-stone);
-  }
-
-  /* ===== MISC ===== */
-  strong { color: var(--pale-bone); }
-  code { font-family: 'Courier New', monospace; font-size: 0.85em; color: var(--ui-gold); }
-  
-  .gold { color: var(--ui-gold); }
-  .muted { color: var(--dust-stone); }
-  .ice-col { color: var(--hyou-primary); }
-
-  @media (max-width: 600px) {
-    .container { padding: 0 16px; }
-    section { padding: 56px 0; }
-    .char-body { grid-template-columns: 1fr; }
-  }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tàn Sinh - Visual Language UI/HUD</title>
+  <style>
+    @font-face {
+      font-family: "Be Vietnam Pro";
+      src: url("../assets/fonts/BeVietnamPro-Regular.ttf") format("truetype");
+      font-style: normal;
+      font-weight: 400;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: "Be Vietnam Pro";
+      src: url("../assets/fonts/BeVietnamPro-Medium.ttf") format("truetype");
+      font-style: normal;
+      font-weight: 500;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: "Be Vietnam Pro";
+      src: url("../assets/fonts/BeVietnamPro-SemiBold.ttf") format("truetype");
+      font-style: normal;
+      font-weight: 600;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: "Be Vietnam Pro";
+      src: url("../assets/fonts/BeVietnamPro-Italic.ttf") format("truetype");
+      font-style: italic;
+      font-weight: 400;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: "Be Vietnam Pro";
+      src: url("../assets/fonts/BeVietnamPro-SemiBoldItalic.ttf") format("truetype");
+      font-style: italic;
+      font-weight: 600;
+      font-display: swap;
+    }
+
+    :root {
+      --canvas: #120f0c;
+      --background: #1d1813;
+      --surface: #29221b;
+      --surface-raised: #352c22;
+      --border: #5c4b38;
+      --border-strong: #8a6b42;
+      --accent: #c39a57;
+      --text: #f0e5d2;
+      --text-secondary: #bfaf98;
+      --text-disabled: #756b5d;
+      --danger: #b9574f;
+      --life: #7fa56d;
+      --memory: #9a72c7;
+      --ice: #62b8d9;
+      --page: #0c0e0d;
+      --page-raised: #151714;
+      --line: #30342e;
+      --max: 1180px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--text);
+      font-family: "Be Vietnam Pro", system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 1.65;
+      letter-spacing: 0;
+    }
+    button, input, select { font: inherit; letter-spacing: 0; }
+    img { display: block; max-width: 100%; }
+    a { color: var(--text); text-decoration-color: var(--border-strong); text-underline-offset: 4px; }
+    a:hover { color: #fff; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    .shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 248px minmax(0, 1fr);
+    }
+    .side-nav {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: auto;
+      padding: 28px 20px;
+      background: var(--canvas);
+      border-right: 1px solid var(--border);
+    }
+    .brand-mark {
+      margin-bottom: 24px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .brand-mark strong {
+      display: block;
+      font-size: 20px;
+      font-weight: 600;
+    }
+    .brand-mark span {
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+    }
+    .nav-label {
+      margin: 20px 8px 8px;
+      color: var(--text-disabled);
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .side-nav a {
+      display: block;
+      min-height: 34px;
+      padding: 7px 8px;
+      color: var(--text-secondary);
+      border-left: 2px solid transparent;
+      text-decoration: none;
+    }
+    .side-nav a:hover,
+    .side-nav a.active {
+      color: var(--text);
+      border-left-color: var(--accent);
+      background: var(--surface);
+    }
+    .nav-footer {
+      margin-top: 28px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      color: var(--text-disabled);
+      font-size: 11px;
+    }
+
+    main { min-width: 0; }
+    .hero {
+      position: relative;
+      min-height: min(68vh, 640px);
+      display: flex;
+      align-items: flex-end;
+      background-image: url("world_concept_art.png");
+      background-size: cover;
+      background-position: center 58%;
+      isolation: isolate;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background: rgba(12, 14, 13, 0.56);
+    }
+    .hero-copy {
+      width: min(var(--max), calc(100% - 64px));
+      margin: 0 auto;
+      padding: 72px 0 56px;
+    }
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 {
+      max-width: 760px;
+      margin-bottom: 12px;
+      font-size: 52px;
+      line-height: 1.1;
+      font-weight: 600;
+    }
+    .hero-copy > p:not(.eyebrow) {
+      max-width: 680px;
+      margin: 0;
+      color: #fff;
+      font-size: 18px;
+    }
+
+    .content {
+      width: min(var(--max), calc(100% - 64px));
+      margin: 0 auto;
+    }
+    section {
+      padding: 64px 0;
+      border-bottom: 1px solid var(--line);
+      scroll-margin-top: 20px;
+    }
+    section:last-child { border-bottom: 0; }
+    .section-head {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+      gap: 32px;
+      align-items: end;
+      margin-bottom: 32px;
+    }
+    h2 {
+      margin-bottom: 0;
+      font-size: 28px;
+      line-height: 1.25;
+      font-weight: 600;
+    }
+    h3 {
+      margin-bottom: 8px;
+      font-size: 17px;
+      line-height: 1.35;
+      font-weight: 600;
+    }
+    .section-head p,
+    .muted { color: var(--text-secondary); }
+    .section-head p { margin: 0; }
+    .lead {
+      max-width: 820px;
+      color: var(--text-secondary);
+      font-size: 16px;
+    }
+    .callout {
+      margin: 28px 0;
+      padding: 18px 20px;
+      background: var(--background);
+      border-left: 2px solid var(--accent);
+      color: var(--text);
+    }
+
+    .pillar-grid,
+    .rule-grid,
+    .phase-grid,
+    .component-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .rule-grid,
+    .component-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .tile {
+      min-width: 0;
+      padding: 20px;
+      background: var(--page-raised);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+    }
+    .tile p:last-child { margin-bottom: 0; }
+    .tile-index {
+      display: block;
+      margin-bottom: 16px;
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .world-band {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+      border: 1px solid var(--line);
+      background: var(--page-raised);
+    }
+    .world-band img {
+      width: 100%;
+      height: 100%;
+      min-height: 420px;
+      object-fit: cover;
+    }
+    .world-copy {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 32px;
+    }
+    .world-copy strong { color: var(--life); }
+
+    .palette {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .swatch {
+      min-width: 0;
+      padding: 0;
+      color: var(--text);
+      text-align: left;
+      background: var(--page-raised);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      cursor: pointer;
+      overflow: hidden;
+    }
+    .swatch-color { height: 68px; background: var(--swatch); }
+    .swatch-copy { padding: 12px; }
+    .swatch-copy strong,
+    .swatch-copy code { display: block; }
+    .swatch-copy code { margin-top: 3px; color: var(--text-secondary); font-size: 11px; }
+    .copy-status {
+      min-height: 22px;
+      margin: 12px 0 0;
+      color: var(--accent);
+      font-size: 12px;
+    }
+
+    .type-table,
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--page-raised);
+      border: 1px solid var(--line);
+    }
+    .type-table th,
+    .type-table td,
+    .data-table th,
+    .data-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+    .type-table th,
+    .data-table th {
+      color: var(--text-secondary);
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+    }
+    .type-table tr:last-child td,
+    .data-table tr:last-child td { border-bottom: 0; }
+    .sample-title { font-size: 24px; font-weight: 600; }
+    .sample-section { font-size: 18px; font-weight: 600; }
+    .sample-body { font-size: 14px; }
+    .sample-label { font-size: 12px; font-weight: 500; }
+    .sample-micro { font-size: 11px; font-weight: 500; }
+    .sample-combat { font-size: 20px; font-weight: 600; }
+
+    .shape-demo {
+      padding: 28px;
+      background: var(--background);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+    }
+    .demo-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .demo-row:last-child { margin-bottom: 0; }
+    .demo-button {
+      min-height: 40px;
+      padding: 8px 16px;
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--border-strong);
+      border-radius: 3px;
+    }
+    .demo-button.primary { border-color: var(--accent); background: var(--surface-raised); }
+    .demo-button.focus { border: 2px solid var(--text); box-shadow: 0 0 0 2px rgba(195,154,87,.28); }
+    .demo-button.danger { border-color: var(--danger); background: #542722; }
+    .demo-button:disabled { color: var(--text-disabled); border-color: #483e33; background: #211c17; }
+    .bars { width: min(520px, 100%); display: grid; gap: 8px; }
+    .bar-row { display: grid; grid-template-columns: 42px minmax(0, 1fr) 58px; gap: 8px; align-items: center; }
+    .bar-row span { font-size: 11px; font-weight: 600; }
+    .bar-track { height: 12px; padding: 2px; background: var(--canvas); border: 1px solid var(--border); border-radius: 3px; }
+    .bar-fill { height: 100%; width: var(--value); background: var(--bar); border-radius: 1px; }
+    .bar-value { color: var(--text-secondary); text-align: right; }
+
+    .density-list {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1px;
+      background: var(--line);
+      border: 1px solid var(--line);
+    }
+    .density-item { padding: 18px; background: var(--page-raised); }
+    .density-item strong { display: block; color: var(--accent); font-size: 18px; }
+    .glyph-sheet {
+      margin-top: 24px;
+      padding: 20px;
+      background: var(--background);
+      border: 1px solid var(--border);
+    }
+    .glyph-sheet img {
+      width: 384px;
+      max-width: 100%;
+      image-rendering: pixelated;
+    }
+
+    .hierarchy {
+      display: grid;
+      gap: 8px;
+    }
+    .hierarchy-row {
+      display: grid;
+      grid-template-columns: 36px 160px minmax(0, 1fr);
+      gap: 12px;
+      align-items: center;
+    }
+    .hierarchy-rank { color: var(--accent); font-weight: 600; }
+    .value-line { height: 10px; width: var(--level); background: var(--value-color); border: 1px solid rgba(255,255,255,.2); }
+
+    .runtime-shot {
+      border: 1px solid var(--border);
+      background: var(--canvas);
+    }
+    .runtime-shot img { width: 100%; }
+    .runtime-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .runtime-grid .runtime-shot:first-child { grid-column: 1 / -1; }
+    .runtime-shot figcaption {
+      padding: 9px 12px;
+      border-top: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-size: 11px;
+    }
+    .caption {
+      margin: 10px 0 0;
+      color: var(--text-secondary);
+      font-size: 12px;
+    }
+
+    .phase {
+      position: relative;
+      padding-top: 48px;
+    }
+    .phase::before {
+      content: attr(data-step);
+      position: absolute;
+      top: 16px;
+      left: 20px;
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .phase.startup { border-top: 3px solid var(--accent); }
+    .phase.active { border-top: 3px solid var(--danger); }
+    .phase.recovery { border-top: 3px solid var(--ice); }
+
+    .do-dont {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .do, .dont { padding: 24px; border: 1px solid var(--line); background: var(--page-raised); }
+    .do { border-top: 3px solid var(--life); }
+    .dont { border-top: 3px solid var(--danger); }
+    .plain-list { margin: 0; padding-left: 20px; }
+    .plain-list li { margin-bottom: 8px; }
+
+    .checklist {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1px;
+      padding: 1px;
+      background: var(--line);
+    }
+    .check {
+      min-height: 64px;
+      display: grid;
+      grid-template-columns: 22px 1fr;
+      gap: 10px;
+      align-items: start;
+      padding: 16px;
+      background: var(--page-raised);
+    }
+    .check span:first-child { color: var(--accent); font-weight: 600; }
+
+    .footer {
+      padding: 36px 0 56px;
+      color: var(--text-disabled);
+      font-size: 12px;
+    }
+
+    @media (max-width: 980px) {
+      .shell { grid-template-columns: 1fr; }
+      .side-nav {
+        position: relative;
+        height: auto;
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        padding: 12px 16px;
+        border-right: 0;
+        border-bottom: 1px solid var(--border);
+      }
+      .brand-mark, .nav-label, .nav-footer { display: none; }
+      .side-nav a { flex: 0 0 auto; border-left: 0; border-bottom: 2px solid transparent; }
+      .side-nav a:hover, .side-nav a.active { border-left-color: transparent; border-bottom-color: var(--accent); }
+      .palette { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .pillar-grid, .phase-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 720px) {
+      .hero { min-height: 620px; align-items: flex-end; }
+      .hero-copy, .content { width: min(100% - 32px, var(--max)); }
+      .hero-copy { padding-bottom: 40px; }
+      h1 { font-size: 40px; }
+      .hero-copy > p:not(.eyebrow) { font-size: 16px; }
+      section { padding: 48px 0; }
+      .section-head { grid-template-columns: 1fr; gap: 12px; }
+      .palette { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .rule-grid, .component-grid, .do-dont, .checklist, .runtime-grid { grid-template-columns: 1fr; }
+      .runtime-grid .runtime-shot:first-child { grid-column: auto; }
+      .world-band { grid-template-columns: 1fr; }
+      .world-band img { min-height: 320px; }
+      .density-list { grid-template-columns: 1fr; }
+      .hierarchy-row { grid-template-columns: 32px 112px minmax(0, 1fr); }
+      .type-table, .data-table { display: block; overflow-x: auto; }
+    }
+  </style>
 </head>
 <body>
+  <div class="shell">
+    <nav class="side-nav" aria-label="Mục lục visual language">
+      <div class="brand-mark"><strong>Tàn Sinh</strong><span>Visual Language 1.0</span></div>
+      <p class="nav-label">Nền tảng</p>
+      <a href="#thesis">Luận đề</a>
+      <a href="#color">Màu sắc</a>
+      <a href="#type">Typography</a>
+      <a href="#shape">Shape & Material</a>
+      <a href="#density">Grid & Asset</a>
+      <p class="nav-label">Runtime</p>
+      <a href="#hierarchy">Value hierarchy</a>
+      <a href="#components">Component</a>
+      <a href="#vfx">VFX & Motion</a>
+      <a href="#accessibility">Accessibility</a>
+      <a href="#production">Production</a>
+      <div class="nav-footer">UI/HUD · Godot 4.7 · Be Vietnam Pro</div>
+    </nav>
 
-<!-- ===== PARTICLES ===== -->
-<div class="hero-particles" id="particles"></div>
+    <main>
+      <header class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Visual Language · UI/HUD</p>
+          <h1>Tàn Sinh</h1>
+          <p>Thế giới vẫn đẹp và sống động trong khi phần cốt lõi bên dưới đang dần tàn đi.</p>
+        </div>
+      </header>
 
-<!-- ===== HERO ===== -->
-<header class="hero" id="top">
-  <div class="hero-content">
-    <p class="hero-eyebrow">Visual Language Document · 2026</p>
-    <h1 class="hero-title">Ashes of a <em>Dying World</em></h1>
-    <p class="hero-subtitle">"Thế giới đang chết — nhưng hoa vẫn nở trên tàn tro."</p>
-    <div class="hero-divider"></div>
-    <div class="hero-tags">
-      <span class="hero-tag">2D Action RPG</span>
-      <span class="hero-tag">Godot 4.7 · C#</span>
-      <span class="hero-tag">Dark Fantasy</span>
-      <span class="hero-tag">Narrative-Driven</span>
-      <span class="hero-tag">Pixel Art</span>
-    </div>
-  </div>
-  <div class="hero-scroll" onclick="document.getElementById('overview').scrollIntoView({behavior:'smooth'})">Scroll</div>
-</header>
-
-<!-- ===== NAV ===== -->
-<nav class="nav">
-  <div class="nav-inner">
-    <a class="nav-link" href="#overview">Tổng quan</a>
-    <a class="nav-link" href="#palette">Màu sắc</a>
-    <a class="nav-link" href="#typography">Typography</a>
-    <a class="nav-link" href="#characters">Nhân vật</a>
-    <a class="nav-link" href="#elements">Nguyên tố</a>
-    <a class="nav-link" href="#hud">HUD</a>
-    <a class="nav-link" href="#world">Thế giới</a>
-    <a class="nav-link" href="#quests">Nhiệm vụ</a>
-    <a class="nav-link" href="#motifs">Motif</a>
-    <a class="nav-link" href="#principles">Nguyên tắc</a>
-  </div>
-</nav>
-
-<!-- ===== MAIN ===== -->
-<main>
-
-<!-- ===== OVERVIEW ===== -->
-<section id="overview">
-  <div class="container fade-in">
-    <p class="section-eyebrow">01 — Overview</p>
-    <h2 class="section-title">Nhận diện trực quan</h2>
-    <p class="section-desc">"Vẻ đẹp héo tàn — ký ức chưa phai." Tất cả lựa chọn thiết kế đều phục vụ cho cảm xúc này.</p>
-    <div class="section-rule"></div>
-
-    <div class="tagline-box">
-      <p class="tagline">
-        Một thế giới đang <em>tắt dần</em> — nhưng trong lòng nó vẫn còn<br>
-        những cánh hoa tím nở trên đất <em>tàn tro</em>,<br>
-        những linh hồn băng giá giữ <em>lời hứa</em> chưa vỡ,<br>
-        và một con người chọn <em>tiến bước</em> dù không biết đích đến.
-      </p>
-      <p class="tagline-source">— Thế giới quan Ashes of a Dying World</p>
-    </div>
-
-    <div class="grid-3">
-      <div class="card">
-        <p class="card-title">Thể loại</p>
-        <p style="color:var(--dry-grass);font-size:13px;line-height:1.7">2D Action RPG với hệ thống party, chiến đấu real-time, skill tree, quest narrative và companion story. Thị điểm nhìn từ trên xuống theo phong cách JRPG cổ điển.</p>
-      </div>
-      <div class="card">
-        <p class="card-title">Tông cảm xúc</p>
-        <p style="color:var(--dry-grass);font-size:13px;line-height:1.7">Melancholic beauty — buồn nhưng không tuyệt vọng. Thế giới đang hấp hối nhưng con người vẫn chọn yêu thương, ghi nhớ và không bỏ cuộc.</p>
-      </div>
-      <div class="card">
-        <p class="card-title">Công nghệ</p>
-        <p style="color:var(--dry-grass);font-size:13px;line-height:1.7">Godot 4.7 + C#. Viewport 1600×900. Shader theo thời gian thực (ánh sáng, thời tiết, nước). Font: <em>Be Vietnam Pro</em>. Pixel-perfect rendering.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ===== PALETTE ===== -->
-<section id="palette">
-  <div class="container fade-in">
-    <p class="section-eyebrow">02 — Color System</p>
-    <h2 class="section-title">Hệ thống màu sắc</h2>
-    <p class="section-desc">Ba nhóm màu cốt lõi phản ánh ba trụ cột: Thế giới đang chết, Hikaru con người trần thế, và Hyou linh hồn băng giá.</p>
-    <div class="section-rule"></div>
-
-    <!-- World -->
-    <div class="palette-group">
-      <p class="palette-group-label">🌑 World — Tàn Tro &amp; Đất Cháy</p>
-      <div class="palette-row">
-        <div class="swatch" data-tooltip="Nền chính — bầu trời đêm">
-          <div class="swatch-color" style="background:#0D0A07"></div>
-          <div class="swatch-name">Ash Black</div>
-          <div class="swatch-label">#0D0A07</div>
-        </div>
-        <div class="swatch" data-tooltip="Nền UI panel">
-          <div class="swatch-color" style="background:#1A110A"></div>
-          <div class="swatch-name">Deep Brown</div>
-          <div class="swatch-label">#1A110A</div>
-        </div>
-        <div class="swatch" data-tooltip="Khung HUD — gỗ cháy">
-          <div class="swatch-color" style="background:#2C1F10"></div>
-          <div class="swatch-name">Charred Wood</div>
-          <div class="swatch-label">#2C1F10</div>
-        </div>
-        <div class="swatch" data-tooltip="Bóng ấm">
-          <div class="swatch-color" style="background:#3D2E1A"></div>
-          <div class="swatch-name">Warm Shadow</div>
-          <div class="swatch-label">#3D2E1A</div>
-        </div>
-        <div class="swatch" data-tooltip="Đá bụi — văn bản phụ">
-          <div class="swatch-color" style="background:#6B5C3E"></div>
-          <div class="swatch-name">Dust Stone</div>
-          <div class="swatch-label">#6B5C3E</div>
-        </div>
-        <div class="swatch" data-tooltip="Cỏ khô — body text">
-          <div class="swatch-color" style="background:#8A7A5A"></div>
-          <div class="swatch-name">Dry Grass</div>
-          <div class="swatch-label">#8A7A5A</div>
-        </div>
-        <div class="swatch" data-tooltip="Lúa mì khô">
-          <div class="swatch-color" style="background:#C4A96A"></div>
-          <div class="swatch-name">Dried Wheat</div>
-          <div class="swatch-label">#C4A96A</div>
-        </div>
-        <div class="swatch" data-tooltip="Text chính">
-          <div class="swatch-color" style="background:#E8D8B4"></div>
-          <div class="swatch-name">Pale Bone</div>
-          <div class="swatch-label">#E8D8B4</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- UI Gold -->
-    <div class="palette-group">
-      <p class="palette-group-label">✦ UI Gold — Khung Cổ Điển JRPG</p>
-      <div class="palette-row">
-        <div class="swatch" data-tooltip="Gold tối — viền dim">
-          <div class="swatch-color" style="background:#7A5820"></div>
-          <div class="swatch-name">Gold Dim</div>
-          <div class="swatch-label">#7A5820</div>
-        </div>
-        <div class="swatch" data-tooltip="Gold chính — viền HUD">
-          <div class="swatch-color" style="background:#C8943C"></div>
-          <div class="swatch-name">UI Gold</div>
-          <div class="swatch-label">#C8943C</div>
-        </div>
-        <div class="swatch" data-tooltip="Gold sáng — hover, highlight">
-          <div class="swatch-color" style="background:#E8C060"></div>
-          <div class="swatch-name">Gold Bright</div>
-          <div class="swatch-label">#E8C060</div>
-        </div>
-        <div class="swatch" data-tooltip="Focus/Hikaru skill glow">
-          <div class="swatch-color" style="background:#D4A050"></div>
-          <div class="swatch-name">Focus Glow</div>
-          <div class="swatch-label">#D4A050</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Hyou Ice -->
-    <div class="palette-group">
-      <p class="palette-group-label">❄ Hyou — Băng Thuật &amp; Linh Hồn</p>
-      <div class="palette-row">
-        <div class="swatch" data-tooltip="Băng sâu — bóng Hyou">
-          <div class="swatch-color" style="background:#1C3A5E"></div>
-          <div class="swatch-name">Deep Navy</div>
-          <div class="swatch-label">#1C3A5E</div>
-        </div>
-        <div class="swatch" data-tooltip="Ice Blue chính — màu nhân vật">
-          <div class="swatch-color" style="background:#3ABCF5"></div>
-          <div class="swatch-name">Ice Blue</div>
-          <div class="swatch-label">#3ABCF5</div>
-        </div>
-        <div class="swatch" data-tooltip="Glow Hyou skill — Ice Bolt">
-          <div class="swatch-color" style="background:#00C8FF"></div>
-          <div class="swatch-name">Hyou Glow</div>
-          <div class="swatch-label">#00C8FF</div>
-        </div>
-        <div class="swatch" data-tooltip="Băng sương — frost effect">
-          <div class="swatch-color" style="background:#A8DCFF"></div>
-          <div class="swatch-name">Frost</div>
-          <div class="swatch-label">#A8DCFF</div>
-        </div>
-        <div class="swatch" data-tooltip="Băng trong — điểm sáng">
-          <div class="swatch-color" style="background:#D4EEFF"></div>
-          <div class="swatch-name">Ice Clear</div>
-          <div class="swatch-label">#D4EEFF</div>
-        </div>
-        <div class="swatch" data-tooltip="Purple mist — ký ức bị phong ấn">
-          <div class="swatch-color" style="background:#8B5CF6"></div>
-          <div class="swatch-name">Memory Mist</div>
-          <div class="swatch-label">#8B5CF6</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Resources -->
-    <div class="palette-group">
-      <p class="palette-group-label">⬛ Resource Bars — HP / MP / STA</p>
-      <div class="palette-row">
-        <div class="swatch" data-tooltip="HP fill — máu">
-          <div class="swatch-color" style="background:#C42B2B"></div>
-          <div class="swatch-name">HP Red</div>
-          <div class="swatch-label">#C42B2B</div>
-        </div>
-        <div class="swatch" data-tooltip="HP bright — gradient tip">
-          <div class="swatch-color" style="background:#E84040"></div>
-          <div class="swatch-name">HP Bright</div>
-          <div class="swatch-label">#E84040</div>
-        </div>
-        <div class="swatch" data-tooltip="MP fill — mana">
-          <div class="swatch-color" style="background:#2B6AC4"></div>
-          <div class="swatch-name">MP Blue</div>
-          <div class="swatch-label">#2B6AC4</div>
-        </div>
-        <div class="swatch" data-tooltip="MP bright">
-          <div class="swatch-color" style="background:#4090E8"></div>
-          <div class="swatch-name">MP Bright</div>
-          <div class="swatch-label">#4090E8</div>
-        </div>
-        <div class="swatch" data-tooltip="STA fill — thể lực">
-          <div class="swatch-color" style="background:#2B9A3A"></div>
-          <div class="swatch-name">STA Green</div>
-          <div class="swatch-label">#2B9A3A</div>
-        </div>
-        <div class="swatch" data-tooltip="STA bright">
-          <div class="swatch-color" style="background:#40C850"></div>
-          <div class="swatch-name">STA Bright</div>
-          <div class="swatch-label">#40C850</div>
-        </div>
-      </div>
-    </div>
-
-  </div>
-</section>
-
-<!-- ===== TYPOGRAPHY ===== -->
-<section id="typography">
-  <div class="container fade-in">
-    <p class="section-eyebrow">03 — Typography</p>
-    <h2 class="section-title">Hệ thống chữ</h2>
-    <p class="section-desc">Ba font với ba vai trò rõ ràng: Cinzel cho sự hoành tráng, IM Fell English cho lời kể chuyện, Be Vietnam Pro cho thông tin hành động.</p>
-    <div class="section-rule"></div>
-
-    <div class="type-specimen">
-      <div class="type-sample">
-        <p class="type-meta">Display · Cinzel 900 · Tiêu đề lớn / Tên game / Chapter</p>
-        <div class="type-display">Ashes of a Dying World</div>
-      </div>
-      <div class="divider"></div>
-      <div class="type-sample">
-        <p class="type-meta">Heading · Cinzel 600 · Tên section / Tên nhân vật / Quest title</p>
-        <div class="type-heading">Lời hứa của Hyou — Chương I</div>
-      </div>
-      <div class="divider"></div>
-      <div class="type-sample">
-        <p class="type-meta">Lore · IM Fell English Italic · Mô tả quest / Lời thoại / Flavor text</p>
-        <div class="type-lore">"Hyou nhận ra một biểu tượng quen thuộc trên mảnh tinh thể băng. Cô muốn quay lại ngôi đền cũ trước khi ký ức ấy tan biến mãi mãi."</div>
-      </div>
-      <div class="divider"></div>
-      <div class="type-sample">
-        <p class="type-meta">UI Body · Be Vietnam Pro 400 · Mô tả skill / Tooltip / Hướng dẫn</p>
-        <div class="type-ui">Deep Flow trong 18 giây: tăng 8% tốc độ di chuyển, 15% Dexterity và tự né các đòn cận chiến theo tương quan trình độ, DEX, INT. Sau cú né, Hikaru tự áp lại khi đối thủ recovery.</div>
-      </div>
-      <div class="divider"></div>
-      <div class="type-sample">
-        <p class="type-meta">Label · Be Vietnam Pro 600 · 11px · Uppercase · Letter-spacing: 3px · Nhãn UI</p>
-        <div class="type-label">HP · MP · STA · BĂNG THUẬT · KỸ NĂNG TÍCH CỰC</div>
-      </div>
-    </div>
-
-    <div class="divider"></div>
-
-    <div class="grid-3" style="margin-top:32px">
-      <div class="card">
-        <p class="card-title">Font chính game</p>
-        <p style="font-family:'Be Vietnam Pro',sans-serif;font-size:1.1rem;margin-bottom:8px">Be Vietnam Pro</p>
-        <p style="color:var(--dry-grass);font-size:12px">Dùng cho mọi text UI trong game — tooltip, stat, quest objective, setting. Hỗ trợ tiếng Việt đầy đủ.</p>
-      </div>
-      <div class="card">
-        <p class="card-title">Font tiêu đề</p>
-        <p style="font-family:'Cinzel',serif;font-size:1.1rem;margin-bottom:8px">Cinzel</p>
-        <p style="color:var(--dry-grass);font-size:12px">Chỉ dùng cho tên game, chapter title, tên nhân vật trên HUD, heading UI quan trọng. Tạo cảm giác cổ điển, epic.</p>
-      </div>
-      <div class="card">
-        <p class="card-title">Font lore</p>
-        <p style="font-family:'IM Fell English',serif;font-style:italic;font-size:1.1rem;margin-bottom:8px">IM Fell English Italic</p>
-        <p style="color:var(--dry-grass);font-size:12px">Chỉ dùng cho flavor text, lời thoại nhân vật, mô tả quest. Tạo cảm giác cổ tích, lời kể chuyện.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ===== CHARACTERS ===== -->
-<section id="characters">
-  <div class="container fade-in">
-    <p class="section-eyebrow">04 — Characters</p>
-    <h2 class="section-title">Ngôn ngữ nhân vật</h2>
-    <p class="section-desc">Mỗi nhân vật có palette, element và ngôn ngữ cảm xúc riêng. Màu ThemeColor được dùng xuyên suốt UI để nhận diện tức thì.</p>
-    <div class="section-rule"></div>
-
-    <div class="grid-2">
-      <!-- Hikaru -->
-      <div class="character-panel">
-        <div class="char-header">
-          <img src="hikaru_icon.png" alt="Hikaru" class="char-portrait">
-          <div class="char-info">
-            <div class="char-name" style="color:var(--pale-bone)">Hikaru</div>
-            <div class="char-role">Nhân vật chính · ID 001</div>
-            <div class="char-race">Người · Human Race</div>
+      <div class="content">
+        <section id="thesis">
+          <div class="section-head">
+            <div><p class="eyebrow">01 · Luận đề</p><h2>Sự sống và suy tàn cùng tồn tại</h2></div>
+            <p>“Tàn” không phải một filter phủ lên map. Nó nằm trong cấu trúc, vật liệu và trạng thái; cảnh quan vẫn có quyền xanh, sáng và bão hòa.</p>
           </div>
-          <div class="char-theme-dot" style="color:var(--ui-gold);background:var(--ui-gold)" data-tooltip="ThemeColor: #000 (base)"></div>
-        </div>
-        <div class="char-body">
-          <div class="char-skill-list">
-            <p class="char-skill-label">Kỹ năng chủ động</p>
-            <span class="skill-tag flow">⚡ Tập trung (Deep Flow)</span><br>
-            <span class="skill-tag physical" style="margin-top:6px">⚔ Heavy Slash</span>
-            <span class="skill-tag physical">⚔ Quick Slash</span>
-            <span class="skill-tag physical">⚔ Relentless Cut</span>
+          <div class="pillar-grid">
+            <article class="tile"><span class="tile-index">01 / SURFACE</span><h3>Sống ở bề mặt</h3><p>Đồng cỏ xanh, hoa rực, nước và phép thuật sáng. Mỗi biome giữ palette riêng thay vì bị ép về xám nâu.</p></article>
+            <article class="tile"><span class="tile-index">02 / STRUCTURE</span><h3>Tàn trong cấu trúc</h3><p>Than lì, đồng xỉn, khoảng tối, cạnh xói nhẹ và trạng thái mất màu. Mỗi dấu hiệu đều phải có lý do.</p></article>
+            <article class="tile"><span class="tile-index">03 / HOPE</span><h3>Hy vọng có trọng lượng</h3><p>Ánh vàng và trắng ấm dành cho focus, lựa chọn, hồi phục và khoảnh khắc giành lại quyền kiểm soát.</p></article>
           </div>
-          <div class="stat-bars">
-            <p class="char-skill-label">Stats cơ bản (Human)</p>
-            <div class="stat-bar-item">
-              <span class="stat-bar-label">STR</span>
-              <div class="stat-bar-track"><div class="stat-bar-fill hp" style="width:80%"></div></div>
-              <span class="stat-bar-val">12</span>
+          <div class="callout"><strong>Quy tắc quyết định:</strong> nếu bỏ lớp “tàn” mà gameplay vẫn không đổi, chi tiết đó chỉ là trang trí. Nếu làm map mất sức sống để UI hợp màu, hướng art đang sai.</div>
+          <div class="world-band">
+            <img src="world_concept_art.png" alt="Sự sống mọc trên dấu tích suy tàn">
+            <div class="world-copy"><p class="eyebrow">World contrast</p><h3>Concept là ví dụ, không phải khuôn map</h3><p><strong>Sự sống phải hiện diện thật.</strong> Hoa, cỏ và ánh trời không bị giảm màu chỉ vì tên game. UI tạo vùng đọc cục bộ bằng scrim và panel.</p><p class="muted">Thành phố, đồng cỏ, hang động hay vùng băng đều giữ bản sắc riêng.</p></div>
+          </div>
+        </section>
+
+        <section id="color">
+          <div class="section-head">
+            <div><p class="eyebrow">02 · Color</p><h2>Neutral làm nền, semantic tạo quyết định</h2></div>
+            <p>Nhấn vào swatch để copy mã màu. Màu semantic không được dùng chỉ để trang trí.</p>
+          </div>
+          <div class="palette" aria-label="Bảng màu UI">
+            <button class="swatch" data-hex="#120F0C" style="--swatch:#120f0c"><span class="swatch-color"></span><span class="swatch-copy"><strong>Canvas</strong><code>#120F0C</code></span></button>
+            <button class="swatch" data-hex="#1D1813" style="--swatch:#1d1813"><span class="swatch-color"></span><span class="swatch-copy"><strong>Background</strong><code>#1D1813</code></span></button>
+            <button class="swatch" data-hex="#29221B" style="--swatch:#29221b"><span class="swatch-color"></span><span class="swatch-copy"><strong>Surface</strong><code>#29221B</code></span></button>
+            <button class="swatch" data-hex="#352C22" style="--swatch:#352c22"><span class="swatch-color"></span><span class="swatch-copy"><strong>Surface Raised</strong><code>#352C22</code></span></button>
+            <button class="swatch" data-hex="#5C4B38" style="--swatch:#5c4b38"><span class="swatch-color"></span><span class="swatch-copy"><strong>Border</strong><code>#5C4B38</code></span></button>
+            <button class="swatch" data-hex="#8A6B42" style="--swatch:#8a6b42"><span class="swatch-color"></span><span class="swatch-copy"><strong>Border Strong</strong><code>#8A6B42</code></span></button>
+            <button class="swatch" data-hex="#C39A57" style="--swatch:#c39a57"><span class="swatch-color"></span><span class="swatch-copy"><strong>Accent</strong><code>#C39A57</code></span></button>
+            <button class="swatch" data-hex="#F0E5D2" style="--swatch:#f0e5d2"><span class="swatch-color"></span><span class="swatch-copy"><strong>Text Primary</strong><code>#F0E5D2</code></span></button>
+            <button class="swatch" data-hex="#BFAF98" style="--swatch:#bfaf98"><span class="swatch-color"></span><span class="swatch-copy"><strong>Text Secondary</strong><code>#BFAF98</code></span></button>
+            <button class="swatch" data-hex="#756B5D" style="--swatch:#756b5d"><span class="swatch-color"></span><span class="swatch-copy"><strong>Text Disabled</strong><code>#756B5D</code></span></button>
+            <button class="swatch" data-hex="#B9574F" style="--swatch:#b9574f"><span class="swatch-color"></span><span class="swatch-copy"><strong>Danger</strong><code>#B9574F</code></span></button>
+            <button class="swatch" data-hex="#7FA56D" style="--swatch:#7fa56d"><span class="swatch-color"></span><span class="swatch-copy"><strong>Life</strong><code>#7FA56D</code></span></button>
+            <button class="swatch" data-hex="#9A72C7" style="--swatch:#9a72c7"><span class="swatch-color"></span><span class="swatch-copy"><strong>Memory</strong><code>#9A72C7</code></span></button>
+            <button class="swatch" data-hex="#62B8D9" style="--swatch:#62b8d9"><span class="swatch-color"></span><span class="swatch-copy"><strong>Ice</strong><code>#62B8D9</code></span></button>
+          </div>
+          <p class="copy-status" id="copy-status" aria-live="polite"></p>
+          <div class="rule-grid">
+            <article class="tile"><h3>Tỷ lệ</h3><p>Neutral chiếm phần lớn diện tích. Accent chỉ dẫn focus; Life, Memory, Ice và Danger chỉ xuất hiện khi đúng semantic.</p></article>
+            <article class="tile"><h3>Fallback</h3><p>Mọi màu resource/status đi cùng label, glyph hoặc pattern. Không buộc người chơi phân biệt chỉ bằng hue.</p></article>
+          </div>
+        </section>
+
+        <section id="type">
+          <div class="section-head">
+            <div><p class="eyebrow">03 · Typography</p><h2>Một family, đủ tiếng Việt</h2></div>
+            <p>Be Vietnam Pro được bundle trực tiếp. Không gọi Google Fonts, không dùng Cinzel hoặc IM Fell English.</p>
+          </div>
+          <table class="type-table">
+            <thead><tr><th>Role</th><th>Specimen</th><th>Face / Size</th></tr></thead>
+            <tbody>
+              <tr><td>Screen title</td><td class="sample-title">Tàn Sinh</td><td>SemiBold · 24 px</td></tr>
+              <tr><td>Section title</td><td class="sample-section">Ký ức trong tro</td><td>SemiBold · 18 px</td></tr>
+              <tr><td>Body</td><td class="sample-body">Sự sống vẫn xanh trên một thế giới đang phai dần.</td><td>Regular · 14 px</td></tr>
+              <tr><td>Label</td><td class="sample-label">NHIỆM VỤ ĐANG THEO DÕI</td><td>Medium · 12 px</td></tr>
+              <tr><td>Micro</td><td class="sample-micro">Cấp 08 · Ký ức 64%</td><td>Medium · 11 px</td></tr>
+              <tr><td>Combat</td><td class="sample-combat">1.248</td><td>SemiBold · 20 px</td></tr>
+            </tbody>
+          </table>
+          <div class="callout">Letter spacing luôn bằng <strong>0</strong>. Layout wrap hoặc nới control trước khi giảm cỡ chữ.</div>
+        </section>
+
+        <section id="shape">
+          <div class="section-head">
+            <div><p class="eyebrow">04 · Shape & Material</p><h2>Matte, rõ cạnh, ít trang sức</h2></div>
+            <p>Khối chữ nhật ổn định, radius 3 px, border 1 px; focus 2 px nhưng không làm geometry nhảy.</p>
+          </div>
+          <div class="shape-demo">
+            <div class="demo-row">
+              <button class="demo-button">Mặc định</button>
+              <button class="demo-button primary">Hành động chính</button>
+              <button class="demo-button focus">Keyboard focus</button>
+              <button class="demo-button danger">Nguy hiểm</button>
+              <button class="demo-button" disabled>Không khả dụng</button>
             </div>
-            <div class="stat-bar-item">
-              <span class="stat-bar-label">DEX</span>
-              <div class="stat-bar-track"><div class="stat-bar-fill hp" style="width:67%"></div></div>
-              <span class="stat-bar-val">10</span>
-            </div>
-            <div class="stat-bar-item">
-              <span class="stat-bar-label">INT</span>
-              <div class="stat-bar-track"><div class="stat-bar-fill mp" style="width:67%"></div></div>
-              <span class="stat-bar-val">10</span>
-            </div>
-            <div class="stat-bar-item">
-              <span class="stat-bar-label">VIT</span>
-              <div class="stat-bar-track"><div class="stat-bar-fill hp" style="width:80%"></div></div>
-              <span class="stat-bar-val">12</span>
-            </div>
-            <div class="stat-bar-item">
-              <span class="stat-bar-label">SPI</span>
-              <div class="stat-bar-track"><div class="stat-bar-fill sta" style="width:80%"></div></div>
-              <span class="stat-bar-val">12</span>
+            <div class="bars">
+              <div class="bar-row"><span>HP</span><div class="bar-track"><div class="bar-fill" style="--value:74%;--bar:var(--life)"></div></div><span class="bar-value">742</span></div>
+              <div class="bar-row"><span>MP</span><div class="bar-track"><div class="bar-fill" style="--value:58%;--bar:var(--memory)"></div></div><span class="bar-value">116</span></div>
+              <div class="bar-row"><span>STA</span><div class="bar-track"><div class="bar-fill" style="--value:42%;--bar:var(--accent)"></div></div><span class="bar-value">84</span></div>
             </div>
           </div>
-        </div>
-        <div style="padding:16px 28px;border-top:1px solid rgba(200,148,60,0.1)">
-          <p style="font-size:12px;color:var(--dust-stone);font-family:var(--font-lore);font-style:italic">"Một con người bình thường trong trang phục bình dị — nhưng ý chí phi thường. Màu olive &amp; đất không nổi bật, nhưng đứng vững."</p>
-        </div>
-      </div>
-
-      <!-- Hyou -->
-      <div class="character-panel" style="border-color:rgba(58,188,245,0.2)">
-        <div class="char-header" style="border-bottom-color:rgba(58,188,245,0.12)">
-          <img src="hyou_icon.png" alt="Hyou" class="char-portrait" style="border-color:var(--hyou-deep)">
-          <div class="char-info">
-            <div class="char-name" style="color:var(--hyou-primary)">Hyou</div>
-            <div class="char-role">Đồng hành · ID villain_001</div>
-            <div class="char-race">Linh Hồn Băng · Spirit Race</div>
+          <div class="component-grid" style="margin-top:12px">
+            <article class="tile"><h3>Than lì</h3><p>Canvas, scrim và panel. Không glossy, không bokeh, không texture dày.</p></article>
+            <article class="tile"><h3>Đồng xỉn</h3><p>Border/focus ít bão hòa. Không biến thành khung vàng trang sức.</p></article>
+            <article class="tile"><h3>Tro</h3><p>Disabled và depleted giảm saturation/contrast nhưng vẫn giữ chữ đọc được.</p></article>
+            <article class="tile"><h3>Sự sống</h3><p>Map và hồi phục giữ màu tự nhiên. Không phủ nâu để ép chung palette UI.</p></article>
           </div>
-          <div class="char-theme-dot" style="color:var(--hyou-primary);background:var(--hyou-primary)" data-tooltip="ThemeColor: #38BDED"></div>
-        </div>
-        <div class="char-body">
-          <div class="char-skill-list">
-            <p class="char-skill-label" style="color:var(--hyou-deep)">Kỹ năng chủ động</p>
-            <span class="skill-tag ice">❄ Ice Bolt</span>
-            <span class="skill-tag ice">🛡 Frost Ward</span><br>
-            <span style="font-size:11px;color:var(--dust-stone);margin-top:8px;display:block">Nhánh: Băng thuật (Cryomancy)</span>
+        </section>
+
+        <section id="density">
+          <div class="section-head">
+            <div><p class="eyebrow">05 · Grid & Asset</p><h2>Kích thước native trước hiệu ứng</h2></div>
+            <p>Không thu asset 500-1400 px xuống icon/HUD nhỏ. Dựng native bằng Control, StyleBox và atlas nguyên cell.</p>
           </div>
-          <div class="stat-bars">
-            <p class="char-skill-label" style="color:var(--hyou-deep)">Stats cơ bản (Spirit)</p>
-            <div class="stat-bar-item">
-              <span class="stat-bar-label">STR</span>
-              <div class="stat-bar-track"><div class="stat-bar-fill hp" style="width:15%"></div></div>
-              <span class="stat-bar-val">3</span>
-            </div>
-            <div class="stat-bar-item">
-              <span class="stat-bar-label">DEX</span>
-              <div class="stat-bar-track"><div class="stat-bar-fill mp" style="width:75%"></div></div>
-              <span class="stat-bar-val">15</span>
-            </div>
-            <div class="stat-bar-item">
-              <span class="stat-bar-label">INT</span>
-              <div class="stat-bar-track"><div class="stat-bar-fill mp" style="width:90%"></div></div>
-              <span class="stat-bar-val">18</span>
-            </div>
-            <div class="stat-bar-item">
-              <span class="stat-bar-label">SPI</span>
-              <div class="stat-bar-track"><div class="stat-bar-fill" style="width:100%;background:linear-gradient(90deg,var(--hyou-deep),var(--hyou-glow))"></div></div>
-              <span class="stat-bar-val" style="color:var(--hyou-primary)">20</span>
-            </div>
+          <div class="density-list">
+            <div class="density-item"><strong>4 px</strong>Base grid</div>
+            <div class="density-item"><strong>24 px</strong>Navigation glyph</div>
+            <div class="density-item"><strong>28 px</strong>Status frame</div>
+            <div class="density-item"><strong>32 / 40 / 48</strong>Button heights</div>
+            <div class="density-item"><strong>1 / 2 px</strong>Border / focus</div>
+            <div class="density-item"><strong>300 × 97</strong>Party unit HUD</div>
           </div>
-        </div>
-        <div style="padding:16px 28px;border-top:1px solid rgba(58,188,245,0.1)">
-          <p style="font-size:12px;color:var(--dust-stone);font-family:var(--font-lore);font-style:italic">"Màu xanh băng thuần khiết — lạnh lùng nhưng không ác tâm. Cô giữ lời hứa mà bản thân không còn nhớ vì sao."</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Status effects -->
-    <div class="divider"></div>
-    <p style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--dust-stone);margin-bottom:16px">Status Effects — Hyou Skills</p>
-    <div class="status-badges">
-      <div class="status-badge chill">
-        <div class="status-dot"></div>
-        ❄ Chill (stack)
-      </div>
-      <div class="status-badge slow">
-        <div class="status-dot"></div>
-        🌀 Slowed
-      </div>
-      <div class="status-badge frozen">
-        <div class="status-dot"></div>
-        🧊 Frozen
-      </div>
-    </div>
-    <p style="font-size:12px;color:var(--dust-stone);margin-top:12px">Chill → nhiều stack → Frozen. Frozen override hết Chill và Slow trên HUD.</p>
-  </div>
-</section>
-
-<!-- ===== ELEMENTS ===== -->
-<section id="elements">
-  <div class="container fade-in">
-    <p class="section-eyebrow">05 — Element System</p>
-    <h2 class="section-title">Hệ nguyên tố</h2>
-    <p class="section-desc">10 nguyên tố với màu sắc định danh rõ ràng. Mỗi nguyên tố có màu riêng được dùng nhất quán trên icon, VFX và UI.</p>
-    <div class="section-rule"></div>
-
-    <div class="element-grid">
-      <div class="element-card" style="--elem-color:rgba(200,148,60,0.5)">
-        <div class="element-icon" style="color:var(--elem-physical);border-color:var(--elem-physical)">⚔</div>
-        <div class="element-name">Physical</div>
-      </div>
-      <div class="element-card" style="--elem-color:rgba(58,188,245,0.5)">
-        <div class="element-icon" style="color:var(--elem-ice);border-color:var(--elem-ice)">❄</div>
-        <div class="element-name">Ice</div>
-      </div>
-      <div class="element-card" style="--elem-color:rgba(240,80,48,0.5)">
-        <div class="element-icon" style="color:var(--elem-fire);border-color:var(--elem-fire)">🔥</div>
-        <div class="element-name">Fire</div>
-      </div>
-      <div class="element-card" style="--elem-color:rgba(232,208,48,0.5)">
-        <div class="element-icon" style="color:var(--elem-lightning);border-color:var(--elem-lightning)">⚡</div>
-        <div class="element-name">Lightning</div>
-      </div>
-      <div class="element-card" style="--elem-color:rgba(80,200,144,0.5)">
-        <div class="element-icon" style="color:var(--elem-wind);border-color:var(--elem-wind)">🌬</div>
-        <div class="element-name">Wind</div>
-      </div>
-      <div class="element-card" style="--elem-color:rgba(180,140,80,0.5)">
-        <div class="element-icon" style="color:#B48C50;border-color:#B48C50">🪨</div>
-        <div class="element-name">Earth</div>
-      </div>
-      <div class="element-card" style="--elem-color:rgba(240,232,160,0.5)">
-        <div class="element-icon" style="color:var(--elem-light);border-color:var(--elem-light)">✨</div>
-        <div class="element-name">Light</div>
-      </div>
-      <div class="element-card" style="--elem-color:rgba(128,80,200,0.5)">
-        <div class="element-icon" style="color:var(--elem-dark);border-color:var(--elem-dark)">🌑</div>
-        <div class="element-name">Dark</div>
-      </div>
-      <div class="element-card" style="--elem-color:rgba(160,80,200,0.5)">
-        <div class="element-icon" style="color:#C060D0;border-color:#C060D0">🔮</div>
-        <div class="element-name">Arcane</div>
-      </div>
-      <div class="element-card" style="--elem-color:rgba(150,150,150,0.3)">
-        <div class="element-icon" style="color:#888;border-color:#888">○</div>
-        <div class="element-name">None</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ===== HUD ===== -->
-<section id="hud">
-  <div class="container fade-in">
-    <p class="section-eyebrow">06 — HUD System</p>
-    <h2 class="section-title">Giao diện chiến đấu</h2>
-    <p class="section-desc">HUD mang ngôn ngữ JRPG cổ điển — khung vàng nâu trên nền đen sâu. 300×97px per unit. Tách thành 5 layer để động hóa theo nhân vật.</p>
-    <div class="section-rule"></div>
-
-    <div class="hud-demo">
-      <img src="hud_preview.png" alt="HUD Preview" class="hud-preview-img">
-
-      <div class="grid-3" style="margin-top:24px">
-        <div class="card">
-          <p class="card-title">HP Bar</p>
-          <div style="height:10px;background:rgba(255,255,255,0.05);border-radius:2px;margin:10px 0;overflow:hidden">
-            <div style="height:100%;width:72%;background:linear-gradient(90deg,#C42B2B,#E84040);border-radius:2px"></div>
+          <div class="glyph-sheet">
+            <p class="eyebrow">Shared glyph atlas · 24 px cells · 1-2 px stroke</p>
+            <img src="../assets/graphics/ui/icons/ui_glyph_atlas.svg" alt="Atlas glyph UI của Tàn Sinh">
           </div>
-          <p style="font-size:12px;color:var(--dust-stone)">Màu đỏ cổ điển. Giảm = cảnh báo trực quan tức thì.</p>
-        </div>
-        <div class="card">
-          <p class="card-title">MP Bar</p>
-          <div style="height:10px;background:rgba(255,255,255,0.05);border-radius:2px;margin:10px 0;overflow:hidden">
-            <div style="height:100%;width:55%;background:linear-gradient(90deg,#2B6AC4,#4090E8);border-radius:2px"></div>
+        </section>
+
+        <section id="hierarchy">
+          <div class="section-head">
+            <div><p class="eyebrow">06 · Value hierarchy</p><h2>Combat quyết định thứ tự sáng</h2></div>
+            <p>Persistent HUD lùi lại. Telegraph và cửa sổ phản ứng được quyền sáng nhất, nhưng chỉ trong thời gian cần thiết.</p>
           </div>
-          <p style="font-size:12px;color:var(--dust-stone)">Xanh dương — mana/pháp lực. Hyou dùng nhiều.</p>
-        </div>
-        <div class="card">
-          <p class="card-title">STA Bar</p>
-          <div style="height:10px;background:rgba(255,255,255,0.05);border-radius:2px;margin:10px 0;overflow:hidden">
-            <div style="height:100%;width:88%;background:linear-gradient(90deg,#2B9A3A,#40C850);border-radius:2px"></div>
+          <div class="hierarchy">
+            <div class="hierarchy-row"><span class="hierarchy-rank">01</span><span>Telegraph nguy hiểm</span><span class="value-line" style="--level:100%;--value-color:#f0e5d2"></span></div>
+            <div class="hierarchy-row"><span class="hierarchy-rank">02</span><span>Actor / Target / Hit</span><span class="value-line" style="--level:84%;--value-color:#c39a57"></span></div>
+            <div class="hierarchy-row"><span class="hierarchy-rank">03</span><span>HP / Resource / Status</span><span class="value-line" style="--level:68%;--value-color:#7fa56d"></span></div>
+            <div class="hierarchy-row"><span class="hierarchy-rank">04</span><span>Damage / Progression</span><span class="value-line" style="--level:50%;--value-color:#9a72c7"></span></div>
+            <div class="hierarchy-row"><span class="hierarchy-rank">05</span><span>Quest / Hint nền</span><span class="value-line" style="--level:34%;--value-color:#756b5d"></span></div>
           </div>
-          <p style="font-size:12px;color:var(--dust-stone)">Xanh lá — thể lực. Tụt khi chạy, block, dodge.</p>
-        </div>
-      </div>
+          <div class="callout"><strong>World HUD lane:</strong> Target → Health → Feedback → Progression. Mỗi service đo kích thước widget trước khi đặt; không chồng tất cả vào một tọa độ trên đầu actor.</div>
+        </section>
 
-      <div class="divider"></div>
-
-      <div class="grid-2">
-        <div>
-          <p style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--dust-stone);margin-bottom:12px">Layer Order</p>
-          <div style="font-family:'Courier New',monospace;font-size:12px;color:var(--dry-grass);line-height:2">
-            <div style="color:var(--ui-gold)">unit_hud_frame.png</div>
-            <div style="padding-left:16px">├─ Portrait (icon nhân vật)</div>
-            <div style="padding-left:16px">├─ PortraitFrame (overlay)</div>
-            <div style="padding-left:16px">├─ NameLabel (Cinzel font)</div>
-            <div style="padding-left:16px">└─ BarsContainer</div>
-            <div style="padding-left:32px">├─ HPBar (đỏ)</div>
-            <div style="padding-left:32px">├─ MPBar (xanh dương)</div>
-            <div style="padding-left:32px">└─ StaminaBar (xanh lá)</div>
+        <section id="components">
+          <div class="section-head">
+            <div><p class="eyebrow">07 · Runtime components</p><h2>Một ngôn ngữ, nhiều mật độ</h2></div>
+            <p>Mỗi screen giữ cấu trúc riêng nhưng cùng token, typography, glyph và interaction state.</p>
           </div>
-        </div>
-        <div>
-          <p style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--dust-stone);margin-bottom:12px">Skill Cooldown Strip</p>
-          <p style="font-size:12px;color:var(--dry-grass);line-height:1.8">Icon skill nhỏ (24×24px) nằm cùng hàng tên nhân vật. Overlay tối dâng từ dưới lên khi cooldown. Viền vàng mỏng tạo nhịp trực quan. Số cooldown ẩn khi full charge.</p>
-          <br>
-          <p style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--dust-stone);margin-bottom:8px">Status Effect Strip</p>
-          <p style="font-size:12px;color:var(--dry-grass)">Badge 28×28px nằm dưới HUD. Chill/Slow/Frozen. Stack số nhỏ góc dưới phải icon.</p>
-        </div>
+          <div class="component-grid">
+            <article class="tile"><h3>Party HUD</h3><p>Neo phải, 300×97 mỗi unit, portrait độc lập, name/level/resource/status là node riêng. Status space luôn được reserve.</p></article>
+            <article class="tile"><h3>Enemy HUD</h3><p>Native trough/fill/frame, level và status riêng. Boss/elite phải có variant hình học, không chỉ phóng to.</p></article>
+            <article class="tile"><h3>Main & Game Menu</h3><p>Cảnh thế giới sống động ở first viewport. Chỉ sáu feature đang hoạt động và mỗi feature có glyph riêng.</p></article>
+            <article class="tile"><h3>Inventory & Character</h3><p>Tab theo nội dung, filter thật, empty state thật, không tiền/item/tên giả.</p></article>
+            <article class="tile"><h3>Quest / Skill / Settings</h3><p>Dùng shared chrome, focus visible, option/slider/toggle có tác dụng runtime thật.</p></article>
+            <article class="tile"><h3>Dialog</h3><p>Choice 360-520 px, wrap, overflow scroll. Choice ngắn bám textbox; focus cuối tự cuộn vào view.</p></article>
+          </div>
+          <div class="runtime-grid">
+            <figure class="runtime-shot"><img src="hud_preview.png" alt="Runtime HUD của Tàn Sinh ở 1600 x 900 trên cảnh ban ngày"><figcaption>1600 × 900 · cảnh sống động ban ngày</figcaption></figure>
+            <figure class="runtime-shot"><img src="hud_preview_1280.png" alt="Runtime HUD của Tàn Sinh ở 1280 x 720"><figcaption>1280 × 720 · kiểm tra overlay và text bounds</figcaption></figure>
+            <figure class="runtime-shot"><img src="hud_preview_night.png" alt="Runtime HUD của Tàn Sinh trên cùng bản đồ dưới ánh sáng ban đêm"><figcaption>1600 × 900 · cùng map sống động, grade ban đêm để kiểm tra tương phản</figcaption></figure>
+          </div>
+          <p class="caption">Cả ba preview được chụp từ scene runtime, không hand-compose. Grade đêm chỉ là fixture kiểm tra khả năng đọc, không biến map thành thế giới hoang tàn. Portrait artwork nằm ngoài phạm vi chỉnh sửa của tài liệu này.</p>
+        </section>
+
+        <section id="vfx">
+          <div class="section-head">
+            <div><p class="eyebrow">08 · VFX & Motion</p><h2>Telegraph kể đúng ba giai đoạn</h2></div>
+            <p>Visual tail không được làm người chơi tưởng hitbox còn active. Motion không làm control đổi kích thước.</p>
+          </div>
+          <div class="phase-grid">
+            <article class="tile phase startup" data-step="STARTUP"><h3>Cho biết điều gì sắp xảy ra</h3><p>Silhouette vùng ảnh hưởng xuất hiện trước particle. Opacity/scale tăng đều; danger có pattern hoặc cạnh riêng.</p></article>
+            <article class="tile phase active" data-step="ACTIVE"><h3>Đánh dấu đúng frame gây tác động</h3><p>Core và điểm va chạm sáng hơn trail. Hit-stop và shake không che input cue.</p></article>
+            <article class="tile phase recovery" data-step="RECOVERY"><h3>Rút năng lượng khỏi hitbox</h3><p>Chuyển động tan theo vector hành động, giảm saturation/opacity trước khi biến mất.</p></article>
+          </div>
+          <table class="data-table" style="margin-top:20px">
+            <thead><tr><th>Token</th><th>Duration</th><th>Ràng buộc</th></tr></thead>
+            <tbody>
+              <tr><td>Hover / Focus</td><td>80-120 ms</td><td>Không đổi geometry</td></tr>
+              <tr><td>Panel enter / exit</td><td>140-220 ms</td><td>Không chặn input sau khi hidden</td></tr>
+              <tr><td>Combat feedback</td><td>Theo gameplay</td><td>Visual tail không đổi frame damage</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="accessibility">
+          <div class="section-head">
+            <div><p class="eyebrow">09 · Accessibility</p><h2>Màu luôn có hình dạng dự phòng</h2></div>
+            <p>Focus, tooltip, contrast và tiếng Việt là tiêu chí hoàn thành, không phải polish sau cùng.</p>
+          </div>
+          <table class="data-table">
+            <thead><tr><th>Semantic</th><th>Màu</th><th>Fallback</th></tr></thead>
+            <tbody>
+              <tr><td>HP / Life</td><td>Life; Danger khi thấp</td><td>Nhãn HP, đầu bar vuông</td></tr>
+              <tr><td>MP / Memory</td><td>Memory</td><td>Nhãn MP, glyph kim cương</td></tr>
+              <tr><td>Stamina</td><td>Accent</td><td>Nhãn STA, bar phân đoạn</td></tr>
+              <tr><td>Frozen</td><td>Ice</td><td>Tinh thể và cạnh sắc</td></tr>
+              <tr><td>Danger</td><td>Danger</td><td>Biểu tượng cảnh báo + copy</td></tr>
+              <tr><td>Selected</td><td>Accent</td><td>Border 2 px + focus cursor</td></tr>
+            </tbody>
+          </table>
+          <div class="rule-grid" style="margin-top:12px">
+            <article class="tile"><h3>Input</h3><p>Button, tab, OptionButton, slider, toggle và choice nhận keyboard/gamepad focus. Tooltip holder không dùng MouseFilter.Ignore.</p></article>
+            <article class="tile"><h3>Viewport</h3><p>Kiểm tra 1600×900, 1280×720, UI scale lớn, tên Việt dài và overlay combat đồng thời.</p></article>
+          </div>
+        </section>
+
+        <section id="production">
+          <div class="section-head">
+            <div><p class="eyebrow">10 · Production</p><h2>Quy tắc được kiểm chứng bằng runtime</h2></div>
+            <p>Mock chỉ dùng để thảo luận. Bằng chứng cuối là scene thật, focus thật, data thật và capture thật.</p>
+          </div>
+          <div class="do-dont">
+            <article class="do"><h3>Do</h3><ul class="plain-list"><li>Giữ map sống động, dùng scrim cục bộ.</li><li>Dùng native StyleBox và token.</li><li>Reserve space cho status.</li><li>Empty state phản ánh dữ liệu thật.</li><li>Cho text Việt wrap.</li><li>Reference scan trước khi xóa asset.</li></ul></article>
+            <article class="dont"><h3>Don't</h3><ul class="plain-list"><li>Desaturate toàn bộ map vì tên game.</li><li>Thu asset render lớn thành icon.</li><li>Tái dùng một glyph cho nhiều semantic.</li><li>Để hover/focus resize control.</li><li>Chèn tiền, item hoặc nhân vật giả.</li><li>Dùng mock tĩnh làm evidence duy nhất.</li></ul></article>
+          </div>
+          <h3 style="margin-top:32px">Checklist trước merge</h3>
+          <div class="checklist">
+            <div class="check"><span>01</span><span>Dùng token chung, không thêm màu gần giống.</span></div>
+            <div class="check"><span>02</span><span>Font lấy từ assets/fonts, không tải mạng.</span></div>
+            <div class="check"><span>03</span><span>Icon nguyên cell 24 px, outline 1-2 px.</span></div>
+            <div class="check"><span>04</span><span>Mọi state giữ cùng geometry.</span></div>
+            <div class="check"><span>05</span><span>Keyboard/gamepad đi qua toàn bộ control.</span></div>
+            <div class="check"><span>06</span><span>Text Việt dài không tràn hoặc cắt.</span></div>
+            <div class="check"><span>07</span><span>Tooltip nhận input; không có data giả.</span></div>
+            <div class="check"><span>08</span><span>Overlay không chồng lane.</span></div>
+            <div class="check"><span>09</span><span>Capture 1600×900 và 1280×720.</span></div>
+            <div class="check"><span>10</span><span>Reference scan sạch trước cleanup.</span></div>
+          </div>
+          <p style="margin-top:24px"><a href="visual_language_doc.md">Mở bản reference Markdown</a></p>
+        </section>
+
+        <footer class="footer">Tàn Sinh Visual Language 1.0 · UI/HUD production reference · Portrait artwork không nằm trong phạm vi chỉnh sửa.</footer>
       </div>
-    </div>
+    </main>
   </div>
-</section>
 
-<!-- ===== WORLD ===== -->
-<section id="world">
-  <div class="container fade-in">
-    <p class="section-eyebrow">07 — World &amp; Environment</p>
-    <h2 class="section-title">Ngôn ngữ thế giới</h2>
-    <p class="section-desc">Thế giới sống động qua hệ thống shader thời tiết và ánh sáng động. Mỗi khu vực có profile môi trường riêng.</p>
-    <div class="section-rule"></div>
-
-    <div class="world-image-container">
-      <img src="world_concept_art_1790590262268.png" alt="World Concept Art">
-      <p class="world-image-caption">Concept Art · Đồng Cỏ Thì Thầm — Hoa nở trên tàn tro</p>
-    </div>
-
-    <!-- Locations -->
-    <p style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--dust-stone);margin-bottom:14px">Địa danh đã được đặt tên</p>
-    <div class="location-chips" style="margin-bottom:40px">
-      <span class="location-chip">Đồng Cỏ Thì Thầm</span>
-      <span class="location-chip">Bìa rừng phía tây</span>
-      <span class="location-chip">Khu rừng phía bắc</span>
-      <span class="location-chip">Bờ sông</span>
-      <span class="location-chip">Ngôi đền băng</span>
-      <span class="location-chip">Trại nghỉ</span>
-    </div>
-
-    <!-- Shader system -->
-    <div class="grid-2">
-      <div class="card">
-        <p class="card-title">Shader môi trường</p>
-        <div style="font-size:12px;color:var(--dry-grass);line-height:2">
-          <div>🌤 <code>atmosphere_sunbeam</code> — tia nắng</div>
-          <div>🌫 <code>atmosphere_fog</code> — sương mù</div>
-          <div>🌧 <code>atmosphere_rain</code> — mưa</div>
-          <div>☁ <code>world_cloud_shadow</code> — bóng mây</div>
-          <div>🌊 <code>pond_water</code> — nước ao</div>
-          <div>🌿 <code>foliage_wind</code> — cây gió</div>
-          <div>🌅 <code>world_color_grade</code> — tông màu thế giới</div>
-        </div>
-      </div>
-      <div class="card">
-        <p class="card-title">Tham số ánh sáng động</p>
-        <div style="font-size:12px;color:var(--dry-grass);line-height:2">
-          <div>⏱ <code>env_time01</code> — chu kỳ ngày đêm</div>
-          <div>☀ <code>env_daylight / env_night</code></div>
-          <div>🌬 <code>env_wind</code> — gió (0.2 mặc định)</div>
-          <div>💧 <code>env_rain / env_wetness</code></div>
-          <div>🌅 <code>env_golden_hour</code> — hoàng hôn</div>
-          <div>🌊 <code>env_water_shimmer</code></div>
-          <div>🌑 <code>env_shadow_strength: 0.86</code></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="divider"></div>
-
-    <!-- Layer system -->
-    <p style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--dust-stone);margin-bottom:14px">Layer system — Field_01 (Đồng Cỏ Thì Thầm)</p>
-    <div class="grid-4">
-      <div class="card" style="padding:16px">
-        <p style="font-size:10px;color:var(--ui-gold);margin-bottom:6px">Layer 00</p>
-        <p style="font-size:12px;color:var(--dry-grass)">ground_base</p>
-      </div>
-      <div class="card" style="padding:16px">
-        <p style="font-size:10px;color:var(--ui-gold);margin-bottom:6px">Layer 01</p>
-        <p style="font-size:12px;color:var(--dry-grass)">ground_variation</p>
-      </div>
-      <div class="card" style="padding:16px">
-        <p style="font-size:10px;color:var(--ui-gold);margin-bottom:6px">Layer 02</p>
-        <p style="font-size:12px;color:var(--dry-grass)">canopy_shadow</p>
-      </div>
-      <div class="card" style="padding:16px">
-        <p style="font-size:10px;color:var(--ui-gold);margin-bottom:6px">Layer 03</p>
-        <p style="font-size:12px;color:var(--dry-grass)">dirt_path</p>
-      </div>
-      <div class="card" style="padding:16px">
-        <p style="font-size:10px;color:var(--ui-gold);margin-bottom:6px">Layer 04–05</p>
-        <p style="font-size:12px;color:var(--dry-grass)">cliff_top + wall</p>
-      </div>
-      <div class="card" style="padding:16px">
-        <p style="font-size:10px;color:var(--ui-gold);margin-bottom:6px">Layer 07</p>
-        <p style="font-size:12px;color:var(--dry-grass)">ground_details</p>
-      </div>
-      <div class="card" style="padding:16px">
-        <p style="font-size:10px;color:var(--ui-gold);margin-bottom:6px">Layer 08–09</p>
-        <p style="font-size:12px;color:var(--dry-grass)">wet_ground / mud</p>
-      </div>
-      <div class="card" style="padding:16px">
-        <p style="font-size:10px;color:var(--ui-gold);margin-bottom:6px">Props</p>
-        <p style="font-size:12px;color:var(--dry-grass)">Rocks, Grass, Flowers, Trees</p>
-      </div>
-    </div>
-    <p style="font-size:12px;color:var(--dust-stone);margin-top:12px">Hoa trong thế giới: <span style="color:var(--hyou-purple)">purple_flower</span> · <span style="color:#E84040">red_flower</span> · <span style="color:#4090E8">blue_flower</span></p>
-  </div>
-</section>
-
-<!-- ===== QUESTS ===== -->
-<section id="quests">
-  <div class="container fade-in">
-    <p class="section-eyebrow">08 — Quest System</p>
-    <h2 class="section-title">Hệ thống nhiệm vụ</h2>
-    <p class="section-desc">Ba loại quest với visual identity riêng. Ngôn ngữ tiếng Việt xuyên suốt tên, mô tả và địa danh.</p>
-    <div class="section-rule"></div>
-
-    <div class="quest-type-list">
-      <div class="quest-item">
-        <div class="quest-type-badge main">📖</div>
-        <div class="quest-info">
-          <div class="quest-title">Quest Chính · QuestType 0</div>
-          <div class="quest-desc">Cốt truyện chính của game. Ví dụ: <em>"Dấu vết trong gió"</em> — trưởng làng Ansel giao nhiệm vụ điều tra dấu chân bí ẩn. Chapter I. Phần thưởng: XP + Vàng.</div>
-        </div>
-        <div style="font-size:10px;color:var(--ui-gold);letter-spacing:1px;white-space:nowrap">MAIN</div>
-      </div>
-      <div class="quest-item">
-        <div class="quest-type-badge side">🌸</div>
-        <div class="quest-info">
-          <div class="quest-title">Quest Phụ · QuestType 1</div>
-          <div class="quest-desc">Nhiệm vụ khám phá thế giới. Ví dụ: <em>"Hoa trên tàn tro"</em> — thu thập 6 hoa tím cho người chữa bệnh Mira. Phần thưởng: Item.</div>
-        </div>
-        <div style="font-size:10px;color:#4090E8;letter-spacing:1px;white-space:nowrap">SIDE</div>
-      </div>
-      <div class="quest-item">
-        <div class="quest-type-badge companion">💙</div>
-        <div class="quest-info">
-          <div class="quest-title">Quest Đồng Hành · QuestType 2</div>
-          <div class="quest-desc">Chuỗi phát triển quan hệ với companion. Ví dụ: <em>"Lời hứa của Hyou"</em> — tìm 3 mảnh ký ức bị phong ấn trong tinh thể. Phần thưởng: Skill Point.</div>
-        </div>
-        <div style="font-size:10px;color:var(--hyou-purple);letter-spacing:1px;white-space:nowrap">COMPANION</div>
-      </div>
-    </div>
-
-    <div class="divider"></div>
-
-    <div class="grid-3" style="margin-top:8px">
-      <div class="card">
-        <p class="card-title">Reward Types</p>
-        <div style="font-size:12px;color:var(--dry-grass);line-height:2">
-          <div>🌟 Type 0 — XP</div>
-          <div>💰 Type 1 — Vàng (Gold)</div>
-          <div>💊 Type 2 — Item</div>
-          <div>⭐ Type 3 — Điểm KN (Skill Point)</div>
-        </div>
-      </div>
-      <div class="card">
-        <p class="card-title">Objective Pattern</p>
-        <div style="font-size:12px;color:var(--dry-grass);line-height:2">
-          <div>◯ Nói chuyện với NPC</div>
-          <div>◯ Tìm / Điều tra địa điểm</div>
-          <div>◯ Thu thập vật phẩm</div>
-          <div>◯ Quay về báo cáo</div>
-        </div>
-      </div>
-      <div class="card">
-        <p class="card-title">Ngôn ngữ mô tả</p>
-        <p style="font-size:12px;color:var(--dry-grass);line-height:1.8">Tiếng Việt thơ mộng, gợi hình. Tên địa danh có personality: <em>"Đồng Cỏ Thì Thầm"</em>, <em>"Bìa rừng phía tây"</em>. Mô tả quest có clue spatial.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ===== MOTIFS ===== -->
-<section id="motifs">
-  <div class="container fade-in">
-    <p class="section-eyebrow">09 — Visual Motifs</p>
-    <h2 class="section-title">Motif thị giác</h2>
-    <p class="section-desc">Các gradient và pattern màu sắc được tái sử dụng xuyên suốt để tạo cohesion.</p>
-    <div class="section-rule"></div>
-
-    <div class="motif-row">
-      <div class="motif-card">
-        <p class="motif-title">Ash World</p>
-        <div class="motif-preview grad-ash" style="border-radius:3px"></div>
-        <p class="motif-desc">Nền chính toàn game. Nâu đen đất cháy — tắt dần về đêm.</p>
-      </div>
-      <div class="motif-card">
-        <p class="motif-title">UI Gold Frame</p>
-        <div class="motif-preview grad-gold" style="border-radius:3px"></div>
-        <p class="motif-desc">Khung HUD, viền panel, accent text. JRPG classic.</p>
-      </div>
-      <div class="motif-card">
-        <p class="motif-title">Hyou Ice</p>
-        <div class="motif-preview grad-ice" style="border-radius:3px"></div>
-        <p class="motif-desc">Skill Hyou, status effect băng, aura cryomancy.</p>
-      </div>
-    </div>
-
-    <div class="motif-row">
-      <div class="motif-card">
-        <p class="motif-title">Dusk Sky</p>
-        <div class="motif-preview grad-dusk" style="border-radius:3px"></div>
-        <p class="motif-desc">Hoàng hôn — thế giới đang tắt dần. Menu chính, cinematic.</p>
-      </div>
-      <div class="motif-card">
-        <p class="motif-title">Dawn Sky</p>
-        <div class="motif-preview grad-dawn" style="border-radius:3px"></div>
-        <p class="motif-desc">Bình minh — hy vọng còn sót lại. Quest reward, save point.</p>
-      </div>
-      <div class="motif-card">
-        <p class="motif-title">Fire / Danger</p>
-        <div class="motif-preview grad-fire" style="border-radius:3px"></div>
-        <p class="motif-desc">Cảnh báo nguy hiểm, boss encounter, critical HP.</p>
-      </div>
-    </div>
-
-    <!-- Animation system -->
-    <div class="divider"></div>
-    <p class="section-eyebrow" style="margin-bottom:20px">Micro-animations</p>
-    <div class="anim-row">
-      <div class="anim-demo">
-        <div class="anim-ball pulse"></div>
-        <p class="anim-label">Pulse</p>
-        <p class="anim-desc">Trạng thái active buff / skill đang hiệu lực</p>
-      </div>
-      <div class="anim-demo">
-        <div class="anim-ball float"></div>
-        <p class="anim-label">Float</p>
-        <p class="anim-desc">Floating text, ambient motes, collectibles</p>
-      </div>
-      <div class="anim-demo">
-        <div class="anim-ball shimmer"></div>
-        <p class="anim-label">Shimmer</p>
-        <p class="anim-desc">Gold accent hover, quest item highlight</p>
-      </div>
-      <div class="anim-demo">
-        <div class="anim-ball glow-ice"></div>
-        <p class="anim-label">Glow Ice</p>
-        <p class="anim-desc">Hyou skill charged / Frozen status active</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ===== PRINCIPLES ===== -->
-<section id="principles">
-  <div class="container fade-in">
-    <p class="section-eyebrow">10 — Design Principles</p>
-    <h2 class="section-title">Nguyên tắc thiết kế</h2>
-    <p class="section-desc">Các nguyên tắc cốt lõi chi phối mọi quyết định thiết kế trong dự án.</p>
-    <div class="section-rule"></div>
-
-    <div class="principles-grid">
-      <div class="principle-card">
-        <div class="principle-num">01</div>
-        <div class="principle-icon">🎭</div>
-        <h3 class="principle-title">Màu = Nhận diện nhân vật</h3>
-        <p class="principle-text">Mỗi nhân vật có ThemeColor xuyên suốt UI. Hyou = ice blue #3ABCF5. Hikaru = gold/earth tones. Người chơi nhận ra ngay mà không cần đọc tên.</p>
-      </div>
-      <div class="principle-card">
-        <div class="principle-num">02</div>
-        <div class="principle-icon">🏚</div>
-        <h3 class="principle-title">World Colors không nổi bật</h3>
-        <p class="principle-text">Màu thế giới là earth tones mờ nhạt. Sự tương phản chỉ đến từ ánh sáng shader và hoa màu sắc — biểu tượng hy vọng giữa tàn tro.</p>
-      </div>
-      <div class="principle-card">
-        <div class="principle-num">03</div>
-        <div class="principle-icon">📐</div>
-        <h3 class="principle-title">Pixel-perfect, nearest-filter</h3>
-        <p class="principle-text">Tất cả sprite dùng texture_filter = nearest. Scale 4x (Vector2(4,4)). Không anti-alias trên sprite nhân vật. UI dùng Be Vietnam Pro hires.</p>
-      </div>
-      <div class="principle-card">
-        <div class="principle-num">04</div>
-        <div class="principle-icon">💬</div>
-        <h3 class="principle-title">Tiếng Việt là ngôn ngữ chính</h3>
-        <p class="principle-text">Mọi text trong game — quest title, objective, dialog — viết bằng tiếng Việt thơ mộng. Font Be Vietnam Pro đảm bảo rendering đẹp. Địa danh có cá tính riêng.</p>
-      </div>
-      <div class="principle-card">
-        <div class="principle-num">05</div>
-        <div class="principle-icon">⚡</div>
-        <h3 class="principle-title">HUD không che gameplay</h3>
-        <p class="principle-text">HUD 300×97px góc trái. Skill badge nhỏ cùng hàng tên, không tạo cluster riêng. Status effect strip dưới HUD. Cooldown số chỉ hiện khi đang hồi.</p>
-      </div>
-      <div class="principle-card">
-        <div class="principle-num">06</div>
-        <div class="principle-icon">🌊</div>
-        <h3 class="principle-title">Thế giới sống — Dynamic lighting</h3>
-        <p class="principle-text">Shader globals điều khiển thời tiết, ánh sáng, gió, nước real-time. env_time01, env_rain, env_fog... Thế giới đang chết nhưng vẫn đang thở.</p>
-      </div>
-      <div class="principle-card">
-        <div class="principle-num">07</div>
-        <div class="principle-icon">🔒</div>
-        <h3 class="principle-title">Data tách khỏi State</h3>
-        <p class="principle-text">SkillData là resource dùng chung. PlayerSkillState chứa level/progress riêng. CharacterConfig không chứa runtime. Thiết kế data-driven rõ ràng.</p>
-      </div>
-      <div class="principle-card">
-        <div class="principle-num">08</div>
-        <div class="principle-icon">🎵</div>
-        <h3 class="principle-title">Narrative qua Visual</h3>
-        <p class="principle-text">Hoa tím = hy vọng mong manh. Đền băng = ký ức bị giam cầm. Purple mist #8B5CF6 = memory Hyou. Gold = giá trị con người. Mọi màu đều kể chuyện.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-</main>
-
-<!-- ===== FOOTER ===== -->
-<footer class="footer">
-  <p class="footer-title">ASHES OF A DYING WORLD</p>
-  <p>Visual Language Document · Godot 4.7 + C# · 2026</p>
-  <p style="margin-top:8px;color:rgba(107,92,62,0.5)">
-    Hikaru · Hyou · Đồng Cỏ Thì Thầm · Tàn tro &amp; Hoa tím
-  </p>
-</footer>
-
-<script>
-// ===== PARTICLES =====
-(function() {
-  const container = document.getElementById('particles');
-  const particleData = [
-    { color: 'rgba(200,148,60,0.6)', size: [2,4] },
-    { color: 'rgba(58,188,245,0.5)', size: [1,3] },
-    { color: 'rgba(139,92,246,0.4)', size: [1,2] },
-    { color: 'rgba(232,216,180,0.3)', size: [1,2] },
-  ];
-  
-  for (let i = 0; i < 28; i++) {
-    const d = particleData[Math.floor(Math.random() * particleData.length)];
-    const size = d.size[0] + Math.random() * (d.size[1] - d.size[0]);
-    const el = document.createElement('div');
-    el.className = 'particle';
-    el.style.cssText = `
-      width:${size}px;height:${size}px;
-      background:${d.color};
-      left:${Math.random()*100}%;
-      animation-duration:${8 + Math.random()*14}s;
-      animation-delay:${-Math.random()*20}s;
-    `;
-    container.appendChild(el);
-  }
-})();
-
-// ===== FADE IN OBSERVER =====
-const observer = new IntersectionObserver(entries => {
-  entries.forEach(e => {
-    if (e.isIntersecting) e.target.classList.add('visible');
-  });
-}, { threshold: 0.07 });
-
-document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
-
-// ===== NAV ACTIVE =====
-const sections = document.querySelectorAll('section[id]');
-const navLinks = document.querySelectorAll('.nav-link');
-
-const sectionObserver = new IntersectionObserver(entries => {
-  entries.forEach(e => {
-    if (e.isIntersecting) {
-      navLinks.forEach(l => l.classList.remove('active'));
-      const link = document.querySelector(`.nav-link[href="#${e.target.id}"]`);
-      if (link) link.classList.add('active');
-    }
-  });
-}, { threshold: 0.3 });
-
-sections.forEach(s => sectionObserver.observe(s));
-
-// ===== SWATCH COPY HEX =====
-document.querySelectorAll('.swatch').forEach(swatch => {
-  swatch.addEventListener('click', () => {
-    const hex = swatch.querySelector('.swatch-label')?.textContent;
-    if (hex) {
-      navigator.clipboard.writeText(hex).then(() => {
-        const label = swatch.querySelector('.swatch-name');
-        const orig = label.textContent;
-        label.textContent = 'Copied!';
-        label.style.color = 'var(--ui-gold)';
-        setTimeout(() => {
-          label.textContent = orig;
-          label.style.color = '';
-        }, 1200);
+  <script>
+    const status = document.getElementById('copy-status');
+    document.querySelectorAll('.swatch').forEach((swatch) => {
+      swatch.addEventListener('click', async () => {
+        const value = swatch.dataset.hex;
+        try {
+          await navigator.clipboard.writeText(value);
+          status.textContent = `Đã copy ${value}`;
+        } catch (_) {
+          status.textContent = value;
+        }
       });
-    }
-  });
-});
-</script>
+    });
+
+    const links = [...document.querySelectorAll('.side-nav a[href^="#"]')];
+    const sections = links
+      .map((link) => document.querySelector(link.getAttribute('href')))
+      .filter(Boolean);
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        links.forEach((link) => {
+          link.classList.toggle('active', link.getAttribute('href') === `#${entry.target.id}`);
+        });
+      });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    sections.forEach((section) => observer.observe(section));
+  </script>
 </body>
 </html>

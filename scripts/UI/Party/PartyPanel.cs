@@ -203,7 +203,7 @@ namespace AshesofaDyingWorld.UI.Party
 
             _formationRow = new HBoxContainer();
             _formationRow.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-            _formationRow.SizeFlagsVertical = SizeFlags.ExpandFill;
+            _formationRow.SizeFlagsVertical = SizeFlags.ShrinkCenter;
             _formationRow.Alignment = BoxContainer.AlignmentMode.Center;
             _formationRow.AddThemeConstantOverride("separation", 12);
             center.AddChild(_formationRow);
@@ -228,11 +228,21 @@ namespace AshesofaDyingWorld.UI.Party
             frame.AddThemeConstantOverride("margin_right", 16);
             frame.AddThemeConstantOverride("margin_bottom", 4);
 
+            var scroll = new ScrollContainer
+            {
+                Name = "DetailScroll",
+                SizeFlagsHorizontal = SizeFlags.ExpandFill,
+                SizeFlagsVertical = SizeFlags.ExpandFill,
+                HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
+                VerticalScrollMode = ScrollContainer.ScrollMode.Auto,
+                ClipContents = true
+            };
+            frame.AddChild(scroll);
+
             VBoxContainer column = new();
             column.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-            column.SizeFlagsVertical = SizeFlags.ExpandFill;
             column.AddThemeConstantOverride("separation", 8);
-            frame.AddChild(column);
+            scroll.AddChild(column);
 
             column.AddChild(CreateSectionTitle("THÔNG TIN THÀNH VIÊN", HorizontalAlignment.Left));
             column.AddChild(InventoryPanelChrome.CreateDivider());
@@ -299,7 +309,7 @@ namespace AshesofaDyingWorld.UI.Party
             column.AddChild(commandHudHint);
 
             Control actionSpacer = new();
-            actionSpacer.SizeFlagsVertical = SizeFlags.ExpandFill;
+            actionSpacer.CustomMinimumSize = new Vector2(0, 4);
             column.AddChild(actionSpacer);
 
             _leaderButton = CreateActionButton("ĐẶT LÀM ĐỘI TRƯỞNG", SetSelectedAsLeader);
@@ -350,7 +360,7 @@ namespace AshesofaDyingWorld.UI.Party
             Color characterAccent = ResolveCharacterAccent(member);
             PanelContainer card = new();
             card.CustomMinimumSize = new Vector2(202, 300);
-            card.SizeFlagsVertical = SizeFlags.ExpandFill;
+            card.SizeFlagsVertical = SizeFlags.ShrinkCenter;
             card.AddThemeStyleboxOverride("panel", CreateMemberCardStyle(index == _selectedIndex, isLeader, characterAccent));
 
             MarginContainer margin = new();
@@ -448,7 +458,7 @@ namespace AshesofaDyingWorld.UI.Party
         {
             PanelContainer card = new();
             card.CustomMinimumSize = new Vector2(202, 300);
-            card.SizeFlagsVertical = SizeFlags.ExpandFill;
+            card.SizeFlagsVertical = SizeFlags.ShrinkCenter;
             card.AddThemeStyleboxOverride("panel", CreateEmptySlotStyle());
 
             CenterContainer center = new();
@@ -548,9 +558,9 @@ namespace AshesofaDyingWorld.UI.Party
                 _detailRoleLabel.Text = "";
                 _detailLevelLabel.Text = "";
                 _detailRaceLabel.Text = "";
-                SetBar(_detailHpBar, _detailHpValue, 0, 1);
-                SetBar(_detailMpBar, _detailMpValue, 0, 1);
-                SetBar(_detailStaminaBar, _detailStaminaValue, 0, 1);
+                SetBar(_detailHpBar, _detailHpValue, 0, 0);
+                SetBar(_detailMpBar, _detailMpValue, 0, 0);
+                SetBar(_detailStaminaBar, _detailStaminaValue, 0, 0);
                 _detailAttackValue.Text = "-";
                 _detailArmorValue.Text = "-";
                 _detailSpeedValue.Text = "-";
@@ -867,6 +877,15 @@ namespace AshesofaDyingWorld.UI.Party
 
         private void SetBar(ProgressBar bar, Label label, float current, float maximum)
         {
+            if (maximum <= 0f)
+            {
+                bar.MinValue = 0;
+                bar.MaxValue = 1;
+                bar.Value = 0;
+                label.Text = "0/0";
+                return;
+            }
+
             float safeMaximum = Mathf.Max(1f, maximum);
             float safeCurrent = Mathf.Clamp(current, 0f, safeMaximum);
             bar.MinValue = 0;

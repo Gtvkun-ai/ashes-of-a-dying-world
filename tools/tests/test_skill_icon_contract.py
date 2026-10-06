@@ -22,12 +22,14 @@ class SkillIconContractTests(unittest.TestCase):
                 self.assertIn(icon_path, contents)
                 self.assertTrue((REPO_ROOT / icon_path.removeprefix("res://")).is_file())
 
-    def test_cooldown_hud_uses_shared_icon_resolver(self):
+    def test_party_hud_owns_skill_icons_and_cooldown_feedback(self):
         contents = (
-            REPO_ROOT / "scripts/UI/HUD/SkillCooldownHudService.cs"
+            REPO_ROOT / "scripts/UI/HUD/CharacterUnitHUD.cs"
         ).read_text(encoding="utf-8")
 
-        self.assertIn("view.Icon.Texture = SkillIconResolver.Resolve(skill);", contents)
+        self.assertIn("SkillIconResolver.Resolve(skill)", contents)
+        self.assertIn("GetCooldownRemaining", contents)
+        self.assertFalse((REPO_ROOT / "scripts/UI/HUD/SkillCooldownHudService.cs").exists())
 
 
 if __name__ == "__main__":

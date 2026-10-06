@@ -85,3 +85,25 @@ def test_save_manager_loads_through_the_responsive_main_screen_controller():
     assert "currentScene as ScreenMain" in save_manager
     assert "StartGameFromSnapshotAsync(snapshot)" in save_manager
     assert 'GetNodeOrNull<Button>("login")' not in save_manager
+
+
+def test_visual_showcase_runs_actual_main_screen_and_game_menu():
+    source = read("tools/validation/ui_visual_showcase.gd")
+
+    assert 'preload("res://scenes/app/screen_main.tscn")' in source
+    assert 'preload("res://scenes/ui/menus/game_menu_button.tscn")' in source
+    assert 'const SUPPORTED_MODES := ["overview", "panels", "main", "menu"]' in source
+    assert "_build_main_menu_sample" in source
+    assert 'showcase_title.visible = _showcase_mode == "overview"' in source
+    assert 'get_node_or_null("MainUi")' in source
+    assert 'get_node_or_null("Control/MenuGridPanel")' in source
+    for node_name in (
+        "CharacterButton",
+        "InventoryButton",
+        "SkillsButton",
+        "QuestsButton",
+        "PartyButton",
+        "SettingsButton",
+    ):
+        assert node_name in source
+    assert "_control_fits_viewport" in source

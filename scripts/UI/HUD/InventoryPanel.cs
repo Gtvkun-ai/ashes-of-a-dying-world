@@ -420,16 +420,15 @@ namespace AshesofaDyingWorld.UI.Menus
             var button = new Button();
             button.Text = text;
             button.Icon = GetCategoryIcon(category);
-            button.ExpandIcon = true;
+            button.ExpandIcon = false;
             button.IconAlignment = HorizontalAlignment.Left;
             button.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
-            button.AddThemeConstantOverride("icon_max_width", 20);
             button.AddThemeConstantOverride("icon_spacing", 6);
 
-            // Let each tab measure its Vietnamese caption; the shared tab bar scrolls on narrow viewports.
+            // Keep each caption on one line; the shared tab bar scrolls on narrow viewports.
             button.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
             button.CustomMinimumSize = new Vector2(0, 36);
-            button.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            button.AutowrapMode = TextServer.AutowrapMode.Off;
             button.TooltipText = text;
             button.FocusMode = FocusModeEnum.All;
             button.MouseDefaultCursorShape = CursorShape.PointingHand;
@@ -1174,11 +1173,6 @@ namespace AshesofaDyingWorld.UI.Menus
         /// <summary>
         /// Load asset tùy chọn. Không log lỗi nếu file chưa có vì người dùng sẽ tự bổ sung PNG sau.
         /// </summary>
-        private Texture2D TryLoadTexture(string path)
-        {
-            return InventoryPanelChrome.TryLoadTexture(path);
-        }
-
         private Texture2D CreatePixelIcon(System.Action<Image> draw, int width = 16, int height = 16)
         {
             var image = Image.CreateEmpty(width, height, false, Image.Format.Rgba8);

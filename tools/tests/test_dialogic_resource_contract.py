@@ -71,6 +71,9 @@ def test_dialogic_choices_wrap_scroll_and_expand_past_legacy_width():
 
     assert 'centered_max_width: float = 520.0' in layer
     assert 'choices_max_height: float = 360.0' in layer
+    assert 'right_reserved_min: float = 300.0' in layer
+    assert 'right_reserved_max: float = 330.0' in layer
+    assert 'hud_safe_right' in layer
     assert 'TextServer.AUTOWRAP_WORD_SMART' in layer
     assert 'TextServer.OVERRUN_NO_TRIMMING' in layer
     assert 'clip_text = false' in layer
@@ -83,6 +86,8 @@ def test_dialogic_choices_wrap_scroll_and_expand_past_legacy_width():
     assert 'BoxContainer.ALIGNMENT_END' in layer
     assert '"centered_max_width": "520.0"' in style
     assert '"choices_max_height": "360.0"' in style
+    assert '"right_reserved_min": "300.0"' in style
+    assert '"right_reserved_max": "330.0"' in style
     assert 'Sáu lựa chọn tiếng Việt rất dài' in smoke
     assert 'Vector2i(1280, 720)' in smoke
     assert 'Vector2i(1600, 900)' in smoke

@@ -16,8 +16,6 @@ namespace AshesofaDyingWorld.UI.Shared
             Danger
         }
 
-        public const string AssetRoot = "res://assets/graphics/ui/buttons";
-
         public const float CompactHeight = UiTokens.ButtonHeightCompact;
         public const float TabHeight = UiTokens.ButtonHeightCompact;
         public const float RegularHeight = UiTokens.ButtonHeightRegular;

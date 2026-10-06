@@ -12,9 +12,9 @@ extends "res://addons/dialogic/Modules/DefaultLayoutParts/Layer_VN_Choices/vn_ch
 @export var side_width: float = 460.0
 @export var centered_x_offset: float = 0.0
 @export var side_x_offset: float = 0.0
-@export var right_reserved_ratio: float = 0.18
-@export var right_reserved_min: float = 170.0
-@export var right_reserved_max: float = 270.0
+@export var right_reserved_ratio: float = 0.24
+@export var right_reserved_min: float = 300.0
+@export var right_reserved_max: float = 330.0
 
 @export var textbox_height_ratio: float = 0.168
 @export var textbox_min_height: float = 114.0
@@ -96,7 +96,13 @@ func _apply_responsive_layout() -> void:
 		choices_max_height
 	)
 
-	var right_edge := textbox_right - 10.0 + centered_x_offset
+	var right_reserved := clampf(
+		viewport_size.x * right_reserved_ratio,
+		right_reserved_min,
+		right_reserved_max
+	)
+	var hud_safe_right := viewport_size.x - right_reserved - screen_side_margin
+	var right_edge := minf(textbox_right - 10.0 + centered_x_offset, hud_safe_right)
 	var left_edge := right_edge - width
 	if left_edge < screen_side_margin:
 		left_edge = screen_side_margin

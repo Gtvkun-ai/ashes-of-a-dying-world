@@ -40,6 +40,17 @@ def test_inventory_uses_content_driven_responsive_navigation_and_real_filter_sta
     assert "HorizontalScrollMode = ScrollContainer.ScrollMode.Auto" in chrome
 
 
+def test_inventory_category_glyphs_stay_at_native_size():
+    source = _source(INVENTORY_PATH)
+    method = source.split("private Button CreateCategoryButton", 1)[1].split(
+        "private Button CreateCloseButton", 1
+    )[0]
+
+    assert "button.ExpandIcon = false" in method
+    assert "button.AutowrapMode = TextServer.AutowrapMode.Off" in method
+    assert 'AddThemeConstantOverride("icon_max_width"' not in method
+
+
 def test_inventory_empty_state_is_intentional_and_visible_copy_is_translated():
     source = _source(INVENTORY_PATH)
 
@@ -78,6 +89,17 @@ def test_character_replaces_bracket_placeholders_and_fake_filter_arrow():
     assert "ItemSelected" in source
 
 
+def test_empty_character_resource_bars_start_empty():
+    source = _source(CHARACTER_PATH)
+    method = source.split("private Control CreateResourceBarRow", 1)[1].split(
+        "private static StyleBoxFlat CreateResourceRowStyle", 1
+    )[0]
+
+    assert "MaxValue = 100" in method
+    assert "Value = 0" in method
+    assert not re.search(r"^\s*Value = 100,\s*$", method, re.MULTILINE)
+
+
 def test_character_preserves_portrait_paths_and_manager_integration():
     source = _source(CHARACTER_PATH)
 
@@ -87,6 +109,22 @@ def test_character_preserves_portrait_paths_and_manager_integration():
     assert "EquipFromInventory" in source
     assert "UnequipToInventory" in source
     assert "SetActiveCharacter" in source
+
+
+def test_character_resource_bars_use_native_shared_styles_not_large_png_frames():
+    source = _source(CHARACTER_PATH)
+
+    assert "main_stats" not in source
+    assert "MainStatFrameNativeSize" not in source
+    assert "TextureRect FrameRect" not in source
+    assert "ProgressBar Progress" in source
+    assert "UiTokens.Life" in source
+    assert "UiTokens.Memory" in source
+    assert "UiTokens.Accent" in source
+    assert "UiTokens.Danger" in source
+    assert '"HP"' in source
+    assert '"MP"' in source
+    assert '"STA"' in source
 
 
 def test_inventory_and_character_interactions_keep_keyboard_focus():
@@ -135,15 +173,15 @@ def test_all_equipment_slot_names_have_vietnamese_fallbacks():
         assert f'EquipmentSlot.{enum_name} => "{caption}"' in character
 
 
-def test_showcase_instantiates_runtime_panels_and_checks_focus_filter_at_1280x720():
+def test_showcase_instantiates_selected_runtime_panel_and_checks_focus():
     scene = _source(SHOWCASE_SCENE_PATH)
     script = _source(SHOWCASE_SCRIPT_PATH)
 
-    assert "1280" in scene and "720" in scene
-    assert 'load("res://scripts/UI/HUD/InventoryPanel.cs")' in script
-    assert 'load("res://scripts/UI/HUD/CharacterDetailUI.cs")' in script
-    assert script.count(".new()") >= 2
-    assert "_validate_focus_modes" in script
+    assert "anchors_preset = 15" in scene
+    assert "custom_minimum_size" not in scene
+    assert '"inventory": ["res://scripts/UI/HUD/InventoryPanel.cs"' in script
+    assert '"character": ["res://scripts/UI/HUD/CharacterDetailUI.cs"' in script
+    assert "--showcase-panel=" in script
+    assert "_validate_panel" in script
     assert "Control.FOCUS_ALL" in script
-    assert "_exercise_inventory_filter" in script
-    assert "OptionButton" in script
+    assert 'set_meta("validation_passed", true)' in script

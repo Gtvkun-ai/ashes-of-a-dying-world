@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://scripts/Quests/Data/QuestData.cs" id="1_quest"]
 [ext_resource type="Script" path="res://scripts/Quests/Data/QuestObjectiveData.cs" id="2_objective"]
 [ext_resource type="Script" path="res://scripts/Quests/Data/QuestRewardData.cs" id="3_reward"]
-[ext_resource type="Texture2D" path="res://assets/graphics/ui/inventory/category_quest.png" id="4_icon"]
+[ext_resource type="Texture2D" path="res://data/icons/quest.tres" id="4_icon"]
 [ext_resource type="Texture2D" path="res://data/icons/vit.tres" id="5_item_icon"]
 
 [sub_resource type="Resource" id="Objective_flowers"]

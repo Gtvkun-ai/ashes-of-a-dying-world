@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using AshesofaDyingWorld.UI.Shared;
 using AshesofaDyingWorld.Core.Skills;
 using AshesofaDyingWorld.UI.HUD.Skills;
+using AshesofaDyingWorld.UI.Theme;
 
 namespace AshesofaDyingWorld.UI.HUD
 {
@@ -41,18 +42,6 @@ namespace AshesofaDyingWorld.UI.HUD
 		private Control _overviewFooter;
 		private VBoxContainer _statsTextContainer;
 
-		// Ba thanh tài nguyên dùng asset trong thư mục "3 main stat".
-		// Mỗi thanh gồm:
-		// - ảnh "... ic.png" làm khung ngoài,
-		// - ảnh "hp.png/mp.png/sta.png" làm phần progress chạy bên trong.
-		//
-		// Các số đo dưới đây lấy trực tiếp từ bộ asset gốc để việc scale luôn đồng nhất,
-		// tránh tình trạng ảnh khung và ảnh progress lệch nhau khi panel thay đổi kích thước.
-		private const string MainStatTextureRoot = "res://assets/graphics/ui/status/main_stats";
-		private static readonly Vector2 MainStatFrameNativeSize = new Vector2(927, 122);
-		private static readonly Vector2 MainStatProgressNativeSize = new Vector2(642, 53);
-		private static readonly Vector2 MainStatProgressNativeOffset = new Vector2(229, 35);
-		private const float MainStatRowAspect = 927.0f / 122.0f;
 		private VBoxContainer _resourceBarsContainer;
 		private MainStatBarVisual _hpBar;
 		private MainStatBarVisual _mpBar;
@@ -66,14 +55,10 @@ namespace AshesofaDyingWorld.UI.HUD
 		/// </summary>
 		private sealed class MainStatBarVisual
 		{
-			public Control Row;
-			public Control VisualRoot;
-			public TextureRect FrameRect;
-			public Control FillClip;
-			public TextureRect FillRect;
+			public ProgressBar Progress;
 			public Label ValueLabel;
-			public int CurrentValue;
-			public int MaxValue = 100;
+			public Color BaseColor;
+			public bool DangerWhenLow;
 		}
 		private VBoxContainer _skillsListContainer;
 		private readonly List<PanelContainer> _inventorySlotPanels = new();
@@ -259,11 +244,6 @@ namespace AshesofaDyingWorld.UI.HUD
 			return content;
 		}
 
-		private Texture2D TryLoadTexture(string path)
-		{
-			return InventoryPanelChrome.TryLoadTexture(path);
-		}
-
 		private Label CreateLabel(string text, int fontSize, Color color)
 		{
 			return InventoryPanelChrome.CreateLabel(text, fontSize, color);
@@ -347,18 +327,15 @@ namespace AshesofaDyingWorld.UI.HUD
 
 			_resourceBarsContainer = new VBoxContainer();
 			_resourceBarsContainer.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			// Giảm khoảng cách để 3 thanh nối liền thành một cụm như bộ asset thiết kế.
-			_resourceBarsContainer.AddThemeConstantOverride("separation", 0);
+			_resourceBarsContainer.AddThemeConstantOverride("separation", UiTokens.Space2);
 			centerColumn.AddChild(_resourceBarsContainer);
 
-			// Tất cả PNG nằm trực tiếp trong thư mục "3 main stat", không có thư mục con.
-			// File "... ic.png" là phần khung/icon; file hp.png, mp.png, sta.png là phần màu chạy.
 			_resourceBarsContainer.AddChild(CreateResourceBarRow(
-				"HP", "hp_frame.png", "hp_fill.png", "Sinh lực", out _hpBar, out _hpValueLabel));
+				"HP", "Sinh lực", UiTokens.Life, dangerWhenLow: true, out _hpBar, out _hpValueLabel));
 			_resourceBarsContainer.AddChild(CreateResourceBarRow(
-				"MP", "mp_frame.png", "mp_fill.png", "Năng lượng phép", out _mpBar, out _mpValueLabel));
+				"MP", "Năng lượng phép", UiTokens.Memory, dangerWhenLow: false, out _mpBar, out _mpValueLabel));
 			_resourceBarsContainer.AddChild(CreateResourceBarRow(
-				"STA", "stamina_frame.png", "stamina_fill.png", "Thể lực", out _staminaBar, out _staminaValueLabel));
+				"STA", "Thể lực", UiTokens.Accent, dangerWhenLow: false, out _staminaBar, out _staminaValueLabel));
 
 			centerColumn.AddChild(CreateSectionSpacer(18));
 			centerColumn.AddChild(CreateSectionTitle("CHỈ SỐ CHIẾN ĐẤU", HorizontalAlignment.Left));
@@ -2277,246 +2254,138 @@ namespace AshesofaDyingWorld.UI.HUD
 			SetBarValue(_staminaBar, (int)stats.CurrentStamina, (int)stats.MaxStamina);
 
 		}
-		/// <summary>
-		/// Cập nhật giá trị cho thanh ảnh HP/MP/STA.
-		/// Ta thay đổi độ rộng vùng clip của ảnh màu để phần progress nằm gọn trong khung.
-		/// </summary>
 		private void SetBarValue(MainStatBarVisual bar, int current, int max)
 		{
-			if (bar == null)
+			if (bar?.Progress == null)
 			{
 				return;
 			}
 
 			max = Mathf.Max(1, max);
 			current = Mathf.Clamp(current, 0, max);
+			float ratio = (float)current / max;
 
-			bar.CurrentValue = current;
-			bar.MaxValue = max;
+			bar.Progress.MaxValue = max;
+			bar.Progress.Value = current;
+			bar.Progress.TooltipText = $"{current:N0} / {max:N0}";
+			Color fillColor = bar.DangerWhenLow && ratio <= 0.25f
+				? UiTokens.Danger
+				: bar.BaseColor;
+			bar.Progress.AddThemeStyleboxOverride("fill", CreateResourceFillStyle(fillColor));
 
 			if (bar.ValueLabel != null)
 			{
-				bar.ValueLabel.Text = $"{current}/{max}";
+				bar.ValueLabel.Text = bar.DangerWhenLow && ratio <= 0.25f
+					? $"{current:N0}/{max:N0} · THẤP"
+					: $"{current:N0}/{max:N0}";
 			}
-
-			LayoutMainStatRow(bar);
 		}
 
-		/// <summary>
-		/// Tạo một hàng stat dùng đúng logic của bộ asset:
-		/// - ảnh "... ic.png" là khung ngoài,
-		/// - ảnh màu là progress nằm bên trong khung,
-		/// - số current/max hiển thị ở giữa phần progress.
-		///
-		/// Khác với bản cũ, phần màu không còn bị scale tràn khỏi khung.
-		/// Ta dùng một vùng clip nằm đúng trong lòng khung để ảnh hp/mp/sta luôn dính vào frame.
-		/// </summary>
 		private Control CreateResourceBarRow(
 			string statName,
-			string frameFile,
-			string progressFile,
 			string vietnameseDescription,
+			Color fillColor,
+			bool dangerWhenLow,
 			out MainStatBarVisual bar,
 			out Label valueLabel)
 		{
-			var row = new Control();
-			row.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-			row.CustomMinimumSize = new Vector2(0, 50);
-			row.MouseFilter = MouseFilterEnum.Ignore;
+			var panel = new PanelContainer
+			{
+				CustomMinimumSize = new Vector2(0f, 44f),
+				SizeFlagsHorizontal = SizeFlags.ExpandFill,
+				TooltipText = vietnameseDescription
+			};
+			panel.AddThemeStyleboxOverride("panel", CreateResourceRowStyle());
 
-			Texture2D frameTexture = LoadMainStatTexture(statName, frameFile);
-			Texture2D progressTexture = LoadMainStatTexture(statName, progressFile);
+			var margin = new MarginContainer();
+			margin.AddThemeConstantOverride("margin_left", UiTokens.Space3);
+			margin.AddThemeConstantOverride("margin_top", UiTokens.Space2);
+			margin.AddThemeConstantOverride("margin_right", UiTokens.Space3);
+			margin.AddThemeConstantOverride("margin_bottom", UiTokens.Space2);
+			panel.AddChild(margin);
 
-			var visualRoot = new Control();
-			visualRoot.MouseFilter = MouseFilterEnum.Ignore;
-			row.AddChild(visualRoot);
+			var row = new HBoxContainer
+			{
+				SizeFlagsHorizontal = SizeFlags.ExpandFill,
+				MouseFilter = MouseFilterEnum.Ignore
+			};
+			row.AddThemeConstantOverride("separation", UiTokens.Space2);
+			margin.AddChild(row);
 
-			var frameRect = new TextureRect();
-			frameRect.Texture = frameTexture;
-			frameRect.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
-			frameRect.StretchMode = TextureRect.StretchModeEnum.Scale;
-			frameRect.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
-			frameRect.MouseFilter = MouseFilterEnum.Ignore;
-			visualRoot.AddChild(frameRect);
+			var semanticLabel = CreateLabel(statName, UiTokens.LabelFontSize, _mainTextColor);
+			semanticLabel.CustomMinimumSize = new Vector2(34f, 0f);
+			semanticLabel.VerticalAlignment = VerticalAlignment.Center;
+			semanticLabel.MouseFilter = MouseFilterEnum.Ignore;
+			row.AddChild(semanticLabel);
 
-			var fillClip = new Control();
-			fillClip.ClipContents = true;
-			fillClip.MouseFilter = MouseFilterEnum.Ignore;
-			visualRoot.AddChild(fillClip);
+			var progress = new ProgressBar
+			{
+				CustomMinimumSize = new Vector2(0f, 14f),
+				SizeFlagsHorizontal = SizeFlags.ExpandFill,
+				SizeFlagsVertical = SizeFlags.ShrinkCenter,
+				ShowPercentage = false,
+				MaxValue = 100,
+				Value = 0,
+				MouseFilter = MouseFilterEnum.Ignore
+			};
+			progress.AddThemeStyleboxOverride("background", CreateResourceTrackStyle());
+			progress.AddThemeStyleboxOverride("fill", CreateResourceFillStyle(fillColor));
+			row.AddChild(progress);
 
-			var fillRect = new TextureRect();
-			fillRect.Texture = progressTexture;
-			fillRect.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
-			fillRect.StretchMode = TextureRect.StretchModeEnum.Scale;
-			fillRect.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
-			fillRect.MouseFilter = MouseFilterEnum.Ignore;
-			fillClip.AddChild(fillRect);
-
-			var currentValueLabel = CreateLabel("0/0", 12, Colors.White);
-			currentValueLabel.HorizontalAlignment = HorizontalAlignment.Center;
+			var currentValueLabel = CreateLabel("0/0", UiTokens.MicroFontSize, _mainTextColor);
+			currentValueLabel.CustomMinimumSize = new Vector2(92f, 0f);
+			currentValueLabel.HorizontalAlignment = HorizontalAlignment.Right;
 			currentValueLabel.VerticalAlignment = VerticalAlignment.Center;
 			currentValueLabel.MouseFilter = MouseFilterEnum.Ignore;
-			currentValueLabel.AddThemeConstantOverride("outline_size", 4);
-			currentValueLabel.AddThemeColorOverride(
-				"font_outline_color", new Color(0.02f, 0.02f, 0.03f, 0.95f));
-			visualRoot.AddChild(currentValueLabel);
+			row.AddChild(currentValueLabel);
 
 			var barVisual = new MainStatBarVisual
 			{
-				Row = row,
-				VisualRoot = visualRoot,
-				FrameRect = frameRect,
-				FillClip = fillClip,
-				FillRect = fillRect,
+				Progress = progress,
 				ValueLabel = currentValueLabel,
-				CurrentValue = 100,
-				MaxValue = 100
+				BaseColor = fillColor,
+				DangerWhenLow = dangerWhenLow
 			};
-
-			row.Resized += () => LayoutMainStatRow(barVisual);
-			row.TreeEntered += () => LayoutMainStatRow(barVisual);
 
 			bar = barVisual;
 			valueLabel = currentValueLabel;
-			return row;
+			return panel;
 		}
 
-		/// <summary>
-		/// Căn layout cho một thanh tài nguyên theo đúng tỉ lệ gốc của asset.
-		/// Khung và progress được scale cùng nhau, còn progress chỉ lộ ra trong vùng clip nội bộ.
-		/// </summary>
-		private void LayoutMainStatRow(MainStatBarVisual bar)
+		private static StyleBoxFlat CreateResourceRowStyle()
 		{
-			if (bar == null || bar.Row == null || bar.VisualRoot == null || bar.FrameRect == null ||
-				bar.FillClip == null || bar.FillRect == null || bar.ValueLabel == null)
+			var style = new StyleBoxFlat
 			{
-				return;
-			}
-
-			Vector2 available = bar.Row.Size;
-			if (available.X <= 1 || available.Y <= 1)
-			{
-				return;
-			}
-
-			float displayWidth = available.X;
-			float displayHeight = displayWidth / MainStatRowAspect;
-			if (displayHeight > available.Y)
-			{
-				displayHeight = available.Y;
-				displayWidth = displayHeight * MainStatRowAspect;
-			}
-
-			Vector2 displaySize = new Vector2(displayWidth, displayHeight);
-			Vector2 displayPosition = new Vector2(
-				(available.X - displaySize.X) * 0.5f,
-				(available.Y - displaySize.Y) * 0.5f);
-
-			bar.VisualRoot.Position = displayPosition;
-			bar.VisualRoot.Size = displaySize;
-			bar.FrameRect.Position = Vector2.Zero;
-			bar.FrameRect.Size = displaySize;
-
-			Vector2 progressPosition = new Vector2(
-				(MainStatProgressNativeOffset.X / MainStatFrameNativeSize.X) * displaySize.X,
-				(MainStatProgressNativeOffset.Y / MainStatFrameNativeSize.Y) * displaySize.Y);
-			Vector2 fullProgressSize = new Vector2(
-				(MainStatProgressNativeSize.X / MainStatFrameNativeSize.X) * displaySize.X,
-				(MainStatProgressNativeSize.Y / MainStatFrameNativeSize.Y) * displaySize.Y);
-
-			float ratio = bar.MaxValue > 0 ? Mathf.Clamp((float)bar.CurrentValue / bar.MaxValue, 0.0f, 1.0f) : 0.0f;
-			bar.FillClip.Position = progressPosition;
-			bar.FillClip.Size = new Vector2(fullProgressSize.X * ratio, fullProgressSize.Y);
-			bar.FillRect.Position = Vector2.Zero;
-			bar.FillRect.Size = fullProgressSize;
-
-			bar.ValueLabel.Position = progressPosition;
-			bar.ValueLabel.Size = fullProgressSize;
+				BgColor = UiTokens.Surface,
+				BorderColor = UiTokens.Border
+			};
+			style.SetBorderWidthAll(UiTokens.BorderWidth);
+			style.SetCornerRadiusAll(UiTokens.CornerRadius);
+			return style;
 		}
 
-		/// <summary>
-		/// Nạp texture trong thư mục 3 main stat. Ưu tiên đường dẫn chính xác,
-		/// sau đó quét tên file không phân biệt hoa/thường để tránh asset cũ như HP.png.
-		/// </summary>
-		private Texture2D LoadMainStatTexture(string statName, string fileName)
+		private static StyleBoxFlat CreateResourceTrackStyle()
 		{
-			string exactPath = $"{MainStatTextureRoot}/{fileName}";
-			Texture2D exactTexture = TryLoadTexture(exactPath);
-			if (exactTexture != null)
+			var style = new StyleBoxFlat
 			{
-				GD.Print($"[CharacterDetailUI] Đã nạp ảnh {statName}: {exactPath}");
-				return exactTexture;
-			}
-
-			// Fallback cho asset cũ có chữ hoa như HP.png hoặc tên lệch hoa/thường.
-			string discoveredPath = FindTexturePathRecursive(MainStatTextureRoot, fileName, 0);
-			if (!string.IsNullOrEmpty(discoveredPath))
-			{
-				Texture2D discoveredTexture = TryLoadTexture(discoveredPath);
-				if (discoveredTexture != null)
-				{
-					GD.Print($"[CharacterDetailUI] Đã tự tìm ảnh {statName}: {discoveredPath}");
-					return discoveredTexture;
-				}
-			}
-
-			GD.PrintErr(
-				$"[CharacterDetailUI] Không tìm thấy {fileName} trong {MainStatTextureRoot}. " +
-				"Hãy kiểm tra tên file và chờ Godot import xong.");
-			return null;
+				BgColor = UiTokens.Canvas,
+				BorderColor = UiTokens.BorderStrong
+			};
+			style.SetBorderWidthAll(UiTokens.BorderWidth);
+			style.SetCornerRadiusAll(UiTokens.CornerRadius);
+			return style;
 		}
 
-		/// <summary>
-		/// Tìm file theo tên không phân biệt chữ hoa/thường.
-		/// </summary>
-		private string FindTexturePathRecursive(
-			string directoryPath,
-			string targetFileName,
-			int depth)
+		private static StyleBoxFlat CreateResourceFillStyle(Color color)
 		{
-			if (depth > 2)
+			var style = new StyleBoxFlat
 			{
-				return string.Empty;
-			}
-
-			DirAccess directory = DirAccess.Open(directoryPath);
-			if (directory == null)
-			{
-				return string.Empty;
-			}
-
-			directory.ListDirBegin();
-			string entryName = directory.GetNext();
-			while (!string.IsNullOrEmpty(entryName))
-			{
-				if (entryName != "." && entryName != "..")
-				{
-					string entryPath = $"{directoryPath}/{entryName}";
-					if (directory.CurrentIsDir())
-					{
-						string nestedResult = FindTexturePathRecursive(
-							entryPath, targetFileName, depth + 1);
-						if (!string.IsNullOrEmpty(nestedResult))
-						{
-							directory.ListDirEnd();
-							return nestedResult;
-						}
-					}
-					else if (string.Equals(
-						entryName,
-						targetFileName,
-						System.StringComparison.OrdinalIgnoreCase))
-					{
-						directory.ListDirEnd();
-						return entryPath;
-					}
-				}
-
-				entryName = directory.GetNext();
-			}
-
-			directory.ListDirEnd();
-			return string.Empty;
+				BgColor = color,
+				BorderColor = color.Lightened(0.18f)
+			};
+			style.SetBorderWidthAll(UiTokens.BorderWidth);
+			style.SetCornerRadiusAll(1);
+			return style;
 		}
 
 		private string FormatStatName(string original)
