@@ -124,6 +124,7 @@ namespace AshesofaDyingWorld.UI.HUD
 
             var widget = new Control
             {
+                Name = "EnemyHealthWidget",
                 MouseFilter = Control.MouseFilterEnum.Ignore,
                 Scale = new Vector2(WidgetScale, WidgetScale),
                 TopLevel = true,
@@ -301,8 +302,7 @@ namespace AshesofaDyingWorld.UI.HUD
                 trackedEnemy.Widget.Position = WorldHudLayout.Resolve(
                     trackedEnemy.EnemyNode,
                     WorldHudLane.Health,
-                    widgetSize,
-                    new Vector2(0f, -6f));
+                    widgetSize);
 
                 float targetAlpha = trackedEnemy.RevealRemaining > 0f ? 1f : 0f;
                 float alpha = Mathf.MoveToward(trackedEnemy.Widget.Modulate.A, targetAlpha, dt * 5.5f);

@@ -130,8 +130,7 @@ namespace AshesofaDyingWorld.UI.HUD
                 entry.Root.Position = WorldHudLayout.Resolve(
                     entry.Actor,
                     WorldHudLane.Progression,
-                    entry.Root.GetCombinedMinimumSize(),
-                    new Vector2(0f, -4f));
+                    entry.Root.GetCombinedMinimumSize());
                 entry.Root.Visible = true;
 
                 float alpha = entry.VisibleTimer < FadeDurationSeconds

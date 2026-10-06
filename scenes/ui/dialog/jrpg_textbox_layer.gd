@@ -126,6 +126,8 @@ func _apply_export_overrides() -> void:
 	)
 	portrait.position = _portrait_target_position
 	portrait.z_index = 2 if portrait_draw_behind_panel else 5
+	if _is_reduced_motion_enabled():
+		portrait.modulate = Color.WHITE
 
 	# ── Margins / typography ───────────────────────────────────────────
 	var content_margin: MarginContainer = panel.get_node("ContentMargin")
@@ -144,6 +146,8 @@ func _apply_export_overrides() -> void:
 	var next_indicator: Control = %NextIndicator
 	next_indicator.position = panel.position + panel.size - Vector2(18.0, 12.0)
 	next_indicator.z_index = 7
+	if _is_reduced_motion_enabled():
+		next_indicator.set("animation", 2)
 
 	var dialog_text: DialogicNode_DialogText = %DialogicNode_DialogText
 	var regular_font := _load_font_or_fallback(REGULAR_FONT_PATH, null)
@@ -177,7 +181,9 @@ func _apply_export_overrides() -> void:
 
 	if not Engine.is_editor_hint():
 		_connect_speaker_signal()
-		if enable_entry_animation and not _layout_intro_played:
+		if _is_reduced_motion_enabled():
+			_snap_layout_intro_to_final_state()
+		elif enable_entry_animation and not _layout_intro_played:
 			_layout_intro_played = true
 			call_deferred("_play_layout_intro")
 
@@ -207,6 +213,9 @@ func _play_layout_intro() -> void:
 	var name_plate: PanelContainer = %NamePlate
 	var panel_target := panel.position
 	var name_target := name_plate.position
+	if _is_reduced_motion_enabled():
+		_snap_layout_intro_to_final_state()
+		return
 
 	dim.modulate = Color(1, 1, 1, 0)
 	panel.modulate = Color(1, 1, 1, 0)
@@ -222,7 +231,18 @@ func _play_layout_intro() -> void:
 	tween.tween_property(name_plate, "position", name_target, entry_duration)
 
 
+func _snap_layout_intro_to_final_state() -> void:
+	%DimBackground.modulate = Color.WHITE
+	%DialogTextPanel.modulate = Color.WHITE
+	%NamePlate.modulate = Color.WHITE
+
+
 func _animate_portrait_in(portrait: TextureRect) -> void:
+	if _is_reduced_motion_enabled():
+		portrait.position = _portrait_target_position
+		portrait.modulate = Color.WHITE
+		return
+
 	portrait.position = _portrait_target_position + Vector2(0, portrait_entry_offset)
 	portrait.modulate = Color(1, 1, 1, 0)
 	var tween := create_tween().set_parallel(true).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
@@ -338,10 +358,17 @@ func _on_speaker_changed(character: DialogicCharacter) -> void:
 
 	portrait_rect.position = _portrait_target_position
 
-	if enable_entry_animation and is_new_portrait and not Engine.is_editor_hint():
+	if enable_entry_animation and is_new_portrait and not Engine.is_editor_hint() and not _is_reduced_motion_enabled():
 		_animate_portrait_in(portrait_rect)
 
 	_last_portrait_texture = tex
+
+
+func _is_reduced_motion_enabled() -> bool:
+	var settings_manager := get_node_or_null("/root/SettingsManager")
+	return is_instance_valid(settings_manager) \
+		and settings_manager.has_method(&"IsReducedMotionEnabled") \
+		and bool(settings_manager.call(&"IsReducedMotionEnabled"))
 
 
 func _get_character_portrait_texture(character: DialogicCharacter) -> Texture2D:

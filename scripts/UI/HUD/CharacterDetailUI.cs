@@ -194,6 +194,7 @@ namespace AshesofaDyingWorld.UI.HUD
 
 			// Thông tin ngắn gọn bên phải được làm mới từ dữ liệu thật.
 			_nameLabel = CreateLabel("Chưa có nhân vật", 15, _mainTextColor);
+			InventoryPanelChrome.ConfigureEllipsisLabel(_nameLabel, "CharacterHeaderName", 170f);
 			_nameLabel.VerticalAlignment = VerticalAlignment.Center;
 			row.AddChild(_nameLabel);
 
@@ -376,6 +377,7 @@ namespace AshesofaDyingWorld.UI.HUD
 
 			identityColumn.AddChild(CreateSectionSpacer(8));
 			_sidebarNameLabel = CreateLabel("Chưa có nhân vật", 15, _mainTextColor);
+			InventoryPanelChrome.ConfigureWrappedLabel(_sidebarNameLabel, "CharacterSidebarName");
 			_sidebarNameLabel.HorizontalAlignment = HorizontalAlignment.Left;
 			identityColumn.AddChild(_sidebarNameLabel);
 
@@ -2030,9 +2032,9 @@ namespace AshesofaDyingWorld.UI.HUD
 		private void ShowEmptyCharacterState()
 		{
 			BindObservedStats(null);
-			_nameLabel.Text = "Chưa có nhân vật";
+			InventoryPanelChrome.SetAccessibleText(_nameLabel, "Chưa có nhân vật");
 			_levelLabel.Text = "Cấp --";
-			_sidebarNameLabel.Text = "Chưa có nhân vật";
+			InventoryPanelChrome.SetAccessibleText(_sidebarNameLabel, "Chưa có nhân vật");
 			_sidebarLevelLabel.Text = "Cấp --";
 			_sidebarExperienceLabel.Text = "Chưa có dữ liệu kinh nghiệm";
 			_raceLabel.Text = "Chưa có dữ liệu";
@@ -2087,9 +2089,9 @@ namespace AshesofaDyingWorld.UI.HUD
 
 			var config = currentStats.ConfigData;
 
-			_nameLabel.Text = config.Name;
+			InventoryPanelChrome.SetAccessibleText(_nameLabel, config.Name);
 			_levelLabel.Text = $"Cấp {currentStats.CurrentLevel:00}";
-			_sidebarNameLabel.Text = config.Name;
+			InventoryPanelChrome.SetAccessibleText(_sidebarNameLabel, config.Name);
 			_sidebarLevelLabel.Text = $"Cấp {currentStats.CurrentLevel:00}";
 			if (_sidebarExperienceLabel != null)
 			{

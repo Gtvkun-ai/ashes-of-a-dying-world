@@ -273,6 +273,7 @@ namespace AshesofaDyingWorld.UI.Party
             portraitContent.AddChild(_detailPortraitFallback);
 
             _detailNameLabel = CreateLabel("Chưa có thành viên", 18, MainText);
+            InventoryPanelChrome.ConfigureWrappedLabel(_detailNameLabel, "PartyDetailName");
             _detailNameLabel.HorizontalAlignment = HorizontalAlignment.Center;
             column.AddChild(_detailNameLabel);
 
@@ -554,7 +555,7 @@ namespace AshesofaDyingWorld.UI.Party
                 _detailPortrait.Visible = false;
                 _detailPortraitFallback.Text = "?";
                 _detailPortraitFallback.Visible = true;
-                _detailNameLabel.Text = "Chưa có thành viên";
+                InventoryPanelChrome.SetAccessibleText(_detailNameLabel, "Chưa có thành viên");
                 _detailRoleLabel.Text = "";
                 _detailLevelLabel.Text = "";
                 _detailRaceLabel.Text = "";
@@ -581,7 +582,7 @@ namespace AshesofaDyingWorld.UI.Party
                 : config.Name.Substring(0, 1).ToUpperInvariant();
             _detailPortraitFallback.Visible = config?.Icon == null;
 
-            _detailNameLabel.Text = config?.Name ?? "Thành viên";
+            InventoryPanelChrome.SetAccessibleText(_detailNameLabel, config?.Name ?? "Thành viên");
             _detailRoleLabel.Text = GetRoleLabel(member);
             _detailRoleLabel.AddThemeColorOverride("font_color", characterAccent);
             _detailLevelLabel.Text = $"Cấp {member.CurrentLevel:00}";

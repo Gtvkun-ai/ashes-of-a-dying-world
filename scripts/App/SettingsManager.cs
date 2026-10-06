@@ -27,6 +27,12 @@ namespace AshesofaDyingWorld.Core.Managers
         public static SettingsManager Instance { get; private set; }
         public UserSettingsData CurrentSettings { get; private set; } = new();
 
+        public bool IsReducedMotionEnabled()
+        {
+            return GodotObject.IsInstanceValid(this)
+                && CurrentSettings?.ReducedMotion == true;
+        }
+
         public static SettingsManager GetOrCreate(SceneTree tree)
         {
             if (Instance != null && GodotObject.IsInstanceValid(Instance))

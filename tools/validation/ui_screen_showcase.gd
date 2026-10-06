@@ -1,5 +1,12 @@
 extends Control
 
+const PLAYER_STATS_SCRIPT := preload("res://scripts/Characters/Stats/PlayerStats.cs")
+const LONG_NAME := "Nguyễn Nhật Minh Ánh · Người gìn giữ ký ức của cánh đồng hồi sinh"
+const LONG_LABEL_SPECS := {
+	"character": [["CharacterHeaderName", false], ["CharacterSidebarName", true]],
+	"skills": [["SkillHeaderCharacterName", false]],
+	"party": [["PartyDetailName", true]],
+}
 const PANEL_SPECS := {
 	"inventory": ["res://scripts/UI/HUD/InventoryPanel.cs", "InventoryPanel"],
 	"character": ["res://scripts/UI/HUD/CharacterDetailUI.cs", "CharacterDetailUI"],
@@ -17,6 +24,9 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_active_panel_key = _requested_panel()
 	_build_background()
+	if _long_text_requested() and not await _build_long_text_fixture():
+		get_tree().quit(1)
+		return
 
 	var spec: Array = PANEL_SPECS[_active_panel_key]
 	var panel_script = load(spec[0])
@@ -33,6 +43,8 @@ func _ready() -> void:
 	_active_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(panel_host)
 	_active_panel.visible = true
+	if _long_text_requested() and _active_panel.has_method("UpdateCharacterInfo"):
+		_active_panel.call("UpdateCharacterInfo")
 	set_meta("active_panel_name", spec[1])
 
 	await get_tree().process_frame
@@ -82,6 +94,36 @@ func _expected_viewport_size() -> Vector2:
 	return get_viewport_rect().size
 
 
+func _long_text_requested() -> bool:
+	return OS.get_cmdline_user_args().has("--showcase-long-text")
+
+
+func _build_long_text_fixture() -> bool:
+	var manager := get_node_or_null("/root/PlayerManager")
+	if not _require(manager != null, "PlayerManager autoload is missing for long-text fixture"):
+		return false
+	manager.call("ResetParty")
+
+	var source_config = load("res://data/characters/main.tres")
+	if not _require(source_config != null, "Long-text fixture character config is missing"):
+		return false
+	var config = source_config.duplicate(true)
+	config.set("Name", LONG_NAME)
+
+	var stats: Node = PLAYER_STATS_SCRIPT.new()
+	stats.name = "LongTextFixtureStats"
+	stats.set("ConfigData", config)
+	stats.set("InitialLevel", 12)
+	stats.set("UseManualProfile", true)
+	stats.set("ManualMaxHP", 100.0)
+	stats.set("ManualMaxMP", 80.0)
+	stats.set("ManualMaxStamina", 100.0)
+	add_child(stats)
+	await get_tree().process_frame
+	manager.call("RegisterMember", stats)
+	return true
+
+
 func _validate_panel() -> bool:
 	if not _require(is_instance_valid(_active_panel), "Runtime panel is missing"):
 		return false
@@ -97,12 +139,53 @@ func _validate_panel() -> bool:
 	)
 	if not _require(bounds_fit, "Panel bounds escape the viewport: %s" % panel_bounds):
 		return false
+	if _long_text_requested() and not _validate_long_text_policy(viewport_bounds):
+		return false
 
 	var focusable_count := 0
 	for node in _active_panel.find_children("*", "Control", true, false):
 		if node is Control and node.focus_mode == Control.FOCUS_ALL and node.visible:
 			focusable_count += 1
 	return _require(focusable_count > 0, "%s has no visible focusable control" % _active_panel.name)
+
+
+func _validate_long_text_policy(viewport_bounds: Rect2) -> bool:
+	if not LONG_LABEL_SPECS.has(_active_panel_key):
+		return true
+	var panel_bounds := _active_panel.get_global_transform_with_canvas() * Rect2(Vector2.ZERO, _active_panel.size)
+	for spec in LONG_LABEL_SPECS[_active_panel_key]:
+		var label := _active_panel.find_child(spec[0], true, false) as Label
+		if not _require(label != null, "%s is missing its long-text label" % spec[0]):
+			return false
+		if not _require(
+			label.tooltip_text.length() >= LONG_NAME.length(),
+			"%s has no full-name tooltip (text=%s, tooltip=%s)" % [spec[0], label.text, label.tooltip_text]
+		):
+			return false
+		var label_bounds := label.get_global_transform_with_canvas() * Rect2(Vector2.ZERO, label.size)
+		if not _require(viewport_bounds.encloses(label_bounds), "%s escapes the viewport: %s" % [spec[0], label_bounds]):
+			return false
+		if not _require(panel_bounds.encloses(label_bounds), "%s escapes the panel: %s" % [spec[0], label_bounds]):
+			return false
+		if spec[1]:
+			if not _require(label.autowrap_mode == TextServer.AUTOWRAP_WORD_SMART, "%s does not wrap long text" % spec[0]):
+				return false
+			if not _require(label.max_lines_visible == 2, "%s is not capped at two lines" % spec[0]):
+				return false
+		else:
+			if not _require(label.clip_text, "%s does not clip within its header allocation" % spec[0]):
+				return false
+			if not _require(label.text_overrun_behavior == TextServer.OVERRUN_TRIM_ELLIPSIS, "%s does not ellipsize" % spec[0]):
+				return false
+
+	for node in _active_panel.find_children("*", "Button", true, false):
+		if node is Button and node.text == "X" and node.is_visible_in_tree():
+			var close_bounds: Rect2 = node.get_global_transform_with_canvas() * Rect2(Vector2.ZERO, node.size)
+			return _require(
+				viewport_bounds.encloses(close_bounds) and panel_bounds.encloses(close_bounds),
+				"Long text pushed the close button outside the panel"
+			)
+	return _require(false, "%s has no visible close button" % _active_panel.name)
 
 
 func _capture_path() -> String:

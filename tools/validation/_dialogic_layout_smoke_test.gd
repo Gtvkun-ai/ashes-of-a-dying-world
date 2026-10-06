@@ -3,6 +3,7 @@ extends Node
 const TEXTBOX_SCENE := "res://scenes/ui/dialog/jrpg_textbox.tscn"
 const CHOICE_SCENE := "res://scenes/ui/dialog/jrpg_choice_layer.tscn"
 const BASE_SCENE := "res://addons/dialogic/Modules/DefaultLayoutParts/Base_Default/default_layout_base.tscn"
+const REDUCED_MOTION_SETTINGS_FIXTURE := preload("res://tools/validation/DialogicReducedMotionSettingsFixture.cs")
 const VIEWPORTS := [Vector2i(1280, 720), Vector2i(1600, 900)]
 const LONG_CHOICES := [
 	"Sáu lựa chọn tiếng Việt rất dài cần tự xuống dòng mà không bị cắt mất nội dung.",
@@ -15,13 +16,59 @@ const LONG_CHOICES := [
 
 
 func _ready() -> void:
+	if not await _verify_reduced_motion_layout():
+		get_tree().quit(1)
+		return
+
 	for viewport_size in VIEWPORTS:
 		var passed: bool = await _exercise_viewport(viewport_size)
 		if not passed:
+			get_tree().quit(1)
 			return
 
 	print("Dialogic layout smoke test passed")
 	get_tree().quit(0)
+
+
+func _verify_reduced_motion_layout() -> bool:
+	await get_tree().process_frame
+	var settings_fixture := REDUCED_MOTION_SETTINGS_FIXTURE.new()
+	settings_fixture.name = "SettingsManager"
+	get_tree().root.add_child(settings_fixture)
+	await get_tree().process_frame
+	if not _require(
+		settings_fixture.has_method(&"IsReducedMotionEnabled")
+		and bool(settings_fixture.call(&"IsReducedMotionEnabled")),
+		"Reduced-motion settings fixture did not expose an enabled SettingsManager query"
+	):
+		return false
+
+	var textbox: Node = load(TEXTBOX_SCENE).instantiate()
+	add_child(textbox)
+	DialogicUtil.apply_scene_export_overrides(textbox, {})
+	await get_tree().process_frame
+
+	var dim := textbox.get_node_or_null("DimBackground") as ColorRect
+	var panel := textbox.get_node_or_null("Anchor/AnimationParent/DialogTextPanel") as PanelContainer
+	var name_plate := textbox.get_node_or_null("Anchor/AnimationParent/NamePlate") as PanelContainer
+	var portrait := textbox.get_node_or_null("Anchor/AnimationParent/SpeakerPortrait") as TextureRect
+	var next_indicator := textbox.get_node_or_null("Anchor/AnimationParent/NextIndicator") as Control
+	if not _require(dim != null and panel != null and name_plate != null and portrait != null and next_indicator != null, "Reduced-motion dialog nodes are missing"):
+		return false
+	if not _require(dim.modulate == Color.WHITE, "Reduced motion did not snap the dialog dimmer to its final state"):
+		return false
+	if not _require(panel.modulate == Color.WHITE and name_plate.modulate == Color.WHITE, "Reduced motion did not snap the dialog chrome to its final state"):
+		return false
+	textbox.call("_animate_portrait_in", portrait)
+	if not _require(portrait.modulate == Color.WHITE, "Reduced motion did not leave the portrait at its final opacity"):
+		return false
+	if not _require(next_indicator.get("animation") == 2, "Reduced motion did not disable the next-indicator blink"):
+		return false
+
+	textbox.queue_free()
+	settings_fixture.queue_free()
+	await get_tree().process_frame
+	return true
 
 
 func _exercise_viewport(viewport_size: Vector2i) -> bool:
@@ -172,5 +219,4 @@ func _require(condition: bool, message: String) -> bool:
 	if condition:
 		return true
 	push_error(message)
-	get_tree().quit(1)
 	return false

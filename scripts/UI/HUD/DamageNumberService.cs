@@ -14,6 +14,8 @@ namespace AshesofaDyingWorld.UI.HUD
             public float Age;
             public Color BaseColor;
             public float StartScale;
+            public Vector2 StartPosition;
+            public float MaxUpwardTravel;
         }
 
         public static DamageNumberService Instance { get; private set; }
@@ -83,6 +85,7 @@ namespace AshesofaDyingWorld.UI.HUD
                         : DamageColor;
             string prefix = shattered ? "VỠ ĐÁ  " : string.Empty;
             float startScale = shattered ? 1.45f : blocked ? 0.92f : 1.12f;
+            float maximumScale = startScale * 1.12f;
 
             var label = new Label
             {
@@ -91,7 +94,8 @@ namespace AshesofaDyingWorld.UI.HUD
                 TopLevel = true,
                 ZIndex = 220,
                 Modulate = color,
-                Scale = Vector2.One * startScale
+                Scale = Vector2.One * startScale,
+                PivotOffset = Vector2.Zero
             };
             UiThemeFactory.ApplyText(label, UiTextRole.CombatNumber);
             label.AddThemeFontSizeOverride("font_size", shattered ? FontSize + 3 : FontSize);
@@ -101,12 +105,11 @@ namespace AshesofaDyingWorld.UI.HUD
             AddChild(label);
 
             Vector2 labelSize = label.GetCombinedMinimumSize();
-            label.PivotOffset = labelSize * 0.5f;
+            Vector2 maximumVisualSize = labelSize * maximumScale;
             label.Position = WorldHudLayout.Resolve(
                 source,
                 WorldHudLane.Feedback,
-                labelSize,
-                new Vector2(0f, -4f));
+                maximumVisualSize);
 
             _numbers.Add(new DamageNumber
             {
@@ -115,7 +118,9 @@ namespace AshesofaDyingWorld.UI.HUD
                 Lifetime = Mathf.Max(0.1f, shattered ? Lifetime * 1.15f : Lifetime),
                 Age = 0f,
                 BaseColor = color,
-                StartScale = startScale
+                StartScale = startScale,
+                StartPosition = label.Position,
+                MaxUpwardTravel = WorldHudLayout.GetFeedbackTravelLimit(maximumVisualSize)
             });
         }
 
@@ -133,7 +138,10 @@ namespace AshesofaDyingWorld.UI.HUD
 
                 number.Age += dt;
                 float progress = Mathf.Clamp(number.Age / number.Lifetime, 0f, 1f);
-                number.Label.Position += number.Velocity * dt;
+                Vector2 nextPosition = number.Label.Position + number.Velocity * dt;
+                float upwardTravel = Mathf.Max(0f, number.StartPosition.Y - nextPosition.Y);
+                nextPosition.Y = number.StartPosition.Y - Mathf.Min(upwardTravel, number.MaxUpwardTravel);
+                number.Label.Position = nextPosition;
                 number.Label.Modulate = new Color(
                     number.BaseColor.R,
                     number.BaseColor.G,

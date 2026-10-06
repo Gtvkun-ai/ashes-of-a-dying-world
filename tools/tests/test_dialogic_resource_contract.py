@@ -105,3 +105,18 @@ def test_dialogic_focus_style_is_structurally_distinct_from_hover():
     assert 'border_width_right = 1' in focus
     assert 'border_width_left = 2' in focus
     assert 'border_width_left = 3' not in focus
+
+
+def test_dialogic_reduced_motion_uses_runtime_settings_and_disables_owned_motion():
+    manager = read('scripts/App/SettingsManager.cs')
+    layer = read('scenes/ui/dialog/jrpg_textbox_layer.gd')
+    smoke = read('tools/validation/_dialogic_layout_smoke_test.gd')
+
+    assert 'public bool IsReducedMotionEnabled()' in manager
+    assert 'get_node_or_null("/root/SettingsManager")' in layer
+    assert 'settings_manager.has_method(&"IsReducedMotionEnabled")' in layer
+    assert 'next_indicator.set("animation", 2)' in layer
+    assert layer.count('_is_reduced_motion_enabled()') >= 5
+    assert 'DialogicReducedMotionSettingsFixture.cs' in smoke
+    assert 'Reduced motion did not snap the dialog dimmer' in smoke
+    assert 'Reduced motion did not disable the next-indicator blink' in smoke

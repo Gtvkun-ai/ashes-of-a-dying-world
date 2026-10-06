@@ -96,3 +96,15 @@ def test_secondary_showcase_mounts_real_panels_and_native_controls():
     assert "_validate_panel" in script
     assert "node.focus_mode == Control.FOCUS_ALL" in script
     assert 'set_meta("validation_passed", true)' in script
+
+
+def test_party_and_skill_names_share_the_bounded_long_text_policy():
+    party = _source("scripts/UI/Party/PartyPanel.cs")
+    skills = _source("scripts/UI/Skills/SkillTreePanel.cs")
+    showcase = _source("tools/validation/ui_screen_showcase.gd")
+
+    assert 'ConfigureWrappedLabel(_detailNameLabel, "PartyDetailName")' in party
+    assert 'ConfigureEllipsisLabel(_characterNameLabel, "SkillHeaderCharacterName"' in skills
+    assert 'ConfigureWrappedLabel(_detailNameLabel, "SkillDetailName")' in skills
+    assert '"party": [["PartyDetailName", true]]' in showcase
+    assert '"skills": [["SkillHeaderCharacterName", false]]' in showcase

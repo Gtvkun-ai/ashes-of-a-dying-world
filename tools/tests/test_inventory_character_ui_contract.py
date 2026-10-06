@@ -185,3 +185,19 @@ def test_showcase_instantiates_selected_runtime_panel_and_checks_focus():
     assert "_validate_panel" in script
     assert "Control.FOCUS_ALL" in script
     assert 'set_meta("validation_passed", true)' in script
+
+
+def test_long_character_names_have_bounded_layout_and_full_text_tooltips():
+    character = _source(CHARACTER_PATH)
+    chrome = _source(CHROME_PATH)
+    showcase = _source(SHOWCASE_SCRIPT_PATH)
+
+    assert "ConfigureEllipsisLabel" in chrome
+    assert "ConfigureWrappedLabel" in chrome
+    assert "TextServer.OverrunBehavior.TrimEllipsis" in chrome
+    assert "MaxLinesVisible" in chrome
+    assert "TooltipText = resolvedText" in chrome
+    assert '"CharacterHeaderName"' in character
+    assert '"CharacterSidebarName"' in character
+    assert "--showcase-long-text" in showcase
+    assert "_validate_long_text_policy" in showcase

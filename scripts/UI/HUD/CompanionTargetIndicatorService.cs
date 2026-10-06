@@ -139,8 +139,7 @@ namespace AshesofaDyingWorld.UI.HUD
                 entry.Marker.Position = WorldHudLayout.Resolve(
                     entry.Target,
                     WorldHudLane.Target,
-                    size,
-                    new Vector2(0f, -4f));
+                    size);
             }
 
             foreach (ulong id in remove)

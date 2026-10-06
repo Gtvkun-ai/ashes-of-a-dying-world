@@ -15,6 +15,8 @@ def test_world_hud_lanes_are_ordered_and_dimension_aware():
     assert "Resolve(Node2D actor, WorldHudLane lane, Vector2 widgetSize" in source
     assert "widgetSize.Y" in source
     assert "LaneSpacing" in source
+    assert "ReservedBandHeight" in source
+    assert "GetFeedbackTravelLimit" in source
 
 
 def test_world_hud_services_use_the_shared_layout():
@@ -53,10 +55,18 @@ def test_target_and_combat_feedback_use_shared_glyphs_and_vietnamese_copy():
 
 def test_world_hud_showcase_exercises_all_lanes_at_two_viewports():
     scene = read("tools/validation/ui_world_hud_showcase.tscn")
-    script = read("tools/validation/ui_world_hud_showcase.gd")
-    assert "ui_world_hud_showcase.gd" in scene
-    for lane in ("Target", "Health", "Feedback", "Progression"):
-        assert lane in script
+    script = read("tools/validation/WorldHudRuntimeValidation.cs")
+    assert "WorldHudRuntimeValidation.cs" in scene
     assert "1600" in script and "900" in script
     assert "1280" in script and "720" in script
-
+    for service in (
+        "EnemyHealthBarService",
+        "CompanionTargetIndicatorService",
+        "DamageNumberService",
+        "FloatingProgressionHudService",
+    ):
+        assert service in script
+    assert "shattered: false" in script
+    assert "shattered: true" in script
+    assert "AssertNoOverlap" in script
+    assert "Lifetime" in script

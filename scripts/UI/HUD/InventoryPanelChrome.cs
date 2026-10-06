@@ -141,6 +141,42 @@ namespace AshesofaDyingWorld.UI.Shared
             return label;
         }
 
+        public static void ConfigureEllipsisLabel(Label label, string nodeName, float minimumWidth = 140f)
+        {
+            if (label == null) return;
+
+            label.Name = nodeName;
+            label.CustomMinimumSize = new Vector2(minimumWidth, 0f);
+            label.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            label.ClipText = true;
+            label.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
+            label.MouseFilter = Control.MouseFilterEnum.Pass;
+            SetAccessibleText(label, label.Text);
+        }
+
+        public static void ConfigureWrappedLabel(Label label, string nodeName, int maximumLines = 2)
+        {
+            if (label == null) return;
+
+            label.Name = nodeName;
+            label.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            label.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            label.MaxLinesVisible = Mathf.Max(1, maximumLines);
+            label.ClipText = true;
+            label.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
+            label.MouseFilter = Control.MouseFilterEnum.Pass;
+            SetAccessibleText(label, label.Text);
+        }
+
+        public static void SetAccessibleText(Label label, string text)
+        {
+            if (label == null) return;
+
+            string resolvedText = text ?? string.Empty;
+            label.Text = resolvedText;
+            label.TooltipText = resolvedText;
+        }
+
         public static ColorRect CreateDivider(bool thin = false)
         {
             var divider = new ColorRect();

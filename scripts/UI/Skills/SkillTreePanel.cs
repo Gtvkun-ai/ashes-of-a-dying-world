@@ -104,6 +104,7 @@ namespace AshesofaDyingWorld.UI.Skills
             row.AddChild(title);
 
             _characterNameLabel = InventoryPanelChrome.CreateLabel("NHÂN VẬT", 15, InventoryPanelChrome.MainTextColor);
+            InventoryPanelChrome.ConfigureEllipsisLabel(_characterNameLabel, "SkillHeaderCharacterName", 150f);
             _characterNameLabel.VerticalAlignment = VerticalAlignment.Center;
             row.AddChild(_characterNameLabel);
 
@@ -284,7 +285,7 @@ namespace AshesofaDyingWorld.UI.Skills
 
             _detailNameLabel = InventoryPanelChrome.CreateLabel("Chọn một kỹ năng", 17, InventoryPanelChrome.MainTextColor);
             _detailNameLabel.HorizontalAlignment = HorizontalAlignment.Center;
-            _detailNameLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            InventoryPanelChrome.ConfigureWrappedLabel(_detailNameLabel, "SkillDetailName");
             column.AddChild(_detailNameLabel);
 
             _detailStateLabel = InventoryPanelChrome.CreateLabel("", 12, InventoryPanelChrome.AccentColor);
@@ -333,7 +334,9 @@ namespace AshesofaDyingWorld.UI.Skills
                 return;
             }
 
-            _characterNameLabel.Text = string.IsNullOrWhiteSpace(config.Name) ? "NHÂN VẬT" : config.Name.ToUpper();
+            InventoryPanelChrome.SetAccessibleText(
+                _characterNameLabel,
+                string.IsNullOrWhiteSpace(config.Name) ? "NHÂN VẬT" : config.Name.ToUpper());
             _characterLevelLabel.Text = $"Cấp {stats.CurrentLevel:00}";
             _currentTree = config.SkillTree;
             _selectedNode = null;
@@ -429,9 +432,9 @@ namespace AshesofaDyingWorld.UI.Skills
             _detailIcon.Texture = resolvedIcon;
             _detailIcon.Visible = resolvedIcon != null;
             _detailIconFallback.Visible = resolvedIcon == null;
-            _detailNameLabel.Text = string.IsNullOrWhiteSpace(skill.SkillName)
-                ? "KỸ NĂNG"
-                : skill.SkillName.ToUpper();
+            InventoryPanelChrome.SetAccessibleText(
+                _detailNameLabel,
+                string.IsNullOrWhiteSpace(skill.SkillName) ? "KỸ NĂNG" : skill.SkillName.ToUpper());
             _detailStateLabel.Text = unlocked
                 ? "ĐÃ MỞ KHÓA"
                 : canUnlock ? "CÓ THỂ MỞ" : "ĐANG KHÓA";
@@ -679,7 +682,7 @@ namespace AshesofaDyingWorld.UI.Skills
             _detailIcon.Texture = null;
             _detailIcon.Visible = false;
             _detailIconFallback.Visible = true;
-            _detailNameLabel.Text = "CHƯA CHỌN KỸ NĂNG";
+            InventoryPanelChrome.SetAccessibleText(_detailNameLabel, "CHƯA CHỌN KỸ NĂNG");
             _detailStateLabel.Text = "";
             _detailDescriptionLabel.Text = message;
             _detailRequirementsLabel.Text = "";
