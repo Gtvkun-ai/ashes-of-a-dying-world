@@ -1,5 +1,13 @@
 # Tàn Sinh - Visual Language UI/HUD
 
+> [!IMPORTANT]
+> **Tên game không phải styling prompt.** “Tàn” là lớp nghĩa cốt truyện;
+> “Sinh”, vẻ đẹp, độ trong và sức sống mới là tín hiệu thị giác chủ đạo.
+> Không được suy diễn màu nâu/xám, gỉ sét, tro bụi, vết nứt, grunge hoặc vẻ
+> tàn tạ chỉ từ tên `Tàn Sinh` hay `Ashes of a Dying World`. Map và UI được
+> phép sáng, sạch, rực rỡ và đẹp đẽ. Dấu vết suy tàn chỉ xuất hiện khi một
+> địa điểm, vật thể, diễn biến hoặc trạng thái gameplay cụ thể biện minh cho nó.
+
 **Phiên bản:** 1.0
 **Phạm vi:** UI, HUD, icon, typography, combat feedback và VFX telegraph
 **Bản xem trực quan:** [visual_language.html](visual_language.html)

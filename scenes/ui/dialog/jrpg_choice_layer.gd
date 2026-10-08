@@ -1,6 +1,7 @@
 @tool
 extends "res://addons/dialogic/Modules/DefaultLayoutParts/Layer_VN_Choices/vn_choice_layer.gd"
-## Responsive, wrap-capable choice layout for the centered dialogue UI.
+## Lựa chọn điện ảnh: nằm phía trên dải thoại, sát phải và không che mặt nhân vật.
+## Giữ cơ chế wrap/scroll/focus (chuột, bàn phím, gamepad) của Dialogic.
 
 @export_group("Responsive Layout")
 @export var side_layout_min_width: float = 0.0
@@ -12,19 +13,19 @@ extends "res://addons/dialogic/Modules/DefaultLayoutParts/Layer_VN_Choices/vn_ch
 @export var side_width: float = 460.0
 @export var centered_x_offset: float = 0.0
 @export var side_x_offset: float = 0.0
-@export var right_reserved_ratio: float = 0.24
-@export var right_reserved_min: float = 300.0
-@export var right_reserved_max: float = 330.0
+@export var right_reserved_ratio: float = 0.0
+@export var right_reserved_min: float = 0.0
+@export var right_reserved_max: float = 0.0
 
-@export var textbox_height_ratio: float = 0.168
-@export var textbox_min_height: float = 114.0
-@export var textbox_max_height: float = 130.0
-@export var textbox_bottom_distance: float = 22.0
+@export var textbox_height_ratio: float = 0.267
+@export var textbox_min_height: float = 150.0
+@export var textbox_max_height: float = 280.0
+@export var textbox_bottom_distance: float = 0.0
 @export var gap_above_textbox: float = 10.0
 @export var screen_side_margin: float = 24.0
-@export var textbox_width_ratio: float = 0.64
-@export var textbox_min_width: float = 760.0
-@export var textbox_max_width: float = 920.0
+@export var textbox_width_ratio: float = 1.0
+@export var textbox_min_width: float = 0.0
+@export var textbox_max_width: float = 4096.0
 
 @export var choices_height_ratio: float = 0.42
 @export var choices_min_height: float = 160.0
@@ -38,7 +39,7 @@ func get_choices() -> VBoxContainer:
 
 
 func _apply_export_overrides() -> void:
-	# Retain Dialogic's normal button creation, sounds and theme resources.
+	# Không tạo lại cơ chế lựa chọn; giữ xử lý focus / âm thanh từ Dialogic.
 	super._apply_export_overrides()
 	_connect_viewport_resize()
 	call_deferred("_apply_responsive_layout")
@@ -96,6 +97,7 @@ func _apply_responsive_layout() -> void:
 		choices_max_height
 	)
 
+	# Tùy cấu hình có thể chừa HUD bên phải; mặc định cinematic không chừa.
 	var right_reserved := clampf(
 		viewport_size.x * right_reserved_ratio,
 		right_reserved_min,
@@ -139,7 +141,7 @@ func _style_buttons() -> void:
 			child.focus_mode = Control.FOCUS_ALL
 			child.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			child.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-			child.custom_minimum_size = Vector2(0.0, 40.0)
+			child.custom_minimum_size = Vector2(0.0, 44.0)
 			child.text = child.text.strip_edges()
 			var focus_callback := _scroll_choice_into_view.bind(child)
 			if not child.focus_entered.is_connected(focus_callback):

@@ -71,8 +71,8 @@ def test_dialogic_choices_wrap_scroll_and_expand_past_legacy_width():
 
     assert 'centered_max_width: float = 520.0' in layer
     assert 'choices_max_height: float = 360.0' in layer
-    assert 'right_reserved_min: float = 300.0' in layer
-    assert 'right_reserved_max: float = 330.0' in layer
+    assert 'right_reserved_min: float = 0.0' in layer
+    assert 'right_reserved_max: float = 0.0' in layer
     assert 'hud_safe_right' in layer
     assert 'TextServer.AUTOWRAP_WORD_SMART' in layer
     assert 'TextServer.OVERRUN_NO_TRIMMING' in layer
@@ -86,8 +86,8 @@ def test_dialogic_choices_wrap_scroll_and_expand_past_legacy_width():
     assert 'BoxContainer.ALIGNMENT_END' in layer
     assert '"centered_max_width": "520.0"' in style
     assert '"choices_max_height": "360.0"' in style
-    assert '"right_reserved_min": "300.0"' in style
-    assert '"right_reserved_max": "330.0"' in style
+    assert '"right_reserved_min": "0.0"' in style
+    assert '"right_reserved_max": "0.0"' in style
     assert 'Sáu lựa chọn tiếng Việt rất dài' in smoke
     assert 'Vector2i(1280, 720)' in smoke
     assert 'Vector2i(1600, 900)' in smoke
@@ -103,8 +103,8 @@ def test_dialogic_focus_style_is_structurally_distinct_from_hover():
     assert focus != hover
     assert 'border_width_top = 1' in focus
     assert 'border_width_right = 1' in focus
-    assert 'border_width_left = 2' in focus
-    assert 'border_width_left = 3' not in focus
+    assert 'border_width_left = 4' in focus
+    assert 'border_width_left = 2' not in focus
 
 
 def test_dialogic_reduced_motion_uses_runtime_settings_and_disables_owned_motion():
@@ -120,3 +120,43 @@ def test_dialogic_reduced_motion_uses_runtime_settings_and_disables_owned_motion
     assert 'DialogicReducedMotionSettingsFixture.cs' in smoke
     assert 'Reduced motion did not snap the dialog dimmer' in smoke
     assert 'Reduced motion did not disable the next-indicator blink' in smoke
+
+
+def test_cinematic_dialogue_has_two_portrait_layers_without_new_artwork():
+    scene = read('scenes/ui/dialog/jrpg_textbox.tscn')
+    logic = read('scenes/ui/dialog/jrpg_textbox_layer.gd')
+    style = read('scenes/ui/dialog/jrpg_style.tres')
+    panel = read('scenes/ui/dialog/jrpg_main_panel.tres')
+
+    assert '[node name="SpeakerPortrait" type="TextureRect"' in scene
+    assert '[node name="MiniPortrait" type="TextureRect"' in scene
+    assert '[node name="MiniPortraitHalo" type="Panel"' in scene
+    assert '[node name="TopRule" type="ColorRect"' in scene
+    assert 'show_mini_portrait: bool = true' in logic
+    assert '_get_mini_portrait_texture' in logic
+    assert 'icon_" + portrait_key + ".png"' in logic
+    assert 'character_portrait_changed.connect(_on_portrait_changed)' in logic
+    assert 'text_started.connect(_on_text_started)' in logic
+    assert 'Color(0.015, 0.025, 0.045, 0.075)' in style
+    assert 'cinematic_glass.png' in panel
+    assert (ROOT / 'assets/graphics/ui/dialog/map_dialog/cinematic_glass.png').is_file()
+    assert (ROOT / 'assets/graphics/characters/hyou/neutral_dial.png').is_file()
+    assert (ROOT / 'assets/graphics/characters/hyou/icon.png').is_file()
+
+
+def test_cinematic_dialogue_style_and_scene_keep_matching_layout_settings():
+    scene = read('scenes/ui/dialog/jrpg_textbox.tscn')
+    style = read('scenes/ui/dialog/jrpg_style.tres')
+    logic = read('scenes/ui/dialog/jrpg_textbox_layer.gd')
+    for key, value in (
+        ('box_width_ratio', '1.0'),
+        ('box_height_ratio', '0.267'),
+        ('box_min_height', '150.0'),
+        ('box_max_height', '280.0'),
+        ('portrait_size', 'Vector2(790, 650)'),
+    ):
+        assert f'{key} = {value}' in scene
+        assert f'"{key}": "{value}"' in style
+    assert 'margin.add_theme_constant_override(&"margin_left", int(round(left_padding)))' in logic
+    assert 'mini.visible = can_show' in logic
+    assert 'panel.size.x >= 850.0' in logic

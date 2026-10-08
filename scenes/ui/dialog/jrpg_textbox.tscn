@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://scenes/ui/dialog/jrpg_textbox_layer.gd" id="1_script"]
 [ext_resource type="Script" uid="uid://drhfq6rmdeuri" path="res://addons/dialogic/Modules/Text/node_dialog_text.gd" id="2_dialogtext"]
@@ -8,6 +8,18 @@
 [ext_resource type="StyleBox" path="res://scenes/ui/dialog/jrpg_main_panel.tres" id="6_main_panel"]
 [ext_resource type="StyleBox" path="res://scenes/ui/dialog/jrpg_name_panel.tres" id="7_name_panel"]
 [ext_resource type="Texture2D" path="res://assets/graphics/ui/dialog/map_dialog/next_arrow.png" id="8_arrow"]
+
+[sub_resource type="StyleBoxFlat" id="MiniHaloStyle"]
+bg_color = Color(0.037, 0.082, 0.13, 0.48)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.62, 0.78, 0.93, 0.45)
+corner_radius_top_left = 100
+corner_radius_top_right = 100
+corner_radius_bottom_right = 100
+corner_radius_bottom_left = 100
 
 [sub_resource type="Animation" id="Animation_reset"]
 length = 0.001
@@ -40,27 +52,27 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("1_script")
 box_panel = "res://scenes/ui/dialog/jrpg_main_panel.tres"
-box_width_ratio = 0.64
-box_min_width = 760.0
-box_max_width = 920.0
-box_height_ratio = 0.168
-box_min_height = 114.0
-box_max_height = 130.0
-box_distance = 22
-text_custom_size = 19
+box_width_ratio = 1.0
+box_min_width = 0.0
+box_max_width = 4096.0
+box_height_ratio = 0.267
+box_min_height = 150.0
+box_max_height = 280.0
+box_distance = 0
+text_custom_size = 20
 content_left_margin = 24
-content_top_margin = 16
-content_right_margin = 24
-content_bottom_margin = 16
+content_top_margin = 25
+content_right_margin = 54
+content_bottom_margin = 47
 name_label_custom_size = 17
-name_plate_offset = Vector2(18, -16)
-name_plate_size = Vector2(136, 30)
-portrait_size = Vector2(510, 410)
-portrait_center_x_offset = -24.0
-portrait_vertical_offset = -18.0
-portrait_panel_overlap = 50.0
+name_plate_offset = Vector2(0, -39)
+name_plate_size = Vector2(210, 30)
+portrait_size = Vector2(790, 650)
+portrait_center_x_offset = 20.0
+portrait_vertical_offset = 0.0
+portrait_panel_overlap = 160.0
 portrait_draw_behind_panel = true
-dim_color = Color(0.015, 0.02, 0.03, 0.1)
+dim_color = Color(0.015, 0.025, 0.045, 0.075)
 enable_entry_animation = true
 entry_duration = 0.18
 portrait_entry_offset = 12.0
@@ -118,23 +130,54 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
+[node name="MiniPortraitHalo" type="Panel" parent="Anchor/AnimationParent"]
+unique_name_in_owner = true
+visible = false
+z_index = 5
+layout_mode = 0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("MiniHaloStyle")
+
+[node name="MiniPortrait" type="TextureRect" parent="Anchor/AnimationParent"]
+unique_name_in_owner = true
+visible = false
+z_index = 6
+layout_mode = 0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TopRule" type="ColorRect" parent="Anchor/AnimationParent"]
+unique_name_in_owner = true
+z_index = 6
+layout_mode = 0
+mouse_filter = 2
+color = Color(0.80, 0.89, 1.0, 0.30)
+
+[node name="AccentRule" type="ColorRect" parent="Anchor/AnimationParent"]
+unique_name_in_owner = true
+z_index = 7
+layout_mode = 0
+mouse_filter = 2
+color = Color(0.58, 0.80, 1.0, 0.9)
+
 [node name="DialogTextPanel" type="PanelContainer" parent="Anchor/AnimationParent"]
 unique_name_in_owner = true
 z_index = 4
 layout_mode = 0
-offset_left = -500.0
-offset_top = -160.0
-offset_right = 500.0
-offset_bottom = -20.0
+offset_left = -640.0
+offset_top = -192.0
+offset_right = 640.0
+offset_bottom = 0.0
 mouse_filter = 2
 theme_override_styles/panel = ExtResource("6_main_panel")
 
 [node name="ContentMargin" type="MarginContainer" parent="Anchor/AnimationParent/DialogTextPanel"]
 layout_mode = 2
 theme_override_constants/margin_left = 24
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 24
-theme_override_constants/margin_bottom = 16
+theme_override_constants/margin_top = 25
+theme_override_constants/margin_right = 54
+theme_override_constants/margin_bottom = 47
 
 [node name="VBox" type="VBoxContainer" parent="Anchor/AnimationParent/DialogTextPanel/ContentMargin"]
 layout_mode = 2
@@ -144,12 +187,12 @@ theme_override_constants/separation = 2
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_colors/default_color = Color(0.93, 0.92, 0.86, 1)
+theme_override_colors/default_color = Color(0.955, 0.965, 0.99, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.22)
 theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1
 theme_override_constants/line_separation = 5
-theme_override_font_sizes/normal_font_size = 19
+theme_override_font_sizes/normal_font_size = 20
 bbcode_enabled = true
 text = ""
 scroll_following = true
@@ -165,22 +208,23 @@ script = ExtResource("3_typesound")
 unique_name_in_owner = true
 z_index = 6
 layout_mode = 0
-offset_left = -480.0
-offset_top = -176.0
-offset_right = -344.0
-offset_bottom = -146.0
+offset_left = -105.0
+offset_top = -39.0
+offset_right = 105.0
+offset_bottom = -9.0
 mouse_filter = 2
 theme_override_styles/panel = ExtResource("7_name_panel")
 
 [node name="DialogicNode_NameLabel" type="Label" parent="Anchor/AnimationParent/NamePlate" node_paths=PackedStringArray("name_label_root")]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.95, 0.78, 0.43, 1)
+theme_override_colors/font_color = Color(0.69, 0.83, 1, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.3)
 theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1
 theme_override_font_sizes/font_size = 17
 text = ""
+horizontal_alignment = 1
 vertical_alignment = 1
 script = ExtResource("5_namelabel")
 hide_when_empty = true

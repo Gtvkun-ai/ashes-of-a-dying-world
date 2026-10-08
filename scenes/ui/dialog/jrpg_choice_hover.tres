@@ -1,17 +1,17 @@
 [gd_resource type="StyleBoxFlat" format=3]
 
 [resource]
-content_margin_left = 14.0
-content_margin_top = 8.0
-content_margin_right = 12.0
-content_margin_bottom = 8.0
-bg_color = Color(0.1608, 0.1333, 0.1059, 0.96)
-border_width_left = 2
-border_width_top = 0
-border_width_right = 0
+content_margin_left = 18.0
+content_margin_top = 10.0
+content_margin_right = 18.0
+content_margin_bottom = 10.0
+bg_color = Color(0.064, 0.114, 0.173, 0.94)
+border_width_left = 3
+border_width_top = 1
+border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.7647, 0.6039, 0.3412, 0.92)
-corner_radius_top_left = 0
-corner_radius_top_right = 0
-corner_radius_bottom_right = 0
-corner_radius_bottom_left = 0
+border_color = Color(0.56, 0.74, 0.91, 0.82)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
