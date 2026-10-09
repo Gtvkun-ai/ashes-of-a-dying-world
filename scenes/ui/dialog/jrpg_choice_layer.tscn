@@ -1,6 +1,7 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scenes/ui/dialog/jrpg_choice_layer.gd" id="1_choices"]
+[ext_resource type="StyleBox" path="res://scenes/ui/dialog/jrpg_choice_shell.tres" id="5_shell"]
 [ext_resource type="Script" uid="uid://b1stj4ljd2vo7" path="res://addons/dialogic/Modules/Choice/node_button_sound.gd" id="2_sound"]
 [ext_resource type="AudioStream" uid="uid://b6c1p14bc20p1" path="res://addons/dialogic/Example Assets/sound-effects/typing1.wav" id="3_pressed"]
 [ext_resource type="AudioStream" uid="uid://c2viukvbub6v6" path="res://addons/dialogic/Example Assets/sound-effects/typing4.wav" id="4_hover"]
@@ -19,17 +20,24 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("1_choices")
 
+[node name="ChoiceShell" type="Panel" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+mouse_filter = 2
+theme_override_styles/panel = ExtResource("5_shell")
+
 [node name="ChoiceScroll" type="ScrollContainer" parent="."]
 unique_name_in_owner = true
 layout_mode = 1
-anchor_left = 0.095
+anchor_left = 0.080
 anchor_top = 1.0
-anchor_right = 0.095
+anchor_right = 0.080
 anchor_bottom = 1.0
 offset_left = 0.0
-offset_top = -420.0
-offset_right = 460.0
-offset_bottom = -212.0
+offset_top = -415.0
+offset_right = 440.0
+offset_bottom = -178.0
 grow_horizontal = 2
 grow_vertical = 0
 horizontal_scroll_mode = 0

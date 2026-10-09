@@ -1,7 +1,7 @@
 @tool
 extends DialogicLayoutLayer
 ## Dialogic Story — bố cục retro JRPG cho hội thoại cốt truyện.
-## - Chân dung bust neo PHẢI, chồng lên dải thoại nhưng KHÔNG đè chữ.
+## - Chân dung bust neo PHẢI, bị cắt SẮC bởi panel matte, không blur/seam.
 ## - Tên đặt TRÊN câu thoại, có nameplate gọn; không dùng avatar trùng lặp.
 ## - Phần artwork giữ nguyên file PNG hiện có, chỉ cắt vùng hiển thị bằng AtlasTexture.
 ## - Không thay đổi node DialogicNode_* / timeline / hiệu ứng typewriter.
@@ -13,9 +13,9 @@ extends DialogicLayoutLayer
 @export var box_width_ratio: float = 1.0
 @export var box_min_width: float = 0.0
 @export var box_max_width: float = 4096.0
-@export var box_height_ratio: float = 0.205
-@export var box_min_height: float = 164.0
-@export var box_max_height: float = 195.0
+@export var box_height_ratio: float = 0.154
+@export var box_min_height: float = 124.0
+@export var box_max_height: float = 152.0
 @export var box_distance: int = 0
 
 # ── Text ───────────────────────────────────────────────────────────────
@@ -25,9 +25,9 @@ extends DialogicLayoutLayer
 @export var text_use_global_color: bool = false
 @export var text_custom_color: Color = Color(0.955, 0.965, 0.99, 1.0)
 @export var content_left_margin: int = 96  # Lề đọc tối thiểu tại viewport 1280px.
-@export var content_top_margin: int = 40  # Giảm khoảng trống giữa tên và câu thoại.
+@export var content_top_margin: int = 22  # Chừa chỗ cho nameplate, vẫn đủ 3 dòng tiếng Việt.
 @export var content_right_margin: int = 42
-@export var content_bottom_margin: int = 24
+@export var content_bottom_margin: int = 12
 
 # ── Name Label ─────────────────────────────────────────────────────────
 @export_group("Name Label")
@@ -60,7 +60,7 @@ extends DialogicLayoutLayer
 
 # ── Backdrop & Motion ──────────────────────────────────────────────────
 @export_group("Backdrop & Motion")
-@export var dim_color: Color = Color(0.015, 0.025, 0.045, 0.04)
+@export var dim_color: Color = Color(0.015, 0.025, 0.045, 0.0)
 @export var enable_entry_animation: bool = true
 @export var entry_duration: float = 0.18
 @export var portrait_entry_offset: float = 12.0
@@ -122,11 +122,11 @@ func _apply_export_overrides() -> void:
 	var portrait_scale: float = clampf(viewport_size.y / 720.0, 0.62, 1.6)
 	_update_portrait_and_text_area(panel, portrait_scale)
 
-	# Một thanh phân cách mảnh dẫn mắt từ tên đến mép vùng đọc.
-	# Đường không chạy xuyên qua mặt/tóc của nhân vật.
+	# Đường chỉ mảnh bắt đầu đúng tại lane đọc, không trải dài vô nghĩa toàn panel.
 	var top_rule: ColorRect = %TopRule
-	top_rule.position = panel.position + Vector2(0.0, 1.0)
-	top_rule.size = Vector2(maxf(0.0, _available_text_right - panel.position.x), 1.0)
+	var rule_left := panel.position.x + float(_get_text_left_margin(panel)) - 8.0
+	top_rule.position = Vector2(rule_left, panel.position.y)
+	top_rule.size = Vector2(maxf(0.0, _available_text_right - rule_left), 1.0)
 
 	# Tên neo liền với mép trên dải thoại, không phải một "button" rời.
 	var name_plate: PanelContainer = %NamePlate
@@ -149,6 +149,7 @@ func _apply_export_overrides() -> void:
 	var line_start: float = name_plate.position.x + name_plate.size.x + 12.0 * portrait_scale
 	accent_rule.position = Vector2(line_start, panel.position.y + 1.0)
 	accent_rule.size = Vector2(maxf(0.0, _available_text_right - line_start - 8.0), 1.0)
+	_update_rule_end(portrait_scale)
 
 	# Margin thực tế đã được đo theo vị trí chân dung; chữ không bao giờ bị tóc che.
 	var content_margin: MarginContainer = panel.get_node("ContentMargin")
@@ -219,7 +220,7 @@ func _on_viewport_size_changed() -> void:
 	call_deferred("_apply_export_overrides")
 
 
-## Fade nền + hộp thoại rất ngắn để cảnh hội thoại có cảm giác cinematic nhưng không chậm game.
+## Chỉ xuất hiện hộp thoại bằng tween ngắn; bản đồ KHÔNG bị phủ lớp tối.
 func _play_layout_intro() -> void:
 	if not is_inside_tree():
 		return
@@ -388,6 +389,7 @@ func _hide_character_portraits() -> void:
 	%MiniPortraitHalo.visible = false
 	%NamePlate.visible = false
 	%NameGem.visible = false
+	%RuleEnd.visible = false
 	_last_portrait_texture = null
 	var scale: float = clampf(_layout_size.y / 720.0, 0.62, 1.6)
 	_update_portrait_and_text_area(%DialogTextPanel, scale)
@@ -397,6 +399,7 @@ func _show_character_portraits(character: DialogicCharacter, portrait_key: Strin
 	_current_portrait_key = portrait_key
 	%NamePlate.visible = true
 	%NameGem.visible = true
+	%RuleEnd.visible = true
 	var source: Texture2D = _get_character_portrait_texture(character, portrait_key)
 	var portrait_rect: TextureRect = %SpeakerPortrait
 	if source == null:
@@ -471,15 +474,28 @@ func _update_portrait_and_text_area(panel: PanelContainer, scale: float) -> void
 
 	# Khi đổi người nói, biên đọc có thể thay đổi: cập nhật đường kẻ ngay.
 	var top_rule: ColorRect = %TopRule
-	top_rule.size.x = maxf(0.0, text_right - panel.position.x)
+	top_rule.size.x = maxf(0.0, text_right - top_rule.position.x)
 	var accent_rule: ColorRect = %AccentRule
 	accent_rule.size.x = maxf(0.0, text_right - accent_rule.position.x - 8.0)
+	_update_rule_end(scale)
 
 	var margin: MarginContainer = panel.get_node("ContentMargin")
 	margin.add_theme_constant_override(&"margin_left", int(round(text_left)))
 	margin.add_theme_constant_override(&"margin_right", int(round(panel.position.x + panel.size.x - text_right)))
 	# Phương thức này còn được gọi khi người nói đổi, không chỉ khi resize.
 	%NextIndicator.position.x = text_right - 24.0 * scale
+
+
+## Điểm cuối nhỏ của đường chỉ, cùng ngôn ngữ hình thoi với nameplate.
+func _update_rule_end(scale: float) -> void:
+	var rule: ColorRect = %AccentRule
+	var end: ColorRect = %RuleEnd
+	var square: float = maxf(3.0, roundf(4.0 * scale))
+	end.size = Vector2(square, square)
+	end.pivot_offset = end.size * 0.5
+	end.rotation = PI / 4.0
+	end.position = Vector2(rule.position.x + rule.size.x + 3.0, rule.position.y - square * 0.5)
+	end.visible = %NamePlate.visible and rule.size.x > 12.0
 
 
 func _get_text_left_margin(panel: PanelContainer) -> int:

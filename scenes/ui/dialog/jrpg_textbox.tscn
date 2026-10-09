@@ -55,15 +55,15 @@ box_panel = "res://scenes/ui/dialog/jrpg_main_panel.tres"
 box_width_ratio = 1.0
 box_min_width = 0.0
 box_max_width = 4096.0
-box_height_ratio = 0.205
-box_min_height = 164.0
-box_max_height = 195.0
+box_height_ratio = 0.154
+box_min_height = 124.0
+box_max_height = 152.0
 box_distance = 0
 text_custom_size = 23
 content_left_margin = 96
-content_top_margin = 40
+content_top_margin = 22
 content_right_margin = 42
-content_bottom_margin = 24
+content_bottom_margin = 12
 name_label_custom_size = 20
 name_plate_offset = Vector2(-8, -16)
 name_plate_size = Vector2(188, 34)
@@ -72,7 +72,7 @@ portrait_center_x_offset = 8.0
 portrait_vertical_offset = 86.0
 portrait_panel_overlap = 255.0
 portrait_draw_behind_panel = true
-dim_color = Color(0.015, 0.025, 0.045, 0.04)
+dim_color = Color(0.015, 0.025, 0.045, 0.0)
 enable_entry_animation = true
 entry_duration = 0.18
 portrait_entry_offset = 12.0
@@ -87,7 +87,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.015, 0.02, 0.03, 0.16)
+color = Color(0.015, 0.02, 0.03, 0.0)
 
 [node name="Animations" type="AnimationPlayer" parent="."]
 unique_name_in_owner = true
@@ -166,7 +166,7 @@ unique_name_in_owner = true
 z_index = 4
 layout_mode = 0
 offset_left = -640.0
-offset_top = -184.0
+offset_top = -144.0
 offset_right = 640.0
 offset_bottom = 0.0
 mouse_filter = 2
@@ -175,9 +175,9 @@ theme_override_styles/panel = ExtResource("6_main_panel")
 [node name="ContentMargin" type="MarginContainer" parent="Anchor/AnimationParent/DialogTextPanel"]
 layout_mode = 2
 theme_override_constants/margin_left = 96
-theme_override_constants/margin_top = 40
+theme_override_constants/margin_top = 22
 theme_override_constants/margin_right = 42
-theme_override_constants/margin_bottom = 24
+theme_override_constants/margin_bottom = 12
 
 [node name="VBox" type="VBoxContainer" parent="Anchor/AnimationParent/DialogTextPanel/ContentMargin"]
 layout_mode = 2
@@ -191,7 +191,7 @@ theme_override_colors/default_color = Color(0.955, 0.965, 0.99, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.22)
 theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1
-theme_override_constants/line_separation = 5
+theme_override_constants/line_separation = 4
 theme_override_font_sizes/normal_font_size = 23
 bbcode_enabled = true
 text = ""
@@ -227,6 +227,14 @@ offset_right = -392.0
 offset_bottom = -184.0
 mouse_filter = 2
 color = Color(0.55, 0.86, 1, 1)
+
+[node name="RuleEnd" type="ColorRect" parent="Anchor/AnimationParent"]
+unique_name_in_owner = true
+visible = false
+z_index = 8
+layout_mode = 0
+mouse_filter = 2
+color = Color(0.55, 0.86, 1, 0.85)
 
 [node name="DialogicNode_NameLabel" type="Label" parent="Anchor/AnimationParent/NamePlate" node_paths=PackedStringArray("name_label_root")]
 unique_name_in_owner = true
