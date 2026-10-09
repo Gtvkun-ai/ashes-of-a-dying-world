@@ -21,6 +21,7 @@ namespace AshesofaDyingWorld.UI.HUD
         private const float CommandMenuHudGap = 4f;
 
         private CharacterUnitHUD[] unitHUDs;
+        private DialogicHudVisibility _dialogicHudVisibility;
         private PanelContainer _contextMenu;
         private VBoxContainer _contextMenuItems;
         private PlayerStats _contextMember;
@@ -28,6 +29,10 @@ namespace AshesofaDyingWorld.UI.HUD
 
         public override void _Ready()
         {
+            // HUD phải ẩn trong hội thoại Story; khôi phục đúng trạng thái khi kết thúc.
+            _dialogicHudVisibility = new DialogicHudVisibility(this);
+            _dialogicHudVisibility.Bind();
+
             var container = GetNodeOrNull<VBoxContainer>("VBoxContainer");
             if (container == null)
             {
@@ -513,6 +518,8 @@ namespace AshesofaDyingWorld.UI.HUD
 
         public override void _ExitTree()
         {
+            _dialogicHudVisibility?.Unbind();
+
             if (unitHUDs != null)
             {
                 foreach (CharacterUnitHUD hud in unitHUDs)

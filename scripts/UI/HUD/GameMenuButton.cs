@@ -45,6 +45,7 @@ namespace AshesofaDyingWorld.UI.Menus
         private bool _isGridOpen = false;
         private Control _currentOpenPanel = null;
         private QuestTrackerHud _questTracker;
+        private DialogicHudVisibility _dialogicHudVisibility;
 
         public override void _Ready()
         {
@@ -85,6 +86,15 @@ namespace AshesofaDyingWorld.UI.Menus
             ApplyFeatureButtonGlyphs();
             RegisterPanelVisibilityHandlers();
             ConnectFeatureButtons();
+
+            // Cùng lúc ẩn nút menu và QuestTrackerHud (nằm trong CanvasLayer này).
+            _dialogicHudVisibility = new DialogicHudVisibility(this);
+            _dialogicHudVisibility.Bind();
+        }
+
+        public override void _ExitTree()
+        {
+            _dialogicHudVisibility?.Unbind();
         }
 
         private void ApplyFeatureButtonSkins()
@@ -332,6 +342,9 @@ namespace AshesofaDyingWorld.UI.Menus
 
         public override void _Input(InputEvent @event)
         {
+            // CanvasLayer.Visible không tự dừng _Input; không cướp ESC của Dialogic.
+            if (!Visible)
+                return;
             if (@event is InputEventKey keyEvent && keyEvent.Pressed && !keyEvent.Echo)
             {
                 if (keyEvent.Keycode == ToggleKey)

@@ -1,15 +1,15 @@
 @tool
 extends "res://addons/dialogic/Modules/DefaultLayoutParts/Layer_VN_Choices/vn_choice_layer.gd"
-## Lựa chọn điện ảnh: nằm phía trên dải thoại, sát phải và không che mặt nhân vật.
+## Lựa chọn Story: neo BÊN TRÁI dải thoại, tránh vùng bust neo phải.
 ## Giữ cơ chế wrap/scroll/focus (chuột, bàn phím, gamepad) của Dialogic.
 
 @export_group("Responsive Layout")
 @export var side_layout_min_width: float = 0.0
 @export var side_layout_min_aspect: float = 1.35
 
-@export var centered_width_ratio: float = 0.42
-@export var centered_min_width: float = 360.0
-@export var centered_max_width: float = 520.0
+@export var centered_width_ratio: float = 0.33
+@export var centered_min_width: float = 320.0
+@export var centered_max_width: float = 440.0
 @export var side_width: float = 460.0
 @export var centered_x_offset: float = 0.0
 @export var side_x_offset: float = 0.0
@@ -17,9 +17,9 @@ extends "res://addons/dialogic/Modules/DefaultLayoutParts/Layer_VN_Choices/vn_ch
 @export var right_reserved_min: float = 0.0
 @export var right_reserved_max: float = 0.0
 
-@export var textbox_height_ratio: float = 0.267
-@export var textbox_min_height: float = 150.0
-@export var textbox_max_height: float = 280.0
+@export var textbox_height_ratio: float = 0.225
+@export var textbox_min_height: float = 166.0
+@export var textbox_max_height: float = 205.0
 @export var textbox_bottom_distance: float = 0.0
 @export var gap_above_textbox: float = 10.0
 @export var screen_side_margin: float = 24.0
@@ -27,9 +27,9 @@ extends "res://addons/dialogic/Modules/DefaultLayoutParts/Layer_VN_Choices/vn_ch
 @export var textbox_min_width: float = 0.0
 @export var textbox_max_width: float = 4096.0
 
-@export var choices_height_ratio: float = 0.42
+@export var choices_height_ratio: float = 0.34
 @export var choices_min_height: float = 160.0
-@export var choices_max_height: float = 360.0
+@export var choices_max_height: float = 310.0
 
 var _viewport_connected := false
 
@@ -86,7 +86,7 @@ func _apply_responsive_layout() -> void:
 	textbox_width = minf(textbox_width, viewport_size.x - screen_side_margin * 2.0)
 	var textbox_height := clampf(viewport_size.y * textbox_height_ratio, textbox_min_height, textbox_max_height)
 	var center_x := viewport_size.x * 0.5
-	var textbox_right := center_x + textbox_width * 0.5
+	var textbox_left := center_x - textbox_width * 0.5
 
 	var available_width := maxf(240.0, viewport_size.x - screen_side_margin * 2.0)
 	var width := clampf(viewport_size.x * centered_width_ratio, centered_min_width, centered_max_width)
@@ -97,18 +97,10 @@ func _apply_responsive_layout() -> void:
 		choices_max_height
 	)
 
-	# Tùy cấu hình có thể chừa HUD bên phải; mặc định cinematic không chừa.
-	var right_reserved := clampf(
-		viewport_size.x * right_reserved_ratio,
-		right_reserved_min,
-		right_reserved_max
-	)
-	var hud_safe_right := viewport_size.x - right_reserved - screen_side_margin
-	var right_edge := minf(textbox_right - 10.0 + centered_x_offset, hud_safe_right)
-	var left_edge := right_edge - width
-	if left_edge < screen_side_margin:
-		left_edge = screen_side_margin
-		right_edge = left_edge + width
+	# Choice lấy mép TRÁI của textbox làm mốc, không còn tràn qua portrait.
+	# Tại màn hình hẹp, chừa đúng lề màn hình để không bị cắt nút.
+	var left_edge := maxf(screen_side_margin, textbox_left + viewport_size.x * 0.095 + centered_x_offset)
+	var right_edge := left_edge + width
 	if right_edge > viewport_size.x - screen_side_margin:
 		right_edge = viewport_size.x - screen_side_margin
 		left_edge = right_edge - width

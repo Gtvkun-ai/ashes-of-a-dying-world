@@ -55,24 +55,24 @@ box_panel = "res://scenes/ui/dialog/jrpg_main_panel.tres"
 box_width_ratio = 1.0
 box_min_width = 0.0
 box_max_width = 4096.0
-box_height_ratio = 0.267
-box_min_height = 150.0
-box_max_height = 280.0
+box_height_ratio = 0.225
+box_min_height = 166.0
+box_max_height = 205.0
 box_distance = 0
-text_custom_size = 20
-content_left_margin = 24
-content_top_margin = 25
-content_right_margin = 54
-content_bottom_margin = 47
-name_label_custom_size = 17
-name_plate_offset = Vector2(0, -39)
-name_plate_size = Vector2(210, 30)
+text_custom_size = 23
+content_left_margin = 96
+content_top_margin = 56
+content_right_margin = 42
+content_bottom_margin = 24
+name_label_custom_size = 20
+name_plate_offset = Vector2(-8, -17)
+name_plate_size = Vector2(174, 35)
 portrait_size = Vector2(790, 650)
-portrait_center_x_offset = 20.0
+portrait_center_x_offset = 28.0
 portrait_vertical_offset = 0.0
-portrait_panel_overlap = 160.0
-portrait_draw_behind_panel = true
-dim_color = Color(0.015, 0.025, 0.045, 0.075)
+portrait_panel_overlap = 145.0
+portrait_draw_behind_panel = false
+dim_color = Color(0.015, 0.025, 0.045, 0.04)
 enable_entry_animation = true
 entry_duration = 0.18
 portrait_entry_offset = 12.0
@@ -118,9 +118,9 @@ grow_vertical = 0
 mouse_filter = 2
 
 [node name="SpeakerPortrait" type="TextureRect" parent="Anchor/AnimationParent"]
-texture_filter = 2
+texture_filter = 1
 unique_name_in_owner = true
-z_index = 2
+z_index = 5
 layout_mode = 0
 offset_left = -280.0
 offset_top = -500.0
@@ -152,14 +152,14 @@ unique_name_in_owner = true
 z_index = 6
 layout_mode = 0
 mouse_filter = 2
-color = Color(0.80, 0.89, 1.0, 0.30)
+color = Color(0.58, 0.76, 0.88, 0.40)
 
 [node name="AccentRule" type="ColorRect" parent="Anchor/AnimationParent"]
 unique_name_in_owner = true
 z_index = 7
 layout_mode = 0
 mouse_filter = 2
-color = Color(0.58, 0.80, 1.0, 0.9)
+color = Color(0.48, 0.79, 0.96, 0.95)
 
 [node name="DialogTextPanel" type="PanelContainer" parent="Anchor/AnimationParent"]
 unique_name_in_owner = true
@@ -174,10 +174,10 @@ theme_override_styles/panel = ExtResource("6_main_panel")
 
 [node name="ContentMargin" type="MarginContainer" parent="Anchor/AnimationParent/DialogTextPanel"]
 layout_mode = 2
-theme_override_constants/margin_left = 24
-theme_override_constants/margin_top = 25
-theme_override_constants/margin_right = 54
-theme_override_constants/margin_bottom = 47
+theme_override_constants/margin_left = 96
+theme_override_constants/margin_top = 56
+theme_override_constants/margin_right = 42
+theme_override_constants/margin_bottom = 24
 
 [node name="VBox" type="VBoxContainer" parent="Anchor/AnimationParent/DialogTextPanel/ContentMargin"]
 layout_mode = 2
@@ -192,7 +192,7 @@ theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.22)
 theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1
 theme_override_constants/line_separation = 5
-theme_override_font_sizes/normal_font_size = 20
+theme_override_font_sizes/normal_font_size = 23
 bbcode_enabled = true
 text = ""
 scroll_following = true
@@ -206,6 +206,7 @@ script = ExtResource("3_typesound")
 
 [node name="NamePlate" type="PanelContainer" parent="Anchor/AnimationParent"]
 unique_name_in_owner = true
+visible = false
 z_index = 6
 layout_mode = 0
 offset_left = -105.0
@@ -222,7 +223,7 @@ theme_override_colors/font_color = Color(0.69, 0.83, 1, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.3)
 theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1
-theme_override_font_sizes/font_size = 17
+theme_override_font_sizes/font_size = 20
 text = ""
 horizontal_alignment = 1
 vertical_alignment = 1

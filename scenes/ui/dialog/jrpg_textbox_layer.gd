@@ -1,11 +1,11 @@
 @tool
 extends DialogicLayoutLayer
-## Bản thử Dialogic điện ảnh — ưu tiên artwork và khả năng đọc lời thoại.
-## - Bust nhân vật lớn đứng SAU dải thoại trong suốt, không bó vào một ô portrait.
-## - Ảnh cận mặt nhỏ nằm trong dải thoại để về sau đổi biểu cảm độc lập.
-## - Tên đặt giữa chân dải thoại, như giao diện visual novel tham khảo.
-## - Giữ nguyên các node DialogicNode_* để timeline, typewriter, âm thanh hoạt động.
-## - Dùng đúng asset nhân vật đã có; không sinh thêm portrait bằng AI.
+## Dialogic Story — bố cục retro JRPG cho hội thoại cốt truyện.
+## - Chân dung bust neo PHẢI, chồng lên dải thoại nhưng KHÔNG đè chữ.
+## - Tên đặt TRÊN câu thoại, có nameplate gọn; không dùng avatar trùng lặp.
+## - Phần artwork giữ nguyên file PNG hiện có, chỉ cắt vùng hiển thị bằng AtlasTexture.
+## - Không thay đổi node DialogicNode_* / timeline / hiệu ứng typewriter.
+## - Tự co bố cục cho viewport hẹp; HUD được quản lý ở chính HUD CanvasLayer.
 
 # ── Box ────────────────────────────────────────────────────────────────
 @export_group("Box")
@@ -13,54 +13,54 @@ extends DialogicLayoutLayer
 @export var box_width_ratio: float = 1.0
 @export var box_min_width: float = 0.0
 @export var box_max_width: float = 4096.0
-@export var box_height_ratio: float = 0.267
-@export var box_min_height: float = 150.0
-@export var box_max_height: float = 280.0
+@export var box_height_ratio: float = 0.225
+@export var box_min_height: float = 166.0
+@export var box_max_height: float = 205.0
 @export var box_distance: int = 0
 
 # ── Text ───────────────────────────────────────────────────────────────
 @export_group("Text")
 @export var text_use_global_size: bool = false
-@export var text_custom_size: int = 20
+@export var text_custom_size: int = 23
 @export var text_use_global_color: bool = false
 @export var text_custom_color: Color = Color(0.955, 0.965, 0.99, 1.0)
-@export var content_left_margin: int = 24  # Tối thiểu; script cộng khoảng dành cho mặt nhỏ.
-@export var content_top_margin: int = 25
-@export var content_right_margin: int = 54
-@export var content_bottom_margin: int = 47  # Nhường chỗ cho tên ở chân dải thoại.
+@export var content_left_margin: int = 96  # Lề đọc tối thiểu tại viewport 1280px.
+@export var content_top_margin: int = 56  # Dành bậc trên cho nameplate.
+@export var content_right_margin: int = 42
+@export var content_bottom_margin: int = 24
 
 # ── Name Label ─────────────────────────────────────────────────────────
 @export_group("Name Label")
 @export var name_label_color_mode: int = 2  # 0=GLOBAL, 1=CUSTOM, 2=CHARACTER
 @export var name_label_custom_color: Color = Color(0.69, 0.83, 1.0, 1.0)
 @export var name_label_use_global_size: bool = false
-@export var name_label_custom_size: int = 17
-## Offset tính từ góc trên-trái của textbox.
-@export var name_plate_offset: Vector2 = Vector2(0, -39)  # Căn giữa cạnh dưới, không gắn vào góc trái.
-@export var name_plate_size: Vector2 = Vector2(210, 30)
+@export var name_label_custom_size: int = 20
+## Vị trí tên được tính từ lề trái và cạnh TRÊN textbox.
+@export var name_plate_offset: Vector2 = Vector2(-8, -17)
+@export var name_plate_size: Vector2 = Vector2(174, 35)
 
 # ── Portrait ───────────────────────────────────────────────────────────
 @export_group("Portrait")
 ## Kích thước chuẩn cho viewport 1280x720. Script tự scale theo chiều cao màn hình.
 @export var portrait_size: Vector2 = Vector2(790, 650)
 @export var portrait_show: bool = true
-@export var portrait_center_x_offset: float = 20.0
+@export var portrait_center_x_offset: float = 28.0  # Khoảng cách tới mép PHẢI màn hình.
 @export var portrait_vertical_offset: float = 0.0
 ## Số pixel portrait chui xuống phía sau textbox (ở 720p).
-@export var portrait_panel_overlap: float = 160.0
-@export var portrait_draw_behind_panel: bool = true
+@export var portrait_panel_overlap: float = 145.0
+@export var portrait_draw_behind_panel: bool = false
 
-# ── Chân dung nhỏ ─────────────────────────────────────────────────────
-@export_group("Mini portrait")
-@export var show_mini_portrait: bool = true
-## Tỷ lệ theo màn 720p. Màn rất hẹp tự ẩn để không bóp nội dung thoại.
-@export var mini_portrait_size: float = 144.0
-@export var mini_portrait_left_ratio: float = 0.125
-@export var mini_portrait_gap: float = 29.0
+# ── Framing ───────────────────────────────────────────────────────────
+@export_group("Portrait framing")
+@export var portrait_crop_to_bust: bool = true
+@export_range(0.5, 1.0, 0.01) var portrait_crop_height_ratio: float = 0.73
+## Màn hình hẹp sẽ ẩn bust, mở toàn bộ chiều rộng cho tiếng Việt.
+@export var portrait_min_screen_width: float = 980.0
+@export var portrait_text_gap: float = 18.0
 
 # ── Backdrop & Motion ──────────────────────────────────────────────────
 @export_group("Backdrop & Motion")
-@export var dim_color: Color = Color(0.015, 0.025, 0.045, 0.075)
+@export var dim_color: Color = Color(0.015, 0.025, 0.045, 0.04)
 @export var enable_entry_animation: bool = true
 @export var entry_duration: float = 0.18
 @export var portrait_entry_offset: float = 12.0
@@ -77,6 +77,7 @@ var _viewport_connected := false
 var _current_portrait_key: String = ""
 var _current_character: DialogicCharacter = null
 var _layout_size: Vector2 = Vector2(1280, 720)
+var _available_text_right: float = 0.0
 
 
 ## Dialogic gọi hàm này sau khi áp style overrides.
@@ -117,53 +118,38 @@ func _apply_export_overrides() -> void:
 	if not box_panel.is_empty() and ResourceLoader.exists(box_panel):
 		panel.add_theme_stylebox_override(&"panel", load(box_panel))
 
-	# Bust luôn giữ đúng aspect của ảnh nguồn, kể cả khi người chơi đổi resolution.
+	# Bust tính theo kích thước texture thật (đã crop); mọi trường hợp neo MÉP PHẢI.
 	var portrait_scale: float = clampf(viewport_size.y / 720.0, 0.62, 1.6)
-	var effective_portrait_size: Vector2 = portrait_size * portrait_scale
-	var portrait: TextureRect = %SpeakerPortrait
-	portrait.visible = portrait_show and portrait.texture != null
-	portrait.custom_minimum_size = effective_portrait_size
-	portrait.size = effective_portrait_size
-	var effective_vertical_offset: float = portrait_vertical_offset * portrait_scale
-	_portrait_target_position = Vector2(
-		-effective_portrait_size.x * 0.5 + portrait_center_x_offset * portrait_scale,
-		panel.position.y - effective_portrait_size.y + portrait_panel_overlap * portrait_scale + effective_vertical_offset
-	)
-	portrait.position = _portrait_target_position
-	portrait.z_index = 2 if portrait_draw_behind_panel else 5
-	if portrait.texture != null:
-		_fit_portrait_to_current_height(portrait)
-		portrait.position = _portrait_target_position
-	if _is_reduced_motion_enabled():
-		portrait.modulate = Color.WHITE
+	_update_portrait_and_text_area(panel, portrait_scale)
 
-	# Hai đường sáng rất mảnh là yếu tố nhận diện — không đặt khung vàng kép.
+	# Đường nét pixel: nhấn vừa đủ ở phía có chữ, không rải glow khắp màn hình.
 	var top_rule: ColorRect = %TopRule
-	top_rule.position = panel.position
-	top_rule.size = Vector2(panel_width, 1.0)
+	top_rule.position = panel.position + Vector2(0.0, 1.0)
+	top_rule.size = Vector2(maxf(0.0, _available_text_right - panel.position.x), 1.0)
 	var accent_rule: ColorRect = %AccentRule
-	accent_rule.position = panel.position + Vector2(viewport_size.x * 0.125, 0)
-	accent_rule.size = Vector2(minf(96.0 * portrait_scale, panel_width * 0.18), 2.0)
+	accent_rule.position = panel.position + Vector2(float(_get_text_left_margin(panel)) - 6.0, 1.0)
+	accent_rule.size = Vector2(88.0 * portrait_scale, 2.0)
 
-	# Tên nhân vật nằm gần giữa cạnh dưới, tách khỏi vùng văn bản.
+	# Nameplate neo vào đường kẻ TRÊN textbox; chiều cao chữ không đụng câu thoại.
 	var name_plate: PanelContainer = %NamePlate
-	name_plate.position = Vector2(-name_plate_size.x * 0.5, -39.0 * portrait_scale)
-	name_plate.size = name_plate_size
+	name_plate.position = panel.position + Vector2(
+		float(_get_text_left_margin(panel)) + name_plate_offset.x,
+		name_plate_offset.y * portrait_scale
+	)
+	name_plate.size = name_plate_size * portrait_scale
 	name_plate.z_index = 7
 
-	# ── Margins / typography ───────────────────────────────────────────
+	# Margin thực tế đã được đo theo vị trí chân dung; chữ không bao giờ bị tóc che.
 	var content_margin: MarginContainer = panel.get_node("ContentMargin")
-	content_margin.add_theme_constant_override(&"margin_left", content_left_margin)
-	content_margin.add_theme_constant_override(&"margin_top", content_top_margin)
-	content_margin.add_theme_constant_override(&"margin_right", content_right_margin)
+	content_margin.add_theme_constant_override(&"margin_top", int(round(content_top_margin * portrait_scale)))
 	content_margin.add_theme_constant_override(&"margin_bottom", content_bottom_margin)
-	# Phải áp margin trái SAU margin mặc định để vùng chữ tránh icon nhỏ.
-	_update_mini_portrait_layout(panel, portrait_scale)
 
-	# Next indicator is a sibling of the PanelContainer. Putting it inside a
-	# Container made Godot re-layout it to the panel's top-left.
+	# Next nằm ở mép cuối vùng đọc, KHÔNG trôi qua chân dung.
 	var next_indicator: Control = %NextIndicator
-	next_indicator.position = panel.position + panel.size - Vector2(35.0 * portrait_scale, 31.0 * portrait_scale)
+	next_indicator.position = Vector2(
+		_available_text_right - 24.0 * portrait_scale,
+		panel.position.y + panel.size.y - 20.0 * portrait_scale
+	)
 	next_indicator.z_index = 7
 	if _is_reduced_motion_enabled():
 		next_indicator.set("animation", 2)
@@ -232,7 +218,6 @@ func _play_layout_intro() -> void:
 	var name_plate: PanelContainer = %NamePlate
 	var panel_target := panel.position
 	var name_target := name_plate.position
-	var mini: TextureRect = %MiniPortrait
 	if _is_reduced_motion_enabled():
 		_snap_layout_intro_to_final_state()
 		return
@@ -240,7 +225,6 @@ func _play_layout_intro() -> void:
 	dim.modulate = Color(1, 1, 1, 0)
 	panel.modulate = Color(1, 1, 1, 0)
 	name_plate.modulate = Color(1, 1, 1, 0)
-	mini.modulate = Color(1, 1, 1, 0)
 	panel.position = panel_target + Vector2(0, 12)
 	name_plate.position = name_target + Vector2(0, 12)
 
@@ -250,14 +234,12 @@ func _play_layout_intro() -> void:
 	tween.tween_property(panel, "position", panel_target, entry_duration)
 	tween.tween_property(name_plate, "modulate", Color.WHITE, entry_duration)
 	tween.tween_property(name_plate, "position", name_target, entry_duration)
-	tween.tween_property(mini, "modulate", Color.WHITE, entry_duration + 0.08)
 
 
 func _snap_layout_intro_to_final_state() -> void:
 	%DimBackground.modulate = Color.WHITE
 	%DialogTextPanel.modulate = Color.WHITE
 	%NamePlate.modulate = Color.WHITE
-	%MiniPortrait.modulate = Color.WHITE
 
 
 func _animate_portrait_in(portrait: TextureRect) -> void:
@@ -329,7 +311,7 @@ func _connect_speaker_signal() -> void:
 	# chưa có PortraitContainer mặc định, tín hiệu này vẫn mang portrait key.
 	if not Dialogic.Text.text_started.is_connected(_on_text_started):
 		Dialogic.Text.text_started.connect(_on_text_started)
-	# Khi timeline đổi biểu cảm, cập nhật cả bust và icon theo cùng portrait key.
+	# Khi timeline đổi biểu cảm, cập nhật bust theo portrait key hiện tại.
 	if Dialogic.has_subsystem("Portraits"):
 		if not Dialogic.Portraits.character_portrait_changed.is_connected(_on_portrait_changed):
 			Dialogic.Portraits.character_portrait_changed.connect(_on_portrait_changed)
@@ -349,7 +331,7 @@ func _load_font_or_fallback(path: String, fallback: Font) -> Font:
 	return fallback
 
 
-## Người nói đổi: bật/tắt cả hai lớp chân dung, không ảnh hưởng typewriter.
+## Người nói đổi: cập nhật bust / nameplate mà không can thiệp typewriter.
 func _on_speaker_changed(character: DialogicCharacter) -> void:
 	_current_character = character
 	_current_portrait_key = ""
@@ -391,91 +373,98 @@ func _on_portrait_changed(info: Dictionary) -> void:
 func _hide_character_portraits() -> void:
 	%SpeakerPortrait.texture = null
 	%SpeakerPortrait.visible = false
-	%MiniPortrait.visible = false
+	%MiniPortrait.visible = false  # Node cũ giữ lại để scene Dialogic không mất NodePath.
 	%MiniPortraitHalo.visible = false
 	%NamePlate.visible = false
 	_last_portrait_texture = null
-	_update_mini_portrait_layout(%DialogTextPanel, clampf(_layout_size.y / 720.0, 0.62, 1.6))
+	var scale: float = clampf(_layout_size.y / 720.0, 0.62, 1.6)
+	_update_portrait_and_text_area(%DialogTextPanel, scale)
 
 
 func _show_character_portraits(character: DialogicCharacter, portrait_key: String) -> void:
 	_current_portrait_key = portrait_key
 	%NamePlate.visible = true
+	var source: Texture2D = _get_character_portrait_texture(character, portrait_key)
 	var portrait_rect: TextureRect = %SpeakerPortrait
-	var texture: Texture2D = _get_character_portrait_texture(character, portrait_key)
-	if texture == null:
+	if source == null:
 		portrait_rect.texture = null
 		portrait_rect.visible = false
 		%MiniPortrait.visible = false
 		%MiniPortraitHalo.visible = false
-		_update_mini_portrait_layout(%DialogTextPanel, clampf(_layout_size.y / 720.0, 0.62, 1.6))
+		_update_portrait_and_text_area(%DialogTextPanel, clampf(_layout_size.y / 720.0, 0.62, 1.6))
 		return
 
-	var is_new_portrait: bool = texture != _last_portrait_texture
-	portrait_rect.texture = texture
-	portrait_rect.visible = portrait_show
+	var is_new_portrait: bool = source != _last_portrait_texture
+	portrait_rect.texture = _make_bust_texture(source)
 	portrait_rect.modulate = Color.WHITE
-	_fit_portrait_to_current_height(portrait_rect)
-	portrait_rect.position = _portrait_target_position
-
-	var mini_texture: Texture2D = _get_mini_portrait_texture(character, portrait_key)
-	%MiniPortrait.texture = mini_texture if mini_texture != null else texture
-	_update_mini_portrait_layout(%DialogTextPanel, clampf(_layout_size.y / 720.0, 0.62, 1.6))
-
-	if enable_entry_animation and is_new_portrait and not Engine.is_editor_hint() and not _is_reduced_motion_enabled():
-		_animate_portrait_in(portrait_rect)
-	_last_portrait_texture = texture
-
-
-## Fit ngang theo tỷ lệ gốc để bust không bị méo, đồng thời giữ neo giữa.
-func _fit_portrait_to_current_height(portrait_rect: TextureRect) -> void:
-	var tex: Texture2D = portrait_rect.texture
-	if tex == null or tex.get_size().y <= 0.0:
-		return
-	var height: float = portrait_size.y * clampf(_layout_size.y / 720.0, 0.62, 1.6)
-	var fitted_width: float = height * tex.get_size().x / tex.get_size().y
-	portrait_rect.custom_minimum_size = Vector2(fitted_width, height)
-	portrait_rect.size = Vector2(fitted_width, height)
-	_portrait_target_position.x = -fitted_width * 0.5 + portrait_center_x_offset * clampf(_layout_size.y / 720.0, 0.62, 1.6)
 	portrait_rect.stretch_mode = TextureRect.STRETCH_SCALE
+	# Không nhân bản chân dung nhỏ: cùng một khuôn mặt hai lần làm UI bị rối.
+	%MiniPortrait.visible = false
+	%MiniPortraitHalo.visible = false
+	_update_portrait_and_text_area(%DialogTextPanel, clampf(_layout_size.y / 720.0, 0.62, 1.6))
+
+	if enable_entry_animation and is_new_portrait and portrait_rect.visible \
+		and not Engine.is_editor_hint() and not _is_reduced_motion_enabled():
+		_animate_portrait_in(portrait_rect)
+	_last_portrait_texture = source
 
 
-## Tự chọn icon cận mặt nếu tồn tại. Convention cho cảm xúc về sau:
-##   assets/graphics/characters/hyou/icon_happy.png, icon_sad.png, ...
-## Nếu chưa vẽ thì dùng icon.png, không cần bổ sung asset cho bản thử.
-func _get_mini_portrait_texture(character: DialogicCharacter, portrait_key: String) -> Texture2D:
-	var directory: String = "res://assets/graphics/characters/%s/" % character.get_identifier().to_lower()
-	var mood_path: String = directory + "icon_" + portrait_key + ".png"
-	if ResourceLoader.exists(mood_path):
-		return load(mood_path) as Texture2D
-	var default_path: String = directory + "icon.png"
-	if ResourceLoader.exists(default_path):
-		return load(default_path) as Texture2D
-	return null
+## Không tạo ảnh mới: AtlasTexture chỉ quyết định phần PNG sẽ hiển thị.
+## Ảnh full-body vẫn ở nguyên đường dẫn, các portrait nhân vật tỷ lệ ngang không bị cắt.
+func _make_bust_texture(source: Texture2D) -> Texture2D:
+	if not portrait_crop_to_bust or source.get_height() <= source.get_width() * 1.2:
+		return source
+	var cropped := AtlasTexture.new()
+	cropped.atlas = source
+	cropped.region = Rect2(0.0, 0.0, source.get_width(),
+		float(roundi(source.get_height() * portrait_crop_height_ratio)))
+	return cropped
 
 
-## Giữ ô text rộng và dễ đọc cả khi không có nhân vật hoặc màn hình nhỏ.
-func _update_mini_portrait_layout(panel: PanelContainer, portrait_scale: float) -> void:
-	var mini: TextureRect = %MiniPortrait
-	var halo: Panel = %MiniPortraitHalo
-	var left_padding: float = maxf(float(content_left_margin), panel.size.x * 0.035)
-	var can_show: bool = show_mini_portrait and _current_character != null and mini.texture != null and panel.size.x >= 850.0
-	mini.visible = can_show
-	halo.visible = can_show
-	if can_show:
-		var image_size: float = mini_portrait_size * portrait_scale
-		var left_edge: float = panel.position.x + panel.size.x * mini_portrait_left_ratio
-		var top_edge: float = panel.position.y + (panel.size.y - image_size) * 0.42
-		mini.position = Vector2(left_edge, top_edge)
-		mini.size = Vector2(image_size, image_size)
-		halo.position = mini.position - Vector2(4, 4) * portrait_scale
-		halo.size = mini.size + Vector2(8, 8) * portrait_scale
-		left_padding = left_edge - panel.position.x + image_size + mini_portrait_gap * portrait_scale
+## Layout từ hai biên: vùng chữ bên trái, chân dung bên phải.
+## Nếu viewport hẹp, ẩn portrait để câu tiếng Việt dài không bị bóp.
+func _update_portrait_and_text_area(panel: PanelContainer, scale: float) -> void:
+	var portrait: TextureRect = %SpeakerPortrait
+	var display_bust: bool = portrait_show and portrait.texture != null \
+		and _layout_size.x >= portrait_min_screen_width \
+		and _layout_size.x / maxf(_layout_size.y, 1.0) >= 1.35
+	portrait.visible = display_bust
+	portrait.z_index = 5 if not portrait_draw_behind_panel else 2
+
+	var text_right: float = panel.position.x + panel.size.x - content_right_margin
+	if portrait.texture != null:
+		var texture_size: Vector2 = portrait.texture.get_size()
+		if texture_size.y > 0.0:
+			var display_height: float = portrait_size.y * scale
+			var display_width: float = display_height * texture_size.x / texture_size.y
+			portrait.custom_minimum_size = Vector2(display_width, display_height)
+			portrait.size = Vector2(display_width, display_height)
+			_portrait_target_position = Vector2(
+				_layout_size.x * 0.5 - display_width - portrait_center_x_offset * scale,
+				panel.position.y - display_height + portrait_panel_overlap * scale + portrait_vertical_offset * scale
+			)
+			portrait.position = _portrait_target_position
+			if display_bust:
+				# Chừa phần có thể chứa tóc, kể cả khi alpha của ảnh trải rộng.
+				text_right = minf(text_right, _portrait_target_position.x - portrait_text_gap * scale)
+
+	var text_left: float = float(_get_text_left_margin(panel))
+	# Giữ vùng chữ ít nhất 36% bề ngang khung: nếu không đủ, ẩn bust.
+	if display_bust and text_right - (panel.position.x + text_left) < panel.size.x * 0.36:
+		portrait.visible = false
+		text_right = panel.position.x + panel.size.x - content_right_margin
+	_available_text_right = text_right
 
 	var margin: MarginContainer = panel.get_node("ContentMargin")
-	margin.add_theme_constant_override(&"margin_left", int(round(left_padding)))
-	margin.add_theme_constant_override(&"margin_right", content_right_margin)
+	margin.add_theme_constant_override(&"margin_left", int(round(text_left)))
+	margin.add_theme_constant_override(&"margin_right", int(round(panel.position.x + panel.size.x - text_right)))
+	# Phương thức này còn được gọi khi người nói đổi, không chỉ khi resize.
+	%NextIndicator.position.x = text_right - 24.0 * scale
 
+
+func _get_text_left_margin(panel: PanelContainer) -> int:
+	# Theo base grid, giữ lề tương xứng giữa 720p và 900p.
+	return maxi(content_left_margin, roundi(panel.size.x * 0.095))
 
 
 func _is_reduced_motion_enabled() -> bool:
