@@ -7,9 +7,9 @@ extends "res://addons/dialogic/Modules/DefaultLayoutParts/Layer_VN_Choices/vn_ch
 @export var side_layout_min_width: float = 0.0
 @export var side_layout_min_aspect: float = 1.35
 
-@export var centered_width_ratio: float = 0.33
-@export var centered_min_width: float = 320.0
-@export var centered_max_width: float = 440.0
+@export var centered_width_ratio: float = 0.29
+@export var centered_min_width: float = 340.0
+@export var centered_max_width: float = 460.0
 @export var side_width: float = 460.0
 @export var centered_x_offset: float = 0.0
 @export var side_x_offset: float = 0.0
@@ -17,21 +17,39 @@ extends "res://addons/dialogic/Modules/DefaultLayoutParts/Layer_VN_Choices/vn_ch
 @export var right_reserved_min: float = 0.0
 @export var right_reserved_max: float = 0.0
 
-@export var textbox_height_ratio: float = 0.225
-@export var textbox_min_height: float = 166.0
-@export var textbox_max_height: float = 205.0
+@export var textbox_height_ratio: float = 0.205
+@export var textbox_min_height: float = 164.0
+@export var textbox_max_height: float = 195.0
 @export var textbox_bottom_distance: float = 0.0
-@export var gap_above_textbox: float = 10.0
+@export var gap_above_textbox: float = 16.0
 @export var screen_side_margin: float = 24.0
 @export var textbox_width_ratio: float = 1.0
 @export var textbox_min_width: float = 0.0
 @export var textbox_max_width: float = 4096.0
 
-@export var choices_height_ratio: float = 0.34
-@export var choices_min_height: float = 160.0
-@export var choices_max_height: float = 310.0
+@export var choices_height_ratio: float = 0.29
+@export var choices_min_height: float = 120.0
+@export var choices_max_height: float = 240.0
 
 var _viewport_connected := false
+
+
+func _ready() -> void:
+	super._ready()
+	# Godot có thể instanciate choice layer sau khi style đã áp overrides.
+	# Đặt lại ở frame đầu để tránh hiện tọa độ mặc định tại giữa màn hình.
+	_connect_viewport_resize()
+	call_deferred("_apply_responsive_layout")
+	call_deferred("_style_buttons")
+	if not Engine.is_editor_hint() and Dialogic.has_subsystem("Choices"):
+		if not Dialogic.Choices.question_shown.is_connected(_on_question_shown):
+			Dialogic.Choices.question_shown.connect(_on_question_shown)
+
+
+func _on_question_shown(_question: Dictionary) -> void:
+	# Cập nhật khi các Button mới được hiển thị, không chỉ khi đổi viewport.
+	call_deferred("_apply_responsive_layout")
+	call_deferred("_style_buttons")
 
 
 func get_choices() -> VBoxContainer:
@@ -99,7 +117,7 @@ func _apply_responsive_layout() -> void:
 
 	# Choice lấy mép TRÁI của textbox làm mốc, không còn tràn qua portrait.
 	# Tại màn hình hẹp, chừa đúng lề màn hình để không bị cắt nút.
-	var left_edge := maxf(screen_side_margin, textbox_left + viewport_size.x * 0.095 + centered_x_offset)
+	var left_edge := maxf(screen_side_margin, textbox_left + maxf(54.0, viewport_size.x * 0.095) + centered_x_offset)
 	var right_edge := left_edge + width
 	if right_edge > viewport_size.x - screen_side_margin:
 		right_edge = viewport_size.x - screen_side_margin
@@ -133,7 +151,7 @@ func _style_buttons() -> void:
 			child.focus_mode = Control.FOCUS_ALL
 			child.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			child.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-			child.custom_minimum_size = Vector2(0.0, 44.0)
+			child.custom_minimum_size = Vector2(0.0, 40.0)
 			child.text = child.text.strip_edges()
 			var focus_callback := _scroll_choice_into_view.bind(child)
 			if not child.focus_entered.is_connected(focus_callback):
