@@ -1,17 +1,17 @@
-[gd_resource type="StyleBoxFlat" format=3]
+[gd_resource type="StyleBoxTexture" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/graphics/ui/dialog/storybook_neutral/nameplate.png" id="1_tex"]
 
 [resource]
-bg_color = Color(0.052, 0.135, 0.194, 1.0)
-border_width_left = 0
-border_width_top = 0
-border_width_right = 0
-border_width_bottom = 1
-border_color = Color(0.45, 0.76, 0.91, 0.88)
-corner_radius_top_left = 0
-corner_radius_top_right = 0
-corner_radius_bottom_right = 0
-corner_radius_bottom_left = 0
-content_margin_left = 27.0
+texture = ExtResource("1_tex")
+texture_margin_left = 22.0
+texture_margin_top = 15.0
+texture_margin_right = 22.0
+texture_margin_bottom = 15.0
+axis_stretch_horizontal = 0
+axis_stretch_vertical = 0
+draw_center = true
+content_margin_left = 28.0
 content_margin_top = 2.0
 content_margin_right = 12.0
-content_margin_bottom = 3.0
+content_margin_bottom = 2.0

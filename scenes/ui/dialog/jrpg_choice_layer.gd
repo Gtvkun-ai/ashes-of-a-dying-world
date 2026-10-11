@@ -1,6 +1,6 @@
 @tool
 extends "res://addons/dialogic/Modules/DefaultLayoutParts/Layer_VN_Choices/vn_choice_layer.gd"
-## Lựa chọn Story: menu matte liền khối; từng dòng KHÔNG phải một nút dạng thanh.
+## Lựa chọn Story: từng dòng là một thẻ storybook độc lập, dùng texture pixel 9-slice.
 ## Giữ cơ chế wrap/scroll/focus (chuột, bàn phím, gamepad) của Dialogic.
 
 @export_group("Responsive Layout")
@@ -8,7 +8,7 @@ extends "res://addons/dialogic/Modules/DefaultLayoutParts/Layer_VN_Choices/vn_ch
 @export var side_layout_min_aspect: float = 1.35
 
 @export var centered_width_ratio: float = 0.285
-@export var centered_min_width: float = 340.0
+@export var centered_min_width: float = 300.0
 @export var centered_max_width: float = 456.0
 @export var side_width: float = 460.0
 @export var centered_x_offset: float = 0.0
@@ -17,11 +17,11 @@ extends "res://addons/dialogic/Modules/DefaultLayoutParts/Layer_VN_Choices/vn_ch
 @export var right_reserved_min: float = 0.0
 @export var right_reserved_max: float = 0.0
 
-@export var textbox_height_ratio: float = 0.154
-@export var textbox_min_height: float = 124.0
-@export var textbox_max_height: float = 152.0
-@export var textbox_bottom_distance: float = 0.0
-@export var gap_above_textbox: float = 27.0
+@export var textbox_height_ratio: float = 0.175
+@export var textbox_min_height: float = 148.0
+@export var textbox_max_height: float = 188.0
+@export var textbox_bottom_distance: float = 10.0
+@export var gap_above_textbox: float = 46.0
 @export var screen_side_margin: float = 24.0
 @export var textbox_width_ratio: float = 1.0
 @export var textbox_min_width: float = 0.0
@@ -34,7 +34,12 @@ extends "res://addons/dialogic/Modules/DefaultLayoutParts/Layer_VN_Choices/vn_ch
 var _viewport_connected := false
 var _marker_idle: Texture2D = null
 var _marker_active: Texture2D = null
-var _shell_padding := 8.0
+var _shell_padding := 0.0
+
+const PIXEL_GRID := 2.0
+
+func _snapf(value: float, grid: float = PIXEL_GRID) -> float:
+	return roundf(value / grid) * grid
 
 
 func _ready() -> void:
@@ -104,50 +109,54 @@ func _apply_responsive_layout() -> void:
 	choice_scroll.grow_vertical = Control.GROW_DIRECTION_BEGIN
 
 	var textbox_width := clampf(viewport_size.x * textbox_width_ratio, textbox_min_width, textbox_max_width)
-	textbox_width = minf(textbox_width, viewport_size.x - screen_side_margin * 2.0)
-	var textbox_height := clampf(viewport_size.y * textbox_height_ratio, textbox_min_height, textbox_max_height)
-	var center_x := viewport_size.x * 0.5
-	var textbox_left := center_x - textbox_width * 0.5
+	textbox_width = _snapf(minf(textbox_width, viewport_size.x - screen_side_margin * 2.0))
+	var textbox_height := _snapf(clampf(viewport_size.y * textbox_height_ratio, textbox_min_height, textbox_max_height))
+	var center_x := _snapf(viewport_size.x * 0.5)
+	var textbox_left := _snapf(maxf(screen_side_margin, viewport_size.x * 0.043))
 
 	var available_width := maxf(240.0, viewport_size.x - screen_side_margin * 2.0)
-	var width := clampf(viewport_size.x * centered_width_ratio, centered_min_width, centered_max_width)
-	width = minf(width, available_width)
+	var width := _snapf(clampf(viewport_size.x * centered_width_ratio, centered_min_width, centered_max_width))
+	width = _snapf(minf(width, available_width))
 	# Chiều cao dựa vào số lựa chọn HIỆN HỮU, không chừa một cột trống 240px.
 	# Với nhiều đáp án: giới hạn chiều cao và giữ ScrollContainer của Dialogic.
 	var visible_count := 0
 	for node in choices.get_children():
 		if node is Button and node.visible:
 			visible_count += 1
-	var row_height := 44.0
-	var row_gap := 4.0
-	var desired_height := float(visible_count) * row_height + maxf(0.0, float(visible_count - 1)) * row_gap
-	var cap_height := minf(choices_max_height, viewport_size.y * choices_height_ratio)
-	var choices_height := minf(maxf(44.0, desired_height), cap_height)
+	# Đo chiều cao tối thiểu THẬT của các button đang hiển thị.
+	# Một lựa chọn dài (wrap nhiều dòng) không được cắt mất chữ.
+	var desired_height := 0.0
+	for child in choices.get_children():
+		if child is Button and child.visible:
+			desired_height += maxf(48.0, child.get_combined_minimum_size().y)
+	if visible_count > 1:
+		desired_height += float(visible_count - 1) * float(choices.get_theme_constant(&"separation"))
+	var cap_height := _snapf(minf(choices_max_height, viewport_size.y * choices_height_ratio))
+	var choices_height := _snapf(minf(maxf(44.0, desired_height), cap_height))
 
 	# CÙNG một trục trái với nameplate; lựa chọn là một cụm rõ ràng phía trên thoại.
-	var left_edge := maxf(screen_side_margin, textbox_left + maxf(54.0, viewport_size.x * 0.091) + centered_x_offset)
-	var right_edge := minf(left_edge + width, viewport_size.x - screen_side_margin)
-	left_edge = right_edge - width
+	var left_edge := _snapf(maxf(screen_side_margin, textbox_left + maxf(24.0, viewport_size.x * 0.03) + centered_x_offset))
+	var right_edge := _snapf(minf(left_edge + width, viewport_size.x - screen_side_margin))
+	left_edge = _snapf(right_edge - width)
 
 	# Cách nameplate một khoảng nhỏ, không đè đường kẻ hay chân dung.
-	var choices_bottom := -(textbox_height + textbox_bottom_distance + gap_above_textbox)
-	choice_scroll.offset_left = roundf(left_edge - center_x + _shell_padding)
-	choice_scroll.offset_right = roundf(right_edge - center_x - _shell_padding)
-	choice_scroll.offset_bottom = roundf(choices_bottom - _shell_padding)
-	choice_scroll.offset_top = roundf(choices_bottom - _shell_padding - choices_height)
-	choice_scroll.custom_minimum_size = Vector2(width - _shell_padding * 2.0, choices_height)
+	var choices_bottom := _snapf(-(textbox_height + textbox_bottom_distance + gap_above_textbox))
+	choice_scroll.offset_left = _snapf(left_edge - center_x + _shell_padding)
+	choice_scroll.offset_right = _snapf(right_edge - center_x - _shell_padding)
+	choice_scroll.offset_bottom = _snapf(choices_bottom - _shell_padding)
+	choice_scroll.offset_top = _snapf(choices_bottom - _shell_padding - choices_height)
+	choice_scroll.custom_minimum_size = Vector2(_snapf(width - _shell_padding * 2.0), choices_height)
 
 	# Bề mặt thống nhất đặt SAU danh sách; không gây mờ vào map hay portrait.
 	var shell: Panel = %ChoiceShell
-	shell.visible = visible_count > 0
-	shell.position = Vector2(roundf(left_edge), roundf(viewport_size.y + choices_bottom - choices_height - _shell_padding * 2.0))
-	shell.size = Vector2(roundf(width), roundf(choices_height + _shell_padding * 2.0))
+	shell.visible = false  # Mỗi lựa chọn có texture riêng; không vẽ nền tối chung.
+	shell.position = Vector2(_snapf(left_edge), _snapf(viewport_size.y + choices_bottom - choices_height - _shell_padding * 2.0))
+	shell.size = Vector2(_snapf(width), _snapf(choices_height + _shell_padding * 2.0))
 
 	choices.custom_minimum_size.x = 0.0
 	choices.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	# Fill the viewport when content is short so one or two choices stay next
-	# to the textbox. Content taller than the viewport keeps its natural size
-	# and remains scrollable.
+	# Mỗi lựa chọn chỉ cao vừa đủ; lựa chọn dài tự tăng chiều cao,
+	# còn khi có nhiều lựa chọn thì ScrollContainer vẫn cho phép cuộn.
 	choices.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	choices.alignment = BoxContainer.ALIGNMENT_BEGIN
 
@@ -165,7 +174,7 @@ func _style_buttons() -> void:
 			child.focus_mode = Control.FOCUS_ALL
 			child.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			child.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-			child.custom_minimum_size = Vector2(0.0, 44.0)
+			child.custom_minimum_size = Vector2(0.0, 48.0)
 			child.text = child.text.strip_edges()
 			# Đặt icon trong cả hai trạng thái để chữ không bị giật khi đổi focus.
 			child.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -186,6 +195,8 @@ func _style_buttons() -> void:
 				child.mouse_exited.connect(on_blur)
 			if not child.visibility_changed.is_connected(_schedule_choice_layout):
 				child.visibility_changed.connect(_schedule_choice_layout)
+	# Sau khi các nút được gán font/size, tính lại vị trí dựa trên minimum size.
+	call_deferred("_apply_responsive_layout")
 
 
 func _schedule_choice_layout() -> void:
@@ -198,21 +209,16 @@ func _scroll_choice_into_view(button: Control) -> void:
 		%ChoiceScroll.ensure_control_visible(button)
 
 
-## Hai texture pixel 12x12 tạo tại runtime, không cần ảnh tải ngoài.
+## Marker pixel: idle trong suốt, active dùng PNG dùng chung toàn game.
 ## Marker chỉ sáng khi hover/focus; phím/gamepad và chuột cùng một tín hiệu.
 func _ensure_choice_markers() -> void:
 	if _marker_idle != null and _marker_active != null:
 		return
 	var idle := Image.create(12, 12, false, Image.FORMAT_RGBA8)
 	idle.fill(Color.TRANSPARENT)
-	var active := Image.create(12, 12, false, Image.FORMAT_RGBA8)
-	active.fill(Color.TRANSPARENT)
-	for y in range(12):
-		for x in range(12):
-			if absi(x - 5) + absi(y - 5) <= 3:
-				active.set_pixel(x, y, Color(0.62, 0.86, 1.0))
+	# Marker lấy từ PNG pixel 10x12 để giữ cùng nét với frame.
 	_marker_idle = ImageTexture.create_from_image(idle)
-	_marker_active = ImageTexture.create_from_image(active)
+	_marker_active = load("res://assets/graphics/ui/dialog/storybook_neutral/choice_cursor.png") as Texture2D
 
 
 func _show_choice_marker(button: Button) -> void:

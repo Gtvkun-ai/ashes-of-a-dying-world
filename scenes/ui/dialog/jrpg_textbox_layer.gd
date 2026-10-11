@@ -10,34 +10,34 @@ extends DialogicLayoutLayer
 # ── Box ────────────────────────────────────────────────────────────────
 @export_group("Box")
 @export_file("*.tres") var box_panel: String = ""
-@export var box_width_ratio: float = 1.0
+@export var box_width_ratio: float = 0.77
 @export var box_min_width: float = 0.0
 @export var box_max_width: float = 4096.0
-@export var box_height_ratio: float = 0.154
-@export var box_min_height: float = 124.0
-@export var box_max_height: float = 152.0
-@export var box_distance: int = 0
+@export var box_height_ratio: float = 0.175
+@export var box_min_height: float = 148.0
+@export var box_max_height: float = 188.0
+@export var box_distance: int = 10
 
 # ── Text ───────────────────────────────────────────────────────────────
 @export_group("Text")
 @export var text_use_global_size: bool = false
-@export var text_custom_size: int = 23
+@export var text_custom_size: int = 22
 @export var text_use_global_color: bool = false
-@export var text_custom_color: Color = Color(0.955, 0.965, 0.99, 1.0)
-@export var content_left_margin: int = 96  # Lề đọc tối thiểu tại viewport 1280px.
-@export var content_top_margin: int = 22  # Chừa chỗ cho nameplate, vẫn đủ 3 dòng tiếng Việt.
-@export var content_right_margin: int = 42
+@export var text_custom_color: Color = Color("#27303b")
+@export var content_left_margin: int = 60  # Lề đọc tối thiểu tại viewport 1280px.
+@export var content_top_margin: int = 32  # Giữ khoảng đọc 3 dòng mà không tạo khoảng trắng lớn.
+@export var content_right_margin: int = 34
 @export var content_bottom_margin: int = 12
 
 # ── Name Label ─────────────────────────────────────────────────────────
 @export_group("Name Label")
 @export var name_label_color_mode: int = 1  # 0=GLOBAL, 1=CUSTOM, 2=CHARACTER
-@export var name_label_custom_color: Color = Color(0.69, 0.83, 1.0, 1.0)
+@export var name_label_custom_color: Color = Color("#f3eee5")
 @export var name_label_use_global_size: bool = false
 @export var name_label_custom_size: int = 20
 ## Vị trí tên được tính từ lề trái và cạnh TRÊN textbox.
-@export var name_plate_offset: Vector2 = Vector2(-8, -16)
-@export var name_plate_size: Vector2 = Vector2(188, 34)
+@export var name_plate_offset: Vector2 = Vector2(-8, -26)
+@export var name_plate_size: Vector2 = Vector2(184, 36)
 
 # ── Portrait ───────────────────────────────────────────────────────────
 @export_group("Portrait")
@@ -103,16 +103,16 @@ func _apply_export_overrides() -> void:
 	dim.visible = true
 
 	# ── Textbox responsive ─────────────────────────────────────────────
-	# Dải lời thoại phủ hết bề ngang, sát đáy màn hình.
-	# Cố ý không giới hạn 920px: hình lớn được nhìn xuyên qua nền.
+	# Frame truyện neo trái, đủ diện tích đọc dài nhưng không phủ kín màn hình.
+	# Portrait lớn bên phải vẫn được panel che có chủ đích.
 	_layout_size = viewport_size
 	var panel_width: float = minf(clampf(viewport_size.x * box_width_ratio, box_min_width, box_max_width), viewport_size.x)
 	var panel_height: float = clampf(viewport_size.y * box_height_ratio, box_min_height, box_max_height)
-	var effective_box_size := Vector2(panel_width, panel_height)
+	var effective_box_size := _snapv(Vector2(panel_width, panel_height))
 
 	var panel: PanelContainer = %DialogTextPanel
 	panel.custom_minimum_size = effective_box_size
-	panel.position = Vector2(-panel_width * 0.5, -panel_height - box_distance)
+	panel.position = _snapv(Vector2(-viewport_size.x * 0.5 + maxf(24.0, viewport_size.x * 0.043), -panel_height - box_distance))
 	panel.size = effective_box_size
 	panel.z_index = 4
 	if not box_panel.is_empty() and ResourceLoader.exists(box_panel):
@@ -124,31 +124,33 @@ func _apply_export_overrides() -> void:
 
 	# Đường chỉ mảnh bắt đầu đúng tại lane đọc, không trải dài vô nghĩa toàn panel.
 	var top_rule: ColorRect = %TopRule
-	var rule_left := panel.position.x + float(_get_text_left_margin(panel)) - 8.0
-	top_rule.position = Vector2(rule_left, panel.position.y)
-	top_rule.size = Vector2(maxf(0.0, _available_text_right - rule_left), 1.0)
+	var rule_left := _snapf(panel.position.x + float(_get_text_left_margin(panel)) - 8.0)
+	top_rule.position = _snapv(Vector2(rule_left, panel.position.y))
+	top_rule.size = Vector2(_snapf(maxf(0.0, _available_text_right - rule_left)), 1.0)
+	top_rule.visible = false
 
 	# Tên neo liền với mép trên dải thoại, không phải một "button" rời.
 	var name_plate: PanelContainer = %NamePlate
-	name_plate.position = panel.position + Vector2(
+	name_plate.position = _snapv(panel.position + Vector2(
 		float(_get_text_left_margin(panel)) + name_plate_offset.x,
 		name_plate_offset.y * portrait_scale
-	)
-	name_plate.size = name_plate_size * portrait_scale
+	))
+	name_plate.size = _snapv(name_plate_size * portrait_scale)
 	name_plate.z_index = 7
 
 	# Dấu băng bên trái tên: vừa mang nhận diện, vừa chỉ vị trí bắt đầu đọc.
 	var name_gem: ColorRect = %NameGem
-	name_gem.position = name_plate.position + Vector2(8.0 * portrait_scale, 12.0 * portrait_scale)
-	name_gem.size = Vector2(8.0, 8.0) * portrait_scale
+	name_gem.position = _snapv(name_plate.position + Vector2(8.0 * portrait_scale, 12.0 * portrait_scale))
+	name_gem.size = _snapv(Vector2(8.0, 8.0) * portrait_scale)
 	name_gem.pivot_offset = name_gem.size * 0.5
 	name_gem.rotation = PI / 4.0
-	name_gem.visible = name_plate.visible
+	name_gem.visible = name_plate.visible  # Dấu ký ức trung tính; không dùng biểu tượng băng.
 
 	var accent_rule: ColorRect = %AccentRule
-	var line_start: float = name_plate.position.x + name_plate.size.x + 12.0 * portrait_scale
-	accent_rule.position = Vector2(line_start, panel.position.y + 1.0)
-	accent_rule.size = Vector2(maxf(0.0, _available_text_right - line_start - 8.0), 1.0)
+	var line_start: float = _snapf(name_plate.position.x + name_plate.size.x + 12.0 * portrait_scale)
+	accent_rule.position = _snapv(Vector2(line_start, panel.position.y + 1.0))
+	accent_rule.size = Vector2(_snapf(maxf(0.0, _available_text_right - line_start - 8.0)), 1.0)
+	accent_rule.visible = false
 	_update_rule_end(portrait_scale)
 
 	# Margin thực tế đã được đo theo vị trí chân dung; chữ không bao giờ bị tóc che.
@@ -158,10 +160,10 @@ func _apply_export_overrides() -> void:
 
 	# Next nằm ở mép cuối vùng đọc, KHÔNG trôi qua chân dung.
 	var next_indicator: Control = %NextIndicator
-	next_indicator.position = Vector2(
+	next_indicator.position = _snapv(Vector2(
 		_available_text_right - 24.0 * portrait_scale,
 		panel.position.y + panel.size.y - 20.0 * portrait_scale
-	)
+	))
 	next_indicator.z_index = 7
 	if _is_reduced_motion_enabled():
 		next_indicator.set("animation", 2)
@@ -399,7 +401,7 @@ func _show_character_portraits(character: DialogicCharacter, portrait_key: Strin
 	_current_portrait_key = portrait_key
 	%NamePlate.visible = true
 	%NameGem.visible = true
-	%RuleEnd.visible = true
+	%RuleEnd.visible = false
 	var source: Texture2D = _get_character_portrait_texture(character, portrait_key)
 	var portrait_rect: TextureRect = %SpeakerPortrait
 	if source == null:
@@ -453,37 +455,42 @@ func _update_portrait_and_text_area(panel: PanelContainer, scale: float) -> void
 		if texture_size.y > 0.0:
 			var display_height: float = portrait_size.y * scale
 			var display_width: float = display_height * texture_size.x / texture_size.y
-			portrait.custom_minimum_size = Vector2(display_width, display_height)
-			portrait.size = Vector2(display_width, display_height)
-			_portrait_target_position = Vector2(
+			portrait.custom_minimum_size = _snapv(Vector2(display_width, display_height))
+			portrait.size = portrait.custom_minimum_size
+			# Chân dung có mốc bố cục ĐỘC LẬP với chiều cao panel. Nếu sau này
+			# đổi độ cao hộp thoại, khuôn mặt không bị trôi lên/xuống theo.
+			# Giá trị 0.20 / 150 / 196 là mốc của bố cục v0.6 đã được duyệt.
+			var portrait_reference_panel_height := clampf(_layout_size.y * 0.20, 150.0, 196.0)
+			_portrait_target_position = _snapv(Vector2(
 				_layout_size.x * 0.5 - display_width - portrait_center_x_offset * scale,
-				panel.position.y - display_height + portrait_panel_overlap * scale + portrait_vertical_offset * scale
-			)
+				-portrait_reference_panel_height - float(box_distance) - display_height
+					+ portrait_panel_overlap * scale + portrait_vertical_offset * scale
+			))
 			portrait.position = _portrait_target_position
 			if display_bust:
 				# Chừa phần có thể chứa tóc, kể cả khi alpha của ảnh trải rộng.
 				text_right = minf(text_right, _portrait_target_position.x - portrait_text_gap * scale)
 
 	var text_left: float = float(_get_text_left_margin(panel))
-	# Bust lớn hơn nên không được áp ngưỡng 36% cũ: nó sẽ tự ẩn Hyou
-	# ở 1600x900! Luôn chừa tối thiểu ~30% bề ngang cho chữ.
-	if display_bust and text_right - (panel.position.x + text_left) < panel.size.x * 0.30:
+	# Không ép phần chữ tiếng Việt thành một cột quá hẹp ở viewport cao.
+	# Portrait sẽ ẩn khi không còn tối thiểu 400px hoặc 34% bề ngang đọc.
+	if display_bust and text_right - (panel.position.x + text_left) < maxf(400.0, panel.size.x * 0.34):
 		portrait.visible = false
 		text_right = panel.position.x + panel.size.x - content_right_margin
 	_available_text_right = text_right
 
 	# Khi đổi người nói, biên đọc có thể thay đổi: cập nhật đường kẻ ngay.
 	var top_rule: ColorRect = %TopRule
-	top_rule.size.x = maxf(0.0, text_right - top_rule.position.x)
+	top_rule.size.x = _snapf(maxf(0.0, text_right - top_rule.position.x))
 	var accent_rule: ColorRect = %AccentRule
-	accent_rule.size.x = maxf(0.0, text_right - accent_rule.position.x - 8.0)
+	accent_rule.size.x = _snapf(maxf(0.0, text_right - accent_rule.position.x - 8.0))
 	_update_rule_end(scale)
 
 	var margin: MarginContainer = panel.get_node("ContentMargin")
 	margin.add_theme_constant_override(&"margin_left", int(round(text_left)))
 	margin.add_theme_constant_override(&"margin_right", int(round(panel.position.x + panel.size.x - text_right)))
 	# Phương thức này còn được gọi khi người nói đổi, không chỉ khi resize.
-	%NextIndicator.position.x = text_right - 24.0 * scale
+	%NextIndicator.position.x = _snapf(text_right - 24.0 * scale)
 
 
 ## Điểm cuối nhỏ của đường chỉ, cùng ngôn ngữ hình thoi với nameplate.
@@ -494,13 +501,21 @@ func _update_rule_end(scale: float) -> void:
 	end.size = Vector2(square, square)
 	end.pivot_offset = end.size * 0.5
 	end.rotation = PI / 4.0
-	end.position = Vector2(rule.position.x + rule.size.x + 3.0, rule.position.y - square * 0.5)
-	end.visible = %NamePlate.visible and rule.size.x > 12.0
+	end.position = _snapv(Vector2(rule.position.x + rule.size.x + 3.0, rule.position.y - square * 0.5))
+	end.visible = false  # Không dùng đồ trang trí xanh băng ở base neutral.
+
+
+func _snapf(value: float) -> float:
+	return roundf(value)
+
+
+func _snapv(value: Vector2) -> Vector2:
+	return value.round()
 
 
 func _get_text_left_margin(panel: PanelContainer) -> int:
 	# Theo base grid, giữ lề tương xứng giữa 720p và 900p.
-	return maxi(content_left_margin, roundi(panel.size.x * 0.095))
+	return maxi(content_left_margin, roundi(panel.size.x * 0.055))
 
 
 func _is_reduced_motion_enabled() -> bool:
