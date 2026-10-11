@@ -7,9 +7,9 @@ extends "res://addons/dialogic/Modules/DefaultLayoutParts/Layer_VN_Choices/vn_ch
 @export var side_layout_min_width: float = 0.0
 @export var side_layout_min_aspect: float = 1.35
 
-@export var centered_width_ratio: float = 0.285
+@export var centered_width_ratio: float = 0.32
 @export var centered_min_width: float = 300.0
-@export var centered_max_width: float = 456.0
+@export var centered_max_width: float = 560.0
 @export var side_width: float = 460.0
 @export var centered_x_offset: float = 0.0
 @export var side_x_offset: float = 0.0
@@ -21,7 +21,7 @@ extends "res://addons/dialogic/Modules/DefaultLayoutParts/Layer_VN_Choices/vn_ch
 @export var textbox_min_height: float = 148.0
 @export var textbox_max_height: float = 188.0
 @export var textbox_bottom_distance: float = 10.0
-@export var gap_above_textbox: float = 46.0
+@export var gap_above_textbox: float = 54.0
 @export var screen_side_margin: float = 24.0
 @export var textbox_width_ratio: float = 1.0
 @export var textbox_min_width: float = 0.0
@@ -37,6 +37,7 @@ var _marker_active: Texture2D = null
 var _shell_padding := 0.0
 
 const PIXEL_GRID := 2.0
+const PIXEL_FRAME := preload("res://scenes/ui/dialog/jrpg_pixel_frame.gd")
 
 func _snapf(value: float, grid: float = PIXEL_GRID) -> float:
 	return roundf(value / grid) * grid
@@ -162,11 +163,27 @@ func _apply_responsive_layout() -> void:
 
 
 func _style_buttons() -> void:
-	if not has_node("ChoiceScroll/Choices"):
+	if not is_inside_tree() or not has_node("ChoiceScroll/Choices"):
 		return
+	var viewport := get_viewport()
+	var viewport_height := 720.0
+	if viewport != null:
+		var vp_rect := viewport.get_visible_rect()
+		if vp_rect.size.y > 0.0:
+			viewport_height = vp_rect.size.y
 	_ensure_choice_markers()
+	var ui_scale := clampf(viewport_height / 720.0, 0.62, 1.6)
+	var styles := {
+		&"normal": load("res://scenes/ui/dialog/jrpg_choice_normal.tres"),
+		&"hover": load("res://scenes/ui/dialog/jrpg_choice_hover.tres"),
+		&"focus": load("res://scenes/ui/dialog/jrpg_choice_focus.tres"),
+		&"pressed": load("res://scenes/ui/dialog/jrpg_choice_focus.tres"),
+	}
+	%Choices.add_theme_constant_override(&"separation", roundi(6.0 * ui_scale))
 	for child in %Choices.get_children():
 		if child is Button:
+			PIXEL_FRAME.apply_button(child, styles, 2.0 * ui_scale)
+			child.add_theme_font_size_override(&"font_size", roundi(19.0 * ui_scale))
 			child.alignment = HORIZONTAL_ALIGNMENT_LEFT
 			child.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			child.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING

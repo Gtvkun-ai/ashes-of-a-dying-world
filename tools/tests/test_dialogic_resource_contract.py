@@ -69,11 +69,10 @@ def test_dialogic_choices_wrap_scroll_and_expand_past_legacy_width():
     style = read('scenes/ui/dialog/jrpg_style.tres')
     smoke = read('tools/validation/_dialogic_layout_smoke_test.gd')
 
-    assert 'centered_max_width: float = 520.0' in layer
-    assert 'choices_max_height: float = 360.0' in layer
+    assert 'centered_max_width: float = 560.0' in layer
+    assert 'choices_max_height: float = 330.0' in layer
     assert 'right_reserved_min: float = 0.0' in layer
     assert 'right_reserved_max: float = 0.0' in layer
-    assert 'hud_safe_right' in layer
     assert 'TextServer.AUTOWRAP_WORD_SMART' in layer
     assert 'TextServer.OVERRUN_NO_TRIMMING' in layer
     assert 'clip_text = false' in layer
@@ -83,9 +82,9 @@ def test_dialogic_choices_wrap_scroll_and_expand_past_legacy_width():
     assert 'vertical_scroll_mode = 1' in scene
     assert 'size_flags_vertical = 3' in scene
     assert 'alignment = 2' in scene
-    assert 'BoxContainer.ALIGNMENT_END' in layer
-    assert '"centered_max_width": "520.0"' in style
-    assert '"choices_max_height": "360.0"' in style
+    assert 'BoxContainer.ALIGNMENT_BEGIN' in layer
+    assert '"centered_max_width": "560.0"' in style
+    assert '"choices_max_height": "330.0"' in style
     assert '"right_reserved_min": "0.0"' in style
     assert '"right_reserved_max": "0.0"' in style
     assert 'Sáu lựa chọn tiếng Việt rất dài' in smoke
@@ -96,15 +95,16 @@ def test_dialogic_choices_wrap_scroll_and_expand_past_legacy_width():
     assert 'Single choice is not aligned near the textbox' in smoke
 
 
-def test_dialogic_focus_style_is_structurally_distinct_from_hover():
-    hover = read('scenes/ui/dialog/jrpg_choice_hover.tres')
+def test_dialogic_choice_styles_and_pixel_frames():
+    normal = read('scenes/ui/dialog/jrpg_choice_normal.tres')
     focus = read('scenes/ui/dialog/jrpg_choice_focus.tres')
+    layer = read('scenes/ui/dialog/jrpg_choice_layer.gd')
 
-    assert focus != hover
-    assert 'border_width_top = 1' in focus
-    assert 'border_width_right = 1' in focus
-    assert 'border_width_left = 4' in focus
-    assert 'border_width_left = 2' not in focus
+    assert 'choice_idle.png' in normal
+    assert 'choice_selected.png' in focus
+    assert 'PIXEL_FRAME.apply_button' in layer
+    assert '_ensure_choice_markers' in layer
+    assert 'choice_cursor.png' in layer
 
 
 def test_dialogic_reduced_motion_uses_runtime_settings_and_disables_owned_motion():
@@ -122,41 +122,38 @@ def test_dialogic_reduced_motion_uses_runtime_settings_and_disables_owned_motion
     assert 'Reduced motion did not disable the next-indicator blink' in smoke
 
 
-def test_cinematic_dialogue_has_two_portrait_layers_without_new_artwork():
+def test_storybook_dialogue_uses_pixel_frame_and_neutral_theme():
     scene = read('scenes/ui/dialog/jrpg_textbox.tscn')
     logic = read('scenes/ui/dialog/jrpg_textbox_layer.gd')
-    style = read('scenes/ui/dialog/jrpg_style.tres')
     panel = read('scenes/ui/dialog/jrpg_main_panel.tres')
+    nameplate = read('scenes/ui/dialog/jrpg_name_panel.tres')
 
     assert '[node name="SpeakerPortrait" type="TextureRect"' in scene
-    assert '[node name="MiniPortrait" type="TextureRect"' in scene
-    assert '[node name="MiniPortraitHalo" type="Panel"' in scene
-    assert '[node name="TopRule" type="ColorRect"' in scene
-    assert 'show_mini_portrait: bool = true' in logic
-    assert '_get_mini_portrait_texture' in logic
-    assert 'icon_" + portrait_key + ".png"' in logic
-    assert 'character_portrait_changed.connect(_on_portrait_changed)' in logic
-    assert 'text_started.connect(_on_text_started)' in logic
-    assert 'Color(0.015, 0.025, 0.045, 0.075)' in style
-    assert 'cinematic_glass.png' in panel
-    assert (ROOT / 'assets/graphics/ui/dialog/map_dialog/cinematic_glass.png').is_file()
+    assert '[node name="DialogTextPanel" type="PanelContainer"' in scene
+    assert '[node name="NamePlate" type="PanelContainer"' in scene
+    assert 'PIXEL_FRAME.apply(panel' in logic
+    assert 'PIXEL_FRAME.apply(name_plate' in logic
+    assert 'dialog_frame.png' in panel
+    assert 'nameplate.png' in nameplate
+    assert (ROOT / 'assets/graphics/ui/dialog/storybook_neutral/dialog_frame.png').is_file()
+    assert (ROOT / 'assets/graphics/ui/dialog/storybook_neutral/nameplate.png').is_file()
     assert (ROOT / 'assets/graphics/characters/hyou/neutral_dial.png').is_file()
-    assert (ROOT / 'assets/graphics/characters/hyou/icon.png').is_file()
 
 
-def test_cinematic_dialogue_style_and_scene_keep_matching_layout_settings():
+def test_storybook_dialogue_style_and_scene_keep_matching_layout_settings():
     scene = read('scenes/ui/dialog/jrpg_textbox.tscn')
     style = read('scenes/ui/dialog/jrpg_style.tres')
     logic = read('scenes/ui/dialog/jrpg_textbox_layer.gd')
     for key, value in (
-        ('box_width_ratio', '1.0'),
-        ('box_height_ratio', '0.267'),
-        ('box_min_height', '150.0'),
-        ('box_max_height', '280.0'),
-        ('portrait_size', 'Vector2(790, 650)'),
+        ('box_width_ratio', '0.77'),
+        ('box_height_ratio', '0.175'),
+        ('box_min_height', '148.0'),
+        ('box_max_height', '188.0'),
+        ('name_plate_offset', 'Vector2(-16, -34)'),
+        ('name_plate_size', 'Vector2(220, 48)'),
+        ('portrait_size', 'Vector2(930, 825)'),
     ):
         assert f'{key} = {value}' in scene
         assert f'"{key}": "{value}"' in style
-    assert 'margin.add_theme_constant_override(&"margin_left", int(round(left_padding)))' in logic
-    assert 'mini.visible = can_show' in logic
-    assert 'panel.size.x >= 850.0' in logic
+    assert 'dialog_text.add_theme_font_size_override(&"normal_font_size", scaled_text_size)' in logic
+    assert 'name_label.add_theme_font_size_override(&"font_size", roundi(name_label_custom_size * portrait_scale))' in logic

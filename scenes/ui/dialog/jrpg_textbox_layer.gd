@@ -36,8 +36,8 @@ extends DialogicLayoutLayer
 @export var name_label_use_global_size: bool = false
 @export var name_label_custom_size: int = 20
 ## Vị trí tên được tính từ lề trái và cạnh TRÊN textbox.
-@export var name_plate_offset: Vector2 = Vector2(-8, -26)
-@export var name_plate_size: Vector2 = Vector2(184, 36)
+@export var name_plate_offset: Vector2 = Vector2(-16, -34)
+@export var name_plate_size: Vector2 = Vector2(220, 48)
 
 # ── Portrait ───────────────────────────────────────────────────────────
 @export_group("Portrait")
@@ -66,6 +66,7 @@ extends DialogicLayoutLayer
 @export var portrait_entry_offset: float = 12.0
 
 const REGULAR_FONT_PATH := "res://assets/fonts/BeVietnamPro-Regular.ttf"
+const PIXEL_FRAME := preload("res://scenes/ui/dialog/jrpg_pixel_frame.gd")
 const SEMIBOLD_FONT_PATH := "res://assets/fonts/BeVietnamPro-SemiBold.ttf"
 const ITALIC_FONT_PATH := "res://assets/fonts/BeVietnamPro-Italic.ttf"
 const SEMIBOLD_ITALIC_FONT_PATH := "res://assets/fonts/BeVietnamPro-SemiBoldItalic.ttf"
@@ -115,11 +116,11 @@ func _apply_export_overrides() -> void:
 	panel.position = _snapv(Vector2(-viewport_size.x * 0.5 + maxf(24.0, viewport_size.x * 0.043), -panel_height - box_distance))
 	panel.size = effective_box_size
 	panel.z_index = 4
+	var portrait_scale: float = clampf(viewport_size.y / 720.0, 0.62, 1.6)
 	if not box_panel.is_empty() and ResourceLoader.exists(box_panel):
-		panel.add_theme_stylebox_override(&"panel", load(box_panel))
+		PIXEL_FRAME.apply(panel, &"panel", load(box_panel), 2.0 * portrait_scale)
 
 	# Bust tính theo kích thước texture thật (đã crop); mọi trường hợp neo MÉP PHẢI.
-	var portrait_scale: float = clampf(viewport_size.y / 720.0, 0.62, 1.6)
 	_update_portrait_and_text_area(panel, portrait_scale)
 
 	# Đường chỉ mảnh bắt đầu đúng tại lane đọc, không trải dài vô nghĩa toàn panel.
@@ -137,14 +138,12 @@ func _apply_export_overrides() -> void:
 	))
 	name_plate.size = _snapv(name_plate_size * portrait_scale)
 	name_plate.z_index = 7
+	PIXEL_FRAME.apply(name_plate, &"panel", load("res://scenes/ui/dialog/jrpg_name_panel.tres"), 2.0 * portrait_scale)
 
-	# Dấu băng bên trái tên: vừa mang nhận diện, vừa chỉ vị trí bắt đầu đọc.
-	var name_gem: ColorRect = %NameGem
-	name_gem.position = _snapv(name_plate.position + Vector2(8.0 * portrait_scale, 12.0 * portrait_scale))
-	name_gem.size = _snapv(Vector2(8.0, 8.0) * portrait_scale)
-	name_gem.pivot_offset = name_gem.size * 0.5
-	name_gem.rotation = PI / 4.0
-	name_gem.visible = name_plate.visible  # Dấu ký ức trung tính; không dùng biểu tượng băng.
+	# Hoa văn pixel đã được vẽ sẵn trên nameplate.png.
+	# Không đặt thêm dấu cộng ColorRect lên lớp texture: hai họa tiết
+	# trùng vị trí sẽ che nhau, nhất là ở tỷ lệ 720p/900p.
+	%NameGem.visible = false
 
 	var accent_rule: ColorRect = %AccentRule
 	var line_start: float = _snapf(name_plate.position.x + name_plate.size.x + 12.0 * portrait_scale)
@@ -178,16 +177,17 @@ func _apply_export_overrides() -> void:
 		dialog_text.add_theme_font_override(&"bold_font", semibold_font)
 		dialog_text.add_theme_font_override(&"italics_font", italic_font)
 		dialog_text.add_theme_font_override(&"bold_italics_font", semibold_italic_font)
-	dialog_text.add_theme_font_size_override(&"normal_font_size", text_custom_size)
-	dialog_text.add_theme_font_size_override(&"bold_font_size", text_custom_size)
-	dialog_text.add_theme_font_size_override(&"italics_font_size", text_custom_size)
-	dialog_text.add_theme_font_size_override(&"bold_italics_font_size", text_custom_size)
+	var scaled_text_size := roundi(text_custom_size * portrait_scale)
+	dialog_text.add_theme_font_size_override(&"normal_font_size", scaled_text_size)
+	dialog_text.add_theme_font_size_override(&"bold_font_size", scaled_text_size)
+	dialog_text.add_theme_font_size_override(&"italics_font_size", scaled_text_size)
+	dialog_text.add_theme_font_size_override(&"bold_italics_font_size", scaled_text_size)
 	dialog_text.add_theme_color_override(&"default_color", text_custom_color)
 
 	var name_label: DialogicNode_NameLabel = %DialogicNode_NameLabel
 	if semibold_font:
 		name_label.add_theme_font_override(&"font", semibold_font)
-	name_label.add_theme_font_size_override(&"font_size", name_label_custom_size)
+	name_label.add_theme_font_size_override(&"font_size", roundi(name_label_custom_size * portrait_scale))
 	match name_label_color_mode:
 		0:
 			name_label.add_theme_color_override(&"font_color",
@@ -400,7 +400,7 @@ func _hide_character_portraits() -> void:
 func _show_character_portraits(character: DialogicCharacter, portrait_key: String) -> void:
 	_current_portrait_key = portrait_key
 	%NamePlate.visible = true
-	%NameGem.visible = true
+	%NameGem.visible = false  # Texture nameplate tự giữ hoa văn góc.
 	%RuleEnd.visible = false
 	var source: Texture2D = _get_character_portrait_texture(character, portrait_key)
 	var portrait_rect: TextureRect = %SpeakerPortrait
