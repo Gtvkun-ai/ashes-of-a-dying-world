@@ -79,6 +79,17 @@ var _current_portrait_key: String = ""
 var _current_character: DialogicCharacter = null
 var _layout_size: Vector2 = Vector2(1280, 720)
 var _available_text_right: float = 0.0
+var _custom_portrait_viewport: SubViewport = null
+var _custom_portrait: Node = null
+var _custom_portrait_character: DialogicCharacter = null
+var _custom_portrait_key := ""
+var _custom_portrait_scene := ""
+var _custom_portrait_allows_motion := true
+
+
+func _process(_delta: float) -> void:
+	if is_instance_valid(_custom_portrait_viewport):
+		_update_custom_portrait_activity()
 
 
 ## Dialogic gọi hàm này sau khi áp style overrides.
@@ -386,6 +397,7 @@ func _on_portrait_changed(info: Dictionary) -> void:
 
 func _hide_character_portraits() -> void:
 	%SpeakerPortrait.texture = null
+	_clear_custom_portrait()
 	%SpeakerPortrait.visible = false
 	%MiniPortrait.visible = false  # Node cũ giữ lại để scene Dialogic không mất NodePath.
 	%MiniPortraitHalo.visible = false
@@ -402,7 +414,9 @@ func _show_character_portraits(character: DialogicCharacter, portrait_key: Strin
 	%NamePlate.visible = true
 	%NameGem.visible = false  # Texture nameplate tự giữ hoa văn góc.
 	%RuleEnd.visible = false
-	var source: Texture2D = _get_character_portrait_texture(character, portrait_key)
+	var source: Texture2D = _get_custom_portrait_texture(character, portrait_key)
+	if source == null:
+		source = _get_character_portrait_texture(character, portrait_key)
 	var portrait_rect: TextureRect = %SpeakerPortrait
 	if source == null:
 		portrait_rect.texture = null
@@ -491,6 +505,105 @@ func _update_portrait_and_text_area(panel: PanelContainer, scale: float) -> void
 	margin.add_theme_constant_override(&"margin_right", int(round(panel.position.x + panel.size.x - text_right)))
 	# Phương thức này còn được gọi khi người nói đổi, không chỉ khi resize.
 	%NextIndicator.position.x = _snapf(text_right - 24.0 * scale)
+	_update_custom_portrait_activity()
+
+
+## Render custom Dialogic scenes into the same source texture lane as PNGs.
+## A separate 2D world keeps absolute layer z-indices behind the textbox panel.
+func _get_custom_portrait_texture(character: DialogicCharacter, portrait_key: String) -> Texture2D:
+	var key := portrait_key if not portrait_key.is_empty() else character.default_portrait
+	if not character.portraits.has(key) and not character.portraits.is_empty():
+		key = str(character.portraits.keys()[0])
+	var data: Variant = character.portraits.get(key, {})
+	var scene_path := str(data.get("scene", "")) if data is Dictionary else ""
+	if scene_path.is_empty() \
+		or scene_path == "res://addons/dialogic/Modules/Character/default_portrait.tscn" \
+		or not ResourceLoader.exists(scene_path, "PackedScene"):
+		_clear_custom_portrait()
+		return null
+
+	# Text/speaker signals can repeat on every line; do not restart a live idle.
+	if is_instance_valid(_custom_portrait_viewport) \
+		and _custom_portrait_character == character \
+		and _custom_portrait_key == key and _custom_portrait_scene == scene_path:
+		_custom_portrait.call("_set_mirror", character.mirror)
+		return _custom_portrait_viewport.get_texture()
+
+	_clear_custom_portrait()
+	var packed := load(scene_path) as PackedScene
+	if packed == null:
+		return null
+	var custom: Node = packed.instantiate()
+	if not custom is DialogicPortrait or not (custom is Node2D or custom is Control):
+		custom.free()
+		return null
+	_apply_custom_portrait_overrides(custom, data.get("export_overrides", {}))
+	custom.call("_update_portrait", character, key)
+	custom.call("_set_mirror", character.mirror)
+	var viewport := SubViewport.new()
+	viewport.name = "SpeakerPortraitViewport"
+	viewport.transparent_bg = true
+	viewport.disable_3d = true
+	viewport.world_2d = World2D.new()
+	viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	add_child(viewport)
+	viewport.add_child(custom)
+	var covered: Rect2 = custom.call("_get_covered_rect")
+	if covered.size.x <= 0.0 or covered.size.y <= 0.0 or not covered.size.is_finite():
+		remove_child(viewport)
+		viewport.queue_free()
+		return null
+	viewport.size = Vector2i(ceilf(covered.size.x), ceilf(covered.size.y))
+	custom.set("position", -covered.position)
+	_custom_portrait_viewport = viewport
+	_custom_portrait = custom
+	_custom_portrait_character = character
+	_custom_portrait_key = key
+	_custom_portrait_scene = scene_path
+	_custom_portrait_allows_motion = bool(custom.get("motion_enabled")) if "motion_enabled" in custom else true
+	return viewport.get_texture()
+
+
+func _apply_custom_portrait_overrides(custom: Node, overrides: Variant) -> void:
+	if not overrides is Dictionary:
+		return
+	# Dialogic stores serialized Variant strings; also accept runtime Variants.
+	for property: Dictionary in custom.get_property_list():
+		var key: StringName = property["name"]
+		if not (int(property["usage"]) & PROPERTY_USAGE_EDITOR) or not overrides.has(key):
+			continue
+		var value: Variant = overrides[key]
+		if value is String:
+			var parsed: Variant = str_to_var(value)
+			if parsed != null or typeof(custom.get(key)) != TYPE_STRING:
+				value = parsed
+		custom.set(key, value)
+	if custom.has_method("apply_export_overrides"):
+		custom.call("apply_export_overrides")
+
+
+func _update_custom_portrait_activity() -> void:
+	if not is_instance_valid(_custom_portrait_viewport):
+		return
+	var visible_now: bool = %SpeakerPortrait.is_visible_in_tree()
+	_custom_portrait_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS if visible_now else SubViewport.UPDATE_DISABLED
+	_custom_portrait.process_mode = Node.PROCESS_MODE_INHERIT if visible_now else Node.PROCESS_MODE_DISABLED
+	if "motion_enabled" in _custom_portrait:
+		var enabled := _custom_portrait_allows_motion and not _is_reduced_motion_enabled()
+		if bool(_custom_portrait.get("motion_enabled")) != enabled:
+			_custom_portrait.set("motion_enabled", enabled)
+
+
+func _clear_custom_portrait() -> void:
+	if is_instance_valid(_custom_portrait_viewport):
+		_custom_portrait_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
+		remove_child(_custom_portrait_viewport)
+		_custom_portrait_viewport.queue_free()
+	_custom_portrait_viewport = null
+	_custom_portrait = null
+	_custom_portrait_character = null
+	_custom_portrait_key = ""
+	_custom_portrait_scene = ""
 
 
 ## Điểm cuối nhỏ của đường chỉ, cùng ngôn ngữ hình thoi với nameplate.

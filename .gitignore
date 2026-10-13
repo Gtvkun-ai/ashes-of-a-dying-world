@@ -3,3 +3,8 @@
 /android/
 /ashes-of-a-dying-world.zip
 /.worktrees/
+
+# Python caches
+__pycache__/
+*.pyc
+.pytest_cache/

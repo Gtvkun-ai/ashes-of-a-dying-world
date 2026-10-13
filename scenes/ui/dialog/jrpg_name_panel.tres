@@ -1,17 +1,14 @@
-[gd_resource type="StyleBoxTexture" format=3]
+[gd_resource type="StyleBoxTexture" format=3 uid="uid://bys3kolma1feb"]
 
-[ext_resource type="Texture2D" path="res://assets/graphics/ui/dialog/storybook_neutral/nameplate.png" id="1_tex"]
+[ext_resource type="Texture2D" uid="uid://by865tscjua7x" path="res://assets/graphics/ui/dialog/storybook_neutral/nameplate.png" id="1_tex"]
 
 [resource]
+content_margin_left = 22.0
+content_margin_top = 2.0
+content_margin_right = 12.0
+content_margin_bottom = 2.0
 texture = ExtResource("1_tex")
 texture_margin_left = 22.0
 texture_margin_top = 10.0
 texture_margin_right = 22.0
 texture_margin_bottom = 10.0
-axis_stretch_horizontal = 0
-axis_stretch_vertical = 0
-draw_center = true
-content_margin_left = 22.0
-content_margin_top = 2.0
-content_margin_right = 12.0
-content_margin_bottom = 2.0

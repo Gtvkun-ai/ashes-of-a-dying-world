@@ -20,7 +20,7 @@
 "neutral": {
 "image": "res://assets/graphics/characters/hyou/neutral_dial.png",
 "offset": Vector2(0, 0),
-"scene": "res://addons/dialogic/Modules/Character/default_portrait.tscn"
+"scene": "res://scenes/ui/dialog/hyou_rig/hyou_dialogue_idle.tscn"
 }
 },
 &"scale": 1.0
