@@ -56,15 +56,17 @@ namespace AshesofaDyingWorld.Entities.NPC
         {
             if (!IsAlive)
             {
+                ResetShiftCombatInput();
                 return;
             }
 
             if (UsePlayerInput)
             {
-                UpdateManualInput();
+                UpdateManualInput(delta);
                 return;
             }
 
+            ResetShiftCombatInput();
             if (CommandMode == CompanionCommandMode.Stay)
             {
                 StopMoveInput();
@@ -98,6 +100,9 @@ namespace AshesofaDyingWorld.Entities.NPC
             }
 
             UsePlayerInput = controlled;
+            ResetShiftCombatInput();
+            CancelDash();
+            Actions?.SetLightAttackAim(Vector2.Zero);
             StopMoveInput();
             SetBlocking(false);
             RefreshAutonomyState();
@@ -124,17 +129,26 @@ namespace AshesofaDyingWorld.Entities.NPC
             EmitSignal(SignalName.CommandModeChanged, (int)mode);
         }
 
-        private void UpdateManualInput()
+        private void UpdateManualInput(float delta)
         {
+            if (AshesofaDyingWorld.World.Interaction.DialogicBridge.IsDialogActive())
+            {
+                StopMoveInput();
+                SetBlocking(false);
+                ResetShiftCombatInput();
+                return;
+            }
+
             bool wantsBlock = Input.IsKeyPressed(Key.X)
                 || (InputMap.HasAction("block") && Input.IsActionPressed("block"));
-            SetBlocking(wantsBlock);
+            SetBlocking(wantsBlock && !IsDashing);
 
             Vector2 inputDirection = Input.GetVector("ui_left", "ui_right", "ui_up", "ui_down");
-            bool wantsRun = Input.IsKeyPressed(Key.Shift)
+            bool wantsRun = ReadShiftCombatInput(delta, inputDirection)
                 || (InputMap.HasAction("run") && Input.IsActionPressed("run"));
             SetMoveInput(inputDirection, wantsRun);
-
+            Actions?.SetLightAttackAim(CombatManualAimAssist.Resolve(
+                this, inputDirection, AutoAimMeleeRadius, AutoAimMeleeHalfConeDegrees));
             if (InputMap.HasAction("attack") && Input.IsActionJustPressed("attack"))
             {
                 RequestAttack();
@@ -152,7 +166,8 @@ namespace AshesofaDyingWorld.Entities.NPC
                 var skill = collection?.GetEquippedSkill(slot);
                 if (skill != null)
                 {
-                    Vector2 assistedAim = ResolveManualAimAssist(FacingDirection);
+                    Vector2 assistedAim = ResolveManualAimAssist(
+                        inputDirection.LengthSquared() > 0.001f ? inputDirection : FacingDirection);
                     Abilities?.TryActivate(skill, assistedAim);
                 }
             }
@@ -161,6 +176,16 @@ namespace AshesofaDyingWorld.Entities.NPC
 
         private Vector2 ResolveManualAimAssist(Vector2 requestedDirection)
         {
+            // RMB ưu tiên aim chuột thủ công cho cả Ice Bolt/Ice Lance khi điều khiển Hyou.
+            if (Input.IsMouseButtonPressed(MouseButton.Right))
+            {
+                Vector2 mouse = GetGlobalMousePosition() - CombatCenter;
+                if (mouse.LengthSquared() > 144f)
+                {
+                    return mouse.Normalized();
+                }
+            }
+
             Vector2 baseDirection = requestedDirection.LengthSquared() > 0.001f
                 ? requestedDirection.Normalized()
                 : Vector2.Down;

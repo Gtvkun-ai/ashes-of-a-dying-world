@@ -81,6 +81,13 @@ namespace AshesofaDyingWorld.Combat.Runtime
                 return false;
             }
 
+            // Không cho cast action khi motor dash còn active; timed buff/heal vẫn được
+            // dùng nếu luật riêng của skill cho phép.
+            if (_owner.IsDashing && skill.ExecutionType == SkillExecutionType.CombatAction)
+            {
+                return false;
+            }
+
             if (GetCooldownRemaining(skill) > 0f)
             {
                 return false;

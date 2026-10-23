@@ -55,6 +55,9 @@
 [ext_resource type="Script" uid="uid://bq4w6g7gx0j2a" path="res://scripts/World/Navigation/WorldNavigationGrid2D.cs" id="62_world_grid"]
 [ext_resource type="Resource" uid="uid://b568qf46gx5ws" path="res://scenes/world/whispering_fields/field_01.navigation_grid.tres" id="63_world_grid_data"]
 
+[ext_resource type="Script" path="res://scripts/World/Objects/SpawnPoint.cs" id="64_spawnpoint"]
+[ext_resource type="Script" path="res://scripts/World/Transitions/SceneTrigger.cs" id="65_field_left_trigger"]
+
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ey7of"]
 texture = ExtResource("1_ey7of")
 0:0/0 = 0
@@ -1079,6 +1082,9 @@ shader_parameter/green_tame = 0.105
 shader_parameter/vignette_strength = 0.028
 shader_parameter/cohesion_strength = 0.078
 shader_parameter/cohesion_tint = Color(0.935, 0.975, 0.865, 1)
+
+[sub_resource type="RectangleShape2D" id="Field02LeftExitShape"]
+size = Vector2(50, 148)
 
 [node name="Fields1" type="Node2D" unique_id=471014084]
 z_index = -10
@@ -2716,3 +2722,22 @@ offset_bottom = 9.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+
+; Chỉ bổ sung cổng qua FIELD 02 ở mép trái đường đất; giữ nguyên toàn bộ nội dung Field 01.
+[node name="Field02Transition" type="Node2D" parent="."]
+
+[node name="FromField02" type="Marker2D" parent="Field02Transition"]
+script = ExtResource("64_spawnpoint")
+position = Vector2(130, 1408)
+SpawnID = "from_field_02"
+
+[node name="ExitToField02" type="Area2D" parent="Field02Transition"]
+script = ExtResource("65_field_left_trigger")
+collision_layer = 0
+collision_mask = 1
+position = Vector2(18, 1408)
+ConnectedScene = "field_02"
+TargetSpawnID = "from_field_01"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Field02Transition/ExitToField02"]
+shape = SubResource("Field02LeftExitShape")

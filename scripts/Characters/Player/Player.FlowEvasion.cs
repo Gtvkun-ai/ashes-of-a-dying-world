@@ -132,7 +132,8 @@ public partial class Player
 
     private bool TryResolveDeepFlowEvasion(HitRequest request)
     {
-        if (!IsEligibleFlowHit(request))
+        // Dash đã có cửa sổ né riêng ở CombatCharacter.ReceiveHit; không reroll Deep Flow.
+        if (IsDashInvulnerable || !IsEligibleFlowHit(request))
         {
             return false;
         }

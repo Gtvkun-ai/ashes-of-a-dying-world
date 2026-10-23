@@ -52,6 +52,27 @@ namespace AshesofaDyingWorld.Combat.Actors
         [Export] public float ActionLungeMultiplier { get; set; } = 1f;
         [Export] public int StopFrameIndex { get; set; } = 0;
 
+        [ExportGroup("Combat Dash")]
+        // Chỉ nhân vật nhận input của người chơi mới gọi TryStartDash().
+        // Dash là vận tốc thật qua MoveAndSlide, tuyệt đối không teleport xuyên tường.
+        [Export] public float DashSpeed { get; set; } = 450f;
+        [Export] public float DashDurationSeconds { get; set; } = 0.15f;
+        [Export] public float DashCooldownSeconds { get; set; } = 0.72f;
+        [Export] public float DashStaminaCost { get; set; } = 17f;
+        [Export] public float DashInvulnerabilitySeconds { get; set; } = 0.12f;
+        // Shift nhấn rồi nhả nhanh mới né; giữ qua ngưỡng này thì chạy.
+        [Export(PropertyHint.Range, "0.10,0.35,0.01")]
+        public float ShiftTapMaxSeconds { get; set; } = 0.19f;
+        // Cho nối dash ngay sau frame chém cuối, không cho dash khi chỉ đi khám phá.
+        [Export(PropertyHint.Range, "0.0,0.3,0.01")]
+        public float AttackDashGraceSeconds { get; set; } = 0.14f;
+
+        [ExportGroup("Player Aim Assist")]
+        [Export] public bool AutoAimEnabled { get; set; } = true;
+        [Export] public float AutoAimMeleeRadius { get; set; } = 95f;
+        [Export(PropertyHint.Range, "10,85,1")]
+        public float AutoAimMeleeHalfConeDegrees { get; set; } = 69f;
+
         [ExportGroup("World Safety")]
         [Export] public bool KeepInsideLevelBounds { get; set; } = true;
         [Export] public float LevelBoundsInset { get; set; } = 18f;
@@ -70,6 +91,8 @@ namespace AshesofaDyingWorld.Combat.Actors
         public bool IsPerfectParryWindowActive => _parryWindowRemaining > 0f;
         public bool IsCounterAttackReady => _counterAttackWindowRemaining > 0f;
         public bool IsPerformingAttack => Actions?.IsRunning == true;
+        public bool IsDashing => _dashRemaining > 0f;
+        public bool IsDashInvulnerable => _dashRemaining > 0f && _dashInvulnerabilityRemaining > 0f;
         public Vector2 FacingDirection => DirectionToVector(_facingCardinal);
         public string FacingCardinal => _facingCardinal;
 
@@ -111,6 +134,17 @@ namespace AshesofaDyingWorld.Combat.Actors
         private bool _isExhausted;
         private Vector2 _locomotionVelocity;
         private Vector2 _externalVelocity;
+        private Vector2 _dashVelocity;
+        private float _dashRemaining;
+        private float _dashCooldownRemaining;
+        private float _dashInvulnerabilityRemaining;
+        private float _dashGhostRemaining;
+        private bool _dashAttackBuffered;
+        private bool _attackDashQueued;
+        private Vector2 _queuedDashDirection;
+        private float _attackDashGraceRemaining;
+        private bool _shiftWasDown;
+        private float _shiftDownSeconds;
         private string _facingCardinal = "down";
         private string _lastMoveAnimation = "go_down";
         private bool _wasMoving;
@@ -149,6 +183,7 @@ namespace AshesofaDyingWorld.Combat.Actors
             Actions = new CombatActionRunner(this, _body, _combatHitbox, StateMachine);
             Actions.ActionReleased += OnActionReleased;
             Actions.ActionEventTriggered += OnActionEventTriggered;
+            Actions.ActionFinished += OnCombatActionFinished;
             Abilities = new CombatAbilityRunner(this);
             Statuses = new CombatStatusController();
 
@@ -197,7 +232,11 @@ namespace AshesofaDyingWorld.Combat.Actors
             UpdateDefenseWindows(dt);
             UpdateControlSource(dt);
             StateMachine.Tick(dt);
+            _attackDashGraceRemaining = Mathf.Max(0f, _attackDashGraceRemaining - dt);
+            // ActionFinished callback mở cửa sổ nối dash, kể cả khi animation kết thúc
+            // ngoài nhịp PhysicsProcess; action bị hủy không được nhận grace window.
             Actions?.Update(dt);
+            ResolveQueuedAttackDash();
             SynchronizeBlocking();
             UpdateMovement(dt);
             UpdateAnimation();
@@ -241,6 +280,7 @@ namespace AshesofaDyingWorld.Combat.Actors
             {
                 Actions.ActionReleased -= OnActionReleased;
                 Actions.ActionEventTriggered -= OnActionEventTriggered;
+                Actions.ActionFinished -= OnCombatActionFinished;
             }
 
             Abilities?.Clear();
@@ -276,6 +316,156 @@ namespace AshesofaDyingWorld.Combat.Actors
         public void StopMoveInput()
         {
             SetMoveInput(Vector2.Zero, false, false);
+        }
+
+        /// <summary>
+        /// Chỉ đọc Shift cho nhân vật ĐANG được người chơi điều khiển.
+        /// Nhả trước ngưỡng -> xin dash trong combo; giữ qua ngưỡng -> chạy.
+        /// Không được dash ngay khi bấm Shift vì khi đó không thể biết người chơi muốn giữ để chạy.
+        /// </summary>
+        protected bool ReadShiftCombatInput(float delta, Vector2 direction)
+        {
+            bool down = Input.IsKeyPressed(Key.Shift);
+            if (down)
+            {
+                _shiftDownSeconds = _shiftWasDown
+                    ? _shiftDownSeconds + Mathf.Max(0f, delta)
+                    : 0f;
+            }
+            else if (_shiftWasDown)
+            {
+                if (_shiftDownSeconds < Mathf.Max(0.05f, ShiftTapMaxSeconds))
+                {
+                    RequestAttackDash(direction);
+                }
+                _shiftDownSeconds = 0f;
+            }
+
+            _shiftWasDown = down;
+            return down && _shiftDownSeconds >= Mathf.Max(0.05f, ShiftTapMaxSeconds);
+        }
+
+        // Chặn tình trạng nhả Shift sau khi đổi nhân vật/đóng thoại bị hiểu thành tap dash.
+        protected void ResetShiftCombatInput()
+        {
+            _shiftWasDown = false;
+            _shiftDownSeconds = 0f;
+            _attackDashQueued = false;
+        }
+
+        /// <summary>
+        /// Shift tap chỉ được nhận khi actor đang đánh (startup/active/recovery),
+        /// hoặc trong một khung rất ngắn vừa dứt đòn. Startup/active phải chờ recovery;
+        /// không hủy hitbox trước khi đòn chạm mục tiêu.
+        /// </summary>
+        public bool RequestAttackDash(Vector2 direction)
+        {
+            bool inAttack = Actions?.IsRunning == true && StateMachine?.IsAttackState == true;
+            if (!IsAlive || (!inAttack && _attackDashGraceRemaining <= 0f)
+                || IsDashing || Statuses?.IsFrozen == true
+                || StateMachine?.IsForcedState == true || _dashCooldownRemaining > 0f)
+            {
+                return false;
+            }
+
+            Vector2 safeDirection = direction.LengthSquared() > 0.001f
+                ? direction.Normalized()
+                : FacingDirection;
+            if (inAttack && StateMachine.Current != CombatStateId.AttackRecovery)
+            {
+                _queuedDashDirection = safeDirection;
+                _attackDashQueued = true;
+                return true;
+            }
+
+            return TryStartDash(safeDirection);
+        }
+
+        private void ResolveQueuedAttackDash()
+        {
+            if (!_attackDashQueued)
+            {
+                return;
+            }
+
+            bool inRecovery = Actions?.IsRunning == true
+                && StateMachine?.Current == CombatStateId.AttackRecovery;
+            bool justFinished = Actions?.IsRunning != true
+                && _attackDashGraceRemaining > 0f && StateMachine?.CanMove == true;
+            if (inRecovery || justFinished)
+            {
+                Vector2 direction = _queuedDashDirection;
+                _attackDashQueued = false;
+                TryStartDash(direction);
+            }
+            else if (Actions?.IsRunning != true || StateMachine?.IsForcedState == true
+                || Statuses?.IsFrozen == true)
+            {
+                _attackDashQueued = false;
+            }
+        }
+
+        /// <summary>
+        /// Dash có va chạm và stamina, chỉ khởi động trong attack recovery
+        /// hoặc ngay sau khi kết thúc animation tấn công (grace window).
+        /// </summary>
+        public bool TryStartDash(Vector2 direction)
+        {
+            bool canCancelRecovery = StateMachine?.Current == CombatStateId.AttackRecovery
+                && Actions?.IsRunning == true;
+            bool justFinishedAttack = StateMachine?.CanMove == true
+                && Actions?.IsRunning != true && _attackDashGraceRemaining > 0f;
+            if (!IsAlive || (!canCancelRecovery && !justFinishedAttack)
+                || Statuses?.IsFrozen == true || _dashRemaining > 0f
+                || _dashCooldownRemaining > 0f || _impactFreezeRemaining > 0f)
+            {
+                return false;
+            }
+
+            Vector2 safeDirection = direction.LengthSquared() > 0.001f
+                ? direction.Normalized()
+                : FacingDirection;
+            if (safeDirection.LengthSquared() < 0.001f)
+            {
+                return false;
+            }
+
+            if (Stats != null && !Stats.ConsumeStamina(Mathf.Max(0f, DashStaminaCost)))
+            {
+                return false;
+            }
+
+            if (canCancelRecovery)
+            {
+                // Không đụng active hitbox: chỉ cho recovery cancel khi đòn đã kết thúc.
+                Actions.Cancel();
+            }
+            ReleaseBlock();
+            _attackDashQueued = false;
+            _attackDashGraceRemaining = 0f;
+            _dashAttackBuffered = false;
+            _dashVelocity = safeDirection * Mathf.Max(1f, DashSpeed);
+            _dashRemaining = Mathf.Max(0.04f, DashDurationSeconds);
+            _dashCooldownRemaining = Mathf.Max(_dashRemaining, DashCooldownSeconds);
+            _dashInvulnerabilityRemaining = Mathf.Min(
+                _dashRemaining,
+                Mathf.Max(0f, DashInvulnerabilitySeconds));
+            _dashGhostRemaining = 0f;
+            _locomotionVelocity = Vector2.Zero;
+            FaceDirection(safeDirection);
+            SpawnDashAfterimage();
+            return true;
+        }
+
+        // Khi đổi nhân vật điều khiển, không giữ xung lực dash cũ.
+        public void CancelDash()
+        {
+            _attackDashQueued = false;
+            _attackDashGraceRemaining = 0f;
+            _dashRemaining = 0f;
+            _dashInvulnerabilityRemaining = 0f;
+            _dashVelocity = Vector2.Zero;
+            _dashAttackBuffered = false;
         }
 
         /// <summary>
@@ -342,6 +532,13 @@ namespace AshesofaDyingWorld.Combat.Actors
             if (!IsAlive || Statuses?.IsFrozen == true)
             {
                 return false;
+            }
+
+            if (IsDashing)
+            {
+                // Nhấn đánh khi đang lướt sẽ nối thành dash -> slash, không nuốt input.
+                _dashAttackBuffered = true;
+                return true;
             }
 
             bool counterReady = _counterAttackWindowRemaining > 0f;
@@ -468,6 +665,14 @@ namespace AshesofaDyingWorld.Combat.Actors
 
         public virtual HitResult ReceiveHit(HitRequest request)
         {
+            // Dash i-frame ngắn, chỉ tránh hit từ actor khác; true damage vẫn đi qua.
+            if (IsDashInvulnerable && request?.Target == this
+                && request.Attacker != null && request.Profile != null
+                && request.Profile.DamageType != DamageType.True)
+            {
+                return HitResult.Rejected(HitRejectionReason.Evaded);
+            }
+
             if (TryPerfectParry(request, out HitResult parryResult))
             {
                 return parryResult;
@@ -725,6 +930,16 @@ namespace AshesofaDyingWorld.Combat.Actors
             _isExhausted = false;
             _locomotionVelocity = Vector2.Zero;
             _externalVelocity = Vector2.Zero;
+            _dashVelocity = Vector2.Zero;
+            _dashRemaining = 0f;
+            _dashCooldownRemaining = 0f;
+            _dashInvulnerabilityRemaining = 0f;
+            _dashGhostRemaining = 0f;
+            _dashAttackBuffered = false;
+            _attackDashQueued = false;
+            _queuedDashDirection = Vector2.Zero;
+            _attackDashGraceRemaining = 0f;
+            ResetShiftCombatInput();
             Velocity = Vector2.Zero;
             Statuses?.Clear();
             _impactFreezeRemaining = 0f;
@@ -780,6 +995,16 @@ namespace AshesofaDyingWorld.Combat.Actors
             Vector2 direction)
         {
             CombatActionEventDispatcher.Dispatch(this, action, actionEvent, direction);
+        }
+
+        private void OnCombatActionFinished(CombatActionData action, bool completed)
+        {
+            // Event chính xác hơn việc đoán frame: chỉ một đòn HOÀN THÀNH mới mở grace,
+            // bị interrupt/trúng đòn/đổi người thì không tạo quyền dash miễn phí.
+            if (completed && IsAlive)
+            {
+                _attackDashGraceRemaining = Mathf.Max(0f, AttackDashGraceSeconds);
+            }
         }
 
         private void OnActionReleased(CombatActionData action, Vector2 direction)
@@ -909,6 +1134,38 @@ namespace AshesofaDyingWorld.Combat.Actors
 
         private void UpdateMovement(float delta)
         {
+            _dashCooldownRemaining = Mathf.Max(0f, _dashCooldownRemaining - delta);
+            _dashInvulnerabilityRemaining = Mathf.Max(0f, _dashInvulnerabilityRemaining - delta);
+            if (_dashRemaining > 0f)
+            {
+                if (StateMachine.IsForcedState || Statuses?.IsFrozen == true)
+                {
+                    CancelDash();
+                }
+                else
+                {
+                    _dashRemaining = Mathf.Max(0f, _dashRemaining - delta);
+                    if (_dashRemaining <= 0f && _dashAttackBuffered)
+                    {
+                        _dashAttackBuffered = false;
+                        RequestAttack();
+                    }
+                    _dashGhostRemaining -= delta;
+                    if (_dashGhostRemaining <= 0f)
+                    {
+                        SpawnDashAfterimage();
+                        _dashGhostRemaining = 0.045f;
+                    }
+
+                    // Dùng motor chung nên collision, mép map và slide đều được giữ nguyên.
+                    _isActuallyRunning = false;
+                    _locomotionVelocity = Vector2.Zero;
+                    _externalVelocity = Vector2.Zero;
+                    Velocity = _dashVelocity;
+                    return;
+                }
+            }
+
             bool hasInput = _moveCommand != Vector2.Zero;
             bool canRun = false;
             float actionMoveMultiplier = Actions?.IsRunning == true
@@ -971,6 +1228,55 @@ namespace AshesofaDyingWorld.Combat.Actors
 
             Vector2 actionVelocity = Actions?.MovementVelocity ?? Vector2.Zero;
             Velocity = _locomotionVelocity + actionVelocity + _externalVelocity;
+        }
+
+        /// <summary>
+        /// Dư ảnh ngắn dùng đúng texture/frame hiện có; không vẽ lại sprite hay sinh asset mới.
+        /// Node được gắn ở world cùng cấp actor, tồn tại ngắn và tự QueueFree.
+        /// </summary>
+        private void SpawnDashAfterimage()
+        {
+            if (_body?.SpriteFrames == null || GetParent() is not Node2D world)
+            {
+                return;
+            }
+
+            StringName animation = _body.Animation;
+            if (!_body.SpriteFrames.HasAnimation(animation))
+            {
+                return;
+            }
+
+            int frame = _body.Frame;
+            if (frame < 0 || frame >= _body.SpriteFrames.GetFrameCount(animation))
+            {
+                return;
+            }
+
+            Texture2D texture = _body.SpriteFrames.GetFrameTexture(animation, frame);
+            if (texture == null)
+            {
+                return;
+            }
+
+            var ghost = new Sprite2D
+            {
+                Name = "DashAfterimage",
+                Texture = texture,
+                Centered = _body.Centered,
+                Offset = _body.Offset,
+                FlipH = _body.FlipH,
+                FlipV = _body.FlipV,
+                TextureFilter = _body.TextureFilter,
+                Modulate = new Color(1f, 1f, 1f, 0.34f),
+                ZIndex = _body.ZIndex,
+                ShowBehindParent = false
+            };
+            world.AddChild(ghost);
+            ghost.GlobalTransform = _body.GlobalTransform;
+            Tween tween = ghost.CreateTween();
+            tween.TweenProperty(ghost, "modulate:a", 0f, 0.17f);
+            tween.TweenCallback(Callable.From(ghost.QueueFree));
         }
 
         private void UpdateLevelBoundsCache(float delta)
@@ -1197,16 +1503,27 @@ namespace AshesofaDyingWorld.Combat.Actors
                 return;
             }
 
-            bool moving = _locomotionVelocity.LengthSquared() > 1f;
+            // Dash phải chơi animation chạy, không lướt với một frame idle bất động.
+            bool moving = IsDashing || _locomotionVelocity.LengthSquared() > 1f;
             if (moving)
             {
                 // Khi backpedal/strafe, giữ animation theo hướng mặt thay vì hướng vận tốc.
                 // Nhờ vậy Hyou lùi khỏi slime mà không quay lưng rồi vẫn gây damage.
-                string direction = _preserveFacingWhileMoving
-                    ? _facingCardinal
-                    : ResolveEightDirection(_locomotionVelocity.Normalized());
-                bool running = _isActuallyRunning && !_preserveFacingWhileMoving;
+                string direction = IsDashing
+                    ? ResolveEightDirection(_dashVelocity.Normalized())
+                    : (_preserveFacingWhileMoving
+                        ? _facingCardinal
+                        : ResolveEightDirection(_locomotionVelocity.Normalized()));
+                bool running = IsDashing || (_isActuallyRunning && !_preserveFacingWhileMoving);
                 string animation = $"{(running ? "run" : "go")}_{direction}";
+                // Với sprite không có run chéo, fallback về go chéo rồi run cardinal.
+                if (!_body.SpriteFrames.HasAnimation(animation))
+                {
+                    string walk = $"go_{direction}";
+                    animation = _body.SpriteFrames.HasAnimation(walk)
+                        ? walk
+                        : $"go_{_facingCardinal}";
+                }
                 _lastMoveAnimation = animation;
                 if (_body.SpriteFrames.HasAnimation(animation)
                     && (_body.Animation.ToString() != animation || !_body.IsPlaying()))

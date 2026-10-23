@@ -36,6 +36,9 @@ namespace AshesofaDyingWorld.Combat.Runtime
         private Vector2 _actionFacing = Vector2.Down;
         private string _actionFacingCardinal = "down";
         private CombatCharacter _aimTarget;
+        // Player-controlled action có hướng aim 360°, nhưng animation vẫn dùng cardinal.
+        // Giá trị null bảo toàn hành vi của NPC AI và moveset cũ.
+        private Vector2? _lightAttackAim;
         private FallbackPhase _fallbackPhase;
         private float _fallbackRemaining;
         private float _actionElapsedSeconds;
@@ -92,6 +95,17 @@ namespace AshesofaDyingWorld.Combat.Runtime
             _hitbox = hitbox;
             _state = state;
             _baseBodySpeedScale = body?.SpeedScale ?? 1f;
+        }
+
+        /// <summary>
+        /// Hướng cho từng light attack/đòn combo. Gọi lại mỗi frame để combo kế tiếp
+        /// có thể đổi mục tiêu; không thay thế target lock của ability/projectile.
+        /// </summary>
+        public void SetLightAttackAim(Vector2 aimDirection)
+        {
+            _lightAttackAim = aimDirection.LengthSquared() > 0.001f
+                ? aimDirection.Normalized()
+                : null;
         }
 
         public bool RequestLightAttack()
@@ -265,7 +279,14 @@ namespace AshesofaDyingWorld.Combat.Runtime
         {
             WeaponMovesetData moveset = _owner.ActiveMoveset;
             CombatActionData action = moveset?.GetLightAction(comboIndex);
-            return TryStartResolvedAction(action, comboIndex, allowChain, null, null, 1f, 1f, 1f);
+            // Chỉ đổi facing khi action thực sự bắt đầu; không khiến người chơi
+            // nhìn giật liên tục khi di chuyển ngoài combat.
+            if (action != null && _lightAttackAim.HasValue)
+            {
+                _owner.FaceDirection(_lightAttackAim.Value);
+            }
+            return TryStartResolvedAction(
+                action, comboIndex, allowChain, _lightAttackAim, null, 1f, 1f, 1f);
         }
 
         private bool TryStartResolvedAction(

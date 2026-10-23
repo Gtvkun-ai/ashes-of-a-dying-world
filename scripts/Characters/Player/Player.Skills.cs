@@ -60,10 +60,10 @@ public partial class Player
         return GD.Load<SkillData>("res://data/combat/skills/hikaru_focus.tres");
     }
 
-    private void TryActivateSkillSlot(int slotIndex)
+    private void TryActivateSkillSlot(int slotIndex, Vector2 aimDirection)
     {
         SkillData skill = GetSkillFromSlot(slotIndex);
-        Abilities?.TryActivate(skill);
+        Abilities?.TryActivate(skill, aimDirection);
     }
 
     private SkillData GetSkillFromSlot(int index)

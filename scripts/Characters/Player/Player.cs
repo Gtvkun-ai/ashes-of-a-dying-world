@@ -1,6 +1,7 @@
 using Godot;
 using AshesofaDyingWorld.Combat.Actors;
 using AshesofaDyingWorld.Combat.Model;
+using AshesofaDyingWorld.Combat.Runtime;
 using AshesofaDyingWorld.Core.Data;
 using AshesofaDyingWorld.Core.Managers;
 using AshesofaDyingWorld.UI.HUD;
@@ -63,33 +64,46 @@ public partial class Player : CombatCharacter
         if (!IsAlive)
         {
             ResetFlowEvasionRuntime();
+            ResetShiftCombatInput();
+            CancelDash();
             return;
         }
 
         // Đóng băng toàn bộ input khi Dialogic dialog đang chạy.
         if (AshesofaDyingWorld.World.Interaction.DialogicBridge.IsDialogActive())
         {
+            StopMoveInput();
+            SetBlocking(false);
+            ResetShiftCombatInput();
             UpdateFlowEvasion(delta, Vector2.Zero);
             return;
         }
 
         if (!UsePlayerInput)
         {
+            // PartyFollowerBrain / AI có thể đang điều khiển Hikaru: không xóa lệnh
+            // movement của follower tại đây, chỉ dọn phần input chiến đấu thủ công.
+            ResetShiftCombatInput();
+            CancelDash();
+            Actions?.SetLightAttackAim(Vector2.Zero);
             UpdateFlowEvasion(delta, Vector2.Zero);
             return;
         }
 
         bool wantsBlock = Input.IsKeyPressed(Key.X)
             || (InputMap.HasAction("block") && Input.IsActionPressed("block"));
-        SetBlocking(wantsBlock);
+        SetBlocking(wantsBlock && !IsDashing);
 
         Vector2 inputDirection = Input.GetVector("ui_left", "ui_right", "ui_up", "ui_down");
         UpdateFlowEvasion(delta, inputDirection);
 
-        bool wantsRun = Input.IsKeyPressed(Key.Shift)
+        bool wantsRun = ReadShiftCombatInput(delta, inputDirection)
             || (InputMap.HasAction("run") && Input.IsActionPressed("run"));
         SetMoveInput(inputDirection, wantsRun);
 
+        // Hướng di chuyển là hướng đánh mặc định; hệ thống chỉ nắn về enemy trong nón trước mặt.
+        Actions?.SetLightAttackAim(CombatManualAimAssist.Resolve(
+            this, inputDirection, AutoAimMeleeRadius, AutoAimMeleeHalfConeDegrees));
         if (InputMap.HasAction("attack") && Input.IsActionJustPressed("attack"))
         {
             RequestAttack();
@@ -100,7 +114,7 @@ public partial class Player : CombatCharacter
             string actionName = SkillSlotActions[slot];
             if (InputMap.HasAction(actionName) && Input.IsActionJustPressed(actionName))
             {
-                TryActivateSkillSlot(slot);
+                TryActivateSkillSlot(slot, CombatManualAimAssist.Resolve(this, inputDirection, 250f, 42f));
             }
         }
     }
